@@ -1,0 +1,223 @@
+<div class="dashboard-wrapper">
+  <app-intern-sidenav></app-intern-sidenav>
+  <div class="dashboard-right">
+    <app-intern-topnav></app-intern-topnav>
+
+    <div class="dashboard-content">
+
+      <!-- DASHBOARD TITLE -->
+      <div class="dashboard-header">
+        <h2>Attendance</h2>
+        <div class="dashboard-divider"></div>
+
+        <!-- QR Code Button -->
+        <button class="qr-btn" (click)="openQRModal()">
+          <i class="fa fa-qrcode"></i> My QR Code
+        </button>
+      </div>
+
+      <!-- TOP CARDS -->
+      <div class="top-cards">
+        <!-- TOTAL HOURS -->
+        <div class="card progress-card">
+          <div class="progress-circle">
+            <div class="circle">
+              <span>100%</span>
+              <small>Completed</small>
+            </div>
+          </div>
+
+          <div class="progress-info">
+            <h4>Total Hours</h4>
+            <p>500 of 500 hours</p>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TODAY ATTENDANCE -->
+        <div class="card attendance-card">
+          <div class="attendance-icon">✔</div>
+          <div>
+            <h4>Present</h4>
+            <p>Today's Attendance</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Container -->
+      <div class="attendance-container">
+        <!-- Calendar Header -->
+        <div class="calendar-header">
+          <div class="calendar-nav">
+            <button (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
+            <h3>{{ monthName }} {{ year }}</h3>
+            <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
+          </div>
+
+          <!-- Attendance Reports Button -->
+          <button class="excel-btn" (click)="openReportsModal()">
+            <i class="fa fa-file-alt"></i> Attendance Reports
+          </button>
+        </div>
+
+        <!-- Calendar Days -->
+        <div class="calendar-days">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
+          <div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="day"
+               *ngFor="let day of days"
+               (click)="openAttendance(day)"
+               [class.present-day]="attendanceStatus[day]==='Present'"
+               [class.absent-day]="attendanceStatus[day]==='Absent'"
+               [class.weekend]="isWeekend(day)">
+            {{ day }}
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="attendance-legend">
+          <div class="legend-item"><span class="legend-color present-box"></span> Present</div>
+          <div class="legend-item"><span class="legend-color absent-box"></span> Absent</div>
+          <div class="legend-item"><span class="legend-color no-record-box"></span> No Attendance Record</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Individual Attendance Modal -->
+<div class="attendance-modal" *ngIf="showAttendanceModal">
+  <div class="attendance-box">
+    <div class="attendance-modal-header">
+      <div class="title">
+        <i class="fa fa-calendar-check"></i>
+        <h3>Attendance Record</h3>
+      </div>
+      <button class="close-btn" (click)="closeAttendance()"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="divider"></div>
+    <div class="attendance-info">
+      <div class="info-row"><span class="label">Date</span><span class="value">{{ selectedDate }}</span></div>
+      <div class="info-row"><span class="label">Time In</span><span class="value">{{ timeIn }}</span></div>
+      <div class="info-row"><span class="label">Time Out</span><span class="value">{{ timeOut }}</span></div>
+      <div class="status">
+        <span [class.present]="status==='Present'" 
+              [class.absent]="status==='Absent'" 
+              [class.no-record]="status==='No Attendance Record'">
+          {{ status }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Reports Modal -->
+<div class="reports-modal" *ngIf="showReportsModal">
+  <div class="reports-box">
+    <div class="reports-header">
+      <div class="reports-title">
+        <i class="fa fa-file-alt"></i> <h3>Attendance Reports</h3>
+      </div>
+      <button class="close-btn" (click)="closeReportsModal()"><i class="fa fa-times"></i></button>
+    </div>
+
+    <div class="reports-body">
+      <div class="filters-panel">
+        <label>Month</label>
+        <select [(ngModel)]="reportFilterMonth" (change)="applyReportFilters()">
+          <option value="">All Months</option>
+          <option *ngFor="let m of months" [value]="m">{{ m }}</option>
+        </select>
+
+        <label>Year</label>
+        <select [(ngModel)]="reportFilterYear" (change)="applyReportFilters()">
+          <option value="">All Years</option>
+          <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+        </select>
+
+        <label>Status</label>
+        <select [(ngModel)]="reportFilterStatus" (change)="applyReportFilters()">
+          <option value="">All Status</option>
+          <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+        </select>
+
+        <button class="excel-btn" (click)="downloadExcel()"><i class="fa fa-download"></i> Download</button>
+      </div>
+
+      <div class="table-panel">
+        <table *ngIf="filteredRecordsList.length>0">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of filteredRecordsList">
+              <td>{{ r.date }}</td>
+              <td>{{ r.day }}</td>
+              <td>{{ r.timeIn }}</td>
+              <td>{{ r.timeOut }}</td>
+              <td [class.present]="r.status==='Present'" 
+                  [class.absent]="r.status==='Absent'" 
+                  [class.no-record]="r.status==='No Record'">{{ r.status }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div *ngIf="filteredRecordsList.length===0" class="no-records-msg">
+          No records found for selected filters.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="qr-modal" *ngIf="showQRModal">
+
+  <div class="qr-box">
+
+    <div class="qr-header">
+
+      <div class="qr-title">
+        <i class="fa fa-qrcode"></i>
+        <h3>My QR Code</h3>
+      </div>
+
+      <button class="close-btn" (click)="closeQRModal()">
+        <i class="fa fa-times"></i>
+      </button>
+
+    </div>
+
+
+
+    <div class="qr-body">
+
+      <p class="qr-text">
+        Show this QR code when checking in for attendance.
+      </p>
+
+      <!-- Divider -->
+  <div class="qr-divider"></div>
+
+      <img
+        class="qr-image"
+        src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=InternAttendance"
+        alt="QR Code"
+      />
+
+    </div>
+
+  </div>
+
+</div>

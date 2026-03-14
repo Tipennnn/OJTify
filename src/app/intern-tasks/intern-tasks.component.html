@@ -1,0 +1,153 @@
+<div class="dashboard-wrapper">
+
+  <app-intern-sidenav></app-intern-sidenav>
+
+  <div class="dashboard-right">
+
+    <app-intern-topnav></app-intern-topnav>
+
+    <div class="dashboard-content">
+
+      <!-- DASHBOARD TITLE -->
+      <div class="dashboard-header">
+        <h2>Tasks</h2>
+        <div class="dashboard-divider"></div>
+      </div>
+
+      <!-- TASK LIST -->
+      <div class="tasks-list">
+
+        <div
+          class="task-card"
+          *ngFor="let task of tasks"
+          (click)="openModal(task)"
+        >
+
+          <div class="task-info">
+            <h3>{{task.title}}</h3>
+            <div class="task-meta">
+              <span>Posted: {{task.posted}}</span>
+              <span>Due: {{task.due}}</span>
+            </div>
+          </div>
+
+          <span class="status" [ngClass]="task.status">
+            {{task.status | titlecase}}
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL (unchanged) -->
+<div class="task-modal-overlay" [class.active]="isModalOpen">
+
+  <div class="task-modal-modern">
+
+    <div class="modal-close" (click)="closeModal()">×</div>
+
+    <!-- LEFT PANEL -->
+    <div class="modal-left">
+      <div class="submit-card">
+        <h3>Task Submission</h3>
+        <div class="divider"></div>
+
+        <label class="upload-box">
+          <input type="file" (change)="onFileSelected($event)">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span class="upload-title">Upload your file</span>
+          <span class="upload-sub">Click or drag file here</span>
+        </label>
+
+        <div class="file-preview" *ngIf="selectedFile">
+          <div class="file-card">
+            <div class="file-left">
+              <i class="fa-solid fa-file file-icon"></i>
+              <div class="file-info">
+                <span class="file-name">{{selectedFile.name}}</span>
+                <span class="file-size">{{(selectedFile.size / 1024).toFixed(0)}} KB</span>
+              </div>
+            </div>
+            <span class="file-remove" (click)="selectedFile = null">×</span>
+          </div>
+        </div>
+
+        <button class="submit-btn" (click)="submitFile()">Submit Task</button>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="modal-right">
+
+      <h2 class="task-title">{{selectedTask?.title}}</h2>
+      <div class="divider"></div>
+
+      <div class="task-author">
+        <div class="author-avatar">{{selectedTask?.title?.charAt(0)}}</div>
+        <div class="author-info">
+          <span class="author-name">Juan Alvarado</span>
+          <span class="author-role">Admin</span>
+        </div>
+      </div>
+
+      <div class="task-meta">
+        <div class="meta-item">
+          <i class="fa-solid fa-calendar"></i>
+          <div>
+            <strong>Posted</strong>
+            <span>{{selectedTask?.posted}}</span>
+          </div>
+        </div>
+
+        <div class="meta-item">
+          <i class="fa-solid fa-clock"></i>
+          <div>
+            <strong>Due</strong>
+            <span>{{selectedTask?.due}}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="description-card">
+        <p>{{selectedTask?.description}}</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="comments-section">
+        <div class="comment-title">Comment</div>
+        <div class="comment-input">
+          <input type="text" placeholder="Add a comment..." [(ngModel)]="newComment" />
+          <button class="send-btn" (click)="sendComment()">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="comment" *ngFor="let comment of comments">
+          <div class="avatar">{{comment.name[0]}}</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <strong>{{comment.name}}</strong>
+              <span class="comment-date">{{comment.date}}</span>
+            </div>
+            <p class="comment-text">{{comment.message}}</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

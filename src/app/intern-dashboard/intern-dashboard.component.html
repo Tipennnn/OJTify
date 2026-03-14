@@ -1,0 +1,167 @@
+<div class="dashboard-wrapper">
+
+  <!-- SIDENAV -->
+  <app-intern-sidenav></app-intern-sidenav>
+
+  <!-- RIGHT SIDE -->
+  <div class="dashboard-right">
+
+    <!-- TOP NAV -->
+    <app-intern-topnav></app-intern-topnav>
+
+    <!-- CONTENT -->
+    <div class="dashboard-content">
+
+      <!-- DASHBOARD TITLE -->
+      <div class="dashboard-header">
+        <h2>Dashboard</h2>
+        <div class="dashboard-divider"></div>
+      </div>
+
+      <!-- TOP CARDS -->
+      <div class="top-cards">
+
+        <!-- TOTAL HOURS -->
+        <div class="card progress-card">
+          <div class="progress-circle">
+            <div class="circle">
+              <span>100%</span>
+              <small>Completed</small>
+            </div>
+          </div>
+
+          <div class="progress-info">
+            <h4>Total Hours</h4>
+            <p>500 of 500 hours</p>
+
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TODAY ATTENDANCE -->
+        <div class="card attendance-card">
+          <div class="attendance-icon">✔</div>
+          <div>
+            <h4>Present</h4>
+            <p>Today's Attendance</p>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- APPLICATION INFORMATION -->
+      <div class="table-card">
+
+        <div class="table-header">
+          <h3>Application Information</h3>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Applied On</th>
+              <th>Accepted On</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>July 24, 2022</td>
+              <td>August 08, 2022</td>
+              <td><span class="status completed">Accepted</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
+
+
+      <!-- RECENT ATTENDANCE -->
+      <div class="table-card">
+
+        <div class="table-header">
+          <h3>Recent Attendance</h3>
+          <a routerLink="/intern-attendance">View all →</a>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            <tr>
+              <td>March 2, 2026</td>
+              <td>8:00 AM</td>
+              <td>4:00 PM</td>
+              <td><span class="status present">Present</span></td>
+            </tr>
+
+            <tr>
+              <td>March 3, 2026</td>
+              <td>8:00 AM</td>
+              <td>4:00 PM</td>
+              <td><span class="status present">Present</span></td>
+            </tr>
+
+          </tbody>
+        </table>
+
+      </div>
+
+
+      <!-- TASKS -->
+      <div class="table-card">
+
+        <div class="table-header">
+          <h3>Tasks</h3>
+          <a routerLink="/intern-tasks">View all →</a>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Description</th>
+              <th>Date Assigned</th>
+              <th>Due Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            <tr>
+              <td>Upload Records</td>
+              <td>-</td>
+              <td>March 2, 2026</td>
+              <td>March 5, 2026</td>
+              <td><span class="status completed">Completed</span></td>
+            </tr>
+
+            <tr>
+              <td>Research Task</td>
+              <td>-</td>
+              <td>March 3, 2026</td>
+              <td>March 7, 2026</td>
+              <td><span class="status pending">Pending</span></td>
+            </tr>
+
+          </tbody>
+        </table>
+
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,168 @@
+<div class="profile-wrapper">
+
+  <!-- TOP NAV -->
+  
+  <div class="top-nav">
+  
+  <div class="brand" (click)="goDashboard()">
+  
+  <img src="/assets/images/OJTify_logo.png">
+  
+  <span>OJTIFY</span>
+  
+  </div>
+  
+  <div class="close-btn" (click)="goDashboard()">
+  <i class="fa-solid fa-xmark"></i>
+  </div>
+  
+  </div>
+  
+  
+  <div class="profile-container">
+  
+  <!-- PROFILE PHOTO -->
+  
+  <div class="profile-photo">
+  
+  <img src="/assets/images/default-profile.png">
+  
+  <label class="edit-photo">
+  <i class="fa-solid fa-pen"></i>
+  <input type="file" hidden>
+  </label>
+  
+  </div>
+  
+  
+  <form class="profile-form">
+  
+  <h3 class="section-title">Personal Information</h3>
+  
+  <div class="name-row">
+  
+  <div class="input-wrapper">
+  <input type="text" required>
+  <label>First Name</label>
+  </div>
+  
+  <div class="input-wrapper">
+  <input type="text">
+  <label>Middle Name</label>
+  </div>
+  
+  <div class="input-wrapper">
+  <input type="text" required>
+  <label>Last Name</label>
+  </div>
+
+  </div>
+
+  <div class="input-wrapper full-width">
+    <input type="tel" required>
+    <label>Contact Number</label>
+  </div>
+  
+  <div class="input-wrapper full-width">
+    <input type="email" required>
+    <label>Email Address</label>
+  </div>
+  
+  
+  <div class="two-col">
+  
+  <div class="input-wrapper">
+  <input type="date" required>
+  <label>Birthday</label>
+  </div>
+  
+  <div class="input-wrapper">
+  <select required>
+  <option value="" disabled selected></option>
+  <option>Male</option>
+  <option>Female</option>
+  </select>
+  <label>Gender</label>
+  </div>
+  
+  </div>
+  
+
+  
+  <div class="input-wrapper">
+  <input type="text" required>
+  <label>Home Address</label>
+  </div>
+  
+  
+  <h3 class="section-title">Academic Background</h3>
+
+  <div class="input-wrapper">
+    <input type="text" required>
+    <label>Student ID</label>
+    </div>
+  
+  <div class="input-wrapper">
+  <input type="text" required>
+  <label>School Name</label>
+  </div>
+  
+  <div class="input-wrapper">
+  <input type="text" required>
+  <label>Course</label>
+  </div>
+  
+  <div class="input-wrapper">
+  
+  <select required>
+  <option value="" disabled selected></option>
+  <option>1st Year</option>
+  <option>2nd Year</option>
+  <option>3rd Year</option>
+  <option>4th Year</option>
+  </select>
+  
+  <label>Year Level</label>
+  
+  </div>
+  
+  
+  <h3 class="section-title">Required Documents</h3>
+  
+  <div class="file-upload">
+  
+  <label>
+  Resume / CV
+  <input type="file">
+  </label>
+  
+  <label>
+  Endorsement Letter
+  <input type="file">
+  </label>
+  
+  <label>
+  Certificate of Enrollment
+  <input type="file">
+  </label>
+  
+  </div>
+  
+  
+  <div class="form-buttons">
+  
+  <button type="button" class="cancel-btn" (click)="goDashboard()">
+  Cancel
+  </button>
+  
+  <button type="submit" class="apply-btn">
+    Submit Application
+  </button>
+  
+  </div>
+  
+  </form>
+  
+  </div>
+  
+  </div>
