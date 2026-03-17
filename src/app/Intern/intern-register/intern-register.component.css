@@ -400,3 +400,15 @@ body{
   .input-wrapper input{ font-size:13px; padding:12px 35px 12px 32px; }
   .login-btn{ font-size:15px; }
 }
+.input-wrapper .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #555;
+  font-size: 14px;
+  opacity: 0.8;
+}
+.input-wrapper .resume-icon {
+  top: 35%; /* lower percentage = higher position */
+}
