@@ -1,6 +1,8 @@
 import { Component, HostListener } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { SupabaseService } from '../services/supabase.service';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-intern-sidenav',
@@ -12,11 +14,12 @@ import { filter } from 'rxjs/operators';
 export class InternSidenavComponent {
   isCollapsed = false;
 
-  constructor(private router: Router) {
-    // Collapse by default on mobile/tablet
+  constructor(
+    private router: Router,
+    private supabase: SupabaseService
+  ) {
     this.isCollapsed = window.innerWidth < 768;
 
-    // Auto collapse after navigation on mobile/tablet
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -33,5 +36,44 @@ export class InternSidenavComponent {
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
     this.isCollapsed = event.target.innerWidth < 768;
+  }
+
+  async onLogout() {
+    const result = await Swal.fire({
+      title: 'Log out?',
+      text: 'Are you sure you want to log out?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, log out',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+    });
+
+    if (!result.isConfirmed) return;
+
+    const { error } = await this.supabase.signOut();
+
+    if (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Logout Failed',
+        text: error.message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+    // Clear welcome alert flag
+    sessionStorage.removeItem('welcomeShown');
+
+    // Show logged out toast on login page
+    sessionStorage.setItem('loggedOut', 'true');
+
+    this.router.navigate(['/intern-login']);
   }
 }

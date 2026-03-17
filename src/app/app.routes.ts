@@ -6,6 +6,7 @@ import { InternProfileComponent } from './intern-profile/intern-profile.componen
 import { InternDashboardComponent } from './intern-dashboard/intern-dashboard.component';
 import { InternAttendanceComponent } from './intern-attendance/intern-attendance.component';
 import { InternTasksComponent } from './intern-tasks/intern-tasks.component';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'intern-login', pathMatch: 'full' },
@@ -16,4 +17,5 @@ export const routes: Routes = [
   { path: 'intern-dashboard', component: InternDashboardComponent },
   { path: 'intern-attendance', component: InternAttendanceComponent },
   { path: 'intern-tasks', component: InternTasksComponent },
+  { path: 'intern-dashboard',component: InternDashboardComponent,canActivate: [authGuard] }
 ];

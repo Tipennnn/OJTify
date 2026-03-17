@@ -1,131 +1,206 @@
 <div class="login-wrapper">
 
-    <!-- LEFT PANEL -->
-    <div class="login-left">
+  <!-- LEFT PANEL -->
+  <div class="login-left">
+    <div class="bg-pattern"></div>
+    <div class="login-left-content">
 
-        <div class="bg-pattern"></div>
+      <div class="logo-mobile">
+        <img src="/assets/images/OJTify_logo.png">
+      </div>
 
-        <div class="login-left-content">
+      <div class="brand hide-mobile">
+        <img src="/assets/images/OJTify_logo.png">
+        <span>OJTIFY</span>
+      </div>
 
-            <!-- MOBILE LOGO -->
-            <div class="logo-mobile">
-                <img src="/assets/images/OJTify_logo.png">
-            </div>
+      <div class="welcome-text hide-mobile">
+        <h1>Create your OJTIFY Account</h1>
+        <p>Register to access the OJTIFY system and manage your internship attendance, records, and monitoring.</p>
+      </div>
 
-            <!-- BRAND -->
-            <div class="brand hide-mobile">
-                <img src="/assets/images/OJTify_logo.png">
-                <span>OJTIFY</span>
-            </div>
-
-            <!-- WELCOME -->
-            <div class="welcome-text hide-mobile">
-                <h1>Create your OJTIFY Account</h1>
-                <p>
-                    Register to access the OJTIFY system and manage your internship attendance, records, and monitoring.
-                </p>
-            </div>
-
-            <!-- SYSTEM INFO -->
-            <div class="system-info hide-mobile">
-                <span>OJTIFY System v1.0</span>
-                <span>OJT Management System with QR Attendance</span>
-            </div>
-
-        </div>
+      <div class="system-info hide-mobile">
+        <span>OJTIFY System v1.0</span>
+        <span>OJT Management System with QR Attendance</span>
+      </div>
 
     </div>
+  </div>
 
-    <!-- RIGHT PANEL -->
-    <div class="login-right">
+  <!-- RIGHT PANEL -->
+  <div class="login-right">
+    <div class="login-card">
 
-        <div class="login-card">
+      <!-- ══════════════════════════════════════ -->
+      <!--  STEP 1 — REGISTRATION FORM           -->
+      <!-- ══════════════════════════════════════ -->
+      <ng-container *ngIf="!otpStep && !successMessage">
 
-            <h2>Student Registration</h2>
+        <h2>Student Registration</h2>
 
-            <form>
-
-                <!-- FIRST NAME -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-user"></i></span>
-                        <input type="text" required>
-                        <label>First Name</label>
-                    </div>
-                </div>
-
-                <!-- MIDDLE NAME -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-user"></i></span>
-                        <input type="text">
-                        <label>Middle Name</label>
-                    </div>
-                </div>
-
-                <!-- LAST NAME -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-user"></i></span>
-                        <input type="text" required>
-                        <label>Last Name</label>
-                    </div>
-                </div>
-
-                <!-- EMAIL -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-envelope"></i></span>
-                        <input type="email" required>
-                        <label>Email</label>
-                    </div>
-                </div>
-
-                <!-- CONTACT NUMBER -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-phone"></i></span>
-                        <input type="tel" required>
-                        <label>Contact Number</label>
-                    </div>
-                </div>
-
-                <!-- STUDENT ID -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-id-card"></i></span>
-                        <input type="text" required>
-                        <label>Student ID</label>
-                    </div>
-                </div>
-
-                <!-- PASSWORD -->
-                <div class="input-group">
-                    <div class="input-wrapper">
-                        <span class="icon"><i class="fa fa-lock"></i></span>
-                        <input type="password" required>
-                        <label>Password</label>
-                        <span class="show-pass"><i class="fa fa-eye"></i></span>
-                    </div>
-                </div>
-
-                <button class="login-btn">
-                    Create Account
-                </button>
-
-                <p class="signup-link">
-                    Already have an account?
-                    <a routerLink="/intern-login">Log in</a>
-                  </p>
-                  
-                <p class="system-mobile">
-                    OJT Management System with QR Attendance
-                </p>
-
-            </form>
-
+        <!-- Error banner -->
+        <div class="alert-error" *ngIf="errorMessage">
+          <i class="fa fa-circle-exclamation"></i> {{ errorMessage }}
         </div>
 
+        <form (ngSubmit)="onRegister()">
+
+          <!-- FIRST NAME -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-user"></i></span>
+              <input type="text" [(ngModel)]="firstName" name="firstName" required>
+              <label>First Name</label>
+            </div>
+          </div>
+
+          <!-- MIDDLE NAME -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-user"></i></span>
+              <input type="text" [(ngModel)]="middleName" name="middleName">
+              <label>Middle Name</label>
+            </div>
+          </div>
+
+          <!-- LAST NAME -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-user"></i></span>
+              <input type="text" [(ngModel)]="lastName" name="lastName" required>
+              <label>Last Name</label>
+            </div>
+          </div>
+
+          <!-- EMAIL -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-envelope"></i></span>
+              <input type="email" [(ngModel)]="email" name="email" required>
+              <label>Email</label>
+            </div>
+          </div>
+
+          <!-- CONTACT NUMBER -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-phone"></i></span>
+              <input type="tel" [(ngModel)]="contactNumber" name="contactNumber" required>
+              <label>Contact Number</label>
+            </div>
+          </div>
+
+          <!-- STUDENT ID -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-id-card"></i></span>
+              <input type="text" [(ngModel)]="studentId" name="studentId" required>
+              <label>Student ID</label>
+            </div>
+          </div>
+
+          <!-- PASSWORD -->
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-lock"></i></span>
+              <input [type]="showPassword ? 'text' : 'password'"
+                     [(ngModel)]="password" name="password" required>
+              <label>Password</label>
+              <span class="show-pass" (click)="togglePassword()">
+                <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+              </span>
+            </div>
+          </div>
+
+          <button class="login-btn" type="submit" [disabled]="loading">
+            <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
+            {{ loading ? 'Please wait…' : 'Create Account' }}
+          </button>
+
+          <p class="signup-link">
+            Already have an account?
+            <a routerLink="/intern-login">Log in</a>
+          </p>
+
+          <p class="system-mobile">OJT Management System with QR Attendance</p>
+
+        </form>
+
+      </ng-container>
+
+      <!-- ══════════════════════════════════════ -->
+      <!--  STEP 2 — OTP VERIFICATION            -->
+      <!-- ══════════════════════════════════════ -->
+      <ng-container *ngIf="otpStep">
+
+        <h2>Verify Your Email</h2>
+
+        <p class="otp-subtitle">
+          We sent a 6-digit code to<br>
+          <strong>{{ email }}</strong>
+        </p>
+
+        <!-- 6 digit boxes -->
+        <div class="otp-boxes">
+          <input
+            *ngFor="let digit of otpDigits; let i = index"
+            [id]="'otp-' + i"
+            class="otp-box"
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            [value]="otpDigits[i]"
+            (input)="onOtpInput($event, i)"
+            (keydown)="onOtpKeydown($event, i)"
+            (paste)="onOtpPaste($event)"
+            autocomplete="one-time-code"
+          />
+        </div>
+
+        <!-- OTP error / info -->
+        <div class="alert-error" *ngIf="otpError && !otpError.includes('sent')">
+          <i class="fa fa-circle-exclamation"></i> {{ otpError }}
+        </div>
+        <div class="alert-info" *ngIf="otpError && otpError.includes('sent')">
+          <i class="fa fa-circle-check"></i> {{ otpError }}
+        </div>
+
+        <button class="login-btn" (click)="onVerifyOtp()" [disabled]="loading">
+          <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
+          {{ loading ? 'Verifying…' : 'Verify & Activate' }}
+        </button>
+
+     <p class="signup-link">
+  Didn't receive a code?
+  <a href="javascript:void(0)" 
+     (click)="resendOtp()" 
+     [class.disabled-link]="resendCooldown > 0"
+     [style.pointer-events]="resendCooldown > 0 ? 'none' : 'auto'">
+    {{ resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' : 'Resend' }}
+  </a>
+</p>
+
+      </ng-container>
+
+      <!-- ══════════════════════════════════════ -->
+      <!--  STEP 3 — SUCCESS                     -->
+      <!-- ══════════════════════════════════════ -->
+      <ng-container *ngIf="successMessage">
+
+        <div class="success-panel">
+          <div class="success-icon-wrap">
+            <i class="fa fa-check"></i>
+          </div>
+          <h2>Account Activated!</h2>
+          <p>{{ successMessage }}</p>
+          <a routerLink="/intern-login" class="login-btn" style="display:block; text-align:center; text-decoration:none; margin-top:10px;">
+            Go to Login
+          </a>
+        </div>
+
+      </ng-container>
+
     </div>
+  </div>
 
 </div>

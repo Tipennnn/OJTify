@@ -228,6 +228,137 @@ body{
 .logo-mobile img{ width:260px; }
 .system-mobile{ display:none; text-align:center; font-size:12px; margin-top:10px; color:#777; }
 
+
+/* Disabled button state */
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+ 
+/* ── Alert banners ───────────────────────────── */
+.alert-error,
+.alert-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+ 
+.alert-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+ 
+.alert-info {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+ 
+/* ── OTP subtitle ────────────────────────────── */
+.otp-subtitle {
+  text-align: center;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+ 
+.otp-subtitle strong {
+  color: #1E40AF;
+}
+ 
+/* ── OTP boxes ───────────────────────────────── */
+.otp-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 22px 0 20px;
+}
+ 
+.otp-box {
+  width: 48px;
+  height: 56px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  color: #1E40AF;
+  background: #f8fafc;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  font-family: 'Poppins', sans-serif;
+}
+ 
+.otp-box:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background: #fff;
+}
+ 
+/* ── Success panel ───────────────────────────── */
+.success-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 10px 0 6px;
+}
+ 
+.success-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E40AF, #2563EB);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+ 
+.success-icon-wrap i {
+  font-size: 32px;
+  color: #fff;
+}
+ 
+.success-panel h2 {
+  margin-bottom: 0;
+}
+ 
+.success-panel p {
+  font-size: 14px;
+  color: #555;
+  margin: 0;
+}
+
+/* ── Resend cooldown state ───────────────────── */
+.disabled-link {
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+}
+
+ 
+/* ── Small phones: shrink OTP boxes ─────────── */
+@media (max-width: 420px) {
+  .otp-box {
+    width: 40px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+ 
+  .otp-boxes {
+    gap: 7px;
+  }
+}
+
 /* RESPONSIVE */
 @media (max-width:1024px){
   /* HIDE LEFT PANEL on tablet & mobile */

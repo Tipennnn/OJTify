@@ -34,15 +34,15 @@
       </a>
     </div>
   
-    <!-- LOGOUT -->
-    <div class="logout-section">
-      <div class="divider"></div>
-      <a routerLink="/intern-login" class="nav-item logout">
-        <div class="icon-box">
-          <i class="fa-solid fa-right-from-bracket"></i>
-        </div>
-        <span>Log out</span>
-      </a>
+ <!-- LOGOUT -->
+<div class="logout-section">
+  <div class="divider"></div>
+  <a class="nav-item logout" (click)="onLogout()" style="cursor: pointer;">
+    <div class="icon-box">
+      <i class="fa-solid fa-right-from-bracket"></i>
     </div>
+    <span>Log out</span>
+  </a>
+</div>
   
   </div>
