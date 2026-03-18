@@ -1,0 +1,127 @@
+<div class="dashboard-wrapper">
+
+  <!-- SIDENAV -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+
+    <!-- TOP NAV -->
+    <app-admin-topnav></app-admin-topnav>
+
+    <!-- DASHBOARD CONTENT -->
+    <div class="dashboard-content">
+
+      <!-- HEADER -->
+      <div class="dashboard-header">
+        <div class="header-left">
+          <h2>Tasks</h2>
+        </div>
+        <div class="header-right">
+          <button class="create-btn" (click)="openModal()">
+            <i class="fas fa-plus"></i> Create Post
+          </button>
+        </div>
+      </div>
+
+      <div class="dashboard-divider"></div>
+
+      <!-- TASK LIST -->
+      <div class="tasks-list">
+        <div class="task-card" *ngFor="let task of tasks">
+          <div class="task-info">
+            <h3>{{task.title}}</h3>
+            <div class="task-meta">
+              <span>Posted: {{task.posted}}</span>
+              <span>Due: {{task.due}}</span>
+            </div>
+          </div>
+          <span class="status" [ngClass]="task.status">{{task.status | titlecase}}</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ---------------- MODAL ---------------- -->
+<div class="modal-backdrop" *ngIf="isModalOpen">
+  <div class="task-modal">
+    <button class="modal-close" (click)="closeModal()">×</button>
+
+    <div class="modal-content">
+
+      <!-- LEFT SIDE — TASK FORM -->
+      <div class="modal-left">
+        <h2>Create Task</h2>
+
+        <div class="form-group">
+          <label>Task Title</label>
+          <input type="text" [(ngModel)]="selectedTask!.title" placeholder="Enter task title">
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea rows="4" [(ngModel)]="selectedTask!.description" placeholder="Write task details here..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" [(ngModel)]="selectedTask!.due">
+        </div>
+
+        <div class="form-group">
+          <label>Attachments</label>
+          <div class="file-box">
+            <span class="file-icon"><i class="fas fa-file-pdf"></i></span>
+            <span class="file-name">Research_Guidelines.pdf</span>
+          </div>
+          <button class="upload-btn">
+            <i class="fas fa-upload"></i> Upload files
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE — ASSIGN INTERNS -->
+      <div class="modal-right">
+        <h3>Assign Interns</h3>
+        <div class="assign-options">
+          <label><input type="radio" name="assign"> Assign to All Interns</label>
+          <label><input type="radio" name="assign"> Assign by course</label>
+          <label><input type="radio" name="assign" checked> Assign to specific interns</label>
+        </div>
+
+        <div class="search-box">
+          <input type="text" placeholder="Search intern name…">
+          <i class="fas fa-search"></i>
+        </div>
+
+        <div class="intern-list">
+          <div class="intern-item">
+            <img src="assets/intern1.png">
+            <span>Juan P. Santos</span>
+          </div>
+          <div class="intern-item">
+            <img src="assets/intern2.png">
+            <span>Adrian P. Legua</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="closeModal()">Cancel</button>
+      <button class="create-btn">Create Task</button>
+    </div>
+  </div>
+</div>
+pasted_content.txt
+Text ·
+image.png
+ang gusto ko gawain mo is dapat kapag clinick ung checklilst may lalabas na modal then dapat ganyaqn mismo ung itsura na lalabas sa modal dapat ganayan lalabas na itsura sa pic
+
+
+I would love to answer this. Please upgrade to Pro to access premium AI models, image generation, file analysis, and much more.
+
+Upgrade

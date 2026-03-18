@@ -11,8 +11,9 @@ import { AdminDashboardComponent } from './admin/admin-dashboard/admin-dashboard
 import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from './admin/admin-topnav/admin-topnav.component';
 import { AdminApplicantsComponent } from './admin/admin-applicants/admin-applicants.component';
-import { authGuard } from './guards/auth.guard';
+import { AdminTasksComponent } from './admin/admin-tasks/admin-tasks.component'; // <-- new component
 
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'intern-login', pathMatch: 'full' },
@@ -23,11 +24,13 @@ export const routes: Routes = [
   { path: 'intern-dashboard', component: InternDashboardComponent },
   { path: 'intern-attendance', component: InternAttendanceComponent },
   { path: 'intern-tasks', component: InternTasksComponent },
-  { path: 'intern-dashboard',component: InternDashboardComponent,canActivate: [authGuard] },
-    // ADMIN
-    { path: 'admin-login', component: AdminLoginComponent },
-    { path: 'admin-dashboard', component: AdminDashboardComponent },
-    { path: 'admin-sidenav', component: AdminSidenavComponent },
-    { path: 'admin-topnav', component: AdminTopnavComponent },
-    { path: 'admin-applicants', component: AdminApplicantsComponent },
+  { path: 'intern-dashboard', component: InternDashboardComponent, canActivate: [authGuard] },
+
+  // ADMIN
+  { path: 'admin-login', component: AdminLoginComponent },
+  { path: 'admin-dashboard', component: AdminDashboardComponent },
+  { path: 'admin-sidenav', component: AdminSidenavComponent },
+  { path: 'admin-topnav', component: AdminTopnavComponent },
+  { path: 'admin-applicants', component: AdminApplicantsComponent },
+  { path: 'admin-tasks', component: AdminTasksComponent }, // <-- added route
 ];
