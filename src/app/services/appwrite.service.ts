@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
-import { Client, Account, Databases, ID } from 'appwrite';
+import { Client, Account, Databases, Storage } from 'appwrite';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AppwriteService {
 
   private client: Client;
-  account: Account;
+  account:   Account;
   databases: Databases;
+  storage:   Storage;
 
-  // Replace with your actual Database ID and Collection ID from Appwrite console
-  readonly DATABASE_ID    = '69ba9274002d52cdef63';
-  readonly STUDENTS_COL   = 'students';
+  readonly DATABASE_ID  = '69ba9274002d52cdef63';
+  readonly STUDENTS_COL = 'students';
 
   constructor() {
     this.client = new Client()
@@ -20,6 +20,7 @@ export class AppwriteService {
 
     this.account   = new Account(this.client);
     this.databases = new Databases(this.client);
+    this.storage   = new Storage(this.client);
   }
 
   async signOut() {
