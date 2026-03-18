@@ -47,6 +47,11 @@ export class AdminTasksComponent implements OnInit {
   isCardModalOpen = false;
   loading         = false;
   attachmentLoading = false;
+  // Add these properties
+newAdminComment    = '';
+adminCommentLoading = false;
+taskComments   : any[] = [];
+taskSubmissions: any[] = [];
 
   tasks          : Task[]   = [];
   allInterns     : Intern[] = [];
@@ -352,35 +357,46 @@ export class AdminTasksComponent implements OnInit {
     document.body.style.overflow = '';
   }
 
-  openCardModal(task: Task) {
-    const assignedIds = this.getAssignedIds(task);
-    const assignedInterns = assignedIds.map(id => {
-      const intern = this.allInterns.find(i => i.$id === id);
-      return {
-        name: intern ? `${intern.first_name} ${intern.last_name}` : id,
-        img: 'assets/intern1.png'
-      };
-    });
-
-    this.selectedTask = {
-      ...task,
-      assignedInterns,
-      comments:    task.comments    || [],
-      submissions: task.submissions || []
+ openCardModal(task: Task) {
+  const assignedIds = this.getAssignedIds(task);
+  const assignedInterns = assignedIds.map(id => {
+    const intern = this.allInterns.find(i => i.$id === id);
+    return {
+      name: intern ? `${intern.first_name} ${intern.last_name}` : id,
+      img: 'assets/intern1.png'
     };
+  });
 
-    this.editAttachmentFile     = null;
-    this.editAttachmentFileName = '';
-    this.isCardModalOpen        = true;
-    document.body.style.overflow = 'hidden';
-  }
+  this.selectedTask = {
+    ...task,
+    assignedInterns,
+    comments:    [],
+    submissions: []
+  };
 
-  closeCardModal() {
-    this.isCardModalOpen        = false;
-    this.editAttachmentFile     = null;
-    this.editAttachmentFileName = '';
-    document.body.style.overflow = '';
+  this.editAttachmentFile     = null;
+  this.editAttachmentFileName = '';
+  this.newAdminComment        = '';
+  this.taskComments           = [];
+  this.taskSubmissions        = [];
+  this.isCardModalOpen        = true;
+  document.body.style.overflow = 'hidden';
+
+  if (task.$id) {
+    this.loadTaskComments(task.$id);
+    this.loadTaskSubmissions(task.$id);
   }
+}
+
+ closeCardModal() {
+  this.isCardModalOpen        = false;
+  this.editAttachmentFile     = null;
+  this.editAttachmentFileName = '';
+  this.newAdminComment        = '';
+  this.taskComments           = [];
+  this.taskSubmissions        = [];
+  document.body.style.overflow = '';
+}
 
   // ── Create task ───────────────────────────────────────────
   async onCreateTask() {
@@ -511,4 +527,80 @@ export class AdminTasksComponent implements OnInit {
     const intern = this.allInterns.find(i => i.$id === id);
     return intern ? `${intern.first_name} ${intern.last_name}` : id;
   }
+
+  // ── Load comments for task (admin view) ───────────────────
+async loadTaskComments(taskId: string) {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.COMMENTS_COL
+    );
+    const all = res.documents as any[];
+    this.taskComments = all
+      .filter(c => c.task_id === taskId)
+      .sort((a, b) =>
+        new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime()
+      );
+  } catch (error: any) {
+    console.error('Failed to load comments:', error.message);
+  }
+}
+
+// ── Load submissions for task (admin view) ────────────────
+async loadTaskSubmissions(taskId: string) {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUBMISSIONS_COL
+    );
+    const all = res.documents as any[];
+    const taskSubs = all.filter(s => s.task_id === taskId);
+
+    // Attach student name to each submission
+    this.taskSubmissions = taskSubs.map(sub => {
+      const intern = this.allInterns.find(i => i.$id === sub.student_id);
+      return {
+        ...sub,
+        student_name: intern
+          ? `${intern.first_name} ${intern.last_name}`
+          : 'Unknown'
+      };
+    });
+  } catch (error: any) {
+    console.error('Failed to load submissions:', error.message);
+  }
+}
+
+// ── Send comment as admin ─────────────────────────────────
+async sendAdminComment() {
+  if (!this.newAdminComment.trim() || !this.selectedTask.$id) return;
+
+  this.adminCommentLoading = true;
+
+  try {
+    const user = await this.appwrite.account.get();
+
+    const doc = await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.COMMENTS_COL,
+      ID.unique(),
+      {
+        task_id:    this.selectedTask.$id,
+        user_id:    user.$id,
+        user_name:  user.name || user.email || 'Admin',
+        role:       'admin',
+        message:    this.newAdminComment.trim(),
+        created_at: new Date().toLocaleString()
+      }
+    );
+
+    this.taskComments.push(doc as any);
+    this.newAdminComment = '';
+
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed to send', text: error.message });
+  } finally {
+    this.adminCommentLoading = false;
+  }
+}
 }

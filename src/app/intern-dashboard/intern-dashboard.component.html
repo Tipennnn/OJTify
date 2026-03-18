@@ -1,7 +1,5 @@
 <div class="dashboard-wrapper">
 
-  
-
   <!-- SIDENAV -->
   <app-intern-sidenav></app-intern-sidenav>
 
@@ -31,11 +29,9 @@
               <small>Completed</small>
             </div>
           </div>
-
           <div class="progress-info">
             <h4>Total Hours</h4>
             <p>500 of 500 hours</p>
-
             <div class="progress-bar">
               <div class="progress-fill"></div>
             </div>
@@ -53,14 +49,11 @@
 
       </div>
 
-
       <!-- APPLICATION INFORMATION -->
       <div class="table-card">
-
         <div class="table-header">
           <h3>Application Information</h3>
         </div>
-
         <table>
           <thead>
             <tr>
@@ -69,7 +62,6 @@
               <th>Status</th>
             </tr>
           </thead>
-
           <tbody>
             <tr>
               <td>July 24, 2022</td>
@@ -78,18 +70,14 @@
             </tr>
           </tbody>
         </table>
-
       </div>
-
 
       <!-- RECENT ATTENDANCE -->
       <div class="table-card">
-
         <div class="table-header">
           <h3>Recent Attendance</h3>
           <a routerLink="/intern-attendance">View all →</a>
         </div>
-
         <table>
           <thead>
             <tr>
@@ -99,38 +87,37 @@
               <th>Status</th>
             </tr>
           </thead>
-
           <tbody>
-
             <tr>
               <td>March 2, 2026</td>
               <td>8:00 AM</td>
               <td>4:00 PM</td>
               <td><span class="status present">Present</span></td>
             </tr>
-
             <tr>
               <td>March 3, 2026</td>
               <td>8:00 AM</td>
               <td>4:00 PM</td>
               <td><span class="status present">Present</span></td>
             </tr>
-
           </tbody>
         </table>
-
       </div>
 
-
-      <!-- TASKS -->
+      <!-- RECENT TASKS -->
       <div class="table-card">
-
         <div class="table-header">
           <h3>Tasks</h3>
           <a routerLink="/intern-tasks">View all →</a>
         </div>
 
-        <table>
+        <!-- Loading -->
+        <div *ngIf="tasksLoading"
+             style="text-align:center; padding:20px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin"></i> Loading tasks...
+        </div>
+
+        <table *ngIf="!tasksLoading">
           <thead>
             <tr>
               <th>Task</th>
@@ -140,28 +127,31 @@
               <th>Status</th>
             </tr>
           </thead>
-
           <tbody>
 
-            <tr>
-              <td>Upload Records</td>
-              <td>-</td>
-              <td>March 2, 2026</td>
-              <td>March 5, 2026</td>
-              <td><span class="status completed">Completed</span></td>
+            <!-- Real tasks -->
+            <tr *ngFor="let task of recentTasks">
+              <td>{{ task.title }}</td>
+              <td>{{ task.description || '—' }}</td>
+              <td>{{ task.posted }}</td>
+              <td>{{ task.due }}</td>
+              <td>
+                <span class="status" [ngClass]="task.status">
+                  {{ task.status | titlecase }}
+                </span>
+              </td>
             </tr>
 
-            <tr>
-              <td>Research Task</td>
-              <td>-</td>
-              <td>March 3, 2026</td>
-              <td>March 7, 2026</td>
-              <td><span class="status pending">Pending</span></td>
+            <!-- Empty state -->
+            <tr *ngIf="recentTasks.length === 0">
+              <td colspan="5"
+                  style="text-align:center; color:#9ca3af; padding:20px;">
+                No tasks assigned yet.
+              </td>
             </tr>
 
           </tbody>
         </table>
-
       </div>
 
     </div>

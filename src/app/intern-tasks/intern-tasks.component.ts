@@ -287,115 +287,143 @@ async deleteComment(comment: Comment) {
     return (size / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  // ── Submit task file ──────────────────────────────────────
-  async submitFile() {
-    if (!this.selectedFile) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'No file selected',
-        text: 'Please choose a file to submit.',
-        confirmButtonColor: '#3b82f6'
-      });
-      return;
-    }
-
-    if (!this.selectedTask?.$id) return;
-
-    this.submitLoading = true;
-
-    try {
-      const uploaded = await this.appwrite.storage.createFile(
-        this.BUCKET_ID,
-        ID.unique(),
-        this.selectedFile
-      );
-
-      const submission = await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUBMISSIONS_COL,
-        ID.unique(),
-        {
-          task_id:      this.selectedTask.$id,
-          student_id:   this.currentUserId,
-          file_id:      uploaded.$id,
-          file_name:    this.selectedFile.name,
-          submitted_at: new Date().toLocaleString()
-        }
-      );
-
-      this.submissions.unshift(submission as any);
-      this.selectedFile = null;
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Submitted!',
-        text: 'Your file has been submitted successfully.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-      });
-
-    } catch (error: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Submission Failed',
-        text: error.message
-      });
-    } finally {
-      this.submitLoading = false;
-    }
+ // ── Submit task file ──────────────────────────────────────
+async submitFile() {
+  if (!this.selectedFile) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'No file selected',
+      text: 'Please choose a file to submit.',
+      confirmButtonColor: '#3b82f6'
+    });
+    return;
   }
 
-  // ── Delete submission ─────────────────────────────────────
-  async deleteSubmission(submission: Submission) {
-    const result = await Swal.fire({
-      title: 'Remove submission?',
-      text: 'This will permanently delete your submitted file.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, remove it',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280'
+  if (!this.selectedTask?.$id) return;
+
+  this.submitLoading = true;
+
+  try {
+    const uploaded = await this.appwrite.storage.createFile(
+      this.BUCKET_ID,
+      ID.unique(),
+      this.selectedFile
+    );
+
+    const submission = await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUBMISSIONS_COL,
+      ID.unique(),
+      {
+        task_id:      this.selectedTask.$id,
+        student_id:   this.currentUserId,
+        file_id:      uploaded.$id,
+        file_name:    this.selectedFile.name,
+        submitted_at: new Date().toLocaleString()
+      }
+    );
+
+    this.submissions.unshift(submission as any);
+    this.selectedFile = null;
+
+    // ── Update task status to completed ──
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.TASKS_COL,
+      this.selectedTask.$id,
+      { status: 'completed' }
+    );
+
+    // Update locally
+    this.selectedTask.status = 'completed';
+    const index = this.tasks.findIndex(t => t.$id === this.selectedTask?.$id);
+    if (index !== -1) this.tasks[index].status = 'completed';
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Submitted!',
+      text: 'Your file has been submitted successfully.',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
     });
 
-    if (!result.isConfirmed) return;
-
-    try {
-      await this.appwrite.storage.deleteFile(
-        this.BUCKET_ID,
-        submission.file_id
-      );
-
-      await this.appwrite.databases.deleteDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUBMISSIONS_COL,
-        submission.$id!
-      );
-
-      this.submissions = this.submissions.filter(s => s.$id !== submission.$id);
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Removed!',
-        text: 'Your submission has been deleted.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-      });
-
-    } catch (error: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Failed to delete',
-        text: error.message
-      });
-    }
+  } catch (error: any) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Submission Failed',
+      text: error.message
+    });
+  } finally {
+    this.submitLoading = false;
   }
+}
+
+  // ── Delete submission ─────────────────────────────────────
+async deleteSubmission(submission: Submission) {
+  const result = await Swal.fire({
+    title: 'Remove submission?',
+    text: 'This will permanently delete your submitted file.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, remove it',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280'
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    await this.appwrite.storage.deleteFile(
+      this.BUCKET_ID,
+      submission.file_id
+    );
+
+    await this.appwrite.databases.deleteDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUBMISSIONS_COL,
+      submission.$id!
+    );
+
+    this.submissions = this.submissions.filter(s => s.$id !== submission.$id);
+
+    // ── Revert to pending if no submissions left ──
+    if (this.submissions.length === 0 && this.selectedTask?.$id) {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.TASKS_COL,
+        this.selectedTask.$id,
+        { status: 'pending' }
+      );
+
+      // Update locally
+      this.selectedTask.status = 'pending';
+      const index = this.tasks.findIndex(t => t.$id === this.selectedTask?.$id);
+      if (index !== -1) this.tasks[index].status = 'pending';
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Removed!',
+      text: 'Your submission has been deleted.',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    });
+
+  } catch (error: any) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed to delete',
+      text: error.message
+    });
+  }
+}
 
   // ── View submitted file ───────────────────────────────────
   viewFile(fileId: string) {
