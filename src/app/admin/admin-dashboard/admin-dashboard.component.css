@@ -80,12 +80,15 @@ body {
     text-align: left;
   }
   
-  .dashboard-divider {
-    width: calc(100% - 20px);  /* align divider with the shifted title */
-    height: 1px;
-    background: #e5e7eb;
-    margin-left: 0px;          /* same shift as title */
-  }
+ /* DIVIDER */
+.dashboard-divider {
+  width: calc(100% - 20px);
+  height: 1px;
+  background: #e5e7eb;
+  margin-left: 20px;
+  margin-bottom: 20px;
+  margin-top: 23px;
+}
   /* TITLE */
   .title {
     text-align: center;

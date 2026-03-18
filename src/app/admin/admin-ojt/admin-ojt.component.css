@@ -1,23 +1,226 @@
+/* =========================
+   GLOBAL LAYOUT
+========================= */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: #f3f4f6;
+}
+
+/* DASHBOARD WRAPPER */
 .dashboard-wrapper {
-    display: flex;
-  }
-  
-  /* RIGHT SIDE */
-  .main-section {
-    margin-left: 260px; /* width ng sidenav */
-    width: calc(100% - 260px);
-  }
-  
-  /* TOP NAV SPACE ONLY */
-  app-admin-topnav {
-    position: fixed;
-    top: 0;
-    left: 260px;
-    width: calc(100% - 260px);
-    z-index: 100;
-  }
-  
-  /* EMPTY CONTENT SPACE (no design) */
-  .dashboard-content {
-    margin-top: 60px; /* height ng topnav */
-  }
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDENAV */
+.sidenav {
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+}
+
+.sidenav.collapsed { width: 80px; }
+
+/* MAIN SECTION */
+.main-section {
+  margin-left: 260px;
+  flex: 1;
+  overflow-y: auto;
+  background: #f3f4f6;
+  transition: margin-left 0.3s ease;
+}
+
+.sidenav.collapsed ~ .main-section {
+  margin-left: 80px;
+}
+
+/* TOP NAV */
+app-admin-topnav {
+  position: fixed;
+  top: 0;
+  left: 260px;
+  width: calc(100% - 260px);
+  z-index: 100;
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+.sidenav.collapsed ~ .main-section app-admin-topnav {
+  left: 80px;
+  width: calc(100% - 80px);
+}
+
+/* DASHBOARD CONTENT */
+.dashboard-content {
+  margin-top: 60px;
+  padding: 20px;
+  min-height: calc(100vh - 60px);
+}
+
+/* DASHBOARD HEADER */
+.dashboard-header {
+  margin-bottom: 10px;
+  padding-left: 20px;
+}
+
+.dashboard-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 15px;
+  margin-bottom: 14px;
+}
+
+/* FLEX HEADER (for search bar) */
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 20px;
+}
+
+/* DIVIDER */
+.dashboard-divider {
+  width: calc(100% - 20px);
+  height: 1px;
+  background: #e5e7eb;
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+
+/* =========================
+   SEARCH BAR
+========================= */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  width: 250px;
+}
+
+.search-box i {
+  color: #9ca3af;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+}
+
+.search-box:hover {
+  border-color: #9ca3af;
+}
+
+/* =========================
+   CENTER WRAPPER
+========================= */
+.center-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 40px;
+}
+
+/* =========================
+   TABLE STYLING (from admin-applicants)
+========================= */
+.table-container {
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.applicants-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.applicants-table thead {
+  background: #f9fafb;
+}
+
+.applicants-table th {
+  text-align: left;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.applicants-table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.applicants-table tbody tr:hover {
+  background: #f9fafb;
+  transform: scale(1.002);
+  cursor: pointer;
+}
+
+.applicants-table td {
+  padding: 16px 14px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.profile-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.profile-pic {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+/* HOURS PROGRESS */
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #10b981; /* green like approve button */
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #374151;
+}

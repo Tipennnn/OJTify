@@ -1,18 +1,102 @@
-
 <div class="dashboard-wrapper">
 
-    <!-- SIDENAV -->
-    <app-admin-sidenav></app-admin-sidenav>
-  
-    <!-- RIGHT -->
-    <div class="main-section">
-  
-      <!-- TOP NAV -->
-      <app-admin-topnav></app-admin-topnav>
-  
-      <!-- EMPTY SPACE -->
-      <div class="dashboard-content"></div>
-  
+  <!-- SIDENAV -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+
+    <!-- TOP NAV -->
+    <app-admin-topnav></app-admin-topnav>
+
+    <!-- DASHBOARD CONTENT -->
+    <div class="dashboard-content">
+
+      <!-- HEADER WITH SEARCH + BUTTON -->
+      <div class="dashboard-header header-flex">
+
+        <!-- LEFT: TITLE -->
+        <div class="header-left">
+          <h2>Attendance Overview</h2>
+        </div>
+
+        <!-- RIGHT: SEARCH + BUTTON -->
+        <div class="header-right">
+
+          <!-- QR BUTTON -->
+          <button class="qr-btn">
+            <i class="fa-solid fa-qrcode"></i>
+            Scan QR
+          </button>
+
+          <!-- SEARCH -->
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search intern...">
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="dashboard-divider"></div>
+
+      <!-- CENTER WRAPPER -->
+      <div class="center-wrapper">
+
+        <!-- TABLE -->
+        <div class="table-container">
+          <table class="applicants-table">
+
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              <tr>
+                <td class="profile-name">
+                  <img src="assets/images/profile.png" class="profile-pic">
+                  <span>Juan Dela Cruz</span>
+                </td>
+                <td>2023-001</td>
+                <td>8:00 AM</td>
+                <td>5:00 PM</td>
+              </tr>
+
+              <tr>
+                <td class="profile-name">
+                  <img src="assets/images/profile.png" class="profile-pic">
+                  <span>Maria Santos</span>
+                </td>
+                <td>2023-002</td>
+                <td>8:15 AM</td>
+                <td>5:05 PM</td>
+              </tr>
+
+              <tr>
+                <td class="profile-name">
+                  <img src="assets/images/profile.png" class="profile-pic">
+                  <span>Pedro Reyes</span>
+                </td>
+                <td>2023-003</td>
+                <td>7:55 AM</td>
+                <td>4:50 PM</td>
+              </tr>
+
+            </tbody>
+
+          </table>
+        </div>
+
+      </div>
+
     </div>
-  
   </div>
+</div>

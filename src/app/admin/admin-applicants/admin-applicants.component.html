@@ -12,11 +12,24 @@
     <!-- DASHBOARD CONTENT -->
     <div class="dashboard-content">
 
-      <!-- DASHBOARD HEADER (copied from admin-dashboard) -->
-      <div class="dashboard-header">
-        <h2>Intern Applications</h2>
-        <div class="dashboard-divider"></div>
+      <!-- DASHBOARD HEADER WITH SEARCH -->
+      <div class="dashboard-header header-flex">
+
+        <!-- TITLE -->
+        <div>
+          <h2>Intern Applicants</h2>
+        </div>
+
+        <!-- SEARCH BAR -->
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search applicant...">
+        </div>
+
       </div>
+
+      <!-- DIVIDER -->
+      <div class="dashboard-divider"></div>
 
       <!-- TABLE WRAPPER -->
       <div class="center-wrapper">
@@ -96,40 +109,43 @@
       <input placeholder="Year Level" [value]="selectedApplicant.yearLevel" readonly>
     </div>
 
- <!-- DOCUMENTS -->
-<div class="form-section">
-  <div class="section-header">Required Documents</div>
+    <!-- DOCUMENTS -->
+    <div class="form-section">
+      <div class="section-header">Required Documents</div>
 
-  <div class="file-box">
-    <label>Resume / CV</label>
-    <div class="file-icons">
-      <i class="fa-solid fa-magnifying-glass view-icon"></i>
-      <i class="fa-solid fa-download download-icon"></i>
+      <div class="file-box">
+        <label>Resume / CV</label>
+        <div class="file-icons">
+          <i class="fa-solid fa-magnifying-glass view-icon"></i>
+          <i class="fa-solid fa-download download-icon"></i>
+        </div>
+        <input type="file">
+      </div>
+
+      <div class="file-box">
+        <label>Endorsement Letter</label>
+        <div class="file-icons">
+          <i class="fa-solid fa-magnifying-glass view-icon"></i>
+          <i class="fa-solid fa-download download-icon"></i>
+        </div>
+        <input type="file">
+      </div>
+
+      <div class="file-box">
+        <label>Certificate of Enrollment</label>
+        <div class="file-icons">
+          <i class="fa-solid fa-magnifying-glass view-icon"></i>
+          <i class="fa-solid fa-download download-icon"></i>
+        </div>
+        <input type="file">
+      </div>
+
+      <!-- ACTION BUTTONS BELOW DOCUMENTS -->
+      <div class="modal-actions">
+        <button class="decline-btn" (click)="decline(selectedApplicant)">Decline</button>
+        <button class="accept-btn" (click)="approve(selectedApplicant)">Approve</button>
+      </div>
     </div>
-    <input type="file">
-  </div>
 
-  <div class="file-box">
-    <label>Endorsement Letter</label>
-    <div class="file-icons">
-      <i class="fa-solid fa-magnifying-glass view-icon"></i>
-      <i class="fa-solid fa-download download-icon"></i>
-    </div>
-    <input type="file">
-  </div>
-
-  <div class="file-box">
-    <label>Certificate of Enrollment</label>
-    <div class="file-icons">
-      <i class="fa-solid fa-magnifying-glass view-icon"></i>
-      <i class="fa-solid fa-download download-icon"></i>
-    </div>
-    <input type="file">
-  </div>
-
-  <!-- ACTION BUTTONS BELOW DOCUMENTS -->
-  <div class="modal-actions">
-    <button class="decline-btn" (click)="decline(selectedApplicant)">Decline</button>
-    <button class="accept-btn" (click)="approve(selectedApplicant)">Approve</button>
   </div>
 </div>

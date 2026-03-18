@@ -1,23 +1,232 @@
+/* =========================
+   GLOBAL
+========================= */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: #f3f4f6;
+}
+
+/* =========================
+   LAYOUT
+========================= */
 .dashboard-wrapper {
-    display: flex;
+  display: flex;
+  height: 100vh;
+}
+
+.main-section {
+  margin-left: 260px;
+  flex: 1;
+  background: #f3f4f6;
+}
+
+app-admin-topnav {
+  position: fixed;
+  top: 0;
+  left: 260px;
+  width: calc(100% - 260px);
+  z-index: 100;
+}
+
+/* =========================
+   CONTENT
+========================= */
+.dashboard-content {
+  margin-top: 60px;
+  padding: 20px;
+}
+
+/* =========================
+   HEADER (EXACT COPY)
+========================= */
+.dashboard-header {
+  margin-bottom: 10px;   /* mas dikit sa divider */
+  padding-left: 20px;
+}
+.dashboard-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 15px;
+  margin-bottom: 14px;
+}
+.dashboard-divider {
+  width: calc(100% - 20px);
+  height: 1px;
+  background: #e5e7eb;
+  margin-left: 20px;     /* 👉 ito yung important */
+  margin-bottom: 20px;
+}
+
+/* =========================
+   CENTER WRAPPER
+========================= */
+.center-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* =========================
+   TABLE (SAME AS APPLICANTS)
+========================= */
+.table-container {
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.applicants-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* HEADER */
+.applicants-table thead {
+  background: #f9fafb;
+}
+
+.applicants-table th {
+  text-align: left;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ROW */
+.applicants-table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.applicants-table tbody tr:hover {
+  background: #f9fafb;
+  transform: scale(1.002);
+  cursor: pointer;
+}
+
+/* CELL */
+.applicants-table td {
+  padding: 16px 14px;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* PROFILE STYLE (IMPORTANT) */
+.profile-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.profile-pic {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .applicants-table th,
+  .applicants-table td {
+    padding: 10px;
+    font-size: 13px;
   }
-  
-  /* RIGHT SIDE */
-  .main-section {
-    margin-left: 260px; /* width ng sidenav */
-    width: calc(100% - 260px);
+}
+
+@media (max-width: 480px) {
+  .applicants-table {
+    font-size: 12px;
   }
-  
-  /* TOP NAV SPACE ONLY */
-  app-admin-topnav {
-    position: fixed;
-    top: 0;
-    left: 260px;
-    width: calc(100% - 260px);
-    z-index: 100;
-  }
-  
-  /* EMPTY CONTENT SPACE (no design) */
-  .dashboard-content {
-    margin-top: 60px; /* height ng topnav */
-  }
+}
+/* HEADER FLEX (TITLE LEFT, SEARCH RIGHT) */
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 20px;
+}
+
+/* SEARCH BOX */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  width: 250px;
+  transition: all 0.2s ease;
+}
+
+/* ICON */
+.search-box i {
+  color: #9ca3af;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+/* INPUT */
+.search-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* HOVER / FOCUS EFFECT */
+.search-box:hover {
+  border-color: #9ca3af;
+}
+
+.search-box input:focus {
+  outline: none;
+}
+/* RIGHT SIDE HEADER */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* QR BUTTON */
+.qr-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #111827;
+  color: #fff;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ICON */
+.qr-btn i {
+  font-size: 14px;
+}
+
+/* HOVER */
+.qr-btn:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+}

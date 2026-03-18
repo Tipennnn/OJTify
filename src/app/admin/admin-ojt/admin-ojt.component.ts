@@ -5,7 +5,7 @@ import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component'
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 
 @Component({
-  selector: 'app-admin-dashboard',
+  selector: 'app-admin-ojt',
   standalone: true,
   imports: [
     CommonModule,
