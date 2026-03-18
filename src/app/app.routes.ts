@@ -29,5 +29,5 @@ export const routes: Routes = [
     { path: 'admin-dashboard', component: AdminDashboardComponent },
     { path: 'admin-sidenav', component: AdminSidenavComponent },
     { path: 'admin-topnav', component: AdminTopnavComponent },
-    { path: 'admin-applicants', component: AdminApplicantsComponent },  
+    { path: 'admin-applicants', component: AdminApplicantsComponent },
 ];

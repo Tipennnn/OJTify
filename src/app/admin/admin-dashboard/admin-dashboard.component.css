@@ -33,7 +33,6 @@ body {
   
   /* MAIN SECTION */
   .main-section {
-    margin-left: 260px;
     flex: 1;
     overflow-y: auto;
     background: #f3f4f6;
