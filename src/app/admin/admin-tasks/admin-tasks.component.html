@@ -19,7 +19,7 @@
         </div>
         <div class="header-right">
           <button class="create-btn" (click)="openModal()">
-            <i class="fas fa-plus"></i> Create Post
+            <i class="fas fa-plus"></i> Create Task
           </button>
         </div>
       </div>
@@ -28,7 +28,7 @@
 
       <!-- TASK LIST -->
       <div class="tasks-list">
-        <div class="task-card" *ngFor="let task of tasks">
+        <div class="task-card" *ngFor="let task of tasks" (click)="openCardModal(task)">
           <div class="task-info">
             <h3>{{task.title}}</h3>
             <div class="task-meta">
@@ -44,9 +44,9 @@
   </div>
 </div>
 
-<!-- ---------------- MODAL ---------------- -->
-<div class="modal-backdrop" *ngIf="isModalOpen">
-  <div class="task-modal">
+<!-- ---------------- CREATE TASK MODAL ---------------- -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="task-modal" (click)="$event.stopPropagation()">
     <button class="modal-close" (click)="closeModal()">×</button>
 
     <div class="modal-content">
@@ -116,12 +116,94 @@
     </div>
   </div>
 </div>
-pasted_content.txt
-Text ·
-image.png
-ang gusto ko gawain mo is dapat kapag clinick ung checklilst may lalabas na modal then dapat ganyaqn mismo ung itsura na lalabas sa modal dapat ganayan lalabas na itsura sa pic
 
+<!-- ---------------- CARD MODAL ---------------- -->
+<div class="modal-backdrop" *ngIf="isCardModalOpen" (click)="closeCardModal()">
+  <div class="card-modal" (click)="$event.stopPropagation()">
+    <button class="modal-close" (click)="closeCardModal()">×</button>
 
-I would love to answer this. Please upgrade to Pro to access premium AI models, image generation, file analysis, and much more.
+    <div class="card-modal-body">
+      <h2 class="modal-title">{{ selectedTask?.title || 'Task' }}</h2>
 
-Upgrade
+      <!-- ADMIN INFO -->
+      <div class="admin-info">
+        <img src="assets/admin.png" alt="Admin Image">
+        <div>
+          <h4>Michael P. Santos</h4>
+          <span>Admin</span>
+        </div>
+      </div>
+
+      <!-- DESCRIPTION -->
+      <div class="section">
+        <p class="section-title">● Description:</p>
+        <p class="section-text">{{ selectedTask?.description }}</p>
+      </div>
+
+      <!-- ASSIGNED INTERNS -->
+      <div class="section" *ngIf="selectedTask?.assignedInterns?.length">
+        <p class="section-title">● Assign Interns:</p>
+        <div class="intern-chips">
+          <div class="chip" *ngFor="let intern of selectedTask?.assignedInterns || []">
+            <img [src]="intern.img" [alt]="intern.name">
+            {{ intern.name }}
+          </div>
+        </div>
+      </div>
+
+      <!-- DUE DATE -->
+      <div class="section">
+        <p class="section-title">📅 Due Date: {{ selectedTask?.due }}</p>
+      </div>
+
+      <!-- COMMENTS -->
+      <div class="section" *ngIf="selectedTask?.comments?.length">
+        <p class="section-title">● Comments</p>
+
+        <div class="comment-box" *ngFor="let comment of selectedTask?.comments || []">
+          <div class="comment-header">
+            <img [src]="comment.authorImg" [alt]="comment.author">
+            <div>
+              <strong>{{ comment.author }}</strong>
+              <p>{{ comment.text }}</p>
+              <small style="font-size: 11px; color: gray;">{{ comment.date }}</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="reply-box">
+          <input type="text" placeholder="Write your reply...">
+          <button>Send</button>
+        </div>
+      </div>
+
+      <!-- SUBMISSIONS -->
+      <div class="section" *ngIf="selectedTask?.submissions?.length">
+        <div class="submission-header">
+          <p class="section-title">● Submissions</p>
+          <span>{{ selectedTask?.submissions?.length || 0 }}/{{ selectedTask?.submissions?.length || 0 }} Submissions</span>
+        </div>
+
+        <div class="submission-table">
+          <div class="row header">
+            <span>Name</span>
+            <span>File</span>
+          </div>
+
+          <div class="row" *ngFor="let sub of selectedTask?.submissions || []">
+            <div class="user">
+              <img [src]="sub.img" [alt]="sub.name">
+              {{ sub.name }}
+            </div>
+            <div class="file">
+              {{ sub.fileName }}
+              <i class="fas fa-eye"></i>
+              <i class="fas fa-ellipsis-v"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
