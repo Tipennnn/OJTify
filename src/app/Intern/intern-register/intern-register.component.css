@@ -412,3 +412,58 @@ body{
 .input-wrapper .resume-icon {
   top: 35%; /* lower percentage = higher position */
 }
+/* ===== NEW ADDED UI (PROFILE STYLE) ===== */
+
+.section-title{
+  font-size:15px;
+  font-weight:600;
+  margin:20px 0 10px;
+  color:#111827;
+}
+
+/* NAME GRID */
+.name-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+/* 2 COLUMN */
+.two-col{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+/* FILE UPLOAD */
+.file-upload{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.file-upload label{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px;
+  border:1px dashed #cbd5e1;
+  border-radius:8px;
+  font-size:13px;
+  cursor:pointer;
+  background:#fafafa;
+}
+
+/* RESPONSIVE FIX */
+@media(max-width:768px){
+  .name-row{
+    grid-template-columns:1fr;
+  }
+
+  .two-col{
+    grid-template-columns:1fr;
+  }
+}

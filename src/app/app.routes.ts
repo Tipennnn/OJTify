@@ -10,6 +10,7 @@ import { AdminLoginComponent } from './admin/admin-login/admin-login.component';
 import { AdminDashboardComponent } from './admin/admin-dashboard/admin-dashboard.component';
 import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from './admin/admin-topnav/admin-topnav.component';
+import { AdminApplicantsComponent } from './admin/admin-applicants/admin-applicants.component';
 import { authGuard } from './guards/auth.guard';
 
 
@@ -28,4 +29,5 @@ export const routes: Routes = [
     { path: 'admin-dashboard', component: AdminDashboardComponent },
     { path: 'admin-sidenav', component: AdminSidenavComponent },
     { path: 'admin-topnav', component: AdminTopnavComponent },
+    { path: 'admin-applicants', component: AdminApplicantsComponent },  
 ];

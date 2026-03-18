@@ -1,0 +1,23 @@
+.dashboard-wrapper {
+    display: flex;
+  }
+  
+  /* RIGHT SIDE */
+  .main-section {
+    margin-left: 260px; /* width ng sidenav */
+    width: calc(100% - 260px);
+  }
+  
+  /* TOP NAV SPACE ONLY */
+  app-admin-topnav {
+    position: fixed;
+    top: 0;
+    left: 260px;
+    width: calc(100% - 260px);
+    z-index: 100;
+  }
+  
+  /* EMPTY CONTENT SPACE (no design) */
+  .dashboard-content {
+    margin-top: 60px; /* height ng topnav */
+  }

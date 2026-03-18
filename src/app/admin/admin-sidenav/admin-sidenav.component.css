@@ -1,293 +1,287 @@
 /* ========================= */
+/* DASHBOARD WRAPPER & MAIN */
+/* ========================= */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.dashboard-wrapper {
+  display: flex;
+  height: 100vh; /* buong screen height */
+}
+
+.main-section {
+  flex: 1;
+  margin-left: 260px; /* width ng sidenav default */
+  overflow-y: auto; /* dito lang scrollable */
+  background: #f3f4f6;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+/* kapag collapsed */
+.sidenav.collapsed ~ .main-section {
+  margin-left: 80px;
+}
+
+/* ========================= */
 /* MAIN SIDENAV */
 /* ========================= */
-
 .sidenav {
-    width: 260px;
-    height: 100vh;
-  
-    background: #ffffff;
-    border-right: 1px solid #e5e7eb;
-  
-    display: flex;
-    flex-direction: column;
-  
-    padding: 22px;
-  
-    font-family: 'Poppins', sans-serif;
-  
-    transition: all .3s ease;
+  width: 260px;
+  height: 100vh;
+  position: fixed; /* fixed para di gumalaw sa scroll */
+  top: 0;
+  left: 0;
+
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  font-family: 'Poppins', sans-serif;
+
+  transition: all .3s ease;
+  overflow-y: auto; /* para may sariling scroll kung needed */
+}
+
+/* COLLAPSED */
+.sidenav.collapsed {
+  width: 80px;
+}
+
+/* ========================= */
+/* BRAND */
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+  padding-left: 12px;
+}
+
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #111827, #374151);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .15);
+  cursor: pointer;
+}
+
+.toggle-btn {
+  cursor: pointer;
+}
+
+.brand-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ========================= */
+/* DIVIDER */
+.divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 12px 0 18px 0;
+}
+
+/* ========================= */
+/* MENU */
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* NAV ITEM */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #374151;
+  font-size: 15px;
+  transition: all .25s ease;
+  position: relative;
+}
+
+/* ICON BOX */
+.icon-box {
+  width: 34px;
+  height: 34px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all .25s ease;
+}
+
+/* HOVER EFFECT */
+.nav-item:hover {
+  background: #f8fafc;
+  transform: translateX(5px);
+}
+
+.nav-item:hover .icon-box {
+  background: #111827;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* ACTIVE LINK */
+.nav-item.active {
+  color: #111827;
+}
+
+.nav-item.active .icon-box {
+  background: #111827;
+  color: white;
+}
+
+/* ACTIVE INDICATOR LINE */
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  height: 22px;
+  width: 4px;
+  background: #111827;
+  border-radius: 4px;
+}
+
+/* LOGOUT */
+.logout-section {
+  margin-top: auto;
+}
+
+.logout:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.logout:hover .icon-box {
+  background: #dc2626;
+  color: white;
+}
+
+/* COLLAPSED STYLE */
+.sidenav.collapsed .brand-title {
+  display: none;
+}
+
+.sidenav.collapsed .nav-item span {
+  display: none;
+}
+
+.sidenav.collapsed .nav-item {
+  justify-content: center;
+}
+
+.sidenav.collapsed .brand-section {
+  justify-content: center;
+  padding-left: 0;
+}
+
+/* ========================= */
+/* RESPONSIVE */
+/* ========================= */
+
+/* TABLET */
+@media (max-width: 1024px) {
+  .sidenav {
+    width: 220px;
   }
-  
-  /* COLLAPSED */
-  
-  .sidenav.collapsed {
-    width: 80px;
+
+  .main-section {
+      margin-left: 220px;
   }
-  
-  /* ========================= */
-  /* BRAND */
-  /* ========================= */
-  
-  .brand-section {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  
-    margin-bottom: 15px;
-    padding-left: 12px;
+}
+
+/* LARGE PHONE */
+@media (max-width: 768px) {
+  .sidenav {
+    width: 180px;
+    padding: 18px;
   }
-  
-  .brand-logo {
-    width: 42px;
-    height: 42px;
-  
-    background: linear-gradient(135deg, #111827, #374151);
-  
-    border-radius: 12px;
-  
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  
-    color: white;
-    font-size: 18px;
-  
-    box-shadow: 0 6px 14px rgba(0, 0, 0, .15);
-  
-    cursor: pointer;
+
+  .main-section {
+      margin-left: 180px;
   }
-  
-  .toggle-btn {
-    cursor: pointer;
-  }
-  
+
   .brand-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #111827;
+    font-size: 18px;
   }
-  
-  /* ========================= */
-  /* DIVIDER */
-  /* ========================= */
-  
-  .divider {
-    height: 1px;
-    background: #e5e7eb;
-    margin: 12px 0 18px 0;
-  }
-  
-  /* ========================= */
-  /* MENU */
-  /* ========================= */
-  
-  .nav-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  /* ========================= */
-  /* NAV ITEM */
-  /* ========================= */
-  
+
   .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  
-    padding: 11px;
-  
-    border-radius: 12px;
-  
-    text-decoration: none;
-    color: #374151;
-  
-    font-size: 15px;
-  
-    transition: all .25s ease;
-  
-    position: relative;
-  }
-  
-  /* ICON BOX */
-  
-  .icon-box {
-    width: 34px;
-    height: 34px;
-  
-    background: #f1f5f9;
-  
-    border-radius: 10px;
-  
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  
     font-size: 14px;
-  
-    transition: all .25s ease;
+    padding: 10px;
   }
-  
-  /* ========================= */
-  /* HOVER EFFECT */
-  /* ========================= */
-  
-  .nav-item:hover {
-    background: #f8fafc;
-    transform: translateX(5px);
+
+  .icon-box {
+    width: 30px;
+    height: 30px;
   }
-  
-  .nav-item:hover .icon-box {
-    background: #111827;
-    color: white;
-    transform: scale(1.1);
+}
+
+/* SMALL PHONE */
+@media (max-width: 480px) {
+  .sidenav {
+    width: 140px;
+    padding: 16px;
   }
-  
-  /* ========================= */
-  /* ACTIVE LINK */
-  /* ========================= */
-  
-  .nav-item.active {
-    color: #111827;
+
+  .main-section {
+      margin-left: 140px;
   }
-  
-  .nav-item.active .icon-box {
-    background: #111827;
-    color: white;
+
+  .brand-title {
+    font-size: 16px;
   }
-  
-  /* ACTIVE INDICATOR LINE */
-  
-  .nav-item.active::before {
-    content: "";
-  
-    position: absolute;
-    left: -18px;
-  
-    height: 22px;
-    width: 4px;
-  
-    background: #111827;
-  
-    border-radius: 4px;
+
+  .nav-item {
+    font-size: 13px;
+    gap: 10px;
   }
-  
-  /* ========================= */
-  /* LOGOUT */
-  /* ========================= */
-  
-  .logout-section {
-    margin-top: auto;
+
+  .icon-box {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
   }
-  
-  .logout:hover {
-    background: #fee2e2;
-    color: #dc2626;
+}
+
+/* VERY SMALL DEVICE */
+@media (max-width: 360px) {
+  .sidenav {
+    width: 120px;
   }
-  
-  .logout:hover .icon-box {
-    background: #dc2626;
-    color: white;
+
+  .main-section {
+      margin-left: 120px;
   }
-  
-  /* ========================= */
-  /* COLLAPSED STYLE */
-  /* ========================= */
-  
-  .sidenav.collapsed .brand-title {
+
+  .brand-title {
     display: none;
   }
-  
-  .sidenav.collapsed .nav-item span {
+
+  .nav-item span {
     display: none;
   }
-  
-  .sidenav.collapsed .nav-item {
+
+  .nav-item {
     justify-content: center;
   }
-  
-  .sidenav.collapsed .brand-section {
-    justify-content: center;
-    padding-left: 0;
-  }
-  
-  /* ========================= */
-  /* RESPONSIVE */
-  /* ========================= */
-  
-  /* TABLET */
-  
-  @media (max-width: 1024px) {
-    .sidenav {
-      width: 220px;
-    }
-  }
-  
-  /* LARGE PHONE */
-  
-  @media (max-width: 768px) {
-    .sidenav {
-      width: 180px;
-      padding: 18px;
-    }
-  
-    .brand-title {
-      font-size: 18px;
-    }
-  
-    .nav-item {
-      font-size: 14px;
-      padding: 10px;
-    }
-  
-    .icon-box {
-      width: 30px;
-      height: 30px;
-    }
-  }
-  
-  /* SMALL PHONE */
-  
-  @media (max-width: 480px) {
-    .sidenav {
-      width: 140px;
-      padding: 16px;
-    }
-  
-    .brand-title {
-      font-size: 16px;
-    }
-  
-    .nav-item {
-      font-size: 13px;
-      gap: 10px;
-    }
-  
-    .icon-box {
-      width: 26px;
-      height: 26px;
-      font-size: 12px;
-    }
-  }
-  
-  /* VERY SMALL DEVICE */
-  
-  @media (max-width: 360px) {
-    .sidenav {
-      width: 120px;
-    }
-  
-    .brand-title {
-      display: none;
-    }
-  
-    .nav-item span {
-      display: none;
-    }
-  
-    .nav-item {
-      justify-content: center;
-    }
-  }
+}

@@ -1,8 +1,11 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
 
 @Component({
   selector: 'app-admin-sidenav',
+  standalone: true, // ✅ ADD THIS
+  imports: [CommonModule, RouterModule], // ✅ ADD THIS
   templateUrl: './admin-sidenav.component.html',
   styleUrls: ['./admin-sidenav.component.css']
 })
@@ -17,12 +20,8 @@ export class AdminSidenavComponent {
   }
 
   onLogout() {
-    // Clear authentication (adjust based on your auth system)
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-
-    // Redirect to login
     this.router.navigate(['/login']);
   }
-
 }
