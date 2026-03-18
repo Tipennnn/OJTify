@@ -31,184 +31,153 @@
   <div class="login-right">
     <div class="login-card">
 
-      <!-- ══════════════════════════════════════ -->
-      <!--  STEP 1 — REGISTRATION FORM           -->
-      <!-- ══════════════════════════════════════ -->
-      <ng-container *ngIf="!otpStep && !successMessage">
+      <h2>Student Registration</h2>
 
-        <h2>Student Registration</h2>
+      <!-- Account Information Section -->
+      <div class="form-section-title">Account Information</div>
 
-        <!-- Error banner -->
-        <div class="alert-error" *ngIf="errorMessage">
-          <i class="fa fa-circle-exclamation"></i> {{ errorMessage }}
-        </div>
+      <!-- EMAIL -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-envelope"></i></span>
+        <input type="email" placeholder=" " required>
+        <label>Email</label>
+      </div>
 
-        <form (ngSubmit)="onRegister()">
+      <!-- PASSWORD -->
+      <div class="input-wrapper password-wrapper">
+        <span class="icon"><i class="fa fa-lock"></i></span>
+        <input type="password" placeholder=" " required>
+        <label>Password</label>
+        <span class="password-icon"><i class="fa fa-eye"></i></span>
+      </div>
 
-          <!-- FIRST NAME -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-user"></i></span>
-              <input type="text" [(ngModel)]="firstName" name="firstName" required>
-              <label>First Name</label>
-            </div>
-          </div>
+      
 
-          <!-- MIDDLE NAME -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-user"></i></span>
-              <input type="text" [(ngModel)]="middleName" name="middleName">
-              <label>Middle Name</label>
-            </div>
-          </div>
+      <!-- Personal Information Section -->
+      <div class="form-section-title">Personal Information</div>
 
-          <!-- LAST NAME -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-user"></i></span>
-              <input type="text" [(ngModel)]="lastName" name="lastName" required>
-              <label>Last Name</label>
-            </div>
-          </div>
+      <!-- FIRST NAME -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-user"></i></span>
+        <input type="text" placeholder=" " required>
+        <label>First Name</label>
+      </div>
 
-          <!-- EMAIL -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-envelope"></i></span>
-              <input type="email" [(ngModel)]="email" name="email" required>
-              <label>Email</label>
-            </div>
-          </div>
+      <!-- MIDDLE NAME -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-user"></i></span>
+        <input type="text" placeholder=" ">
+        <label>Middle Name</label>
+      </div>
 
-          <!-- CONTACT NUMBER -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-phone"></i></span>
-              <input type="tel" [(ngModel)]="contactNumber" name="contactNumber" required>
-              <label>Contact Number</label>
-            </div>
-          </div>
+      <!-- LAST NAME -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-user"></i></span>
+        <input type="text" placeholder=" " required>
+        <label>Last Name</label>
+      </div>
 
-          <!-- STUDENT ID -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-id-card"></i></span>
-              <input type="text" [(ngModel)]="studentId" name="studentId" required>
-              <label>Student ID</label>
-            </div>
-          </div>
+      <!-- CONTACT NUMBER -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-phone"></i></span>
+        <input type="tel" placeholder=" " required>
+        <label>Contact Number</label>
+      </div>
 
-          <!-- RESUME UPLOAD (UI-only, no default "Choose File") -->
-<div class="input-group">
-  <div class="input-wrapper">
-    <span class="icon resume-icon"><i class="fa fa-file"></i></span>
-    <input type="file" id="resumeFile" accept=".pdf,.doc,.docx">
-    <label for="resumeFile">Resume</label>
-    <span class="file-name" id="fileNameDisplay">No file chosen</span>
-  </div>
-</div>
+      <!-- BIRTHDAY -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-calendar"></i></span>
+        <input type="date" placeholder=" " required>
+        <label>Birthday</label>
+      </div>
 
-          <!-- PASSWORD -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-lock"></i></span>
-              <input [type]="showPassword ? 'text' : 'password'"
-                     [(ngModel)]="password" name="password" required>
-              <label>Password</label>
-              <span class="show-pass" (click)="togglePassword()">
-                <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
-              </span>
-            </div>
-          </div>
+      <!-- GENDER -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-venus-mars"></i></span>
+        <select required>
+          <option value="" disabled selected hidden></option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+        <label>Gender</label>
+      </div>
 
-          <button class="login-btn" type="submit" [disabled]="loading">
-            <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
-            {{ loading ? 'Please wait…' : 'Create Account' }}
-          </button>
+      <!-- HOME ADDRESS -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-home"></i></span>
+        <input type="text" placeholder=" " required>
+        <label>Home Address</label>
+      </div>
 
-          <p class="signup-link">
-            Already have an account?
-            <a routerLink="/intern-login">Log in</a>
-          </p>
+      <!-- Academic Background Section -->
+      <div class="form-section-title">Academic Background</div>
 
-          <p class="system-mobile">OJT Management System with QR Attendance</p>
+      <!-- STUDENT ID -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-id-card"></i></span>
+        <input type="text" placeholder=" " required>
+        <label>Student ID</label>
+      </div>
 
-        </form>
+      <!-- SCHOOL NAME -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-building-columns"></i></span>
+        <input type="text" placeholder=" " required>
+        <label>School Name</label>
+      </div>
 
-      </ng-container>
+      <!-- COURSE -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-graduation-cap"></i></span>
+        <input type="text" placeholder=" " required>
+        <label>Course</label>
+      </div>
 
-      <!-- ══════════════════════════════════════ -->
-      <!--  STEP 2 — OTP VERIFICATION            -->
-      <!-- ══════════════════════════════════════ -->
-      <ng-container *ngIf="otpStep">
+      <!-- YEAR LEVEL -->
+      <div class="input-wrapper">
+        <span class="icon"><i class="fa fa-layer-group"></i></span>
+        <select required>
+          <option value="" disabled selected hidden></option>
+          <option value="1st">1st Year</option>
+          <option value="2nd">2nd Year</option>
+          <option value="3rd">3rd Year</option>
+          <option value="4th">4th Year</option>
+        </select>
+        <label>Year Level</label>
+      </div>
 
-        <h2>Verify Your Email</h2>
+      <!-- Required Documents Section -->
+      <div class="form-section-title">Required Documents</div>
 
-        <p class="otp-subtitle">
-          We sent a 6-digit code to<br>
-          <strong>{{ email }}</strong>
-        </p>
+      <!-- RESUME -->
+      <div class="input-wrapper">
+        <span class="icon resume-icon"><i class="fa fa-file"></i></span>
+        <input type="file" id="resumeFile" accept=".pdf,.doc,.docx">
+        <label for="resumeFile">Resume / CV</label>
+        <span class="file-name" id="fileNameDisplay">No file chosen</span>
+      </div>
 
-        <!-- 6 digit boxes -->
-        <div class="otp-boxes">
-          <input
-            *ngFor="let digit of otpDigits; let i = index"
-            [id]="'otp-' + i"
-            class="otp-box"
-            type="text"
-            inputmode="numeric"
-            maxlength="1"
-            [value]="otpDigits[i]"
-            (input)="onOtpInput($event, i)"
-            (keydown)="onOtpKeydown($event, i)"
-            (paste)="onOtpPaste($event)"
-            autocomplete="one-time-code"
-          />
-        </div>
+      <!-- ENDORSEMENT LETTER -->
+      <div class="input-wrapper">
+        <span class="icon endorsement-icon"><i class="fa fa-file-signature"></i></span>
+        <input type="file" id="endorsementFile" accept=".pdf,.doc,.docx">
+        <label for="endorsementFile">Endorsement Letter</label>
+        <span class="file-name" id="endorsementNameDisplay">No file chosen</span>
+      </div>
 
-        <!-- OTP error / info -->
-        <div class="alert-error" *ngIf="otpError && !otpError.includes('sent')">
-          <i class="fa fa-circle-exclamation"></i> {{ otpError }}
-        </div>
-        <div class="alert-info" *ngIf="otpError && otpError.includes('sent')">
-          <i class="fa fa-circle-check"></i> {{ otpError }}
-        </div>
+      <!-- CERTIFICATE OF ENROLLMENT -->
+      <div class="input-wrapper">
+        <span class="icon certificate-icon"><i class="fa fa-certificate"></i></span>
+        <input type="file" id="coeFile" accept=".pdf,.doc,.docx">
+        <label for="coeFile">Certificate of Enrollment</label>
+        <span class="file-name" id="coeNameDisplay">No file chosen</span>
+      </div>
 
-        <button class="login-btn" (click)="onVerifyOtp()" [disabled]="loading">
-          <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
-          {{ loading ? 'Verifying…' : 'Verify & Activate' }}
-        </button>
+      <button class="login-btn" type="submit">Create Account</button>
 
-     <p class="signup-link">
-  Didn't receive a code?
-  <a href="javascript:void(0)" 
-     (click)="resendOtp()" 
-     [class.disabled-link]="resendCooldown > 0"
-     [style.pointer-events]="resendCooldown > 0 ? 'none' : 'auto'">
-    {{ resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' : 'Resend' }}
-  </a>
-</p>
-
-      </ng-container>
-
-      <!-- ══════════════════════════════════════ -->
-      <!--  STEP 3 — SUCCESS                     -->
-      <!-- ══════════════════════════════════════ -->
-      <ng-container *ngIf="successMessage">
-
-        <div class="success-panel">
-          <div class="success-icon-wrap">
-            <i class="fa fa-check"></i>
-          </div>
-          <h2>Account Activated!</h2>
-          <p>{{ successMessage }}</p>
-          <a routerLink="/intern-login" class="login-btn" style="display:block; text-align:center; text-decoration:none; margin-top:10px;">
-            Go to Login
-          </a>
-        </div>
-
-      </ng-container>
+      <p class="signup-link">
+        Already have an account? <a routerLink="/intern-login">Log in</a>
+      </p>
 
     </div>
   </div>
