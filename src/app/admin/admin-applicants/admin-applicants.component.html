@@ -1,18 +1,135 @@
 <div class="dashboard-wrapper">
 
-    <!-- SIDENAV -->
-    <app-admin-sidenav></app-admin-sidenav>
-  
-    <!-- RIGHT -->
-    <div class="main-section">
-  
-      <!-- TOP NAV -->
-      <app-admin-topnav></app-admin-topnav>
-  
-      <!-- EMPTY SPACE -->
-      <div class="dashboard-content"></div>
-      
-  
+  <!-- SIDENAV -->
+  <app-admin-sidenav></app-admin-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+
+    <!-- TOP NAV -->
+    <app-admin-topnav></app-admin-topnav>
+
+    <!-- DASHBOARD CONTENT -->
+    <div class="dashboard-content">
+
+      <!-- DASHBOARD HEADER (copied from admin-dashboard) -->
+      <div class="dashboard-header">
+        <h2>Intern Applications</h2>
+        <div class="dashboard-divider"></div>
+      </div>
+
+      <!-- TABLE WRAPPER -->
+      <div class="center-wrapper">
+
+        <div class="table-container">
+          <table class="applicants-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Course</th>
+                <th>Email</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let applicant of applicants" (click)="openModal(applicant)">
+                <td class="profile-name">
+                  <img src="assets/images/profile.png" class="profile-pic">
+                  <span>{{ applicant.name }}</span>
+                </td>
+                <td>{{ applicant.studentId }}</td>
+                <td>{{ applicant.course }}</td>
+                <td>{{ applicant.email }}</td>
+                <td class="actions" (click)="$event.stopPropagation()">
+                  <button class="decline-btn" (click)="decline(applicant)">Decline</button>
+                  <button class="accept-btn" (click)="approve(applicant)">Approve</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
     </div>
-  
   </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" *ngIf="selectedApplicant" (click)="closeModal()">
+  <div class="modal-content modern-modal" (click)="$event.stopPropagation()">
+
+    <!-- PROFILE -->
+    <div class="profile-section">
+      <div class="profile-circle"></div>
+    </div>
+
+    <!-- PERSONAL -->
+    <div class="form-section">
+      <div class="section-header">Personal Information</div>
+
+      <div class="form-row">
+        <input placeholder="First Name" [value]="selectedApplicant.firstName" readonly>
+        <input placeholder="Middle Name" [value]="selectedApplicant.middleName" readonly>
+        <input placeholder="Last Name" [value]="selectedApplicant.lastName" readonly>
+      </div>
+
+      <input placeholder="Contact Number" [value]="selectedApplicant.contact" readonly>
+      <input placeholder="Email Address" [value]="selectedApplicant.email" readonly>
+
+      <div class="form-row">
+        <input placeholder="Birthday / yyyy" [value]="selectedApplicant.birthday" readonly>
+        <input placeholder="Gender" [value]="selectedApplicant.gender" readonly>
+      </div>
+
+      <input placeholder="Home Address" [value]="selectedApplicant.address" readonly>
+    </div>
+
+    <!-- ACADEMIC -->
+    <div class="form-section">
+      <div class="section-header">Academic Background</div>
+
+      <input placeholder="Student ID" [value]="selectedApplicant.studentId" readonly>
+      <input placeholder="School Name" [value]="selectedApplicant.school" readonly>
+      <input placeholder="Course" [value]="selectedApplicant.course" readonly>
+      <input placeholder="Year Level" [value]="selectedApplicant.yearLevel" readonly>
+    </div>
+
+ <!-- DOCUMENTS -->
+<div class="form-section">
+  <div class="section-header">Required Documents</div>
+
+  <div class="file-box">
+    <label>Resume / CV</label>
+    <div class="file-icons">
+      <i class="fa-solid fa-magnifying-glass view-icon"></i>
+      <i class="fa-solid fa-download download-icon"></i>
+    </div>
+    <input type="file">
+  </div>
+
+  <div class="file-box">
+    <label>Endorsement Letter</label>
+    <div class="file-icons">
+      <i class="fa-solid fa-magnifying-glass view-icon"></i>
+      <i class="fa-solid fa-download download-icon"></i>
+    </div>
+    <input type="file">
+  </div>
+
+  <div class="file-box">
+    <label>Certificate of Enrollment</label>
+    <div class="file-icons">
+      <i class="fa-solid fa-magnifying-glass view-icon"></i>
+      <i class="fa-solid fa-download download-icon"></i>
+    </div>
+    <input type="file">
+  </div>
+
+  <!-- ACTION BUTTONS BELOW DOCUMENTS -->
+  <div class="modal-actions">
+    <button class="decline-btn" (click)="decline(selectedApplicant)">Decline</button>
+    <button class="accept-btn" (click)="approve(selectedApplicant)">Approve</button>
+  </div>
+</div>

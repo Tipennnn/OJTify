@@ -1,23 +1,410 @@
-.dashboard-wrapper {
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: #f3f4f6;
+  }
+  
+  /* DASHBOARD WRAPPER */
+  .dashboard-wrapper {
     display: flex;
+    height: 100vh;
   }
   
-  /* RIGHT SIDE */
+  /* SIDENAV */
+  .sidenav {
+    width: 260px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #fff;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    padding: 22px;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+  }
+  
+  .sidenav.collapsed { width: 80px; }
+  
+  /* MAIN SECTION */
   .main-section {
-    margin-left: 260px; /* width ng sidenav */
-    width: calc(100% - 260px);
+    margin-left: 260px;
+    flex: 1;
+    overflow-y: auto;
+    background: #f3f4f6;
+    transition: margin-left 0.3s ease;
   }
   
-  /* TOP NAV SPACE ONLY */
+  .sidenav.collapsed ~ .main-section {
+    margin-left: 80px;
+  }
+  
+  /* TOP NAV */
   app-admin-topnav {
     position: fixed;
     top: 0;
     left: 260px;
     width: calc(100% - 260px);
     z-index: 100;
+    transition: left 0.3s ease, width 0.3s ease;
   }
   
-  /* EMPTY CONTENT SPACE (no design) */
-  .dashboard-content {
-    margin-top: 60px; /* height ng topnav */
+  .sidenav.collapsed ~ .main-section app-admin-topnav {
+    left: 80px;
+    width: calc(100% - 80px);
   }
+  
+  /* DASHBOARD CONTENT */
+  .dashboard-content {
+    margin-top: 60px;
+    padding: 20px;
+    min-height: calc(100vh - 60px);
+  }
+  /* DASHBOARD HEADER (slightly shifted right, divider a bit lower) */
+.dashboard-header {
+    margin-bottom: 24px;       /* spacing below header */
+    padding-left: 20px;        /* slight right shift for title */
+  }
+  
+  .dashboard-header h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-top: 15px;
+    margin-bottom: 14px;       /* slightly more space below the title for divider */
+    text-align: left;
+  }
+  
+  .dashboard-divider {
+    width: calc(100% - 20px);  /* align divider with the shifted title */
+    height: 1px;
+    background: #e5e7eb;
+    margin-left: 0px;          /* same shift as title */
+  }
+  /* TITLE */
+  .title {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: #111827;
+  }
+  
+  /* CENTER WRAPPER */
+  .center-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 40px;
+  }
+  
+*/
+.dashboard-wrapper {
+  display: flex;
+  height: 100vh;
+}
+
+.main-section {
+  margin-left: 260px;
+  flex: 1;
+  background: #f3f4f6;
+}
+
+.dashboard-content {
+  margin-top: 60px;
+  padding: 20px;
+}
+
+/* ========================= */
+/* ✅ MODERN TABLE UI */
+/* ========================= */
+
+/* TABLE WRAPPER */
+.table-container {
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  width: 100%;             /* Palalaparin container sa buong available width */
+  max-width: 1200px;       /* optional: limit para hindi masyadong malaki sa malalaking screens */
+  margin: 0 auto;          /* center horizontally */
+}
+
+.applicants-table {
+  width: 100%;             /* table mismo ay full width ng container */
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+/* HEADER */
+.applicants-table thead {
+  background: #f9fafb;
+}
+
+.applicants-table th {
+  text-align: left;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ROWS */
+.applicants-table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.applicants-table tbody tr:hover {
+  background: #f9fafb;
+  transform: scale(1.002);
+  cursor: pointer;
+}
+
+/* CELLS */
+.applicants-table td {
+  padding: 16px 14px;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* PROFILE */
+.profile-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.profile-pic {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  display: flex;
+  gap: 6px;
+}
+/* ACTION BUTTONS */
+.actions button {
+  padding: 8px 16px; /* rectangle shape with some horizontal padding */
+  border-radius: 6px; /* small rounded corners, optional */
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 80px; /* ensures buttons have consistent width */
+}
+
+/* APPROVE */
+.accept-btn {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.accept-btn:hover {
+  background: #22c55e;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+/* DECLINE */
+.decline-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.decline-btn:hover {
+  background: #ef4444;
+  color: #fff;
+  transform: scale(1.05);
+}
+/* ========================= */
+/* KEEP YOUR OTHER STYLES */
+/* ========================= */
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modern-modal {
+  width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #f9fafb;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* PROFILE */
+.profile-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.profile-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid #111827;
+  position: relative;
+}
+
+/* FORM SECTION */
+.form-section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  background: #f9fafb;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+}
+
+.section-header::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background: #e5e7eb;
+  margin-top: 8px;
+  border-radius: 2px;
+}
+
+/* INPUTS */
+.form-section input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 13px;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* FILE INPUT */
+.file-box label {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* maliit na space sa pagitan ng text at icons */
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.file-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* text left, icons right */
+  border: 1px dashed #9ca3af;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  background: #fff;
+  font-size: 13px;
+}
+
+.file-box label {
+  cursor: pointer;
+}
+
+.file-icons i {
+  font-size: 14px;
+  color: #6b7280;
+  margin-left: 4px;
+  margin-right: 4px;
+  cursor: pointer;
+}
+
+.file-icons i.download-icon {
+  
+  font-size: 14px;
+  color: #6b7280; /* blue download icon */
+  margin-left: 4px;
+  margin-right: 4px;
+  cursor: pointer;
+}
+
+.file-icons i:hover {
+  color: #111827;
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+}
+
+.file-box input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+/* ACTION BUTTONS sa MODAL */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end; /* siguraduhin right-aligned */
+  gap: 10px;
+  margin-top: 20px; /* spacing sa taas ng buttons */
+}
+
+.modal-actions button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-actions .accept-btn {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.modal-actions .accept-btn:hover {
+  background: #22c55e;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.modal-actions .decline-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.modal-actions .decline-btn:hover {
+  background: #ef4444;
+  color: #fff;
+  transform: scale(1.05);
+}
