@@ -12,6 +12,8 @@ import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.compo
 import { AdminTopnavComponent } from './admin/admin-topnav/admin-topnav.component';
 import { AdminApplicantsComponent } from './admin/admin-applicants/admin-applicants.component';
 import { AdminTasksComponent } from './admin/admin-tasks/admin-tasks.component'; // <-- new component
+import { AdminOjtComponent } from './admin/admin-ojt/admin-ojt.component';
+import { AdminAttendanceComponent } from './admin/admin-attendance/admin-attendance.component';
 
 import { authGuard } from './guards/auth.guard';
 
@@ -33,4 +35,6 @@ export const routes: Routes = [
   { path: 'admin-topnav', component: AdminTopnavComponent },
   { path: 'admin-applicants', component: AdminApplicantsComponent },
   { path: 'admin-tasks', component: AdminTasksComponent }, // <-- added route
+  { path: 'admin-ojt', component: AdminOjtComponent },
+  { path: 'admin-attendance', component: AdminAttendanceComponent },
 ];
