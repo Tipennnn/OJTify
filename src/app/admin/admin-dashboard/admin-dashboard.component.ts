@@ -1,9 +1,11 @@
-import { Component, AfterViewInit } from '@angular/core';
+import { Component, AfterViewInit, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
+import { AppwriteService } from '../../services/appwrite.service';
 import { Chart } from 'chart.js/auto';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -17,7 +19,33 @@ import { Chart } from 'chart.js/auto';
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
 })
-export class AdminDashboardComponent implements AfterViewInit {
+export class AdminDashboardComponent implements OnInit, AfterViewInit {
+
+  constructor(private appwrite: AppwriteService) {}
+
+  async ngOnInit() {
+    if (sessionStorage.getItem('adminWelcomeShown')) return;
+
+    try {
+      const user = await this.appwrite.account.get();
+      const name = user.name?.split(' ')[0] || user.email || 'Admin';
+
+      sessionStorage.setItem('adminWelcomeShown', 'true');
+
+      Swal.fire({
+        icon: 'success',
+        title: `Welcome back, Admin!`,
+        text: 'You are logged in as an administrator.',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+    } catch {
+      // No active session, auth guard will handle redirect
+    }
+  }
 
   ngAfterViewInit(): void {
     const ctx = document.getElementById('attendanceChart') as HTMLCanvasElement;
@@ -56,5 +84,4 @@ export class AdminDashboardComponent implements AfterViewInit {
       }
     });
   }
-
 }

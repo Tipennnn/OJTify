@@ -262,7 +262,27 @@
     
     }
     
-    
+   .display-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.display-label {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.display-value {
+  font-size: 15px;
+  color: #111827;
+  font-weight: 500;
+}
     /* MOBILE */
     
     @media(max-width:768px){

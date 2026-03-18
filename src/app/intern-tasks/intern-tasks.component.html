@@ -8,46 +8,48 @@
 
     <div class="dashboard-content">
 
-      <!-- DASHBOARD TITLE -->
       <div class="dashboard-header">
         <h2>Tasks</h2>
         <div class="dashboard-divider"></div>
       </div>
 
-      <!-- TASK LIST -->
       <div class="tasks-list">
 
-        <div
-          class="task-card"
-          *ngFor="let task of tasks"
-          (click)="openModal(task)"
-        >
+        <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
+          <p style="margin-top:12px;">Loading tasks...</p>
+        </div>
 
+        <div *ngIf="!loading && tasks.length === 0"
+             style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fas fa-list-check" style="font-size:40px; margin-bottom:12px;"></i>
+          <p>No tasks assigned to you yet.</p>
+        </div>
+
+        <div class="task-card"
+             *ngFor="let task of tasks"
+             (click)="openModal(task)">
           <div class="task-info">
-            <h3>{{task.title}}</h3>
+            <h3>{{ task.title }}</h3>
             <div class="task-meta">
-              <span>Posted: {{task.posted}}</span>
-              <span>Due: {{task.due}}</span>
+              <span>Posted: {{ task.posted }}</span>
+              <span>Due: {{ task.due }}</span>
             </div>
           </div>
-
           <span class="status" [ngClass]="task.status">
-            {{task.status | titlecase}}
+            {{ task.status | titlecase }}
           </span>
-
         </div>
 
       </div>
-
     </div>
-
   </div>
-
 </div>
 
-<!-- MODAL (unchanged) -->
+<!-- ══════════════════════════════════════ -->
+<!--  TASK MODAL                          -->
+<!-- ══════════════════════════════════════ -->
 <div class="task-modal-overlay" [class.active]="isModalOpen">
-
   <div class="task-modal-modern">
 
     <div class="modal-close" (click)="closeModal()">×</div>
@@ -70,15 +72,50 @@
             <div class="file-left">
               <i class="fa-solid fa-file file-icon"></i>
               <div class="file-info">
-                <span class="file-name">{{selectedFile.name}}</span>
-                <span class="file-size">{{(selectedFile.size / 1024).toFixed(0)}} KB</span>
+                <span class="file-name">{{ selectedFile.name }}</span>
+                <span class="file-size">{{ getFileSize(selectedFile.size) }}</span>
               </div>
             </div>
             <span class="file-remove" (click)="selectedFile = null">×</span>
           </div>
         </div>
 
-        <button class="submit-btn" (click)="submitFile()">Submit Task</button>
+        <button class="submit-btn" (click)="submitFile()" [disabled]="submitLoading">
+          <i class="fa fa-spinner fa-spin" *ngIf="submitLoading"></i>
+          {{ submitLoading ? 'Submitting...' : 'Submit Task' }}
+        </button>
+
+        <!-- MY SUBMISSIONS -->
+        <div class="divider" style="margin-top:16px;"></div>
+        <h4 style="font-size:14px; font-weight:600; margin-bottom:10px;">
+          My Submissions
+        </h4>
+
+        <div *ngIf="submissions.length === 0"
+             style="font-size:13px; color:#9ca3af; text-align:center; padding:12px 0;">
+          No submissions yet.
+        </div>
+
+        <div class="file-card" *ngFor="let sub of submissions"
+             style="margin-bottom:10px;">
+          <div class="file-left">
+            <i class="fa-solid fa-file file-icon"></i>
+            <div class="file-info">
+              <span class="file-name">{{ sub.file_name }}</span>
+              <span class="file-size">{{ sub.submitted_at }}</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <i class="fas fa-eye"
+               style="cursor:pointer; color:#2563eb;"
+               (click)="viewFile(sub.file_id)"
+               title="View file"></i>
+            <i class="fas fa-trash"
+               style="cursor:pointer; color:#ef4444;"
+               (click)="deleteSubmission(sub)"
+               title="Delete submission"></i>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -86,13 +123,13 @@
     <!-- RIGHT PANEL -->
     <div class="modal-right">
 
-      <h2 class="task-title">{{selectedTask?.title}}</h2>
+      <h2 class="task-title">{{ selectedTask?.title }}</h2>
       <div class="divider"></div>
 
       <div class="task-author">
-        <div class="author-avatar">{{selectedTask?.title?.charAt(0)}}</div>
+        <div class="author-avatar">{{ selectedTask?.title?.charAt(0) }}</div>
         <div class="author-info">
-          <span class="author-name">Juan Alvarado</span>
+          <span class="author-name">OJTify Admin</span>
           <span class="author-role">Admin</span>
         </div>
       </div>
@@ -102,15 +139,14 @@
           <i class="fa-solid fa-calendar"></i>
           <div>
             <strong>Posted</strong>
-            <span>{{selectedTask?.posted}}</span>
+            <span>{{ selectedTask?.posted }}</span>
           </div>
         </div>
-
         <div class="meta-item">
           <i class="fa-solid fa-clock"></i>
           <div>
             <strong>Due</strong>
-            <span>{{selectedTask?.due}}</span>
+            <span>{{ selectedTask?.due }}</span>
           </div>
         </div>
       </div>
@@ -118,36 +154,142 @@
       <div class="divider"></div>
 
       <div class="description-card">
-        <p>{{selectedTask?.description}}</p>
+        <p>{{ selectedTask?.description }}</p>
       </div>
+
+    <!-- ADMIN ATTACHMENT -->
+<div *ngIf="selectedTask?.attachment_file_id">
+  <div class="divider"></div>
+  <strong style="font-size:14px;">📎 Attachment</strong>
+
+  <div class="file-card" style="margin-top:10px;">
+    <div class="file-left">
+      <i class="fa-solid fa-file-pdf file-icon" style="color:#dc2626;"></i>
+      <div class="file-info">
+        <span class="file-name">
+          {{ selectedTask?.attachment_file_name || 'Task Attachment' }}
+        </span>
+        <span class="file-size">From Admin</span>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+
+      <!-- VIEW -->
+      <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
+                 + selectedTask!.attachment_file_id
+                 + '/view?project=69ba8d9c0027d10c447f'"
+         target="_blank"
+         title="View file"
+         style="color:#2563eb; cursor:pointer; text-decoration:none;">
+        <i class="fas fa-eye"></i>
+      </a>
+
+      <!-- DOWNLOAD -->
+      <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
+                 + selectedTask!.attachment_file_id
+                 + '/download?project=69ba8d9c0027d10c447f'"
+         target="_blank"
+         title="Download file"
+         style="color:#16a34a; cursor:pointer; text-decoration:none;">
+        <i class="fas fa-download"></i>
+      </a>
+
+    </div>
+  </div>
+</div>
 
       <div class="divider"></div>
 
-      <div class="comments-section">
-        <div class="comment-title">Comment</div>
-        <div class="comment-input">
-          <input type="text" placeholder="Add a comment..." [(ngModel)]="newComment" />
-          <button class="send-btn" (click)="sendComment()">
-            <i class="fa-solid fa-paper-plane"></i>
-          </button>
-        </div>
+     <!-- COMMENTS -->
+<div class="comments-section">
+  <div class="comment-title">Comments</div>
 
-        <div class="divider"></div>
-
-        <div class="comment" *ngFor="let comment of comments">
-          <div class="avatar">{{comment.name[0]}}</div>
-          <div class="comment-body">
-            <div class="comment-header">
-              <strong>{{comment.name}}</strong>
-              <span class="comment-date">{{comment.date}}</span>
-            </div>
-            <p class="comment-text">{{comment.message}}</p>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
+  <div *ngIf="comments.length === 0"
+       style="text-align:center; color:#9ca3af; font-size:13px; padding:16px 0;">
+    No comments yet. Be the first to comment!
   </div>
 
+  <div class="comment" *ngFor="let comment of comments">
+    <div class="avatar"
+         [style.background]="comment.role === 'admin' ? '#ef4444' : '#2563eb'">
+      {{ comment.user_name[0] }}
+    </div>
+
+    <div class="comment-body" style="flex:1;">
+      <div class="comment-header">
+        <strong>
+          {{ comment.user_name }}
+          <span *ngIf="comment.role === 'admin'"
+                style="font-size:11px; background:#fdeaea; color:#dc2626;
+                       padding:2px 6px; border-radius:10px; margin-left:4px;">
+            Admin
+          </span>
+        </strong>
+        <span class="comment-date">{{ comment.created_at }}</span>
+      </div>
+
+      <!-- VIEW MODE -->
+      <ng-container *ngIf="editingCommentId !== comment.$id">
+        <p class="comment-text">{{ comment.message }}</p>
+
+        <!-- Only show edit/delete for own comments -->
+        <div *ngIf="comment.user_id === currentUserId"
+             style="display:flex; gap:10px; margin-top:6px;">
+          <span (click)="startEdit(comment)"
+                style="font-size:12px; color:#2563eb; cursor:pointer;">
+            <i class="fas fa-pen"></i> Edit
+          </span>
+          <span (click)="deleteComment(comment)"
+                style="font-size:12px; color:#ef4444; cursor:pointer;">
+            <i class="fas fa-trash"></i> Delete
+          </span>
+        </div>
+      </ng-container>
+
+      <!-- EDIT MODE -->
+      <ng-container *ngIf="editingCommentId === comment.$id">
+        <textarea
+          [(ngModel)]="editingMessage"
+          rows="2"
+          style="width:100%; padding:8px; border:1px solid #d1d5db;
+                 border-radius:8px; font-size:13px; resize:none;
+                 margin-top:6px; font-family: inherit;">
+        </textarea>
+        <div style="display:flex; gap:8px; margin-top:6px;">
+          <button (click)="saveEdit(comment)"
+                  style="background:#2563eb; color:white; border:none;
+                         padding:6px 12px; border-radius:6px; font-size:12px;
+                         cursor:pointer;">
+            Save
+          </button>
+          <button (click)="cancelEdit()"
+                  style="background:#e5e7eb; border:none;
+                         padding:6px 12px; border-radius:6px; font-size:12px;
+                         cursor:pointer;">
+            Cancel
+          </button>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Comment input -->
+  <div class="comment-input">
+    <input type="text"
+           placeholder="Add a comment..."
+           [(ngModel)]="newComment"
+           (keyup.enter)="sendComment()" />
+    <button class="send-btn"
+            (click)="sendComment()"
+            [disabled]="commentLoading">
+      <i class="fa fa-spinner fa-spin" *ngIf="commentLoading"></i>
+      <i class="fa-solid fa-paper-plane" *ngIf="!commentLoading"></i>
+    </button>
+  </div>
+
+</div>
+  </div>
 </div>

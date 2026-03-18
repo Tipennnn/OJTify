@@ -1,168 +1,217 @@
 <div class="profile-wrapper">
 
   <!-- TOP NAV -->
-  
   <div class="top-nav">
-  
-  <div class="brand" (click)="goDashboard()">
-  
-  <img src="/assets/images/OJTify_logo.png">
-  
-  <span>OJTIFY</span>
-  
-  </div>
-  
-  <div class="close-btn" (click)="goDashboard()">
-  <i class="fa-solid fa-xmark"></i>
-  </div>
-  
-  </div>
-  
-  
-  <div class="profile-container">
-  
-  <!-- PROFILE PHOTO -->
-  
-  <div class="profile-photo">
-  
-  <img src="/assets/images/default-profile.png">
-  
-  <label class="edit-photo">
-  <i class="fa-solid fa-pen"></i>
-  <input type="file" hidden>
-  </label>
-  
-  </div>
-  
-  
-  <form class="profile-form">
-  
-  <h3 class="section-title">Personal Information</h3>
-  
-  <div class="name-row">
-  
-  <div class="input-wrapper">
-  <input type="text" required>
-  <label>First Name</label>
-  </div>
-  
-  <div class="input-wrapper">
-  <input type="text">
-  <label>Middle Name</label>
-  </div>
-  
-  <div class="input-wrapper">
-  <input type="text" required>
-  <label>Last Name</label>
-  </div>
-
-  </div>
-
-  <div class="input-wrapper full-width">
-    <input type="tel" required>
-    <label>Contact Number</label>
-  </div>
-  
-  <div class="input-wrapper full-width">
-    <input type="email" required>
-    <label>Email Address</label>
-  </div>
-  
-  
-  <div class="two-col">
-  
-  <div class="input-wrapper">
-  <input type="date" required>
-  <label>Birthday</label>
-  </div>
-  
-  <div class="input-wrapper">
-  <select required>
-  <option value="" disabled selected></option>
-  <option>Male</option>
-  <option>Female</option>
-  </select>
-  <label>Gender</label>
-  </div>
-  
-  </div>
-  
-
-  
-  <div class="input-wrapper">
-  <input type="text" required>
-  <label>Home Address</label>
-  </div>
-  
-  
-  <h3 class="section-title">Academic Background</h3>
-
-  <div class="input-wrapper">
-    <input type="text" required>
-    <label>Student ID</label>
+    <div class="brand" (click)="goDashboard()">
+      <img src="/assets/images/OJTify_logo.png">
+      <span>OJTIFY</span>
     </div>
-  
-  <div class="input-wrapper">
-  <input type="text" required>
-  <label>School Name</label>
+    <div class="close-btn" (click)="goDashboard()">
+      <i class="fa-solid fa-xmark"></i>
+    </div>
   </div>
-  
-  <div class="input-wrapper">
-  <input type="text" required>
-  <label>Course</label>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" style="text-align:center; padding:80px; color:#9ca3af;">
+    <i class="fa fa-spinner fa-spin" style="font-size:32px;"></i>
+    <p style="margin-top:14px;">Loading profile...</p>
   </div>
-  
-  <div class="input-wrapper">
-  
-  <select required>
-  <option value="" disabled selected></option>
-  <option>1st Year</option>
-  <option>2nd Year</option>
-  <option>3rd Year</option>
-  <option>4th Year</option>
-  </select>
-  
-  <label>Year Level</label>
-  
+
+  <div class="profile-container" *ngIf="!loading">
+
+    <!-- PROFILE PHOTO -->
+    <div class="profile-photo">
+      <img [src]="profilePhotoUrl" alt="Profile Photo">
+
+      <!-- Loading spinner over photo -->
+      <div *ngIf="photoLoading"
+           style="position:absolute; top:0; left:0; width:100%; height:100%;
+                  background:rgba(255,255,255,0.7); border-radius:50%;
+                  display:flex; align-items:center; justify-content:center;">
+        <i class="fa fa-spinner fa-spin" style="color:#2563eb; font-size:20px;"></i>
+      </div>
+
+      <label class="edit-photo" [style.pointer-events]="photoLoading ? 'none' : 'auto'">
+        <i class="fa-solid fa-pen"></i>
+        <input type="file" hidden accept="image/*"
+               (change)="onPhotoSelected($event)">
+      </label>
+    </div>
+
+    <!-- NAME & EMAIL DISPLAY -->
+    <div style="text-align:center; margin-bottom:24px;">
+      <h2 style="font-size:20px; font-weight:600; color:#111827;">
+        {{ firstName }} {{ middleName }} {{ lastName }}
+      </h2>
+      <p style="font-size:13px; color:#6b7280;">{{ email }}</p>
+    </div>
+
+    <form class="profile-form" (ngSubmit)="onSave()">
+
+      <!-- ══════════════════════════════════ -->
+      <!--  PERSONAL INFORMATION             -->
+      <!-- ══════════════════════════════════ -->
+      <h3 class="section-title">Personal Information</h3>
+
+      <!-- NAME ROW — DISPLAY ONLY -->
+      <div class="name-row">
+        <div class="display-field">
+          <span class="display-label">First Name</span>
+          <span class="display-value">{{ firstName || '—' }}</span>
+        </div>
+        <div class="display-field">
+          <span class="display-label">Middle Name</span>
+          <span class="display-value">{{ middleName || '—' }}</span>
+        </div>
+        <div class="display-field">
+          <span class="display-label">Last Name</span>
+          <span class="display-value">{{ lastName || '—' }}</span>
+        </div>
+      </div>
+
+      <!-- CONTACT — EDITABLE -->
+      <div class="input-wrapper full-width">
+        <input type="tel" [(ngModel)]="contactNumber"
+               name="contactNumber" required placeholder=" ">
+        <label>Contact Number</label>
+      </div>
+
+      <!-- EMAIL — DISPLAY ONLY -->
+      <div class="display-field">
+        <span class="display-label">Email Address</span>
+        <span class="display-value">{{ email || '—' }}</span>
+      </div>
+
+      <!-- BIRTHDAY & GENDER — DISPLAY ONLY -->
+      <div class="two-col">
+        <div class="display-field">
+          <span class="display-label">Birthday</span>
+          <span class="display-value">{{ birthday || '—' }}</span>
+        </div>
+        <div class="display-field">
+          <span class="display-label">Gender</span>
+          <span class="display-value">{{ gender || '—' }}</span>
+        </div>
+      </div>
+
+      <!-- HOME ADDRESS — EDITABLE -->
+      <div class="input-wrapper">
+        <input type="text" [(ngModel)]="homeAddress"
+               name="homeAddress" required placeholder=" ">
+        <label>Home Address</label>
+      </div>
+
+      <!-- ══════════════════════════════════ -->
+      <!--  ACADEMIC BACKGROUND              -->
+      <!-- ══════════════════════════════════ -->
+      <h3 class="section-title">Academic Background</h3>
+
+      <div class="display-field">
+        <span class="display-label">Student ID</span>
+        <span class="display-value">{{ studentId || '—' }}</span>
+      </div>
+
+      <div class="display-field">
+        <span class="display-label">School Name</span>
+        <span class="display-value">{{ schoolName || '—' }}</span>
+      </div>
+
+      <div class="display-field">
+        <span class="display-label">Course</span>
+        <span class="display-value">{{ course || '—' }}</span>
+      </div>
+
+      <div class="display-field">
+        <span class="display-label">Year Level</span>
+        <span class="display-value">{{ yearLevel || '—' }}</span>
+      </div>
+
+      <!-- ══════════════════════════════════ -->
+      <!--  REQUIRED DOCUMENTS               -->
+      <!-- ══════════════════════════════════ -->
+      <h3 class="section-title">Required Documents</h3>
+
+      <div class="file-upload">
+
+        <!-- RESUME -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:12px; border:1px dashed #cbd5e1; border-radius:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fas fa-file-pdf" style="color:#dc2626; font-size:18px;"></i>
+            <span style="font-size:14px;">Resume / CV</span>
+          </div>
+          <div style="display:flex; gap:10px;" *ngIf="resumeFileId; else noResume">
+            <a [href]="getFileUrl(resumeFileId, 'view')" target="_blank"
+               style="color:#2563eb; font-size:13px; text-decoration:none;">
+              <i class="fas fa-eye"></i> View
+            </a>
+            <a [href]="getFileUrl(resumeFileId, 'download')" target="_blank"
+               style="color:#16a34a; font-size:13px; text-decoration:none;">
+              <i class="fas fa-download"></i> Download
+            </a>
+          </div>
+          <ng-template #noResume>
+            <span style="font-size:13px; color:#9ca3af;">No file uploaded</span>
+          </ng-template>
+        </div>
+
+        <!-- ENDORSEMENT LETTER -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:12px; border:1px dashed #cbd5e1; border-radius:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fas fa-file-signature" style="color:#2563eb; font-size:18px;"></i>
+            <span style="font-size:14px;">Endorsement Letter</span>
+          </div>
+          <div style="display:flex; gap:10px;" *ngIf="endorsementFileId; else noEndorsement">
+            <a [href]="getFileUrl(endorsementFileId, 'view')" target="_blank"
+               style="color:#2563eb; font-size:13px; text-decoration:none;">
+              <i class="fas fa-eye"></i> View
+            </a>
+            <a [href]="getFileUrl(endorsementFileId, 'download')" target="_blank"
+               style="color:#16a34a; font-size:13px; text-decoration:none;">
+              <i class="fas fa-download"></i> Download
+            </a>
+          </div>
+          <ng-template #noEndorsement>
+            <span style="font-size:13px; color:#9ca3af;">No file uploaded</span>
+          </ng-template>
+        </div>
+
+        <!-- CERTIFICATE OF ENROLLMENT -->
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:12px; border:1px dashed #cbd5e1; border-radius:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <i class="fas fa-certificate" style="color:#d97706; font-size:18px;"></i>
+            <span style="font-size:14px;">Certificate of Enrollment</span>
+          </div>
+          <div style="display:flex; gap:10px;" *ngIf="coeFileId; else noCoe">
+            <a [href]="getFileUrl(coeFileId, 'view')" target="_blank"
+               style="color:#2563eb; font-size:13px; text-decoration:none;">
+              <i class="fas fa-eye"></i> View
+            </a>
+            <a [href]="getFileUrl(coeFileId, 'download')" target="_blank"
+               style="color:#16a34a; font-size:13px; text-decoration:none;">
+              <i class="fas fa-download"></i> Download
+            </a>
+          </div>
+          <ng-template #noCoe>
+            <span style="font-size:13px; color:#9ca3af;">No file uploaded</span>
+          </ng-template>
+        </div>
+
+      </div>
+
+      <!-- BUTTONS -->
+      <div class="form-buttons">
+        <button type="button" class="cancel-btn" (click)="goDashboard()">
+          Cancel
+        </button>
+        <button type="submit" class="apply-btn" [disabled]="saveLoading">
+          <i class="fa fa-spinner fa-spin" *ngIf="saveLoading"></i>
+          {{ saveLoading ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+
+    </form>
   </div>
-  
-  
-  <h3 class="section-title">Required Documents</h3>
-  
-  <div class="file-upload">
-  
-  <label>
-  Resume / CV
-  <input type="file">
-  </label>
-  
-  <label>
-  Endorsement Letter
-  <input type="file">
-  </label>
-  
-  <label>
-  Certificate of Enrollment
-  <input type="file">
-  </label>
-  
-  </div>
-  
-  
-  <div class="form-buttons">
-  
-  <button type="button" class="cancel-btn" (click)="goDashboard()">
-  Cancel
-  </button>
-  
-  <button type="submit" class="apply-btn">
-    Submit Application
-  </button>
-  
-  </div>
-  
-  </form>
-  
-  </div>
-  
-  </div>
+</div>
