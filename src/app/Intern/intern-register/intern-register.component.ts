@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { SupabaseService } from '../../services/supabase.service';
+import { AppwriteService } from '../../services/appwrite.service';
+import { ID } from 'appwrite';
 
 @Component({
   selector: 'app-intern-register',
@@ -13,11 +14,10 @@ import { SupabaseService } from '../../services/supabase.service';
 })
 export class InternRegisterComponent {
 
-// Add these two properties near your other UI state fields
-resendCooldown = 0;
-private resendTimer: any = null;
+  resendCooldown = 0;
+  private resendTimer: any = null;
 
-  // ── Form fields ──────────────────────────────────────────────
+  // Form fields
   firstName     = '';
   middleName    = '';
   lastName      = '';
@@ -27,89 +27,77 @@ private resendTimer: any = null;
   password      = '';
   showPassword  = false;
 
-  // ── OTP step ─────────────────────────────────────────────────
+  // OTP step
   otpStep   = false;
   otpDigits = ['', '', '', '', '', ''];
   otpError  = '';
 
-  // ── UI state ─────────────────────────────────────────────────
+  // Appwrite stores the userId after account creation
+  private newUserId = '';
+
+  // UI state
   loading        = false;
   errorMessage   = '';
   successMessage = '';
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(private appwrite: AppwriteService) {}
 
   togglePassword() {
     this.showPassword = !this.showPassword;
   }
 
-  // ── STEP 1 — Submit registration form ────────────────────────
+  // STEP 1 — Create account + send OTP
   async onRegister() {
     this.errorMessage = '';
     this.loading = true;
 
-    const { error } = await this.supabase.client.auth.signUp({
-      email: this.email,
-      password: this.password,
-      options: {
-        data: {
-          first_name:     this.firstName,
-          middle_name:    this.middleName,
-          last_name:      this.lastName,
-          contact_number: this.contactNumber,
-          student_id:     this.studentId
-        }
-      }
-    });
+    try {
+      // 1. Create the auth account
+      const user = await this.appwrite.account.create(
+        ID.unique(),
+        this.email,
+        this.password,
+        `${this.firstName} ${this.lastName}`
+      );
 
-    this.loading = false;
+      this.newUserId = user.$id;
 
-    if (error) {
-      this.errorMessage = error.message;
-      return;
+      // 2. Send email verification (magic link or OTP depending on your Appwrite setup)
+      //    For email OTP: create an email token session
+      await this.appwrite.account.createEmailToken(
+        this.newUserId,
+        this.email
+      );
+
+      this.otpStep = true;
+
+    } catch (error: any) {
+      this.errorMessage = error.message ?? 'Registration failed. Please try again.';
+    } finally {
+      this.loading = false;
     }
-
-    // Supabase sends a 6-digit OTP to the email automatically
-    this.otpStep = true;
   }
 
-  // ── OTP box helpers ──────────────────────────────────────────
- onOtpInput(event: Event, index: number) {
-  const input = event.target as HTMLInputElement;
-  
-  // Allow only a single digit (0-9)
-  let val = input.value.replace(/[^0-9]/g, '').slice(-1);
-  
-  // Update the model
-  this.otpDigits[index] = val;
+  // OTP box helpers — no changes needed
+  onOtpInput(event: Event, index: number) {
+    const input = event.target as HTMLInputElement;
+    let val = input.value.replace(/[^0-9]/g, '').slice(-1);
+    this.otpDigits[index] = val;
 
-  // Auto-advance focus to next box if digit entered
-  if (val && index < 5) {
-    // Use setTimeout to ensure the input has been processed
-    setTimeout(() => {
-      const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement;
-      if (nextInput) {
-        nextInput.focus();
-        nextInput.select();
-      }
-    }, 10);
+    if (val && index < 5) {
+      setTimeout(() => {
+        const next = document.getElementById(`otp-${index + 1}`) as HTMLInputElement;
+        if (next) { next.focus(); next.select(); }
+      }, 10);
+    }
   }
-}
 
   onOtpKeydown(event: KeyboardEvent, index: number) {
-    const input = event.target as HTMLInputElement;
-    
-    if (event.key === 'Backspace') {
-      // If the current box is empty, move to previous box
-      if (!this.otpDigits[index] && index > 0) {
-        event.preventDefault();
-        this.otpDigits[index - 1] = '';
-        const prevInput = document.getElementById(`otp-${index - 1}`) as HTMLInputElement;
-        if (prevInput) {
-          prevInput.focus();
-          prevInput.value = '';
-        }
-      }
+    if (event.key === 'Backspace' && !this.otpDigits[index] && index > 0) {
+      event.preventDefault();
+      this.otpDigits[index - 1] = '';
+      const prev = document.getElementById(`otp-${index - 1}`) as HTMLInputElement;
+      if (prev) { prev.focus(); (prev as any).value = ''; }
     } else if (event.key === 'ArrowLeft' && index > 0) {
       event.preventDefault();
       (document.getElementById(`otp-${index - 1}`) as HTMLInputElement)?.focus();
@@ -122,24 +110,15 @@ private resendTimer: any = null;
   onOtpPaste(event: ClipboardEvent) {
     event.preventDefault();
     const pasted = event.clipboardData?.getData('text').replace(/[^0-9]/g, '').slice(0, 6) ?? '';
-    
-    // Update the model with pasted digits
-    pasted.split('').forEach((ch, i) => {
-      this.otpDigits[i] = ch;
-    });
-    
-    // Focus on the last box or next empty box
+    pasted.split('').forEach((ch, i) => { this.otpDigits[i] = ch; });
     const lastFilled = Math.min(pasted.length, 5);
     setTimeout(() => {
-      const focusBox = document.getElementById(`otp-${lastFilled}`) as HTMLInputElement;
-      if (focusBox) {
-        focusBox.focus();
-      }
+      (document.getElementById(`otp-${lastFilled}`) as HTMLInputElement)?.focus();
     }, 10);
   }
 
-  // ── STEP 2 — Verify OTP ──────────────────────────────────────
-  async onVerifyOtp() {
+  // STEP 2 — Verify OTP and save profile
+async onVerifyOtp() {
   this.otpError = '';
   const token = this.otpDigits.join('');
 
@@ -150,77 +129,73 @@ private resendTimer: any = null;
 
   this.loading = true;
 
-  // 1. Verify the OTP
-  const { data, error } = await this.supabase.client.auth.verifyOtp({
-    email: this.email,
-    token,
-    type: 'signup'
-  });
+  try {
+    // 1. Delete any existing session first to avoid conflict
+    try {
+      await this.appwrite.account.deleteSession('current');
+    } catch {
+      // No active session, that's fine
+    }
 
-  if (error) {
-    this.otpError = error.message;
+    // 2. Confirm the OTP — this creates a session
+    await this.appwrite.account.createSession(
+      this.newUserId,
+      token
+    );
+
+    // 3. Save profile to your Appwrite database table
+    await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.newUserId,
+      {
+        first_name:     this.firstName,
+        middle_name:    this.middleName,
+        last_name:      this.lastName,
+        email:          this.email,
+        contact_number: this.contactNumber,
+        student_id:     this.studentId
+      }
+    );
+
+    this.otpStep = false;
+    this.successMessage = 'Account verified! You can now log in.';
+
+  } catch (error: any) {
+    this.otpError = error.message ?? 'Verification failed. Please try again.';
+  } finally {
     this.loading = false;
-    return;
   }
-
-  // 2. Insert profile into students table
-  const { error: insertError } = await this.supabase.client
-    .from('students')
-    .insert({
-      id:             data.user!.id,   // from the verified auth session
-      first_name:     this.firstName,
-      middle_name:    this.middleName,
-      last_name:      this.lastName,
-      email:          this.email,
-      contact_number: this.contactNumber,
-      student_id:     this.studentId
-    });
-
-  this.loading = false;
-
-  if (insertError) {
-    this.otpError = insertError.message;
-    return;
-  }
-
-  this.otpStep = false;
-  this.successMessage = 'Account verified! You can now log in.';
 }
+  // Resend OTP
+  async resendOtp() {
+    if (this.resendCooldown > 0) return;
 
-  // ── Resend OTP ───────────────────────────────────────────────
-async resendOtp() {
-  if (this.resendCooldown > 0) return;  // block if still cooling down
+    this.otpError = '';
+    this.loading = true;
 
-  this.otpError = '';
-  this.loading = true;
-
-  const { error } = await this.supabase.client.auth.resend({
-    type: 'signup',
-    email: this.email
-  });
-
-  this.loading = false;
-
-  if (error) {
-    // Give a user-friendly message for rate limit errors
-    if (error.message.toLowerCase().includes('rate limit') || error.status === 429) {
-      this.otpError = 'Too many attempts. Please wait a minute before requesting a new code.';
-    } else {
-      this.otpError = error.message;
+    try {
+      await this.appwrite.account.createEmailToken(
+        this.newUserId,
+        this.email
+      );
+      this.otpError = 'A new code has been sent to your email.';
+      this.startResendCooldown();
+    } catch (error: any) {
+      this.otpError = error.message ?? 'Failed to resend code.';
+    } finally {
+      this.loading = false;
     }
-    return;
   }
 
-  this.otpError = 'A new code has been sent to your email.';
-
-  // Start a 60-second cooldown
-  this.resendCooldown = 60;
-  this.resendTimer = setInterval(() => {
-    this.resendCooldown--;
-    if (this.resendCooldown <= 0) {
-      clearInterval(this.resendTimer);
-      this.resendCooldown = 0;
-    }
-  }, 1000);
-}
+  private startResendCooldown() {
+    this.resendCooldown = 60;
+    this.resendTimer = setInterval(() => {
+      this.resendCooldown--;
+      if (this.resendCooldown <= 0) {
+        clearInterval(this.resendTimer);
+        this.resendCooldown = 0;
+      }
+    }, 1000);
+  }
 }

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.component';
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
-import { SupabaseService } from '../services/supabase.service';
+import { AppwriteService } from '../services/appwrite.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -15,19 +15,15 @@ import Swal from 'sweetalert2';
 })
 export class InternDashboardComponent implements OnInit {
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
-    // If alert was already shown this session, skip it
     if (sessionStorage.getItem('welcomeShown')) return;
 
-    const { data: { session } } = await this.supabase.client.auth.getSession();
+    try {
+      const user = await this.appwrite.account.get();
+      const firstName = user.name?.split(' ')[0] || user.email || 'Student';
 
-    if (session?.user) {
-      const meta = session.user.user_metadata;
-      const firstName = meta['first_name'] || session.user.email || 'Student';
-
-      // Mark as shown BEFORE firing so refreshes won't re-trigger it
       sessionStorage.setItem('welcomeShown', 'true');
 
       Swal.fire({
@@ -40,6 +36,8 @@ export class InternDashboardComponent implements OnInit {
         toast: true,
         position: 'top-end',
       });
+    } catch {
+      // No active session, auth guard will handle redirect
     }
   }
 }

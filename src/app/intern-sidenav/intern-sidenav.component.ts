@@ -1,7 +1,7 @@
 import { Component, HostListener } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { SupabaseService } from '../services/supabase.service';
+import { AppwriteService } from '../services/appwrite.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -16,7 +16,7 @@ export class InternSidenavComponent {
 
   constructor(
     private router: Router,
-    private supabase: SupabaseService
+    private appwrite: AppwriteService
   ) {
     this.isCollapsed = window.innerWidth < 768;
 
@@ -52,13 +52,13 @@ export class InternSidenavComponent {
 
     if (!result.isConfirmed) return;
 
-    const { error } = await this.supabase.signOut();
+    const { error } = await this.appwrite.signOut();
 
     if (error) {
       Swal.fire({
         icon: 'error',
         title: 'Logout Failed',
-        text: error.message,
+        text: (error as any).message,
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
@@ -68,12 +68,8 @@ export class InternSidenavComponent {
       return;
     }
 
-    // Clear welcome alert flag
     sessionStorage.removeItem('welcomeShown');
-
-    // Show logged out toast on login page
     sessionStorage.setItem('loggedOut', 'true');
-
     this.router.navigate(['/intern-login']);
   }
 }
