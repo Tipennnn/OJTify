@@ -29,8 +29,8 @@
               <span>Due: {{ task.due }}</span>
             </div>
           </div>
-          <span class="status" [ngClass]="task.status">{{ task.status | titlecase }}</span>
-        </div>
+         <!--<span class="status" [ngClass]="task.status">{{ task.status | titlecase }}</span>
+        </div>-->
 
         <div *ngIf="tasks.length === 0"
              style="text-align:center; padding:40px; color:#9ca3af;">

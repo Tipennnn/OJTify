@@ -3,27 +3,43 @@
   <!-- SIDENAV -->
   <app-admin-sidenav></app-admin-sidenav>
 
-  <!-- MAIN SECTION -->
+  <!-- MAIN -->
   <div class="main-section">
 
     <!-- TOP NAV -->
     <app-admin-topnav></app-admin-topnav>
 
-    <!-- DASHBOARD CONTENT -->
+    <!-- CONTENT -->
     <div class="dashboard-content">
 
-      <!-- DASHBOARD HEADER WITH SEARCH -->
+      <!-- HEADER -->
       <div class="dashboard-header header-flex">
 
-        <!-- TITLE -->
         <div>
           <h2>Intern Applicants</h2>
         </div>
 
-        <!-- SEARCH BAR -->
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search applicant...">
+        <!-- RIGHT SIDE -->
+        <div class="header-actions">
+
+          <!-- STATUS FILTER (First) -->
+          <select class="status-filter" (change)="filterStatus($event)">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="declined">Declined</option>
+          </select>
+
+          <!-- SEARCH (Second) -->
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input 
+              type="text" 
+              placeholder="Search applicant..."
+              (input)="onSearch($event)"
+            >
+          </div>
+
         </div>
 
       </div>
@@ -31,38 +47,50 @@
       <!-- DIVIDER -->
       <div class="dashboard-divider"></div>
 
-      <!-- TABLE WRAPPER -->
+      <!-- TABLE -->
       <div class="center-wrapper">
-
         <div class="table-container">
           <table class="applicants-table">
+
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Student ID</th>
                 <th>Course</th>
                 <th>Email</th>
-                <th></th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
+
             <tbody>
-              <tr *ngFor="let applicant of applicants" (click)="openModal(applicant)">
+              <tr *ngFor="let applicant of filteredApplicants" (click)="openModal(applicant)">
+                
                 <td class="profile-name">
                   <img src="assets/images/profile.png" class="profile-pic">
                   <span>{{ applicant.name }}</span>
                 </td>
+
                 <td>{{ applicant.studentId }}</td>
                 <td>{{ applicant.course }}</td>
                 <td>{{ applicant.email }}</td>
-                <td class="actions" (click)="$event.stopPropagation()">
-                  <button class="decline-btn" (click)="decline(applicant)">Decline</button>
-                  <button class="accept-btn" (click)="approve(applicant)">Approve</button>
+
+                <td>
+                  <span class="status-badge">
+                    {{ applicant.status }}
+                  </span>
                 </td>
+
+                <td class="actions">
+                  <button class="accept-btn">Approve</button>
+                  <button class="decline-btn">Decline</button>
+                </td>
+
               </tr>
             </tbody>
+
           </table>
         </div>
-
       </div>
 
     </div>
@@ -73,7 +101,6 @@
 <div class="modal-overlay" *ngIf="selectedApplicant" (click)="closeModal()">
   <div class="modal-content modern-modal" (click)="$event.stopPropagation()">
 
-    <!-- PROFILE -->
     <div class="profile-section">
       <div class="profile-circle"></div>
     </div>
@@ -83,30 +110,30 @@
       <div class="section-header">Personal Information</div>
 
       <div class="form-row">
-        <input placeholder="First Name" [value]="selectedApplicant.firstName" readonly>
-        <input placeholder="Middle Name" [value]="selectedApplicant.middleName" readonly>
-        <input placeholder="Last Name" [value]="selectedApplicant.lastName" readonly>
+        <input [value]="selectedApplicant.firstName" readonly>
+        <input [value]="selectedApplicant.middleName" readonly>
+        <input [value]="selectedApplicant.lastName" readonly>
       </div>
 
-      <input placeholder="Contact Number" [value]="selectedApplicant.contact" readonly>
-      <input placeholder="Email Address" [value]="selectedApplicant.email" readonly>
+      <input [value]="selectedApplicant.contact" readonly>
+      <input [value]="selectedApplicant.email" readonly>
 
       <div class="form-row">
-        <input placeholder="Birthday / yyyy" [value]="selectedApplicant.birthday" readonly>
-        <input placeholder="Gender" [value]="selectedApplicant.gender" readonly>
+        <input [value]="selectedApplicant.birthday" readonly>
+        <input [value]="selectedApplicant.gender" readonly>
       </div>
 
-      <input placeholder="Home Address" [value]="selectedApplicant.address" readonly>
+      <input [value]="selectedApplicant.address" readonly>
     </div>
 
     <!-- ACADEMIC -->
     <div class="form-section">
       <div class="section-header">Academic Background</div>
 
-      <input placeholder="Student ID" [value]="selectedApplicant.studentId" readonly>
-      <input placeholder="School Name" [value]="selectedApplicant.school" readonly>
-      <input placeholder="Course" [value]="selectedApplicant.course" readonly>
-      <input placeholder="Year Level" [value]="selectedApplicant.yearLevel" readonly>
+      <input [value]="selectedApplicant.studentId" readonly>
+      <input [value]="selectedApplicant.school" readonly>
+      <input [value]="selectedApplicant.course" readonly>
+      <input [value]="selectedApplicant.yearLevel" readonly>
     </div>
 
     <!-- DOCUMENTS -->
@@ -116,8 +143,8 @@
       <div class="file-box">
         <label>Resume / CV</label>
         <div class="file-icons">
-          <i class="fa-solid fa-magnifying-glass view-icon"></i>
-          <i class="fa-solid fa-download download-icon"></i>
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <i class="fa-solid fa-download"></i>
         </div>
         <input type="file">
       </div>
@@ -125,8 +152,8 @@
       <div class="file-box">
         <label>Endorsement Letter</label>
         <div class="file-icons">
-          <i class="fa-solid fa-magnifying-glass view-icon"></i>
-          <i class="fa-solid fa-download download-icon"></i>
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <i class="fa-solid fa-download"></i>
         </div>
         <input type="file">
       </div>
@@ -134,17 +161,18 @@
       <div class="file-box">
         <label>Certificate of Enrollment</label>
         <div class="file-icons">
-          <i class="fa-solid fa-magnifying-glass view-icon"></i>
-          <i class="fa-solid fa-download download-icon"></i>
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <i class="fa-solid fa-download"></i>
         </div>
         <input type="file">
       </div>
 
-      <!-- ACTION BUTTONS BELOW DOCUMENTS -->
+      <!-- MODAL ACTION BUTTONS -->
       <div class="modal-actions">
-        <button class="decline-btn" (click)="decline(selectedApplicant)">Decline</button>
-        <button class="accept-btn" (click)="approve(selectedApplicant)">Approve</button>
+        <button class="accept-btn">Approve</button>
+        <button class="decline-btn">Decline</button>
       </div>
+
     </div>
 
   </div>

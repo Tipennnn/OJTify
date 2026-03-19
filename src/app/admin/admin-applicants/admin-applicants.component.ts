@@ -5,12 +5,21 @@ import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component'
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 
 interface Applicant {
-  profile: string;
   name: string;
   studentId: string;
   course: string;
   email: string;
-  status?: string;
+  status: string;
+
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  contact?: string;
+  birthday?: string;
+  gender?: string;
+  address?: string;
+  school?: string;
+  yearLevel?: string;
 }
 
 @Component({
@@ -27,43 +36,63 @@ interface Applicant {
 })
 export class AdminApplicantsComponent {
 
-  selectedApplicant: any = null;
+  selectedApplicant: Applicant | null = null;
 
-  applicants = [
+  applicants: Applicant[] = [
     {
       name: 'Juan Dela Cruz',
-      firstName: 'Juan',
-      middleName: 'Santos',
-      lastName: 'Dela Cruz',
       studentId: '2023-001',
       course: 'BSIT',
       email: 'juan@email.com',
-      contact: '09123456789',
-      birthday: '2002-01-01',
-      gender: 'Male',
-      address: 'Manila',
-      school: 'ABC University',
-      yearLevel: '3rd Year',
-      resume: 'resume.pdf',
-      endorsement: 'endorsement.pdf',
-      certificate: 'certificate.pdf'
+      status: 'pending'
+    },
+    {
+      name: 'Maria Santos',
+      studentId: '2023-002',
+      course: 'BSCS',
+      email: 'maria@email.com',
+      status: 'approved'
+    },
+    {
+      name: 'Mark Reyes',
+      studentId: '2023-003',
+      course: 'BSIS',
+      email: 'mark@email.com',
+      status: 'declined'
     }
   ];
 
-  openModal(applicant: any) {
+  filteredApplicants: Applicant[] = [...this.applicants];
+
+  // FILTER BY STATUS
+  filterStatus(event: any) {
+    const value = event.target.value;
+
+    if (value === 'all') {
+      this.filteredApplicants = [...this.applicants];
+    } else {
+      this.filteredApplicants = this.applicants.filter(
+        app => app.status === value
+      );
+    }
+  }
+
+  // SEARCH
+  onSearch(event: any) {
+    const keyword = event.target.value.toLowerCase();
+
+    this.filteredApplicants = this.applicants.filter(app =>
+      app.name.toLowerCase().includes(keyword) ||
+      app.email.toLowerCase().includes(keyword) ||
+      app.course.toLowerCase().includes(keyword)
+    );
+  }
+
+  openModal(applicant: Applicant) {
     this.selectedApplicant = applicant;
   }
 
   closeModal() {
     this.selectedApplicant = null;
   }
-
-  approve(applicant: any) {
-    alert('Approved: ' + applicant.name);
-  }
-
-  decline(applicant: any) {
-    alert('Declined: ' + applicant.name);
-  }
-
 }

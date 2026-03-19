@@ -52,7 +52,7 @@ app-admin-topnav { position: fixed; top: 0; left: 260px; width: calc(100% - 260p
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 4px solid #2563eb;
+  border-top: 4px solid  #111827;
   box-shadow: 0 6px 18px rgba(0,0,0,0.06);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
