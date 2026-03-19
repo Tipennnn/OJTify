@@ -130,8 +130,8 @@ body {
     transition: transform 0.2s, box-shadow 0.2s;
   }
   
-  /* Top colored line accent */
   .card::before {
+    display: none !important;
     content: "";
     position: absolute;
     top: 0;
@@ -140,17 +140,11 @@ body {
     height: 5px;
     border-radius: 18px 18px 0 0;
     background: currentColor;
-  }
-  
-  /* Colored top line for each card */
-  .card-blue::before { color: #3b82f6; }
-  .card-orange::before { color: #f97316; }
-  .card-green::before { color: #22c55e; }
-  .card-red::before { color: #ef4444; }
-  
+}
+ 
   /* Hover effect */
   .card:hover {
-    transform: translateY(-5px);
+
     box-shadow: 0 15px 30px rgba(0,0,0,0.12);
   }
   
