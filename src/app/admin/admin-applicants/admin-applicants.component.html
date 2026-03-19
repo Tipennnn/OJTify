@@ -1,57 +1,40 @@
 <div class="dashboard-wrapper">
 
-  <!-- SIDENAV -->
   <app-admin-sidenav></app-admin-sidenav>
 
-  <!-- MAIN -->
   <div class="main-section">
-
-    <!-- TOP NAV -->
     <app-admin-topnav></app-admin-topnav>
 
-    <!-- CONTENT -->
     <div class="dashboard-content">
 
-      <!-- HEADER -->
       <div class="dashboard-header header-flex">
-
-        <div>
-          <h2>Intern Applicants</h2>
-        </div>
-
-        <!-- RIGHT SIDE -->
+        <div><h2>Intern Applicants</h2></div>
         <div class="header-actions">
-
-          <!-- STATUS FILTER (First) -->
           <select class="status-filter" (change)="filterStatus($event)">
             <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="declined">Declined</option>
           </select>
-
-          <!-- SEARCH (Second) -->
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input 
-              type="text" 
-              placeholder="Search applicant..."
-              (input)="onSearch($event)"
-            >
+            <input type="text" placeholder="Search applicant..."
+                   (input)="onSearch($event)">
           </div>
-
         </div>
-
       </div>
 
-      <!-- DIVIDER -->
       <div class="dashboard-divider"></div>
 
-      <!-- TABLE -->
-      <div class="center-wrapper">
+      <!-- Loading -->
+      <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
+        <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+        <p style="margin-top:12px;">Loading applicants...</p>
+      </div>
+
+      <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
           <table class="applicants-table">
-
             <thead>
               <tr>
                 <th>Name</th>
@@ -62,33 +45,54 @@
                 <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
-              <tr *ngFor="let applicant of filteredApplicants" (click)="openModal(applicant)">
-                
-                <td class="profile-name">
-                  <img src="assets/images/profile.png" class="profile-pic">
-                  <span>{{ applicant.name }}</span>
-                </td>
 
-                <td>{{ applicant.studentId }}</td>
+              <tr *ngFor="let applicant of filteredApplicants"
+                  (click)="openModal(applicant)"
+                  style="cursor:pointer;">
+                <td class="profile-name">
+                  <span>{{ getFullName(applicant) }}</span>
+                </td>
+                <td>{{ applicant.student_id }}</td>
                 <td>{{ applicant.course }}</td>
                 <td>{{ applicant.email }}</td>
-
                 <td>
-                  <span class="status-badge">
-                    {{ applicant.status }}
+                  <span class="status-badge"
+                        [ngClass]="{
+                          'badge-pending':  applicant.status === 'pending',
+                          'badge-approved': applicant.status === 'approved',
+                          'badge-declined': applicant.status === 'declined'
+                        }">
+                    {{ applicant.status | titlecase }}
                   </span>
                 </td>
-
-                <td class="actions">
-                  <button class="accept-btn">Approve</button>
-                  <button class="decline-btn">Decline</button>
+                <td class="actions" (click)="$event.stopPropagation()">
+                  <button class="accept-btn"
+                          *ngIf="applicant.status === 'pending'"
+                          (click)="approveApplicant(applicant, $event)"
+                          [disabled]="actionLoading">
+                    Approve
+                  </button>
+                  <button class="decline-btn"
+                          *ngIf="applicant.status === 'pending'"
+                          (click)="declineApplicant(applicant, $event)"
+                          [disabled]="actionLoading">
+                    Decline
+                  </button>
+                  <span *ngIf="applicant.status !== 'pending'"
+                        style="font-size:13px; color:#9ca3af;">
+                    —
+                  </span>
                 </td>
-
               </tr>
-            </tbody>
 
+              <tr *ngIf="filteredApplicants.length === 0">
+                <td colspan="6" style="text-align:center; color:#9ca3af; padding:30px;">
+                  No applicants found.
+                </td>
+              </tr>
+
+            </tbody>
           </table>
         </div>
       </div>
@@ -97,83 +101,165 @@
   </div>
 </div>
 
-<!-- MODAL -->
+<!-- ══════════════════════════════════════ -->
+<!--  APPLICANT DETAIL MODAL              -->
+<!-- ══════════════════════════════════════ -->
 <div class="modal-overlay" *ngIf="selectedApplicant" (click)="closeModal()">
   <div class="modal-content modern-modal" (click)="$event.stopPropagation()">
 
-    <div class="profile-section">
-      <div class="profile-circle"></div>
+    <button class="modal-close-btn" (click)="closeModal()">×</button>
+
+    <!-- STATUS BADGE -->
+    <div style="text-align:center; margin-bottom:20px;">
+      <h3 style="margin-bottom:8px;">{{ getFullName(selectedApplicant) }}</h3>
+      <span class="status-badge"
+            [ngClass]="{
+              'badge-pending':  selectedApplicant.status === 'pending',
+              'badge-approved': selectedApplicant.status === 'approved',
+              'badge-declined': selectedApplicant.status === 'declined'
+            }">
+        {{ selectedApplicant.status | titlecase }}
+      </span>
     </div>
 
-    <!-- PERSONAL -->
+    <!-- PERSONAL INFORMATION -->
     <div class="form-section">
       <div class="section-header">Personal Information</div>
 
-      <div class="form-row">
-        <input [value]="selectedApplicant.firstName" readonly>
-        <input [value]="selectedApplicant.middleName" readonly>
-        <input [value]="selectedApplicant.lastName" readonly>
+      <div class="info-row three-col">
+        <div class="info-item">
+          <span class="info-label">First Name</span>
+          <span class="info-value">{{ selectedApplicant.first_name || '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Middle Name</span>
+          <span class="info-value">{{ selectedApplicant.middle_name || '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Last Name</span>
+          <span class="info-value">{{ selectedApplicant.last_name || '—' }}</span>
+        </div>
       </div>
 
-      <input [value]="selectedApplicant.contact" readonly>
-      <input [value]="selectedApplicant.email" readonly>
-
-      <div class="form-row">
-        <input [value]="selectedApplicant.birthday" readonly>
-        <input [value]="selectedApplicant.gender" readonly>
+      <div class="info-item">
+        <span class="info-label">Contact Number</span>
+        <span class="info-value">{{ selectedApplicant.contact_number || '—' }}</span>
       </div>
 
-      <input [value]="selectedApplicant.address" readonly>
+      <div class="info-item">
+        <span class="info-label">Email</span>
+        <span class="info-value">{{ selectedApplicant.email || '—' }}</span>
+      </div>
+
+      <div class="info-row two-col">
+        <div class="info-item">
+          <span class="info-label">Birthday</span>
+          <span class="info-value">{{ selectedApplicant.birthday || '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Gender</span>
+          <span class="info-value">{{ selectedApplicant.gender || '—' }}</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <span class="info-label">Home Address</span>
+        <span class="info-value">{{ selectedApplicant.home_address || '—' }}</span>
+      </div>
     </div>
 
-    <!-- ACADEMIC -->
+    <!-- ACADEMIC BACKGROUND -->
     <div class="form-section">
       <div class="section-header">Academic Background</div>
 
-      <input [value]="selectedApplicant.studentId" readonly>
-      <input [value]="selectedApplicant.school" readonly>
-      <input [value]="selectedApplicant.course" readonly>
-      <input [value]="selectedApplicant.yearLevel" readonly>
+      <div class="info-item">
+        <span class="info-label">Student ID</span>
+        <span class="info-value">{{ selectedApplicant.student_id || '—' }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">School Name</span>
+        <span class="info-value">{{ selectedApplicant.school_name || '—' }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Course</span>
+        <span class="info-value">{{ selectedApplicant.course || '—' }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Year Level</span>
+        <span class="info-value">{{ selectedApplicant.year_level || '—' }}</span>
+      </div>
     </div>
 
-    <!-- DOCUMENTS -->
+    <!-- REQUIRED DOCUMENTS -->
     <div class="form-section">
       <div class="section-header">Required Documents</div>
 
+      <!-- RESUME -->
       <div class="file-box">
-        <label>Resume / CV</label>
-        <div class="file-icons">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <i class="fa-solid fa-download"></i>
+        <span class="file-label">Resume / CV</span>
+        <div class="file-icons" *ngIf="selectedApplicant.resume_file_id">
+          <a [href]="getFileUrl(selectedApplicant.resume_file_id, 'view')"
+             target="_blank" title="View">
+            <i class="fa-solid fa-eye"></i>
+          </a>
+          <a [href]="getFileUrl(selectedApplicant.resume_file_id, 'download')"
+             target="_blank" title="Download">
+            <i class="fa-solid fa-download"></i>
+          </a>
         </div>
-        <input type="file">
+        <span *ngIf="!selectedApplicant.resume_file_id"
+              class="no-file">No file uploaded</span>
       </div>
 
+      <!-- ENDORSEMENT -->
       <div class="file-box">
-        <label>Endorsement Letter</label>
-        <div class="file-icons">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <i class="fa-solid fa-download"></i>
+        <span class="file-label">Endorsement Letter</span>
+        <div class="file-icons" *ngIf="selectedApplicant.endorsement_file_id">
+          <a [href]="getFileUrl(selectedApplicant.endorsement_file_id, 'view')"
+             target="_blank" title="View">
+            <i class="fa-solid fa-eye"></i>
+          </a>
+          <a [href]="getFileUrl(selectedApplicant.endorsement_file_id, 'download')"
+             target="_blank" title="Download">
+            <i class="fa-solid fa-download"></i>
+          </a>
         </div>
-        <input type="file">
+        <span *ngIf="!selectedApplicant.endorsement_file_id"
+              class="no-file">No file uploaded</span>
       </div>
 
+      <!-- COE -->
       <div class="file-box">
-        <label>Certificate of Enrollment</label>
-        <div class="file-icons">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <i class="fa-solid fa-download"></i>
+        <span class="file-label">Certificate of Enrollment</span>
+        <div class="file-icons" *ngIf="selectedApplicant.coe_file_id">
+          <a [href]="getFileUrl(selectedApplicant.coe_file_id, 'view')"
+             target="_blank" title="View">
+            <i class="fa-solid fa-eye"></i>
+          </a>
+          <a [href]="getFileUrl(selectedApplicant.coe_file_id, 'download')"
+             target="_blank" title="Download">
+            <i class="fa-solid fa-download"></i>
+          </a>
         </div>
-        <input type="file">
+        <span *ngIf="!selectedApplicant.coe_file_id"
+              class="no-file">No file uploaded</span>
       </div>
 
-      <!-- MODAL ACTION BUTTONS -->
-      <div class="modal-actions">
-        <button class="accept-btn">Approve</button>
-        <button class="decline-btn">Decline</button>
+      <!-- ACTIONS -->
+      <div class="modal-actions" *ngIf="selectedApplicant.status === 'pending'">
+        <button class="accept-btn"
+                (click)="approveApplicant(selectedApplicant, $event)"
+                [disabled]="actionLoading">
+          <i class="fa fa-spinner fa-spin" *ngIf="actionLoading"></i>
+          Approve
+        </button>
+        <button class="decline-btn"
+                (click)="declineApplicant(selectedApplicant, $event)"
+                [disabled]="actionLoading">
+          Decline
+        </button>
       </div>
 
     </div>
-
   </div>
 </div>

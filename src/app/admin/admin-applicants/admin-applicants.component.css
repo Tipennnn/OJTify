@@ -475,3 +475,82 @@ app-admin-topnav {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+/* INFO DISPLAY */
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.info-label {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.info-row {
+  display: grid;
+  gap: 12px;
+}
+
+.three-col { grid-template-columns: 1fr 1fr 1fr; }
+.two-col   { grid-template-columns: 1fr 1fr; }
+
+/* FILE BOX */
+.file-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.file-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.file-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.file-icons a {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 15px;
+  transition: color 0.2s;
+}
+
+.file-icons a:first-child:hover { color: #2563eb; }
+.file-icons a:last-child:hover  { color: #16a34a; }
+
+.no-file {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* MODAL CLOSE */
+.modal-close-btn {
+  position: absolute;
+  top: 14px; right: 18px;
+  border: none; background: none;
+  font-size: 22px; cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-close-btn:hover { color: #111827; }

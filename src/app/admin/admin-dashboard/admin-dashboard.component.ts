@@ -21,14 +21,18 @@ import Swal from 'sweetalert2';
 })
 export class AdminDashboardComponent implements OnInit, AfterViewInit {
 
+  totalInterns      = 0;
+  pendingApplicants = 0;
+
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
+    await this.loadCounts();
+
     if (sessionStorage.getItem('adminWelcomeShown')) return;
 
     try {
       const user = await this.appwrite.account.get();
-      const name = user.name?.split(' ')[0] || user.email || 'Admin';
 
       sessionStorage.setItem('adminWelcomeShown', 'true');
 
@@ -44,6 +48,28 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
       });
     } catch {
       // No active session, auth guard will handle redirect
+    }
+  }
+
+  async loadCounts() {
+    try {
+      // Total interns — count students table
+      const studentsRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+      this.totalInterns = studentsRes.total;
+
+      // Pending applicants — filter applicants by status
+      const applicantsRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL
+      );
+      this.pendingApplicants = (applicantsRes.documents as any[])
+        .filter(a => a.status === 'pending').length;
+
+    } catch (error: any) {
+      console.error('Failed to load counts:', error.message);
     }
   }
 
@@ -72,14 +98,10 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
       options: {
         responsive: true,
         plugins: {
-          legend: {
-            position: 'bottom'
-          }
+          legend: { position: 'bottom' }
         },
         scales: {
-          y: {
-            beginAtZero: true
-          }
+          y: { beginAtZero: true }
         }
       }
     });

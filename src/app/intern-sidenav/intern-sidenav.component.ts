@@ -69,6 +69,7 @@ export class InternSidenavComponent {
     }
 
     sessionStorage.removeItem('welcomeShown');
+    sessionStorage.removeItem('profileAlertShown');
     sessionStorage.setItem('loggedOut', 'true');
     this.router.navigate(['/intern-login']);
   }

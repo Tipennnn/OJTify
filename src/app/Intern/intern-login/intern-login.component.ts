@@ -46,29 +46,71 @@ export class InternLoginComponent implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-async onLogin() {
-  this.errorMessage = '';
-  this.loading = true;
+  async onLogin() {
+    this.errorMessage = '';
+    this.loading      = true;
 
-  try {
-    // Delete any existing session first to avoid conflicts
     try {
-      await this.appwrite.account.deleteSession('current');
-    } catch {
-      // No active session, that's fine
-    }
+      // 1. Delete existing session if any
+      try {
+        await this.appwrite.account.deleteSession('current');
+      } catch { }
 
-    await this.appwrite.account.createEmailPasswordSession(
-      this.email,
-      this.password
-    );
-    sessionStorage.removeItem('welcomeShown');
-    this.router.navigate(['/intern-dashboard']);
-  } catch (error: any) {
-    // Show the actual error so we know what's happening
-    this.errorMessage = error.message ?? 'Invalid email or password. Please try again.';
-  } finally {
-    this.loading = false;
+      // 2. Sign in
+      await this.appwrite.account.createEmailPasswordSession(
+        this.email,
+        this.password
+      );
+
+      // 3. Get current user
+      const user = await this.appwrite.account.get();
+
+      // 4. Check applicant status
+      const applicantRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL
+      );
+
+      const applicant = (applicantRes.documents as any[])
+        .find(a => a.auth_user_id === user.$id);
+
+      if (applicant) {
+        if (applicant.status === 'pending') {
+          await this.appwrite.account.deleteSession('current');
+          this.errorMessage = 'Your application is still pending admin approval.';
+          return;
+        }
+
+        if (applicant.status === 'declined') {
+          await this.appwrite.account.deleteSession('current');
+          this.errorMessage = 'Your application has been declined. Please contact the admin.';
+          return;
+        }
+      }
+
+      // 5. Check if they exist in students table (approved)
+      const studentsRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+
+      const student = (studentsRes.documents as any[])
+        .find(s => s.$id === user.$id);
+
+      if (!student) {
+        await this.appwrite.account.deleteSession('current');
+        this.errorMessage = 'Your account is not yet approved. Please wait for admin approval.';
+        return;
+      }
+
+      // 6. All good — proceed to dashboard
+      sessionStorage.removeItem('welcomeShown');
+      this.router.navigate(['/intern-dashboard']);
+
+    } catch (error: any) {
+      this.errorMessage = error.message ?? 'Invalid email or password. Please try again.';
+    } finally {
+      this.loading = false;
+    }
   }
-}
 }

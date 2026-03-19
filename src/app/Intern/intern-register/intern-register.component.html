@@ -27,9 +27,9 @@
     <div class="login-card">
 
       <!-- ══════════════════════════════════════ -->
-      <!--  STEP 1 — REGISTRATION FORM           -->
+      <!--  REGISTRATION FORM                    -->
       <!-- ══════════════════════════════════════ -->
-      <ng-container *ngIf="!otpStep && !successMessage">
+      <ng-container *ngIf="!successMessage">
 
         <h2>Student Registration</h2>
 
@@ -169,7 +169,7 @@
 
           <button class="login-btn" type="submit" [disabled]="loading">
             <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
-            {{ loading ? 'Please wait…' : 'Create Account' }}
+            {{ loading ? 'Please wait…' : 'Submit Application' }}
           </button>
 
           <p class="signup-link">
@@ -182,70 +182,22 @@
       </ng-container>
 
       <!-- ══════════════════════════════════════ -->
-      <!--  STEP 2 — OTP VERIFICATION            -->
+      <!--  SUCCESS — PENDING APPROVAL           -->
       <!-- ══════════════════════════════════════ -->
-      <ng-container *ngIf="otpStep">
-
-        <h2>Verify Your Email</h2>
-
-        <p class="otp-subtitle">
-          We sent a 6-digit code to<br>
-          <strong>{{ email }}</strong>
-        </p>
-
-        <div class="otp-boxes">
-          <input
-            *ngFor="let digit of otpDigits; let i = index"
-            [id]="'otp-' + i"
-            class="otp-box"
-            type="text"
-            inputmode="numeric"
-            maxlength="1"
-            [value]="otpDigits[i]"
-            (input)="onOtpInput($event, i)"
-            (keydown)="onOtpKeydown($event, i)"
-            (paste)="onOtpPaste($event)"
-            autocomplete="one-time-code"
-          />
-        </div>
-
-        <div class="alert-error" *ngIf="otpError && !otpError.includes('sent')">
-          <i class="fa fa-circle-exclamation"></i> {{ otpError }}
-        </div>
-        <div class="alert-info" *ngIf="otpError && otpError.includes('sent')">
-          <i class="fa fa-circle-check"></i> {{ otpError }}
-        </div>
-
-        <button class="login-btn" (click)="onVerifyOtp()" [disabled]="loading">
-          <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
-          {{ loading ? 'Verifying…' : 'Verify & Activate' }}
-        </button>
-
-        <p class="signup-link">
-          Didn't receive a code?
-          <a href="javascript:void(0)"
-             (click)="resendOtp()"
-             [class.disabled-link]="resendCooldown > 0"
-             [style.pointer-events]="resendCooldown > 0 ? 'none' : 'auto'">
-            {{ resendCooldown > 0 ? 'Resend in ' + resendCooldown + 's' : 'Resend' }}
-          </a>
-        </p>
-
-      </ng-container>
-
-      <!-- ══════════════════════════════════════ -->
-      <!--  STEP 3 — SUCCESS                     -->
-      <!-- ══════════════════════════════════════ -->
-      <ng-container *ngIf="successMessage">
+      <ng-container *ngIf="successMessage === 'pending'">
         <div class="success-panel">
-          <div class="success-icon-wrap">
-            <i class="fa fa-check"></i>
+          <div class="success-icon-wrap" style="background:#fef3c7;">
+            <i class="fa fa-clock" style="color:#d97706;"></i>
           </div>
-          <h2>Account Activated!</h2>
-          <p>{{ successMessage }}</p>
+          <h2>Application Submitted!</h2>
+          <p style="color:#6b7280; text-align:center; line-height:1.7;">
+            Your application has been submitted successfully.<br>
+            Please wait for the <strong>admin to review and approve</strong> your account.<br>
+            You will be able to log in once your application is approved.
+          </p>
           <a routerLink="/intern-login" class="login-btn"
-             style="display:block; text-align:center; text-decoration:none; margin-top:10px;">
-            Go to Login
+             style="display:block; text-align:center; text-decoration:none; margin-top:20px;">
+            Back to Login
           </a>
         </div>
       </ng-container>

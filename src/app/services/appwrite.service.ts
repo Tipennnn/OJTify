@@ -17,6 +17,7 @@ export class AppwriteService {
   readonly TASKS_COL       = 'tasks';
   readonly SUBMISSIONS_COL = 'submissions';
   readonly COMMENTS_COL    = 'comments';
+  readonly APPLICANTS_COL = 'applicants';
 
   // ── Shared profile photo state ────────────────────────────
   private photoUrl = new BehaviorSubject<string>('/assets/images/default-profile.png');

@@ -1,25 +1,32 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
+import { AppwriteService } from '../../services/appwrite.service';
+import { ID } from 'appwrite';
+import Swal from 'sweetalert2';
 
 interface Applicant {
-  name: string;
-  studentId: string;
-  course: string;
+  $id: string;
+  auth_user_id: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
   email: string;
+  contact_number: string;
+  birthday: string;
+  gender: string;
+  home_address: string;
+  student_id: string;
+  school_name: string;
+  course: string;
+  year_level: string;
+  resume_file_id: string;
+  endorsement_file_id: string;
+  coe_file_id: string;
   status: string;
-
-  firstName?: string;
-  middleName?: string;
-  lastName?: string;
-  contact?: string;
-  birthday?: string;
-  gender?: string;
-  address?: string;
-  school?: string;
-  yearLevel?: string;
 }
 
 @Component({
@@ -28,64 +35,208 @@ interface Applicant {
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     AdminSidenavComponent,
     AdminTopnavComponent
   ],
   templateUrl: './admin-applicants.component.html',
   styleUrls: ['./admin-applicants.component.css']
 })
-export class AdminApplicantsComponent {
+export class AdminApplicantsComponent implements OnInit {
 
-  selectedApplicant: Applicant | null = null;
+  applicants        : Applicant[] = [];
+  filteredApplicants: Applicant[] = [];
+  selectedApplicant : Applicant | null = null;
+  loading           = false;
+  actionLoading     = false;
+  searchQuery       = '';
+  statusFilter      = 'all';
 
-  applicants: Applicant[] = [
-    {
-      name: 'Juan Dela Cruz',
-      studentId: '2023-001',
-      course: 'BSIT',
-      email: 'juan@email.com',
-      status: 'pending'
-    },
-    {
-      name: 'Maria Santos',
-      studentId: '2023-002',
-      course: 'BSCS',
-      email: 'maria@email.com',
-      status: 'approved'
-    },
-    {
-      name: 'Mark Reyes',
-      studentId: '2023-003',
-      course: 'BSIS',
-      email: 'mark@email.com',
-      status: 'declined'
-    }
-  ];
+  readonly BUCKET_ID  = '69baaf64002ceb2490df';
+  readonly PROJECT_ID = '69ba8d9c0027d10c447f';
+  readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
-  filteredApplicants: Applicant[] = [...this.applicants];
+  constructor(private appwrite: AppwriteService) {}
 
-  // FILTER BY STATUS
-  filterStatus(event: any) {
-    const value = event.target.value;
+  async ngOnInit() {
+    await this.loadApplicants();
+  }
 
-    if (value === 'all') {
-      this.filteredApplicants = [...this.applicants];
-    } else {
-      this.filteredApplicants = this.applicants.filter(
-        app => app.status === value
+  // ── Load applicants ───────────────────────────────────────
+  async loadApplicants() {
+    this.loading = true;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL
       );
+      this.applicants         = res.documents as any[];
+      this.filteredApplicants = [...this.applicants];
+    } catch (error: any) {
+      console.error('Failed to load applicants:', error.message);
+    } finally {
+      this.loading = false;
     }
   }
 
-  // SEARCH
-  onSearch(event: any) {
-    const keyword = event.target.value.toLowerCase();
+  // ── Filter & search ───────────────────────────────────────
+  filterStatus(event: any) {
+    this.statusFilter = event.target.value;
+    this.applyFilter();
+  }
 
-    this.filteredApplicants = this.applicants.filter(app =>
-      app.name.toLowerCase().includes(keyword) ||
-      app.email.toLowerCase().includes(keyword) ||
-      app.course.toLowerCase().includes(keyword)
-    );
+  onSearch(event: any) {
+    this.searchQuery = event.target.value.toLowerCase();
+    this.applyFilter();
+  }
+
+  applyFilter() {
+    this.filteredApplicants = this.applicants.filter(a => {
+      const matchStatus = this.statusFilter === 'all' || a.status === this.statusFilter;
+      const fullName    = `${a.first_name} ${a.last_name}`.toLowerCase();
+      const matchSearch = !this.searchQuery ||
+        fullName.includes(this.searchQuery) ||
+        a.email.toLowerCase().includes(this.searchQuery) ||
+        a.course.toLowerCase().includes(this.searchQuery);
+      return matchStatus && matchSearch;
+    });
+  }
+
+  // ── Get file URL ──────────────────────────────────────────
+  getFileUrl(fileId: string, mode: 'view' | 'download' = 'view'): string {
+    return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
+  }
+
+  // ── Approve applicant ─────────────────────────────────────
+  async approveApplicant(applicant: Applicant, event: Event) {
+    event.stopPropagation();
+
+    const result = await Swal.fire({
+      title: 'Approve applicant?',
+      text: `${applicant.first_name} ${applicant.last_name} will be added as an intern.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, approve',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#16a34a',
+      cancelButtonColor: '#6b7280'
+    });
+
+    if (!result.isConfirmed) return;
+
+    this.actionLoading = true;
+
+    try {
+      // 1. Copy data to students table
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        applicant.auth_user_id, // use auth ID as document ID
+        {
+          first_name:          applicant.first_name,
+          middle_name:         applicant.middle_name,
+          last_name:           applicant.last_name,
+          email:               applicant.email,
+          contact_number:      applicant.contact_number,
+          birthday:            applicant.birthday,
+          gender:              applicant.gender,
+          home_address:        applicant.home_address,
+          student_id:          applicant.student_id,
+          school_name:         applicant.school_name,
+          course:              applicant.course,
+          year_level:          applicant.year_level,
+          resume_file_id:      applicant.resume_file_id      || '',
+          endorsement_file_id: applicant.endorsement_file_id || '',
+          coe_file_id:         applicant.coe_file_id         || ''
+        }
+      );
+
+      // 2. Update applicant status to approved
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL,
+        applicant.$id,
+        { status: 'approved' }
+      );
+
+      // 3. Update locally
+      const index = this.applicants.findIndex(a => a.$id === applicant.$id);
+      if (index !== -1) this.applicants[index].status = 'approved';
+      this.applyFilter();
+
+      if (this.selectedApplicant?.$id === applicant.$id) {
+        this.selectedApplicant.status = 'approved';
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Approved!',
+        text: `${applicant.first_name} ${applicant.last_name} is now an active intern.`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
+    } finally {
+      this.actionLoading = false;
+    }
+  }
+
+  // ── Decline applicant ─────────────────────────────────────
+  async declineApplicant(applicant: Applicant, event: Event) {
+    event.stopPropagation();
+
+    const result = await Swal.fire({
+      title: 'Decline applicant?',
+      text: `${applicant.first_name} ${applicant.last_name} will not be able to log in.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, decline',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280'
+    });
+
+    if (!result.isConfirmed) return;
+
+    this.actionLoading = true;
+
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL,
+        applicant.$id,
+        { status: 'declined' }
+      );
+
+      const index = this.applicants.findIndex(a => a.$id === applicant.$id);
+      if (index !== -1) this.applicants[index].status = 'declined';
+      this.applyFilter();
+
+      if (this.selectedApplicant?.$id === applicant.$id) {
+        this.selectedApplicant.status = 'declined';
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Declined!',
+        text: `${applicant.first_name} ${applicant.last_name}'s application has been declined.`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
+    } finally {
+      this.actionLoading = false;
+    }
   }
 
   openModal(applicant: Applicant) {
@@ -94,5 +245,9 @@ export class AdminApplicantsComponent {
 
   closeModal() {
     this.selectedApplicant = null;
+  }
+
+  getFullName(a: Applicant): string {
+    return `${a.first_name} ${a.middle_name ? a.middle_name + ' ' : ''}${a.last_name}`;
   }
 }
