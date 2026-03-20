@@ -26,7 +26,7 @@ app-admin-topnav { position: fixed; top: 0; left: 260px; width: calc(100% - 260p
 
 /* ---------------- BUTTON ---------------- */
 .create-btn {
-  background: #2563eb;
+  background: #111827;
   color: white;
   border: none;
   padding: 10px 16px;
@@ -39,7 +39,7 @@ app-admin-topnav { position: fixed; top: 0; left: 260px; width: calc(100% - 260p
   gap: 8px;
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }
-.create-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+.create-btn:hover { background:  #1f2937; transform: translateY(-1px); }
 
 .dashboard-divider { width: 100%; height: 1px; background: #e5e7eb; margin-bottom: 20px; }
 

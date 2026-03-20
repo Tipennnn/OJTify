@@ -58,7 +58,7 @@
     <div class="modal-left">
       <div class="submit-card">
         <h3>Task Submission</h3>
-        <div class="divider"></div>
+           
 
         <label class="upload-box">
           <input type="file" (change)="onFileSelected($event)">
@@ -85,37 +85,44 @@
           {{ submitLoading ? 'Submitting...' : 'Submit Task' }}
         </button>
 
-        <!-- MY SUBMISSIONS -->
-        <div class="divider" style="margin-top:16px;"></div>
-        <h4 style="font-size:14px; font-weight:600; margin-bottom:10px;">
-          My Submissions
-        </h4>
+       <!-- MY SUBMISSIONS -->
 
-        <div *ngIf="submissions.length === 0"
-             style="font-size:13px; color:#9ca3af; text-align:center; padding:12px 0;">
-          No submissions yet.
-        </div>
 
-        <div class="file-card" *ngFor="let sub of submissions"
-             style="margin-bottom:10px;">
-          <div class="file-left">
-            <i class="fa-solid fa-file file-icon"></i>
-            <div class="file-info">
-              <span class="file-name">{{ sub.file_name }}</span>
-              <span class="file-size">{{ sub.submitted_at }}</span>
-            </div>
-          </div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <i class="fas fa-eye"
-               style="cursor:pointer; color:#2563eb;"
-               (click)="viewFile(sub.file_id)"
-               title="View file"></i>
-            <i class="fas fa-trash"
-               style="cursor:pointer; color:#ef4444;"
-               (click)="deleteSubmission(sub)"
-               title="Delete submission"></i>
-          </div>
-        </div>
+<h4>My Submissions</h4>
+
+<div *ngIf="submissions.length === 0" class="empty-sub">
+  No submissions yet.
+</div>
+
+<div class="submission-list">
+
+  <div class="file-card" *ngFor="let sub of submissions">
+
+    <div class="file-left">
+      <div class="file-icon">
+        <i class="fa-solid fa-file"></i>
+      </div>
+
+      <div class="file-info">
+        <span class="file-name">{{ sub.file_name }}</span>
+        <span class="file-size">{{ sub.submitted_at }}</span>
+      </div>
+    </div>
+
+    <div class="file-actions">
+     
+
+      <!-- DELETE -->
+      <div class="file-action-btn delete"
+           (click)="deleteSubmission(sub)"
+           title="Delete submission">
+        <i class="fas fa-trash"></i>
+      </div>
+    </div>
+
+  </div>
+
+</div>
 
       </div>
     </div>
@@ -123,44 +130,39 @@
     <!-- RIGHT PANEL -->
     <div class="modal-right">
 
-      <h2 class="task-title">{{ selectedTask?.title }}</h2>
-      <div class="divider"></div>
+      <!-- TASK TITLE -->
+<h2 class="task-title">{{ selectedTask?.title }}</h2>
+  <div class="right-divider"></div>
 
-      <div class="task-author">
-        <div class="author-avatar">{{ selectedTask?.title?.charAt(0) }}</div>
-        <div class="author-info">
-          <span class="author-name">OJTify Admin</span>
-          <span class="author-role">Admin</span>
-        </div>
-      </div>
-
-      <div class="task-meta">
-        <div class="meta-item">
-          <i class="fa-solid fa-calendar"></i>
-          <div>
-            <strong>Posted</strong>
-            <span>{{ selectedTask?.posted }}</span>
+      <div class="task-author-meta">
+        <!-- LEFT SIDE: Author + Posted -->
+        <div class="author-left">
+          <div class="author-avatar">{{ selectedTask?.title?.charAt(0) }}</div>
+          <div class="author-info">
+            <span class="author-name"></span>
+            <span class="author-role">Admin</span>
+            <span class="posted-date">{{ selectedTask?.posted }}</span>
           </div>
         </div>
-        <div class="meta-item">
+      
+        <!-- RIGHT SIDE: Due -->
+        <div class="due-right">
           <i class="fa-solid fa-clock"></i>
-          <div>
-            <strong>Due</strong>
-            <span>{{ selectedTask?.due }}</span>
-          </div>
+          <span>Due: {{ selectedTask?.due }}</span>
         </div>
       </div>
 
-      <div class="divider"></div>
 
       <div class="description-card">
         <p>{{ selectedTask?.description }}</p>
       </div>
 
+      
+
     <!-- ADMIN ATTACHMENT -->
 <div *ngIf="selectedTask?.attachment_file_id">
-  <div class="divider"></div>
-  <strong style="font-size:14px;">📎 Attachment</strong>
+
+  <strong style="font-size:14px;"> Attachment</strong>
 
   <div class="file-card" style="margin-top:10px;">
     <div class="file-left">
@@ -174,14 +176,15 @@
     </div>
     <div style="display:flex; gap:10px; align-items:center;">
 
-      <!-- VIEW -->
+      <!-- VIEW (magnifying glass) -->
       <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
                  + selectedTask!.attachment_file_id
                  + '/view?project=69ba8d9c0027d10c447f'"
          target="_blank"
-         title="View file"
-         style="color:#2563eb; cursor:pointer; text-decoration:none;">
-        <i class="fas fa-eye"></i>
+         title="View file">
+        <div class="file-action-btn grey">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
       </a>
 
       <!-- DOWNLOAD -->
@@ -189,23 +192,42 @@
                  + selectedTask!.attachment_file_id
                  + '/download?project=69ba8d9c0027d10c447f'"
          target="_blank"
-         title="Download file"
-         style="color:#16a34a; cursor:pointer; text-decoration:none;">
-        <i class="fas fa-download"></i>
+         title="Download file">
+        <div class="file-action-btn grey">
+          <i class="fas fa-download"></i>
+        </div>
       </a>
 
     </div>
   </div>
 </div>
 
-      <div class="divider"></div>
 
-     <!-- COMMENTS -->
+
+     <!-- ================= COMMENTS ================= -->
 <div class="comments-section">
-  <div class="comment-title">Comments</div>
+  <div class="right-divider"></div>
 
-  <div *ngIf="comments.length === 0"
-       style="text-align:center; color:#9ca3af; font-size:13px; padding:16px 0;">
+  <label class="comment-label">Comment</label>
+
+  <!-- COMMENT INPUT FIRST -->
+  <div class="comment-input modern">
+    <textarea placeholder="Write a comment..."
+              [(ngModel)]="newComment"
+              (keyup.enter)="sendComment()"></textarea>
+    <button class="send-btn"
+            (click)="sendComment()"
+            [disabled]="commentLoading">
+      <i class="fa fa-spinner fa-spin" *ngIf="commentLoading"></i>
+      <i class="fa-solid fa-paper-plane" *ngIf="!commentLoading"></i>
+    </button>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- COMMENTS LIST -->
+  <div *ngIf="comments.length === 0" class="empty-comments">
     No comments yet. Be the first to comment!
   </div>
 
@@ -215,15 +237,11 @@
       {{ comment.user_name[0] }}
     </div>
 
-    <div class="comment-body" style="flex:1;">
+    <div class="comment-body">
       <div class="comment-header">
         <strong>
           {{ comment.user_name }}
-          <span *ngIf="comment.role === 'admin'"
-                style="font-size:11px; background:#fdeaea; color:#dc2626;
-                       padding:2px 6px; border-radius:10px; margin-left:4px;">
-            Admin
-          </span>
+          <span *ngIf="comment.role === 'admin'" class="admin-badge">Admin</span>
         </strong>
         <span class="comment-date">{{ comment.created_at }}</span>
       </div>
@@ -232,15 +250,12 @@
       <ng-container *ngIf="editingCommentId !== comment.$id">
         <p class="comment-text">{{ comment.message }}</p>
 
-        <!-- Only show edit/delete for own comments -->
-        <div *ngIf="comment.user_id === currentUserId"
-             style="display:flex; gap:10px; margin-top:6px;">
-          <span (click)="startEdit(comment)"
-                style="font-size:12px; color:#2563eb; cursor:pointer;">
+        <!-- EDIT/DELETE -->
+        <div *ngIf="comment.user_id === currentUserId" class="comment-actions">
+          <span (click)="startEdit(comment)">
             <i class="fas fa-pen"></i> Edit
           </span>
-          <span (click)="deleteComment(comment)"
-                style="font-size:12px; color:#ef4444; cursor:pointer;">
+          <span (click)="deleteComment(comment)">
             <i class="fas fa-trash"></i> Delete
           </span>
         </div>
@@ -248,47 +263,16 @@
 
       <!-- EDIT MODE -->
       <ng-container *ngIf="editingCommentId === comment.$id">
-        <textarea
-          [(ngModel)]="editingMessage"
-          rows="2"
-          style="width:100%; padding:8px; border:1px solid #d1d5db;
-                 border-radius:8px; font-size:13px; resize:none;
-                 margin-top:6px; font-family: inherit;">
-        </textarea>
-        <div style="display:flex; gap:8px; margin-top:6px;">
-          <button (click)="saveEdit(comment)"
-                  style="background:#2563eb; color:white; border:none;
-                         padding:6px 12px; border-radius:6px; font-size:12px;
-                         cursor:pointer;">
-            Save
-          </button>
-          <button (click)="cancelEdit()"
-                  style="background:#e5e7eb; border:none;
-                         padding:6px 12px; border-radius:6px; font-size:12px;
-                         cursor:pointer;">
-            Cancel
-          </button>
+        <textarea [(ngModel)]="editingMessage" rows="2"></textarea>
+        <div class="edit-actions">
+          <button (click)="saveEdit(comment)">Save</button>
+          <button (click)="cancelEdit()">Cancel</button>
         </div>
       </ng-container>
 
     </div>
   </div>
-
-  <div class="divider"></div>
-
-  <!-- Comment input -->
-  <div class="comment-input">
-    <input type="text"
-           placeholder="Add a comment..."
-           [(ngModel)]="newComment"
-           (keyup.enter)="sendComment()" />
-    <button class="send-btn"
-            (click)="sendComment()"
-            [disabled]="commentLoading">
-      <i class="fa fa-spinner fa-spin" *ngIf="commentLoading"></i>
-      <i class="fa-solid fa-paper-plane" *ngIf="!commentLoading"></i>
-    </button>
-  </div>
+</div>
 
 </div>
   </div>

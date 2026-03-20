@@ -2,7 +2,7 @@
 .dashboard-wrapper {
     display: flex;
     height: 100vh;
-  }
+  }   
   
   .dashboard-right {
     flex: 1;
@@ -35,6 +35,16 @@
   }
   
   /* ---------------- TASK LIST ---------------- */
+  /* ---------------- TASK MODAL TITLE ---------------- */
+.task-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+
+
   .tasks-list {
     display: flex;
     flex-direction: column;
@@ -96,328 +106,640 @@
     background: #fdeaea;
     color: #dc2626;
   }
-  
-  /* ---------------- MODAL STYLES ---------------- */
-  .task-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.55);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transition: 0.2s;
-    z-index: 1000;
-  }
-  
-  .task-modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-  }
-  
-  .task-modal-modern {
-    width: 1000px;
-    max-width: 95%;
-    height: 82vh;
-    background: white;
-    border-radius: 14px;
-    display: flex;
-    overflow: hidden;
-    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
-    position: relative;
-  }
-  
-  .modal-close {
-    position: absolute;
-    top: 18px;
-    right: 22px;
-    font-size: 22px;
-    cursor: pointer;
-  }
-  
-  /* ---------------- LEFT PANEL ---------------- */
-  .modal-left {
-    width: 35%;
-    background: #f8fafc;
-    padding: 30px;
-    border-right: 1px solid #e5e7eb;
-  }
-  
-  .submit-card {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-  
-  .upload-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 8px;
-    border: 2px dashed #cbd5e1;
-    background: #f8fafc;
-    padding: 32px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.2s;
-    position: relative;
-  }
-  
-  .upload-box:hover {
-    border-color: #2563eb;
-    background: #f1f5ff;
-  }
-  
-  .upload-box i {
-    font-size: 30px;
-    color: #2563eb;
-  }
-  
-  .upload-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-  }
-  
-  .upload-sub {
-    font-size: 12px;
-    color: #6b7280;
-  }
-  
-  .upload-box input {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-  }
-  
-  .file-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 10px;
-  }
-  
-  .file-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .file-icon {
-    color: #2563eb;
-    font-size: 18px;
-  }
-  
-  .file-name {
-    font-size: 13px;
-    font-weight: 500;
-  }
-  
-  .file-size {
-    font-size: 11px;
-    color: #6b7280;
-  }
-  
-  .file-remove {
-    cursor: pointer;
-    font-size: 18px;
-    color: #ef4444;
-  }
-  
-  .submit-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 11px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  
-  .submit-btn:hover {
-    background: #1d4ed8;
-  }
-  
-  /* ---------------- RIGHT PANEL ---------------- */
-  .modal-right {
-    flex: 1;
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    overflow-y: auto;
-  }
-  
-  .task-title {
-    font-size: 22px;
-    font-weight: 700;
-  }
-  
-  .divider {
-    height: 1px;
-    background: #e5e7eb;
-  }
-  
-  /* ---------------- AUTHOR ---------------- */
-  .task-author {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .author-avatar {
-    width: 40px;
-    height: 40px;
-    background: #2563eb;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-  }
-  
-  .author-info {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .author-name {
-    font-size: 14px;
-    font-weight: 600;
-  }
-  
-  .author-role {
-    font-size: 12px;
-    color: #6b7280;
-  }
-  
-  /* ---------------- META ---------------- */
-  .meta-item {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    font-size: 13px;
-    color: #374151;
-  }
-  
-  .meta-item span {
-    display: block;
-    font-size: 12px;
-    color: #6b7280;
-  }
-  
-  /* ---------------- DESCRIPTION ---------------- */
-  .description-card {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    padding: 18px;
-    border-radius: 10px;
-  }
-  
-  .description-card p {
-    font-size: 14px;
-    line-height: 1.7;
-  }
-  
-  /* ---------------- COMMENTS ---------------- */
-  .comment-title {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: 600;
-    margin-bottom: 10px;
-  }
-  
-  .comment-input {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-  }
-  
-  .comment-input input {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-  }
-  
-  .send-btn {
-    background: #2563eb;
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  
-  .comment {
-    display: flex;
-    gap: 12px;
-    margin-top: 14px;
-  }
-  
-  .avatar {
-    width: 36px;
-    height: 36px;
-    background: #2563eb;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 13px;
-  }
-  
-  .comment-body {
-    background: #f1f5f9;
-    padding: 12px;
-    border-radius: 10px;
-    flex: 1;
-  }
-  
-  .comment-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 4px;
-  }
-  
-  .comment-text {
-    font-size: 13px;
-    color: #374151;
-    line-height: 1.6;
-  }
-  
-  .comment-date {
-    font-size: 12px;
-    color: #6b7280;
-  }
+  /* ================= MODAL OVERLAY (PREMIUM GLASS) ================= */
+.task-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* semi-transparent dark gray */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease;
+  z-index: 1000;
+}
+
+.task-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ================= MODAL CONTAINER ================= */
+.task-modal-modern {
+  width: 1250px;
+  max-width: 95%;
+  height: 85vh;
+  background: #ffffff;
+  border-radius: 18px;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  transform: scale(0.96);
+  transition: all 0.25s ease;
+}
+
+.task-modal-overlay.active .task-modal-modern {
+  transform: scale(1);
+}
+
+/* CLOSE BUTTON */
+.modal-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  font-size: 20px;
+  cursor: pointer;
+  background: #f1f5f9;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.modal-close:hover {
+  background: #e2e8f0;
+}
+
+/* LEFT PANEL FIXED SIZE */
+.modal-left {
+  width: 35%;
+  min-width: 320px;
+  max-height: 89vh;
+  background: #f9fafb;          /* slightly brighter */
+  padding: 24px;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+}
+
+/* ================= SUBMIT CARD ================= */
+.submit-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+
+/* SUBMIT CARD TITLE */
+.submit-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+/* UPLOAD BOX (MODERN) */
+.upload-box {
+  min-height: 120px;   /* ensures box never shrinks */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  border: 2px dashed #a0b9d8;
+  background: #f8fafc;
+  padding: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
+}
+
+.upload-box:hover {
+  border-color: #2563eb;
+  background: #eef2ff;
+  transform: translateY(-2px);
+}
+
+/* Shrink upload box height */
+.upload-box {
+  height: 100px;       /* fixed smaller height */
+  min-height: 120px;   /* ensure it doesn't shrink more */
+  max-height: 120px;   /* ensure consistent */
+  padding: 16px;       /* konting padding para proportional */
+  justify-content: center;  /* center icon + text vertically */
+}
+/* proportional icon & text */
+.upload-box i {
+  font-size: 24px;
+}
+
+.upload-title {
+  font-size: 13px;
+}
+
+.upload-sub {
+  font-size: 11px;
+  margin-bottom: 23px;
+}
+
+/* FILE CARD */
+.file-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  border-radius: 10px;
+  transition: 0.2s;
+}
+
+.file-card:hover {
+  background: #f1f5f9;
+}
+
+/* SUBMIT BUTTON (GRADIENT PREMIUM) */
+.submit-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+}
+
+/* ================= RIGHT PANEL ================= */
+/* DIVIDER STYLE */
+.divider, .right-divider {
+  width: 100%;
+  height: 1px;
+  background-color: #e5e7eb; /* light gray */
+         /* space above and below */
+}
+.right-divider {
+  display: block;          /* siguraduhing block */
+  width: 100%;             /* full width ng parent */
+  height: 1px;             /* pwede mo taasan kung gusto mo */
+  background-color: #e5e7eb;
+ /* konting space above & below */
+  flex-shrink: 0;          /* para hindi ma-compress sa flex */
+}
+.modal-right {
+  flex: 1;
+  padding: 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* TITLE */
+
+
+/* AUTHOR */
+.task-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-avatar {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+}
+
+/* META (CARD STYLE) */
+
+
+.meta-item {
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  border: 1px solid #e5e7eb;
+}
+/* AUTHOR + META FLEX LAYOUT */
+.task-author-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* LEFT SIDE: Author info */
+.author-left {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.posted-date {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+/* RIGHT SIDE: Due date */
+.due-right {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---------------- DESCRIPTION ---------------- */
+.description-card {
+  background: #fefefe;
+  border: 1px solid #e5e7eb;
+  padding: 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #1f2937;
+  line-height: 1.6;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+}
+
+
+/* ================= COMMENTS ================= */
+.comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* COMMENT INPUT */
+.comment-input.modern {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.comment-input.modern textarea {
+  flex: 1;
+  min-height: 50px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 14px;
+  resize: none;
+  transition: all 0.2s;
+}
+
+.comment-input.modern textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #eef2ff;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.2);
+}
+
+/* SEND BUTTON */
+.comment-input.modern .send-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.comment-input.modern .send-btn:hover {
+  transform: scale(1.05);
+}
+
+/* EMPTY COMMENTS */
+.empty-comments {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 16px 0;
+}
+
+/* EACH COMMENT */
+.comment {
+  display: flex;
+  gap: 12px;
+}
+
+.comment .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* COMMENT BODY */
+/* COMMENT BODY FONT SIZES */
+.comment-body {
+  flex: 1;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;       /* slightly smaller padding */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;                 /* reduce spacing between text and header */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+/* COMMENT HEADER */
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #374151;
+}
+
+/* USERNAME */
+.comment-header strong {
+  font-size: 15px;   /* slightly bigger than timestamp */
+  color: #1f2937;
+}
+
+/* DATE / TIME */
+.comment-header .comment-date {
+  font-size: 11px;   /* smaller, secondary info */
+  color: #6b7280;
+}
+/* COMMENT TEXT */
+.comment-text {
+  font-size: 15px;   /* bigger than before, still modern */
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+/* EDIT/DELETE ICONS - lowered and compact */
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;          /* text size small */
+  color: #2563eb;
+  cursor: pointer;
+  margin-top: 8px;           /* push it slightly lower */
+}
+
+.comment-actions span i {
+  font-size: 10px;           /* icons slightly smaller than text */
+}
+
+.comment-actions span:hover {
+  text-decoration: underline;
+}
+
+/* EDIT MODE BUTTONS */
+.edit-actions button {
+  padding: 5px 10px;         /* slightly smaller buttons */
+  border-radius: 6px;
+  font-size: 11px;           /* smaller button font */
+}
+
+.edit-actions button:first-child {
+  background: #2563eb;
+  color: white;
+}
+
+.edit-actions button:last-child {
+  background: #e5e7eb;
+}
+
+
+/* COMMENT LABEL */
+.comment-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #374151;
+  display: block;
+}
+
+/* Align send button with textarea */
+.comment-input.modern {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end; /* makes button align with bottom of textarea */
+}
+
+.comment-input.modern textarea {
+  flex: 1;
+  min-height: 50px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 14px;
+  resize: none;
+  transition: all 0.2s;
+}
+
+.comment-input.modern .send-btn {
+  width: 50px;
+  height: 63px;
+  border-radius: 10px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transition: all 0.2s;
+}
+
+.comment-input.modern .send-btn:hover {
+  transform: scale(1.05);
+}
+.admin-badge {
+  font-size: 11px;
+  background: #fdeaea;
+  color: #dc2626;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Separation between Admin + Description */
+
+/* ================= MY SUBMISSIONS ================= */
+
+/* Title */
+.submit-card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+/* Empty state */
+.submit-card .empty-sub {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* File list spacing */
+.submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+/* Each file card */
+/* FILE CARD FIXED LAYOUT */
+.file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.file-card:hover {
+  background: #f9fafb;
+  border-color: #dbeafe;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+}
+
+
+/* LEFT SIDE (ALLOW SHRINK) */
+.file-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;              /* IMPORTANT */
+  min-width: 0;         /* IMPORTANT (fix overflow) */
+}
+
+/* File icon (better style) */
+.file-icon {
+  width: 38px;
+  height: 38px;
+  background: #eef2ff;
+  color: #2563eb;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* FILE INFO (TEXT CONTROL) */
+.file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;         /* IMPORTANT */
+}
+/* LONG TEXT FIX */
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;  /* 🔥 truncate */
+  max-width: 220px;         /* adjust if needed */
+}
+
+/* File date / size */
+.file-size {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+
+/* RIGHT SIDE FIXED */
+.file-actions {
+  flex-shrink: 0;      /* 🔥 prevents movement */
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+/* Divider under title and before comments */
+.right-divider {
+  height: 1px;
+  width: 100%;
+  background: #e5e7eb;
+  margin: 16px 0;
+}
+
+/* View & Download buttons (grey, consistent) */
+.file-action-btn.grey {
+  background: transparent;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.file-action-btn.grey:hover {
+  background: #f3f4f6;
+  color: #374151; /* slightly darker grey on hover */
+  transform: scale(1.08);
+}
+
+/* Delete button */
+
+/* DELETE BUTTON - MINIMAL PREMIUM */
+.file-action-btn.delete {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: transparent;
+  color:  #dc3545;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+/* HOVER EFFECT (smooth, not aggressive) */
+.file-action-btn.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  transform: scale(1.08);
+}
+
+.upload-box input[type="file"] {
+  color: transparent;
+}
+
+.upload-box input[type="file"]::-webkit-file-upload-button {
+  visibility: hidden;
+}
