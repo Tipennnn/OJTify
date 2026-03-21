@@ -33,8 +33,7 @@
     height: 1px;
     background: #e5e7eb;
   }
-  
-  /* ---------------- TASK LIST ---------------- */
+
   /* ---------------- TASK MODAL TITLE ---------------- */
 .task-title {
   font-size: 22px;
@@ -113,7 +112,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* semi-transparent dark gray */
+  background: rgba(33,33,33,0.3); /* lighter overlay */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,22 +150,42 @@
   position: absolute;
   top: 18px;
   right: 22px;
-  font-size: 20px;
-  cursor: pointer;
-  background: #f1f5f9;
-  width: 34px;
-  height: 34px;
+
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
+
+  background: #f9fafb;
+  color: #6b7280;
+
+  font-size: 16px;
+  cursor: pointer;
+
+  transition: all 0.25s ease;
 }
 
+/* ICON ANIMATION */
+.modal-close::before {
+  content: "×";
+  transition: transform 0.25s ease;
+  font-size: 25px;
+}
+
+/* HOVER EFFECT */
 .modal-close:hover {
-  background: #e2e8f0;
+  background: #fee2e2;
+  color: #dc2626;
+  transform: scale(1.1);
 }
 
+/* ROTATE EFFECT */
+.modal-close:hover::before {
+  transform: rotate(90deg);
+}
 /* LEFT PANEL FIXED SIZE */
 .modal-left {
   width: 35%;

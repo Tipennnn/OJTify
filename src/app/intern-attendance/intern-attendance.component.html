@@ -16,34 +16,38 @@
         </button>
       </div>
 
-      <!-- TOP CARDS -->
+     
       <div class="top-cards">
+
         <!-- TOTAL HOURS -->
-        <div class="card progress-card">
-          <div class="progress-circle">
-            <div class="circle">
-              <span>100%</span>
-              <small>Completed</small>
-            </div>
+        <div class="stat-card total-card">
+          <div class="stat-left">
+            <h3>500 / 500</h3>
+            <span>Total Hours</span>
           </div>
-
-          <div class="progress-info">
-            <h4>Total Hours</h4>
-            <p>500 of 500 hours</p>
-            <div class="progress-bar">
-              <div class="progress-fill"></div>
+      
+          <div class="stat-right">
+            <span class="percent">100%</span>
+            <div class="mini-bar">
+              <div class="mini-fill"></div>
             </div>
           </div>
         </div>
-
-        <!-- TODAY ATTENDANCE -->
-        <div class="card attendance-card">
-          <div class="attendance-icon">✔</div>
-          <div>
-            <h4>Present</h4>
-            <p>Today's Attendance</p>
+      
+      
+        <!-- REMAINING -->
+        <div class="stat-card remaining-card">
+          <div class="stat-left">
+            <h3>0 hrs</h3>
+            <span>Remaining</span>
+          </div>
+      
+          <div class="stat-right">
+            <span class="status complete">Completed</span>
+            <small>Est. Mar 21</small>
           </div>
         </div>
+      
       </div>
 
       <!-- Calendar Container -->
@@ -121,10 +125,16 @@
   <div class="reports-box">
     <div class="reports-header">
       <div class="reports-title">
-        <i class="fa fa-file-alt"></i> <h3>Attendance Reports</h3>
+        <div class="qr-icon"> <!-- gamit ang parehong class gaya sa QR modal -->
+          <i class="fa-solid fa-file-alt"></i>
+        </div>
+        <h3>Attendance Reports</h3>
       </div>
       <button class="close-btn" (click)="closeReportsModal()"><i class="fa fa-times"></i></button>
     </div>
+
+    <!-- Divider Below Header -->
+    <div class="modal-divider"></div>
 
     <div class="reports-body">
       <div class="filters-panel">
@@ -181,43 +191,41 @@
   </div>
 </div>
 
-<!-- QR Code Modal -->
 <div class="qr-modal" *ngIf="showQRModal">
-
   <div class="qr-box">
 
+    <!-- HEADER -->
     <div class="qr-header">
-
       <div class="qr-title">
-        <i class="fa fa-qrcode"></i>
-        <h3>My QR Code</h3>
+        <div class="qr-icon">
+          <i class="fa fa-qrcode"></i>
+        </div>
+        <div>
+          <h3>My QR Code</h3>
+          <p>Use this QR code to record your attendance</p>
+        </div>
       </div>
 
       <button class="close-btn" (click)="closeQRModal()">
         <i class="fa fa-times"></i>
       </button>
-
     </div>
 
+    <div class="qr-divider"></div>
 
-
+    <!-- BODY -->
     <div class="qr-body">
+      <div class="qr-wrapper">
+        <img
+          src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=InternAttendance"
+          alt="QR Code"
+        />
+      </div>
 
-      <p class="qr-text">
-        Show this QR code when checking in for attendance.
-      </p>
-
-      <!-- Divider -->
-  <div class="qr-divider"></div>
-
-      <img
-        class="qr-image"
-        src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=InternAttendance"
-        alt="QR Code"
-      />
-
+      <span class="qr-note">
+        Present this QR code for attendance logging.
+      </span>
     </div>
 
   </div>
-
 </div>

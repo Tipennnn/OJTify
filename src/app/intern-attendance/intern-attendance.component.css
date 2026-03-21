@@ -1,19 +1,24 @@
-/* General Dashboard Layout */
-.dashboard-wrapper {
-    display: flex;
-    height: 100vh;
+.dashboard-wrapper{
+  display:flex;
+  height:100vh;
+  background:#f6f8fc;
   }
   
-  .dashboard-right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+  /* RIGHT SIDE */
+  
+  .dashboard-right{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
   }
   
-  .dashboard-content {
-    flex: 1;
-    padding: 30px;
-    background: #f5f7fb;
+  /* CONTENT */
+  
+  .dashboard-content{
+  flex:1;
+  padding:30px;
+  overflow-y:auto;
   }
   
   /* Calendar */
@@ -153,17 +158,19 @@
   
   .attendance-box {
     width: 380px;
+    max-height: 90vh; /* hindi lalagpas sa screen */
     background: white;
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-  }
-  
-  .attendance-modal-header {
+
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+    flex-direction: column;
+}
+ 
+.attendance-modal-header {
+  margin-bottom: 12px;
+}
   
   .title {
     display: flex;
@@ -192,12 +199,31 @@
     background: #e5e7eb;
     margin: 15px 0;
   }
-  
-  .attendance-info {
+  /* Make the Attendance Reports icon match the QR Code style */
+  .reports-title .qr-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #2563eb;
     display: flex;
-    flex-direction: column;
-    gap: 16px;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.4);
   }
+  .reports-title .qr-icon i {
+    font-size: 18px; /* or same as QR */
+    color: white;
+  }
+/* Ito ang importante */
+.attendance-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;        /* pupunuin lahat ng available vertical space */
+  justify-content: flex-start;
+  gap: 12px;
+  overflow-y: auto;    /* kung marami ang rows, puwede mag-scroll */
+}
   
   .info-row {
     display: flex;
@@ -222,128 +248,246 @@
   .absent { color: #dc2626; font-weight: 600; }
   .no-record { color: #9ca3af; font-weight: 600; }
   
-  /* Attendance Reports Modal (Improved UI) */
-  .reports-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.45);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  
-  .reports-box {
-    width: 90%;
-    max-width: 900px;
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  
-  .reports-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-  }
-  
-  .reports-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .reports-title i {
-    color: #2563eb;
-  }
-  
-  .reports-title h3 {
-    font-weight: 600;
-    color: #2563eb;
-  }
-  
-  /* Reports Body - Left: Filters, Right: Table */
-  .reports-body {
-    display: flex;
-    gap: 20px;
-    max-height: 70vh;
-    overflow-y: auto;
-  }
-  
-  .filters-panel {
-    flex: 1;
-    min-width: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding-right: 10px;
-    border-right: 1px solid #e5e7eb;
-  }
-  
-  .filters-panel label {
-    font-weight: 500;
-    color: #374151;
-  }
-  
-  .filters-panel select {
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-  }
-  
-  .table-panel {
-    flex: 3;
-    overflow-x: auto;
-  }
-  
-  .table-panel table {
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
-  }
-  
-  .table-panel th, .table-panel td {
-    padding: 12px;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: left;
-  }
-  
-  .table-panel th {
-    background: #f5f7fb;
-  }
-  
-  .table-panel tr:hover {
-    background: #f9fafb;
-  }
-  
-  .no-records-msg {
-    text-align: center;
-    padding: 30px;
-    color: #6b7280;
-  }
-  
-  /* Responsive Adjustments */
-  @media(max-width: 768px) {
-    .reports-body {
-      flex-direction: column;
-    }
-    .filters-panel {
-      border-right: none;
-      padding-right: 0;
-      margin-bottom: 15px;
-    }
-  }
-  /* Keep all your previous intern-attendance CSS */
+ /* ----------------- MODERN ATTENDANCE REPORTS MODAL CSS ----------------- */
+ .reports-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(33,33,33,0.3); /* lighter overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: none; /* slight blur for modern feel */
+}
 
+.reports-box {
+  width: 1250px;
+  max-width: 95%;
+  height: 85vh;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.reports-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reports-title i {
+  font-size: 22px;
+  color: #2563eb;
+}
+
+.reports-title h3 {
+  font-weight: 700;
+  font-size: 20px;
+  color: #2563eb;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f9fafb;
+  color: #6b7280;
+
+  font-size: 16px;
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+}
+
+.close-btn:hover {
+  color: #dc2626;
+  background: #fee2e2;
+  transform: scale(1.1);
+}
+
+/* Body: Left Filters Fixed, Right Table Scrollable */
+.reports-body {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Filters Panel */
+.filters-panel {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: #f3f4f6;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 32px;
+  align-self: flex-start;
+}
+
+.filters-panel label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #111827;
+}
+
+.filters-panel select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  transition: 0.2s;
+}
+
+.filters-panel select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+}
+
+.excel-btn {
+  margin-top: 10px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  justify-content: center;
+  transition: 0.3s;
+}
+
+.excel-btn:hover {
+  background: #0b47b3;
+}
+
+/* Table Panel */
+.table-panel {
+  flex: 1;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table Styles */
+.table-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+  min-height: 200px; /* ensures table stays big even if empty */
+}
+
+/* Sticky Headers */
+.table-panel thead th {
+  position: sticky;
+  top: 0;
+  background: #f3f4f6;
+  z-index: 10;
+  font-weight: 600;
+  font-size: 13px;
+  color: #111827;
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table-panel td {
+  background: #ffffff;
+  font-size: 14px;
+  color: #374151;
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table-panel tr:hover td {
+  background: #f1f5f9;
+}
+
+.table-panel td.present {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.table-panel td.absent {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.table-panel td.no-record {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.no-records-msg {
+  text-align: center;
+  padding: 20px 0;
+  color: #6b7280;
+}
+/* Subtle Scrollbars */
+.table-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.table-panel::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+/* Responsive for Mobile */
+@media(max-width: 768px){
+  .reports-body {
+    flex-direction: column;
+  }
+
+  .filters-panel {
+    position: relative;
+    top: 0;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .table-panel {
+    max-height: 300px;
+  }
+}
+
+.modal-divider {
+  height: 1px;
+  width: 100%;
+  background: #e5e7eb;
+  margin: 4px 0 16px 0; /* 4px sa itaas, 16px sa ibaba */
+}
 /* ----------------- ADDITIONS FOR DASHBOARD UI ----------------- */
 
 .dashboard-header{
@@ -457,96 +601,255 @@
 
 
   
-  
-  /* QR Modal */
-  
-  .qr-modal{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.45);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:1000;
+  /* OVERLAY (glass feel) */
+.qr-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: none; /* 🔥 premium blur */
+  z-index: 1000;
+}
+
+/* MODAL BOX */
+.qr-box {
+  width: 420px;
+  border-radius: 20px;
+  padding: 28px;
+
+  background: linear-gradient(145deg, #ffffff, #f9fafb);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  animation: fadeIn 0.25s ease;
+}
+
+/* HEADER */
+.qr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qr-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ICON BOX */
+.qr-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+
+  background: #2563eb;
+  color: white;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.4);
+}
+
+/* TEXT */
+.qr-title h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.qr-title p {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* CLOSE BUTTON */
+.close-btn {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: 0.2s;
+}
+
+.close-btn:hover {
+  color: #dc2626;
+  transform: rotate(90deg);
+}
+
+/* DIVIDER */
+.qr-divider {
+  width: 100%;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* BODY */
+.qr-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* QR WRAPPER (glass card look) */
+.qr-wrapper {
+  padding: 18px;
+  border-radius: 18px;
+
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+
+  box-shadow: 
+    0 10px 25px rgba(0,0,0,0.08),
+    inset 0 0 0 1px rgba(255,255,255,0.6);
+
+  transition: 0.3s;
+}
+
+.qr-wrapper:hover {
+  transform: scale(1.03);
+}
+
+/* QR IMAGE */
+.qr-wrapper img {
+  width: 190px;
+  height: 190px;
+}
+
+/* NOTE TEXT */
+.qr-note {
+  white-space: nowrap;     /* 🔥 hindi mag wrap */
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+/* ANIMATION */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
   }
-  
-  
-  /* QR Box */
-  
-  .qr-box{
-    width:420px;
-    background:white;
-    border-radius:16px;
-    padding:28px;
-    box-shadow:0 20px 40px rgba(0,0,0,0.15);
-    text-align:center;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
-  
-  /* Header */
-  
-  .qr-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-  }
-  
-  .qr-title{
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  
-  .qr-title i{
-    color: #2563eb;
-    font-size:18px;
-  }
-  
-  .qr-title h3{
-    color: #2563eb;
-    font-weight:600;
-    font-size:18px;
-  }
-  
-  
-  /* Description text */
-  
-  .qr-text{
-    font-size:13px;
-    color:#6b7280;
-    margin-bottom:18px;
-    text-align:center;
-    line-height:1.4;
-  }
-  
-  
-  /* QR Image */
-  
-  .qr-image{
-    width:190px;
-    height:190px;
-    border-radius:12px;
-    border:5px solid  #2563eb;
-    padding:8px;
-    background:white;
-  }
-  
-  
-  /* Close Button */
-  
-  .close-btn{
-    border:none;
-    background:none;
-    cursor:pointer;
-    font-size:16px;
-  }
-  .qr-divider{
-    width:100%;
-    height:1px;
-    background:#e5e7eb;
-    margin:10px 0 18px 0;
-  }
-  
+}
+
+/* -------- CARD BASE -------- */
+.stat-card{
+  flex:1;
+  background:#ffffff;
+  border-radius:12px;
+  padding:16px 18px;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  border:1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+
+  transition:0.2s ease;
+}
+
+.stat-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 14px rgba(0,0,0,0.06);
+}
+
+/* -------- LEFT SIDE -------- */
+.stat-left h3{
+  font-size:20px;
+  font-weight:700;
+  color:#111827;
+  margin-bottom:2px;
+}
+
+.stat-left span{
+  font-size:12px;
+  color:#6b7280;
+}
+
+/* -------- RIGHT SIDE -------- */
+.stat-right{
+  text-align:right;
+}
+
+/* percentage */
+.percent{
+  font-size:16px;
+  font-weight:600;
+  color:#2563eb;
+}
+
+/* mini progress bar */
+.mini-bar{
+  width:90px;
+  height:5px;
+  background:#e5e7eb;
+  border-radius:20px;
+  margin-top:6px;
+  overflow:hidden;
+}
+
+.mini-fill{
+  width:100%;
+  height:100%;
+  background:#2563eb;
+}
+
+/* status */
+.status{
+  font-size:12px;
+  padding:3px 8px;
+  border-radius:12px;
+  font-weight:600;
+  display:inline-block;
+}
+
+.status.complete{
+  background:#dcfce7;
+  color:#16a34a;
+}
+
+.status.on-track{
+  background:#dbeafe;
+  color:#2563eb;
+}
+
+.status.behind{
+  background:#fee2e2;
+  color:#dc2626;
+}
+
+.stat-right small{
+  display:block;
+  font-size:11px;
+  color:#9ca3af;
+  margin-top:4px;
+}
+
+/* -------- COLOR ACCENTS -------- */
+.total-card{
+  border-left:3px solid #2563eb;
+}
+
+.remaining-card{
+  border-left:3px solid #f59e0b;
+}
