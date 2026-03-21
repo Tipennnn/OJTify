@@ -132,47 +132,60 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
   }
 
   // ── Open/close scanner modal ──────────────────────────────
-  async openScanner() {
-    this.showScanner  = true;
-    this.scanResult   = '';
-    this.scanStatus   = '';
-    this.lastScanned  = '';
-    await this.startCamera();
-  }
+openScanner() {
+  this.showScanner  = true;
+  this.scanResult   = '';
+  this.scanStatus   = '';
+  this.lastScanned  = '';
 
-  closeScanner() {
-    this.stopCamera();
-    this.showScanner = false;
-    this.scanResult  = '';
-    this.scanStatus  = '';
-  }
-
+  // Wait 500ms for DOM + previous stream to fully release
+  setTimeout(() => {
+    this.startCamera();
+  }, 500);
+}
+closeScanner() {
+  this.stopCamera();
+  this.showScanner = false;
+  this.scanResult  = '';
+  this.scanStatus  = '';
+}
   // ── Start camera ──────────────────────────────────────────
-  async startCamera() {
-    this.scanning = true;
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
+async startCamera() {
+  // Extra safety — stop anything still running
+  this.stopCamera();
+  this.scanning = true;
 
-      setTimeout(() => {
-        const video = document.getElementById('scanner-video') as HTMLVideoElement;
-        if (video) {
-          video.srcObject = this.stream;
-          video.play();
-          this.scanFrame(video);
-        }
-      }, 100);
+  // Wait 300ms after stopping before requesting new stream
+  await new Promise(resolve => setTimeout(resolve, 300));
 
-    } catch (error: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Camera Error',
-        text: 'Could not access camera. Please allow camera permission.'
-      });
-      this.scanning = false;
-    }
+  try {
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      video: true
+    });
+
+    setTimeout(() => {
+      const video = document.getElementById('scanner-video') as HTMLVideoElement;
+      if (video) {
+        video.srcObject = this.stream;
+        video.onloadedmetadata = () => {
+          video.play().then(() => {
+            this.scanFrame(video);
+          }).catch(err => {
+            console.error('Video play error:', err);
+          });
+        };
+      }
+    }, 200);
+
+  } catch (error: any) {
+    this.scanning = false;
+    Swal.fire({
+      icon: 'error',
+      title: 'Camera Error',
+      text: `Could not access camera: ${error.message}`
+    });
   }
+}
 
   // ── Scan frames ───────────────────────────────────────────
   scanFrame(video: HTMLVideoElement) {
@@ -201,15 +214,27 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
   }
 
   // ── Stop camera ───────────────────────────────────────────
-  stopCamera() {
-    this.scanning = false;
-    cancelAnimationFrame(this.animFrame);
-    if (this.stream) {
-      this.stream.getTracks().forEach(t => t.stop());
-      this.stream = null;
-    }
+stopCamera() {
+  this.scanning = false;
+  cancelAnimationFrame(this.animFrame);
+  this.animFrame = 0;
+
+  // Clear video element first
+  const video = document.getElementById('scanner-video') as HTMLVideoElement;
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+    video.load();
   }
 
+  // Then stop all tracks
+  if (this.stream) {
+    this.stream.getTracks().forEach(track => {
+      track.stop();
+    });
+    this.stream = null;
+  }
+}
   // ── Process QR ────────────────────────────────────────────
   async processQR(data: string) {
     if (!data.startsWith('OJTIFY_ATTENDANCE:')) {

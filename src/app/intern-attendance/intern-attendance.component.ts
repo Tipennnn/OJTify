@@ -91,47 +91,49 @@ export class InternAttendanceComponent implements OnInit {
 
   // ── Load attendance from Appwrite ─────────────────────────
   async loadAttendance() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL
+    );
 
-      const docs = res.documents as any[];
+    const docs = res.documents as any[];
+    const myRecords = docs.filter(d => d.student_id === this.currentUserId);
 
-      // Filter by current user
-      const myRecords = docs.filter(d => d.student_id === this.currentUserId);
+    this.attendanceStatus  = {};
+    this.attendanceRecords = {};
+    this.allRecords        = [];
 
-      this.attendanceStatus  = {};
-      this.attendanceRecords = {};
-      this.allRecords        = [];
+    myRecords.forEach(record => {
+      // Fix: parse date parts directly to avoid UTC timezone shift
+      const parts = record.date.split('-');
+      const recordYear  = parseInt(parts[0]);
+      const recordMonth = parseInt(parts[1]) - 1; // months are 0-indexed
+      const recordDay   = parseInt(parts[2]);
 
-      myRecords.forEach(record => {
-        const dateObj = new Date(record.date);
-        if (dateObj.getMonth() === this.month &&
-            dateObj.getFullYear() === this.year) {
-          const day = dateObj.getDate();
-          this.attendanceStatus[day]  = record.status;
-          this.attendanceRecords[day] = record;
-        }
+      if (recordMonth === this.month && recordYear === this.year) {
+        this.attendanceStatus[recordDay]  = record.status;
+        this.attendanceRecords[recordDay] = record;
+      }
 
-        // For reports
-        this.allRecords.push({
-          $id:    record.$id,
-          date:   record.date,
-          day:    new Date(record.date).toLocaleString('default', { weekday: 'short' }),
-          timeIn:  record.time_in  || '—',
-          timeOut: record.time_out || '—',
-          status:  record.status
-        });
+      // For reports
+      this.allRecords.push({
+        $id:     record.$id,
+        date:    record.date,
+        day:     new Date(recordYear, recordMonth, recordDay)
+                   .toLocaleString('default', { weekday: 'short' }),
+        timeIn:  record.time_in  || '—',
+        timeOut: record.time_out || '—',
+        status:  record.status
       });
+    });
 
-      this.applyReportFilters();
+    this.applyReportFilters();
 
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
-    }
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
   }
+}
 
   // ── Calendar ──────────────────────────────────────────────
   get monthName() {
