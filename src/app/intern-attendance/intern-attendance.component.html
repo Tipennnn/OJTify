@@ -5,27 +5,20 @@
 
     <div class="dashboard-content">
 
-      <!-- DASHBOARD TITLE -->
       <div class="dashboard-header">
         <h2>Attendance</h2>
         <div class="dashboard-divider"></div>
-
-        <!-- QR Code Button -->
         <button class="qr-btn" (click)="openQRModal()">
           <i class="fa fa-qrcode"></i> My QR Code
         </button>
       </div>
 
-     
       <div class="top-cards">
-
-        <!-- TOTAL HOURS -->
         <div class="stat-card total-card">
           <div class="stat-left">
             <h3>500 / 500</h3>
             <span>Total Hours</span>
           </div>
-      
           <div class="stat-right">
             <span class="percent">100%</span>
             <div class="mini-bar">
@@ -33,40 +26,32 @@
             </div>
           </div>
         </div>
-      
-      
-        <!-- REMAINING -->
+
         <div class="stat-card remaining-card">
           <div class="stat-left">
             <h3>0 hrs</h3>
             <span>Remaining</span>
           </div>
-      
           <div class="stat-right">
             <span class="status complete">Completed</span>
             <small>Est. Mar 21</small>
           </div>
         </div>
-      
       </div>
 
-      <!-- Calendar Container -->
+      <!-- Calendar -->
       <div class="attendance-container">
-        <!-- Calendar Header -->
         <div class="calendar-header">
           <div class="calendar-nav">
             <button (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
             <h3>{{ monthName }} {{ year }}</h3>
             <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
           </div>
-
-          <!-- Attendance Reports Button -->
           <button class="excel-btn" (click)="openReportsModal()">
             <i class="fa fa-file-alt"></i> Attendance Reports
           </button>
         </div>
 
-        <!-- Calendar Days -->
         <div class="calendar-days">
           <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
           <div>Thu</div><div>Fri</div><div>Sat</div>
@@ -76,18 +61,23 @@
           <div class="day"
                *ngFor="let day of days"
                (click)="openAttendance(day)"
-               [class.present-day]="attendanceStatus[day]==='Present'"
-               [class.absent-day]="attendanceStatus[day]==='Absent'"
+               [class.present-day]="attendanceStatus[day] === 'Present'"
+               [class.absent-day]="attendanceStatus[day] === 'Absent'"
                [class.weekend]="isWeekend(day)">
             {{ day }}
           </div>
         </div>
 
-        <!-- Legend -->
         <div class="attendance-legend">
-          <div class="legend-item"><span class="legend-color present-box"></span> Present</div>
-          <div class="legend-item"><span class="legend-color absent-box"></span> Absent</div>
-          <div class="legend-item"><span class="legend-color no-record-box"></span> No Attendance Record</div>
+          <div class="legend-item">
+            <span class="legend-color present-box"></span> Present
+          </div>
+          <div class="legend-item">
+            <span class="legend-color absent-box"></span> Absent
+          </div>
+          <div class="legend-item">
+            <span class="legend-color no-record-box"></span> No Attendance Record
+          </div>
         </div>
       </div>
     </div>
@@ -102,17 +92,28 @@
         <i class="fa fa-calendar-check"></i>
         <h3>Attendance Record</h3>
       </div>
-      <button class="close-btn" (click)="closeAttendance()"><i class="fa fa-times"></i></button>
+      <button class="close-btn" (click)="closeAttendance()">
+        <i class="fa fa-times"></i>
+      </button>
     </div>
     <div class="divider"></div>
     <div class="attendance-info">
-      <div class="info-row"><span class="label">Date</span><span class="value">{{ selectedDate }}</span></div>
-      <div class="info-row"><span class="label">Time In</span><span class="value">{{ timeIn }}</span></div>
-      <div class="info-row"><span class="label">Time Out</span><span class="value">{{ timeOut }}</span></div>
+      <div class="info-row">
+        <span class="label">Date</span>
+        <span class="value">{{ selectedDate }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Time In</span>
+        <span class="value">{{ timeIn }}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Time Out</span>
+        <span class="value">{{ timeOut }}</span>
+      </div>
       <div class="status">
-        <span [class.present]="status==='Present'" 
-              [class.absent]="status==='Absent'" 
-              [class.no-record]="status==='No Attendance Record'">
+        <span [class.present]="status === 'Present'"
+              [class.absent]="status === 'Absent'"
+              [class.no-record]="status === 'No Attendance Record'">
           {{ status }}
         </span>
       </div>
@@ -125,15 +126,16 @@
   <div class="reports-box">
     <div class="reports-header">
       <div class="reports-title">
-        <div class="qr-icon"> <!-- gamit ang parehong class gaya sa QR modal -->
+        <div class="qr-icon">
           <i class="fa-solid fa-file-alt"></i>
         </div>
         <h3>Attendance Reports</h3>
       </div>
-      <button class="close-btn" (click)="closeReportsModal()"><i class="fa fa-times"></i></button>
+      <button class="close-btn" (click)="closeReportsModal()">
+        <i class="fa fa-times"></i>
+      </button>
     </div>
 
-    <!-- Divider Below Header -->
     <div class="modal-divider"></div>
 
     <div class="reports-body">
@@ -156,11 +158,13 @@
           <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
         </select>
 
-        <button class="excel-btn" (click)="downloadExcel()"><i class="fa fa-download"></i> Download</button>
+        <button class="excel-btn" (click)="downloadExcel()">
+          <i class="fa fa-download"></i> Download
+        </button>
       </div>
 
       <div class="table-panel">
-        <table *ngIf="filteredRecordsList.length>0">
+        <table *ngIf="filteredRecordsList.length > 0">
           <thead>
             <tr>
               <th>Date</th>
@@ -176,14 +180,16 @@
               <td>{{ r.day }}</td>
               <td>{{ r.timeIn }}</td>
               <td>{{ r.timeOut }}</td>
-              <td [class.present]="r.status==='Present'" 
-                  [class.absent]="r.status==='Absent'" 
-                  [class.no-record]="r.status==='No Record'">{{ r.status }}</td>
+              <td [class.present]="r.status === 'Present'"
+                  [class.absent]="r.status === 'Absent'"
+                  [class.no-record]="r.status === 'No Record'">
+                {{ r.status }}
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <div *ngIf="filteredRecordsList.length===0" class="no-records-msg">
+        <div *ngIf="filteredRecordsList.length === 0" class="no-records-msg">
           No records found for selected filters.
         </div>
       </div>
@@ -191,10 +197,10 @@
   </div>
 </div>
 
+<!-- QR Code Modal -->
 <div class="qr-modal" *ngIf="showQRModal">
   <div class="qr-box">
 
-    <!-- HEADER -->
     <div class="qr-header">
       <div class="qr-title">
         <div class="qr-icon">
@@ -205,7 +211,6 @@
           <p>Use this QR code to record your attendance</p>
         </div>
       </div>
-
       <button class="close-btn" (click)="closeQRModal()">
         <i class="fa fa-times"></i>
       </button>
@@ -213,18 +218,27 @@
 
     <div class="qr-divider"></div>
 
-    <!-- BODY -->
     <div class="qr-body">
       <div class="qr-wrapper">
-        <img
-          src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=InternAttendance"
-          alt="QR Code"
-        />
+        <!-- Real QR code containing the student's user ID -->
+        <qrcode
+          [qrdata]="qrData"
+          [width]="200"
+          [errorCorrectionLevel]="'M'"
+          *ngIf="qrData">
+        </qrcode>
+        <div *ngIf="!qrData"
+             style="width:200px; height:200px; display:flex;
+                    align-items:center; justify-content:center; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
+        </div>
       </div>
-
       <span class="qr-note">
         Present this QR code for attendance logging.
       </span>
+      <p style="font-size:11px; color:#9ca3af; margin-top:8px;">
+        Student ID: {{ currentUserId }}
+      </p>
     </div>
 
   </div>

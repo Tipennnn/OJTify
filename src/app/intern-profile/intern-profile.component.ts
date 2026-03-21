@@ -36,8 +36,8 @@ export class InternProfileComponent implements OnInit {
   homeAddress   = '';
 
   // Profile photo
-  profilePhotoUrl = '/assets/images/default-profile.png';
-  profilePhotoId  = '';
+    profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
+    profilePhotoId  = '';
 
   // Document file IDs
   resumeFileId       = '';

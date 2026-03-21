@@ -1,11 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.component';
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
+import { AppwriteService } from '../services/appwrite.service';
+import { QRCodeComponent } from 'angularx-qrcode';
+import { ID } from 'appwrite';
 import * as XLSX from 'xlsx';
 
 interface AttendanceRecord {
+  $id?: string;
   date: string;
   day: string;
   timeIn: string;
@@ -16,49 +20,120 @@ interface AttendanceRecord {
 @Component({
   selector: 'app-intern-attendance',
   standalone: true,
-  imports: [CommonModule, FormsModule, InternSidenavComponent, InternTopnavComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    InternSidenavComponent,
+    InternTopnavComponent,
+    QRCodeComponent
+  ],
   templateUrl: './intern-attendance.component.html',
   styleUrls: ['./intern-attendance.component.css']
 })
-export class InternAttendanceComponent {
+export class InternAttendanceComponent implements OnInit {
+
   // Modal Controls
   showAttendanceModal = false;
-  showReportsModal = false;
-  showQRModal = false;
+  showReportsModal    = false;
+  showQRModal         = false;
 
   // Selected Attendance Info
   selectedDate = '';
-  timeIn = '—';
-  timeOut = '—';
-  status = 'No Attendance Record';
+  timeIn       = '—';
+  timeOut      = '—';
+  status       = 'No Attendance Record';
 
   // Calendar Variables
   today = new Date();
   month = this.today.getMonth();
-  year = this.today.getFullYear();
-  days: number[] = [];
-  attendanceStatus: any = {};
-  records: AttendanceRecord[] = [];
+  year  = this.today.getFullYear();
+  days  : number[] = [];
+  attendanceStatus : { [key: number]: string } = {};
+  attendanceRecords: { [key: number]: any }    = {};
 
   // Report Filters
-  reportFilterMonth = '';
-  reportFilterYear = '';
+  reportFilterMonth  = '';
+  reportFilterYear   = '';
   reportFilterStatus = '';
   filteredRecordsList: AttendanceRecord[] = [];
+  allRecords         : AttendanceRecord[] = [];
+
+  // User
+  currentUserId = '';
+  qrData        = '';
 
   // Constants
-  months: string[] = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  years: number[] = [];
-  statuses: string[] = ['Present','Absent','No Record'];
+  months  = ['January','February','March','April','May','June',
+             'July','August','September','October','November','December'];
+  years   : number[] = [];
+  statuses = ['Present','Absent','No Record'];
 
-  ngOnInit() {
+  constructor(private appwrite: AppwriteService) {}
+
+  async ngOnInit() {
+    await this.getCurrentUser();
     this.generateCalendar();
-    this.generateDummyRecords();
+    await this.loadAttendance();
     this.generateYears();
   }
 
-  // ------------------ Calendar & Attendance ------------------
+  // ── Get current user ──────────────────────────────────────
+  async getCurrentUser() {
+    try {
+      const user        = await this.appwrite.account.get();
+      this.currentUserId = user.$id;
+      // QR data contains the student's user ID
+      this.qrData       = `OJTIFY_ATTENDANCE:${user.$id}`;
+    } catch (error: any) {
+      console.error('Failed to get user:', error.message);
+    }
+  }
 
+  // ── Load attendance from Appwrite ─────────────────────────
+  async loadAttendance() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+
+      const docs = res.documents as any[];
+
+      // Filter by current user
+      const myRecords = docs.filter(d => d.student_id === this.currentUserId);
+
+      this.attendanceStatus  = {};
+      this.attendanceRecords = {};
+      this.allRecords        = [];
+
+      myRecords.forEach(record => {
+        const dateObj = new Date(record.date);
+        if (dateObj.getMonth() === this.month &&
+            dateObj.getFullYear() === this.year) {
+          const day = dateObj.getDate();
+          this.attendanceStatus[day]  = record.status;
+          this.attendanceRecords[day] = record;
+        }
+
+        // For reports
+        this.allRecords.push({
+          $id:    record.$id,
+          date:   record.date,
+          day:    new Date(record.date).toLocaleString('default', { weekday: 'short' }),
+          timeIn:  record.time_in  || '—',
+          timeOut: record.time_out || '—',
+          status:  record.status
+        });
+      });
+
+      this.applyReportFilters();
+
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    }
+  }
+
+  // ── Calendar ──────────────────────────────────────────────
   get monthName() {
     return new Date(this.year, this.month).toLocaleString('default', { month: 'long' });
   }
@@ -66,43 +141,42 @@ export class InternAttendanceComponent {
   generateCalendar() {
     const totalDays = new Date(this.year, this.month + 1, 0).getDate();
     this.days = Array.from({ length: totalDays }, (_, i) => i + 1);
-    this.attendanceStatus = {};
-    this.days.forEach(day => {
-      if (!this.isWeekend(day)) {
-        this.attendanceStatus[day] = Math.random() > 0.3 ? 'Present' : 'Absent';
-      }
-    });
   }
 
-  isWeekend(day: number) {
+  isWeekend(day: number): boolean {
     const date = new Date(this.year, this.month, day);
     return date.getDay() === 0 || date.getDay() === 6;
   }
 
-  prevMonth() {
+  async prevMonth() {
     this.month--;
     if (this.month < 0) { this.month = 11; this.year--; }
     this.generateCalendar();
+    await this.loadAttendance();
   }
 
-  nextMonth() {
+  async nextMonth() {
     this.month++;
     if (this.month > 11) { this.month = 0; this.year++; }
     this.generateCalendar();
+    await this.loadAttendance();
   }
 
   openAttendance(day: number) {
     const date = new Date(this.year, this.month, day);
-    this.selectedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    this.selectedDate = date.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
 
-    if (this.isWeekend(day)) {
-      this.status = 'No Attendance Record';
-      this.timeIn = '—';
-      this.timeOut = '—';
+    const record = this.attendanceRecords[day];
+    if (record) {
+      this.status  = record.status;
+      this.timeIn  = record.time_in  || '—';
+      this.timeOut = record.time_out || '—';
     } else {
-      this.status = this.attendanceStatus[day];
-      this.timeIn = this.status === 'Present' ? '8:00 AM' : '—';
-      this.timeOut = this.status === 'Present' ? '5:00 PM' : '—';
+      this.status  = 'No Attendance Record';
+      this.timeIn  = '—';
+      this.timeOut = '—';
     }
 
     this.showAttendanceModal = true;
@@ -110,8 +184,7 @@ export class InternAttendanceComponent {
 
   closeAttendance() { this.showAttendanceModal = false; }
 
-  // ------------------ Reports Modal ------------------
-
+  // ── Reports ───────────────────────────────────────────────
   openReportsModal() {
     this.showReportsModal = true;
     this.applyReportFilters();
@@ -119,34 +192,31 @@ export class InternAttendanceComponent {
 
   closeReportsModal() { this.showReportsModal = false; }
 
-  generateDummyRecords() {
-    const totalDays = new Date(this.year, this.month + 1, 0).getDate();
-    for (let day = 1; day <= totalDays; day++) {
-      const dateObj = new Date(this.year, this.month, day);
-      const dayName = dateObj.toLocaleString('default', { weekday: 'short' });
-      const status = this.isWeekend(day) ? 'No Record' : (Math.random() > 0.3 ? 'Present' : 'Absent');
-      this.records.push({
-        date: dateObj.toLocaleDateString(),
-        day: dayName,
-        timeIn: status === 'Present' ? '8:00 AM' : '—',
-        timeOut: status === 'Present' ? '5:00 PM' : '—',
-        status: status
-      });
-    }
-  }
-
   applyReportFilters() {
-    this.filteredRecordsList = this.records.filter(r => {
-      const monthMatch = this.reportFilterMonth ? new Date(r.date).toLocaleString('default', { month: 'long' }) === this.reportFilterMonth : true;
-      const yearMatch = this.reportFilterYear ? new Date(r.date).getFullYear().toString() === this.reportFilterYear : true;
-      const statusMatch = this.reportFilterStatus ? r.status === this.reportFilterStatus : true;
+    this.filteredRecordsList = this.allRecords.filter(r => {
+      const d           = new Date(r.date);
+      const monthMatch  = this.reportFilterMonth
+        ? d.toLocaleString('default', { month: 'long' }) === this.reportFilterMonth
+        : true;
+      const yearMatch   = this.reportFilterYear
+        ? d.getFullYear().toString() === this.reportFilterYear.toString()
+        : true;
+      const statusMatch = this.reportFilterStatus
+        ? r.status === this.reportFilterStatus
+        : true;
       return monthMatch && yearMatch && statusMatch;
     });
   }
 
   downloadExcel() {
     this.applyReportFilters();
-    const worksheet = XLSX.utils.json_to_sheet(this.filteredRecordsList);
+    const worksheet = XLSX.utils.json_to_sheet(this.filteredRecordsList.map(r => ({
+      Date:    r.date,
+      Day:     r.day,
+      'Time In':  r.timeIn,
+      'Time Out': r.timeOut,
+      Status:  r.status
+    })));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
     XLSX.writeFile(workbook, 'Attendance_Report.xlsx');
@@ -159,8 +229,7 @@ export class InternAttendanceComponent {
     }
   }
 
-  // ------------------ QR Code Modal ------------------
-
-  openQRModal() { this.showQRModal = true; }
+  // ── QR Code Modal ─────────────────────────────────────────
+  openQRModal()  { this.showQRModal = true;  }
   closeQRModal() { this.showQRModal = false; }
 }

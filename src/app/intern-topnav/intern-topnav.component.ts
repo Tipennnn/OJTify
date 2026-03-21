@@ -26,7 +26,7 @@ export class InternTopnavComponent implements OnInit {
   confirmPassword = '';
   passwordLoading = false;
 
-  profilePhotoUrl = '/assets/images/default-profile.png';
+  profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
