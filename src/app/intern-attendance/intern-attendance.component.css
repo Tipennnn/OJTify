@@ -408,6 +408,7 @@
   overflow: hidden;
   box-shadow: 0 3px 8px rgba(0,0,0,0.05);
   min-height: 200px; /* ensures table stays big even if empty */
+  table-layout: fixed; /* para pantay width ng columns */
 }
 
 /* Sticky Headers */
@@ -421,6 +422,11 @@
   color: #111827;
   padding: 14px 12px;
   border-bottom: 1px solid #e5e7eb;
+}
+.table-panel th,
+.table-panel td {
+  text-align: left;
+  padding: 14px 12px; /* siguraduhin same sila */
 }
 
 .table-panel td {

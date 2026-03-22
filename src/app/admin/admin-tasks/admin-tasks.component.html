@@ -54,7 +54,7 @@
 
       <!-- LEFT — FORM -->
       <div class="modal-left">
-        <h2>Create Task</h2>
+        <h2><i class="fas fa-plus"></i> Create Task</h2>
 
         <div class="form-group">
           <label>Task Title</label>
@@ -85,9 +85,10 @@
             </span>
           </div>
 
-          <button type="button" class="upload-btn" (click)="taskFileInput.click()">
-            <i class="fas fa-upload"></i> Upload file
-          </button>
+          <div class="upload-box" (click)="taskFileInput.click()">
+  <i class="fas fa-cloud-upload-alt"></i>
+  <p class="upload-title">Upload your file</p>
+</div>
 
           <input type="file" #taskFileInput accept=".pdf,.doc,.docx,.png,.jpg"
                  (change)="onFileSelected($event)" style="display:none">
