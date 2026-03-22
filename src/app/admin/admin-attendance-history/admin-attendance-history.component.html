@@ -1,0 +1,95 @@
+<!-- Fixed Top Nav -->
+<div class="profile-top-nav">
+  <button class="back-btn">
+    <i class="fa-solid fa-arrow-left"></i>
+  </button>
+  <h2 class="top-title">OJTify</h2>
+</div>
+
+<div class="dashboard-content">
+
+  <!-- Header with Attendance + Date + Search -->
+  <div class="center-wrapper">
+    <div class="dashboard-header">
+      <div class="header-left">
+        <h2>Attendance History</h2>
+
+        <!-- Styled clickable date box -->
+        <label class="clickable-date-box">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>March 22, 2026</span>
+          <input type="date" value="2026-03-22">
+        </label>
+      </div>
+
+      <div class="header-right">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search intern...">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="center-wrapper">
+    <div class="table-container">
+      <table class="applicants-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Student ID</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="profile-name">
+              <img src="https://ui-avatars.com/api/?name=Juan+Dela+Cruz&background=2563eb&color=fff&size=64" class="profile-pic" alt="Profile">
+              <span>Juan Dela Cruz</span>
+            </td>
+            <td>2023-001</td>
+            <td>08:00 AM</td>
+            <td>05:00 PM</td>
+            <td><span class="status-badge badge-approved">Present</span></td>
+          </tr>
+          <tr>
+            <td class="profile-name">
+              <img src="https://ui-avatars.com/api/?name=Maria+Santos&background=2563eb&color=fff&size=64" class="profile-pic" alt="Profile">
+              <span>Maria Santos</span>
+            </td>
+            <td>2023-002</td>
+            <td>08:15 AM</td>
+            <td>05:00 PM</td>
+            <td><span class="status-badge badge-approved">Present</span></td>
+          </tr>
+          <tr>
+            <td class="profile-name">
+              <img src="https://ui-avatars.com/api/?name=Pedro+Reyes&background=2563eb&color=fff&size=64" class="profile-pic" alt="Profile">
+              <span>Pedro Reyes</span>
+            </td>
+            <td>2023-003</td>
+            <td>08:05 AM</td>
+            <td>05:00 PM</td>
+            <td><span class="status-badge badge-approved">Present</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="page-numbers">
+          <span class="page active">1</span>
+          <span class="page">2</span>
+          <span class="page">3</span>
+        </div>
+        <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+
+    </div>
+  </div>
+
+</div>

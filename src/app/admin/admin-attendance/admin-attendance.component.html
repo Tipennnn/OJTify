@@ -10,9 +10,10 @@
       <div class="dashboard-header header-flex">
         <div class="header-left">
           <h2>Attendance</h2>
-          <p style="font-size:13px; color:#6b7280; margin:0;">
-            {{ getToday() }}
-          </p>
+          <div class="clickable-date-box" [routerLink]="['/admin-attendance-history']">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>{{ getToday() }}</span>
+          </div>
         </div>
 
         <div class="header-right">
@@ -80,6 +81,21 @@
 
             </tbody>
           </table>
+          <div class="pagination">
+            <button class="page-btn">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+          
+            <div class="page-numbers">
+              <span class="page active">1</span>
+              <span class="page">2</span>
+              <span class="page">3</span>
+            </div>
+          
+            <button class="page-btn">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
 

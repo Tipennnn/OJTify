@@ -224,3 +224,53 @@ app-admin-topnav {
   font-size: 12px;
   color: #374151;
 }
+/* =========================
+   PAGINATION UI ONLY
+========================= */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Arrow buttons */
+.page-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.page-btn:hover {
+  background: #f3f4f6;
+}
+
+/* Page numbers */
+.page-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.page {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: 0.2s ease;
+}
+
+.page:hover {
+  background: #e5e7eb;
+}
+
+/* Active page */
+.page.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 500;
+}

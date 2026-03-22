@@ -144,15 +144,19 @@ app-admin-topnav {
    TABLE STYLING
 ========================= */
 .table-container {
-  background: #ffffff;
+  background: #fff;
   padding: 15px;
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-}
 
+  min-height: 600px; /* Fixed height for consistent UI */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* pagination stays at bottom */
+}
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
@@ -642,4 +646,51 @@ app-admin-topnav {
 .badge-declined {
   background: #fdeaea;
   color: #dc2626;
+}
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Arrow buttons */
+.page-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.page-btn:hover {
+  background: #f3f4f6;
+}
+
+/* Page numbers */
+.page-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.page {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: 0.2s ease;
+}
+
+.page:hover {
+  background: #e5e7eb;
+}
+
+/* Active page */
+.page.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 500;
 }

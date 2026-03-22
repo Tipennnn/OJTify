@@ -15,6 +15,7 @@ import { AdminTasksComponent } from './admin/admin-tasks/admin-tasks.component';
 import { AdminOjtComponent } from './admin/admin-ojt/admin-ojt.component';
 import { AdminAttendanceComponent } from './admin/admin-attendance/admin-attendance.component';
 import { AdminOjtProfileComponent } from './admin/admin-ojt-profile/admin-ojt-profile.component';
+import { AdminAttendanceHistoryComponent } from './admin/admin-attendance-history/admin-attendance-history.component';
 
 import { authGuard } from './guards/auth.guard';
 
@@ -38,5 +39,6 @@ export const routes: Routes = [
   { path: 'admin-tasks', component: AdminTasksComponent }, // <-- added route
   { path: 'admin-ojt', component: AdminOjtComponent },
   { path: 'admin-attendance', component: AdminAttendanceComponent },
-{ path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent }
+  { path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent },
+  { path: 'admin-attendance-history', component: AdminAttendanceHistoryComponent }, // <-- your new route
 ];
