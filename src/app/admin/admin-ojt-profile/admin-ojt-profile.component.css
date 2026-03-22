@@ -1,0 +1,232 @@
+/* =========================
+   FIXED TOP NAV
+========================= */
+.profile-top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    background: #111827; /* dark color */
+    color: #fff;
+    gap: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Back Button */
+.back-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.back-btn:hover {
+    text-decoration: underline;
+}
+
+/* Title */
+.top-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* =========================
+   PROFILE WRAPPER
+========================= */
+.profile-wrapper {
+    max-width: 900px;
+    margin: 120px auto 20px; /* top margin para sa fixed nav */
+    font-family: 'Poppins', sans-serif;
+    color: #111827;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 25px;
+    background: #fff;
+}
+
+/* Profile Header */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile-circle {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #111827;
+    flex-shrink: 0;
+}
+
+.profile-circle img.profile-pic {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-name-container {
+    flex-grow: 1;
+}
+
+.profile-name {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.edit-btn {
+    padding: 10px 20px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+    background: #1e40af;
+}
+
+/* Info container */
+.info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.section-header {
+    font-size: 16px;
+    font-weight: 700;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 6px;
+}
+
+.info-row {
+    display: grid;
+    gap: 15px;
+}
+
+.three-col { grid-template-columns: repeat(3, 1fr); }
+.two-col   { grid-template-columns: repeat(2, 1fr); }
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.info-value {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+
+/* File Box */
+.file-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.file-icons a {
+    font-size: 14px;
+    color: #6b7280;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+}
+
+.file-icons a:hover {
+    color: #2563eb;
+    transform: scale(1.2);
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 14px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    margin: 4px 0;
+}
+
+.progress-bar .progress {
+    height: 100%;
+    background: #2563eb;
+    border-radius: 10px;
+}
+
+.progress-percent {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+}
+
+/* Footer Buttons */
+.profile-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.footer-buttons button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.save-btn {
+    background: #2563eb;
+    color: #fff;
+}
+
+.save-btn:hover {
+    background: #1e40af;
+}
