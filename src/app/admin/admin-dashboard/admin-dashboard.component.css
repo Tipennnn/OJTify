@@ -192,24 +192,24 @@ body {
   /* CHART CONTAINER */
   .chart-container {
     background: #fff;
-    padding: 30px 25px;
-    border-radius: 18px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-    width: 100%;
-    max-width: 950px;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    width: 100%;          /* full width of parent */
+    max-width: 1200px;    /* increase max width from 950px to 1200px */
+    margin: 0 auto;       /* center horizontally */
   }
   
   .chart-container h3 {
-    text-align: center;
-    margin-bottom: 25px;
+    text-align: left;
+    margin-bottom: 20px;
     font-weight: 600;
-    font-size: 20px;
+    font-size: 18px;
     color: #111827;
   }
-  
   canvas {
-    width: 100% !important;
-    height: 350px !important;
+    width: 100% !important;  /* ensure canvas uses full container width */
+    height: 400px !important; /* slightly taller for premium feel */
     border-radius: 12px;
   }
   

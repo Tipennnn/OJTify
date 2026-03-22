@@ -50,9 +50,10 @@
       <span>Today's Attendance</span>
     </div>
     <div class="stat-right">
-      <span style="font-size:28px;">
-        {{ todayStatus === 'Present' ? '✅' : '❌' }}
-      </span>
+      <span style="font-size:28px;"
+      [ngClass]="todayStatus === 'Present' ? 'present-icon' : 'absent-icon'">
+  {{ todayStatus === 'Present' ? '✔' : '✘' }}
+</span>
     </div>
   </div>
 

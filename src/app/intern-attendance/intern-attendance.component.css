@@ -86,7 +86,23 @@
   .day:hover {
     transform: scale(1.05);
   }
-  
+  /* TODAY ATTENDANCE CARD COLORS */
+.present-card {
+  border-left: 3px solid #27ae60;
+}
+
+.absent-card {
+  border-left: 3px solid #dc2626;
+}
+
+/* ICON COLORS */
+.present-icon {
+  color: #27ae60;
+}
+
+.absent-icon {
+  color: #dc2626;
+} 
   .present-day {
     background: #dcfce7;
     color: #16a34a;
@@ -864,4 +880,32 @@
 
 .remaining-card{
   border-left:3px solid #f59e0b;
+}
+/* TODAY ATTENDANCE CARD STYLES */
+.present-card, .absent-card {
+  border-left: 3px solid; /* color will come from specific class */
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  transition: 0.2s ease;
+}
+
+.present-card { border-left-color: #27ae60; } /* green */
+.absent-card { border-left-color: #dc2626; }  /* red */
+
+.present-card:hover, .absent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
+
+/* Icon inside TODAY ATTENDANCE */
+.present-icon {
+  color: #27ae60;
+}
+.absent-icon {
+  color: #dc2626;
 }

@@ -44,6 +44,17 @@ app-admin-topnav { position: fixed; top: 0; left: 260px; width: calc(100% - 260p
 .task-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
 .task-info h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
 .task-meta { font-size: 13px; color: #6b7280; display: flex; gap: 20px; }
+.task-author-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.author-left {
+  display: flex;
+  gap: 12px;
+}
+
 .status { font-size: 12px; padding: 6px 12px; border-radius: 20px; font-weight: 600; text-transform: capitalize; }
 .completed { background: #e8f7ee; color: #16a34a; }
 .pending { background: #fdeaea; color: #dc2626; }
@@ -124,15 +135,14 @@ app-admin-topnav { position: fixed; top: 0; left: 260px; width: calc(100% - 260p
   margin-top: 10px;
 }
 .modal-right {
-  width: 40%;
-  max-width: 380px;
-  background: #f9fafb;
-  border-left: 1px solid #e5e7eb;
+  flex: 1;
+  padding: 38px;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  overflow: hidden;
+  gap: 20px;
+  overflow-y: auto;
 }
+
 
 /* 🔥 FOOTER FIX */
 .modal-footer {
@@ -180,24 +190,17 @@ textarea { resize: none; }
   background: #e2e8f0;
 }
 
-.file-icon {
-  width: 36px;
-  height: 36px;
 
-  background: #2563eb;
-  color: white;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 10px;
-  font-size: 16px;
-}
 
 .file-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  
+  max-width: 180px;       /* adjust mo depende sa layout */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .file-box span:last-child {
@@ -210,7 +213,7 @@ textarea { resize: none; }
 .file-box span:last-child:hover {
   transform: scale(1.1);
 }
-.file-icon { color: #dc2626; }
+.file-icon { color: #ffffff; }
 .upload-box {
   width: 100%;
   border: 2px dashed #3b82f6;
@@ -255,7 +258,10 @@ textarea { resize: none; }
 .assign-top {
   flex-shrink: 0;
 }
-
+.posted-date {
+  font-size: 11px;
+  color: #6b7280;
+}
 
 /* RADIO OPTIONS */
 .assign-options {
@@ -470,14 +476,14 @@ textarea { resize: none; }
 
 /* ── NEW CARD MODAL MODERN ── */
 .card-modal-modern {
-  background: white;
-  border-radius: 14px;
+  background: #ffffff;
+  border-radius: 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
   position: relative;
   display: flex;
-  width: 1000px;
+  width: 1250px;
   max-width: 95%;
-  height: 82vh;
+  height: 85vh;
   overflow: hidden;
   animation: modalFadeIn 0.3s forwards;
 }
@@ -490,38 +496,37 @@ textarea { resize: none; }
   overflow-y: auto;
 }
 
-.card-modal-right {
-  flex: 1;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  overflow-y: auto;
+
+.task-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
 }
 
-.task-title { font-size: 22px; font-weight: 700; }
 .divider { height: 1px; background: #e5e7eb; }
 
-.task-author { display: flex; align-items: center; gap: 12px; }
+
 .author-avatar {
-  width: 40px; height: 40px;
-  background: #2563eb; color: white;
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   font-weight: 600;
 }
-.author-info { display: flex; flex-direction: column; }
-.author-name { font-size: 14px; font-weight: 600; }
-.author-role { font-size: 12px; color: #6b7280; }
-
-.task-meta-row { display: flex; gap: 20px; flex-wrap: wrap; }
-.meta-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
-.meta-item span { display: block; font-size: 12px; color: #6b7280; }
+.author-info {
+  display: flex;
+  flex-direction: column;
+}
 
 .description-card {
-  background: #f8fafc;
+  background: #fefefe;
   border: 1px solid #e5e7eb;
-  padding: 18px; border-radius: 10px;
+  padding: 20px;
+  border-radius: 12px;
 }
 .description-card p { font-size: 14px; line-height: 1.7; }
 
@@ -543,18 +548,48 @@ textarea { resize: none; }
 .comment-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
 .comment-text { font-size: 13px; color: #374151; line-height: 1.6; }
 .comment-date { font-size: 12px; color: #6b7280; }
-.comment-input { display: flex; gap: 10px; margin-top: 10px; }
+/* Make the comment textarea bigger and full width */
+.comment-input textarea {
+  width: 100%;
+  min-height: 60px;       /* increase height */
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  resize: none;       /* user can adjust height */
+  font-size: 14px;
+}
+
+/* Optional: make the comment box and button align nicely */
+.comment-input {
+  display: flex;
+  gap: 10px;
+}
+
+
 .comment-input input {
   flex: 1; padding: 10px;
   border: 1px solid #d1d5db; border-radius: 8px;
 }
 .send-btn {
-  background: #2563eb; border: none; color: white;
-  width: 40px; height: 40px; border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  width: 44px; height: 44px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
+  border: none;
+  color: white;
 }
-
+/* Make send button bigger for comment box */
+.comment-input button.send-btn {
+  width: 55px;        /* bigger width */
+  height: 65px;       /* bigger height */
+  border-radius: 12px; /* slightly more rounded */
+  font-size: 18px;    /* bigger icon size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;     /* prevent shrinking */
+  cursor: pointer;
+}
 .submit-card {
   background: white; padding: 25px;
   border-radius: 12px;
@@ -573,9 +608,53 @@ textarea { resize: none; }
   background: #f9fafb; border: 1px solid #e5e7eb;
   padding: 12px; border-radius: 8px;
 }
-.file-left { display: flex; align-items: center; gap: 10px; }
+.file-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0; /* IMPORTANT para gumana ellipsis sa flex */
+}
+.file-info {
+  min-width: 0; /* IMPORTANT */
+}
 .file-icon { color: #ffffff; font-size: 18px; }
-.file-name { font-size: 13px; font-weight: 500; display: block; }
+.file-name {
+  font-size: 13px;
+  font-weight: 500;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .file-size { font-size: 11px; color: #6b7280; display: block; }
 
 @keyframes modalFadeIn { to { transform: translateY(0); opacity: 1; } }
+.due-right {
+  font-size: 13px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.right-divider {
+  height: 1px;
+  width: 100%;
+  background: #e5e7eb;
+}.comment-label {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}.empty-comments {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 16px 0;
+}.admin-badge {
+  font-size: 11px;
+  background: #fdeaea;
+  color: #dc2626;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}

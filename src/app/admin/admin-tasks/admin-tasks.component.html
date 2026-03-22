@@ -178,7 +178,7 @@
         <!-- Has existing attachment -->
         <div *ngIf="selectedTask.attachment_file_id" class="file-card">
           <div class="file-left">
-            <i class="fa-solid fa-file-pdf file-icon" style="color:#dc2626;"></i>
+            <i class="fa-solid fa-file-pdf file-icon" style="color:#f7f7f7;"></i>
             <div class="file-info">
               <span class="file-name">
                 {{ selectedTask.attachment_file_name || 'Attachment' }}
@@ -187,14 +187,14 @@
             </div>
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <a [href]="getFileUrl(selectedTask.attachment_file_id, 'view')"
-               target="_blank" style="color:#2563eb; text-decoration:none;">
-              <i class="fas fa-eye"></i>
-            </a>
-            <a [href]="getFileUrl(selectedTask.attachment_file_id, 'download')"
+            <!--<a [href]="getFileUrl(selectedTask.attachment_file_id, 'view')"
+   target="_blank" style="color:#8b8b8b; text-decoration:none;">
+  <i class="fas fa-search"></i>
+</a>-->
+           <!---<a [href]="getFileUrl(selectedTask.attachment_file_id, 'download')"
                target="_blank" style="color:#16a34a; text-decoration:none;">
               <i class="fas fa-download"></i>
-            </a>
+            </a>-->
             <span (click)="removeAttachment()"
                   style="color:#ef4444; cursor:pointer;">
               <i class="fas fa-trash"></i>
@@ -260,116 +260,344 @@
             </div>
           </div>
           <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/' + BUCKET_ID + '/files/' + sub.file_id + '/view?project=' + PROJECT_ID"
-             target="_blank" style="color:#2563eb; text-decoration:none;">
-            <i class="fas fa-eye"></i>
+             target="_blank" style="color:#8b8b8b; text-decoration:none;">
+             <i class="fas fa-search"></i>
           </a>
         </div>
 
       </div>
     </div>
 
-    <!-- RIGHT PANEL -->
-    <div class="card-modal-right">
+    <div class="dashboard-wrapper">
 
-      <h2 class="task-title">{{ selectedTask.title }}</h2>
-      <div class="divider"></div>
+  <app-admin-sidenav></app-admin-sidenav>
 
-      <div class="task-author">
-        <div class="author-avatar">{{ selectedTask.title?.charAt(0) }}</div>
-        <div class="author-info">
-          <span class="author-name">OJTify Admin</span>
-          <span class="author-role">Admin</span>
+  <div class="main-section">
+    <app-admin-topnav></app-admin-topnav>
+
+    <div class="dashboard-content">
+
+      <div class="dashboard-header">
+        <div class="header-left"><h2>Tasks</h2></div>
+        <div class="header-right">
+          <button class="create-btn" (click)="openModal()">
+            <i class="fas fa-plus"></i> Create Task
+          </button>
         </div>
       </div>
 
-      <div class="task-meta-row">
-        <div class="meta-item">
-          <i class="fa-solid fa-calendar"></i>
-          <div>
-            <strong>Posted</strong>
-            <span>{{ selectedTask.posted }}</span>
+      <div class="dashboard-divider"></div>
+
+      <!-- TASK LIST -->
+      <div class="tasks-list">
+
+        <div class="task-card" *ngFor="let task of tasks" (click)="openCardModal(task)">
+          <div class="task-info">
+            <h3>{{ task.title }}</h3>
+            <div class="task-meta">
+              <span>Posted: {{ task.posted }}</span>
+              <span>Due: {{ task.due }}</span>
+            </div>
           </div>
+         <!--<span class="status" [ngClass]="task.status">{{ task.status | titlecase }}</span>
+        </div>-->
+
+        <div *ngIf="tasks.length === 0"
+             style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fas fa-list-check" style="font-size:40px; margin-bottom:12px;"></i>
+          <p>No tasks yet. Click "Create Task" to get started.</p>
         </div>
-        <div class="meta-item">
-          <i class="fa-solid fa-clock"></i>
-          <div>
-            <strong>Due</strong>
-            <span>{{ selectedTask.due }}</span>
-          </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  CREATE TASK MODAL                   -->
+<!-- ══════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="task-modal" (click)="$event.stopPropagation()">
+    <button class="modal-close" (click)="closeModal()">×</button>
+
+    <div class="modal-content">
+
+      <!-- LEFT — FORM -->
+      <div class="modal-left">
+        <h2><i class="fas fa-plus"></i> Create Task</h2>
+
+        <div class="form-group">
+          <label>Task Title</label>
+          <input type="text" [(ngModel)]="selectedTask.title"
+                 placeholder="Enter task title">
         </div>
-       <!--- <div class="meta-item">
-          <i class="fa-solid fa-circle-check"></i>
-          <div>
-            <strong>Status</strong>
-            <span class="status" [ngClass]="selectedTask.status">
-              {{ selectedTask.status | titlecase }}
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea rows="4" [(ngModel)]="selectedTask.description"
+                    placeholder="Write task details here..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" [(ngModel)]="selectedTask.due">
+        </div>
+
+        <div class="form-group">
+          <label>Attachment <span style="color:#9ca3af;">(optional)</span></label>
+
+          <div class="file-box" *ngIf="attachmentFileName">
+            <span class="file-icon"><i class="fas fa-file-pdf"></i></span>
+            <span class="file-name">{{ attachmentFileName }}</span>
+            <span style="margin-left:auto; cursor:pointer; color:#ef4444;"
+                  (click)="selectedFile = null; attachmentFileName = ''">
+              <i class="fas fa-times"></i>
             </span>
           </div>
-        </div>-->
+
+          <div class="upload-box" (click)="taskFileInput.click()">
+  <i class="fas fa-cloud-upload-alt"></i>
+  <p class="upload-title">Upload your file</p>
+</div>
+
+          <input type="file" #taskFileInput accept=".pdf,.doc,.docx,.png,.jpg"
+                 (change)="onFileSelected($event)" style="display:none">
+        </div>
       </div>
 
-      <div class="divider"></div>
+      <!-- RIGHT — ASSIGN INTERNS -->
+      <div class="modal-right">
+        <h3>Assign Interns</h3>
 
+        <div class="assign-options">
+          <label>
+            <input type="radio" name="assign" value="all" [(ngModel)]="assignMode">
+            Assign to All Interns
+          </label>
+          <label>
+            <input type="radio" name="assign" value="specific" [(ngModel)]="assignMode">
+            Assign to specific interns
+          </label>
+        </div>
+
+        <ng-container *ngIf="assignMode === 'specific'">
+          <div class="search-box">
+            <input type="text" placeholder="Search intern name…"
+                   [(ngModel)]="internSearchQuery" (input)="onInternSearch()">
+            <i class="fas fa-search"></i>
+          </div>
+
+          <div class="intern-list">
+            <div class="intern-item"
+                 *ngFor="let intern of filteredInterns"
+                 [class.selected]="isSelected(intern)"
+                 (click)="toggleIntern(intern)"
+                 style="cursor:pointer;">
+              <div class="intern-avatar">
+                {{ intern.first_name[0] }}{{ intern.last_name[0] }}
+              </div>
+              <span>{{ intern.first_name }} {{ intern.last_name }}</span>
+              <i class="fas fa-check" *ngIf="isSelected(intern)"
+                 style="margin-left:auto; color:#3b82f6;"></i>
+            </div>
+
+            <div *ngIf="filteredInterns.length === 0"
+                 style="text-align:center; color:#9ca3af; padding:16px;">
+              No interns found.
+            </div>
+          </div>
+
+          <p style="font-size:13px; color:#6b7280; margin-top:8px;">
+            {{ selectedInterns.length }} intern(s) selected
+          </p>
+        </ng-container>
+
+        <p *ngIf="assignMode === 'all'"
+           style="font-size:13px; color:#3b82f6; margin-top:12px;">
+          This task will be assigned to all {{ allInterns.length }} interns.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="closeModal()">Cancel</button>
+      <button class="create-btn" (click)="onCreateTask()" [disabled]="loading">
+        <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
+        {{ loading ? 'Creating…' : 'Create Task' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  TASK CARD MODAL                     -->
+<!-- ══════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="isCardModalOpen" (click)="closeCardModal()">
+  <div class="card-modal-modern" (click)="$event.stopPropagation()">
+
+    <div class="modal-close" (click)="closeCardModal()">×</div>
+
+    <!-- LEFT PANEL -->
+    <div class="card-modal-left">
+      <div class="submit-card">
+
+        <h3>Attachment</h3>
+        <div class="divider"></div>
+
+        <!-- Has existing attachment -->
+        <div *ngIf="selectedTask.attachment_file_id" class="file-card">
+          <div class="file-left">
+            <i class="fa-solid fa-file-pdf file-icon" style="color:#dc2626;"></i>
+            <div class="file-info">
+              <span class="file-name">
+                {{ selectedTask.attachment_file_name || 'Attachment' }}
+              </span>
+              <span class="file-size">Task attachment</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <!--<a [href]="getFileUrl(selectedTask.attachment_file_id, 'view')"
+   target="_blank" style="color:#8b8b8b; text-decoration:none;">
+  <i class="fas fa-search"></i>
+</a>-->
+           <!---<a [href]="getFileUrl(selectedTask.attachment_file_id, 'download')"
+               target="_blank" style="color:#16a34a; text-decoration:none;">
+              <i class="fas fa-download"></i>
+            </a>-->
+            <span (click)="removeAttachment()"
+                  style="color:#ef4444; cursor:pointer;">
+              <i class="fas fa-trash"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- No attachment yet -->
+        <p *ngIf="!selectedTask.attachment_file_id"
+           style="font-size:13px; color:#9ca3af; text-align:center; padding:12px 0;">
+          No attachment yet.
+        </p>
+
+        <!-- New file selected preview -->
+        <div *ngIf="editAttachmentFileName" class="file-card">
+          <div class="file-left">
+            <i class="fa-solid fa-file file-icon"></i>
+            <div class="file-info">
+              <span class="file-name">{{ editAttachmentFileName }}</span>
+              <span class="file-size">Ready to upload</span>
+            </div>
+          </div>
+          <span style="cursor:pointer; color:#ef4444;"
+                (click)="editAttachmentFile = null; editAttachmentFileName = ''">
+            ×
+          </span>
+        </div>
+
+        <!-- Upload button -->
+        <button type="button" class="submit-btn" (click)="editFileInput.click()">
+          <i class="fas fa-upload"></i>
+          {{ selectedTask.attachment_file_id ? 'Replace file' : 'Upload file' }}
+        </button>
+
+        <button type="button" class="submit-btn"
+                *ngIf="editAttachmentFile"
+                (click)="uploadEditAttachment()"
+                [disabled]="editAttachmentLoading"
+                style="background:#16a34a;">
+          <i class="fa fa-spinner fa-spin" *ngIf="editAttachmentLoading"></i>
+          {{ editAttachmentLoading ? 'Uploading...' : 'Save attachment' }}
+        </button>
+
+        <input type="file" #editFileInput accept=".pdf,.doc,.docx,.png,.jpg"
+               (change)="onEditFileSelected($event)" style="display:none">
+
+        <!-- SUBMISSIONS SECTION -->
+        <div class="divider"></div>
+        <h4 style="font-size:14px; font-weight:600;">Submissions</h4>
+
+        <div *ngIf="taskSubmissions.length === 0"
+             style="font-size:13px; color:#9ca3af; text-align:center; padding:12px 0;">
+          No submissions yet.
+        </div>
+
+        <div class="file-card" *ngFor="let sub of taskSubmissions"
+             style="margin-bottom:8px;">
+          <div class="file-left">
+            <i class="fa-solid fa-file file-icon"></i>
+            <div class="file-info">
+              <span class="file-name">{{ sub.file_name }}</span>
+              <span class="file-size">{{ sub.student_name }} • {{ sub.submitted_at }}</span>
+            </div>
+          </div>
+          <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/' + BUCKET_ID + '/files/' + sub.file_id + '/view?project=' + PROJECT_ID"
+             target="_blank" style="color:#8b8b8b; text-decoration:none;">
+             <i class="fas fa-search"></i>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="modal-right">
+
+      <!-- TASK TITLE -->
+      <h2 class="task-title">{{ selectedTask.title }}</h2>
+ 
+    
+      <!-- AUTHOR + META -->
+      <div class="task-author-meta">
+    
+        <div class="author-left">
+          <div class="author-avatar">
+            {{ selectedTask.title?.charAt(0) }}
+          </div>
+          <div class="author-info">
+           <!---<span class="author-name">OJTify Admin</span>-->
+            <span class="author-role">Admin</span>
+            <span class="posted-date">{{ selectedTask.posted }}</span>
+          </div>
+        </div>
+    
+        <div class="due-right">
+          <i class="fa-solid fa-clock"></i>
+          <span>Due: {{ selectedTask.due }}</span>
+        </div>
+    
+      </div>
+    
+      <div class="right-divider"></div>
+
+      <!-- DESCRIPTION -->
       <div class="description-card">
         <p>{{ selectedTask.description }}</p>
       </div>
-
+    
       <!-- ASSIGNED INTERNS -->
       <div *ngIf="selectedTask.assignedInterns?.length">
-        <div class="divider"></div>
+        <div class="right-divider"></div>
+    
         <strong style="font-size:14px;">👥 Assigned Interns</strong>
+    
         <div class="intern-chips" style="margin-top:10px;">
           <div class="chip" *ngFor="let intern of selectedTask.assignedInterns">
             {{ intern.name }}
           </div>
         </div>
       </div>
-
-      <div class="divider"></div>
-
+    
       <!-- COMMENTS -->
       <div class="comments-section">
-        <div class="comment-title">Comments</div>
-
-        <div *ngIf="taskComments.length === 0"
-             style="text-align:center; color:#9ca3af; font-size:13px; padding:16px 0;">
-          No comments yet.
-        </div>
-
-        <div class="comment" *ngFor="let comment of taskComments">
-          <div class="avatar"
-               [style.background]="comment.role === 'admin' ? '#ef4444' : '#2563eb'">
-            {{ comment.user_name[0] }}
-          </div>
-          <div class="comment-body" style="flex:1;">
-            <div class="comment-header">
-              <strong>
-                {{ comment.user_name }}
-                <span *ngIf="comment.role === 'admin'"
-                      style="font-size:11px; background:#fdeaea; color:#dc2626;
-                             padding:2px 6px; border-radius:10px; margin-left:4px;">
-                  Admin
-                </span>
-                <span *ngIf="comment.role === 'intern'"
-                      style="font-size:11px; background:#eff6ff; color:#2563eb;
-                             padding:2px 6px; border-radius:10px; margin-left:4px;">
-                  Intern
-                </span>
-              </strong>
-              <span class="comment-date">{{ comment.created_at }}</span>
-            </div>
-            <p class="comment-text">{{ comment.message }}</p>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- Comment input -->
-        <div class="comment-input">
-          <input type="text"
-                 placeholder="Add a comment..."
-                 [(ngModel)]="newAdminComment"
-                 (keyup.enter)="sendAdminComment()" />
+    
+        <div class="right-divider"></div>
+    
+        <label class="comment-label">Comment</label>
+    
+        <!-- INPUT -->
+        <div class="comment-input modern">
+          <textarea placeholder="Write a comment..."
+                    [(ngModel)]="newAdminComment"
+                    (keyup.enter)="sendAdminComment()"></textarea>
+    
           <button class="send-btn"
                   (click)="sendAdminComment()"
                   [disabled]="adminCommentLoading">
@@ -377,9 +605,44 @@
             <i class="fa-solid fa-paper-plane" *ngIf="!adminCommentLoading"></i>
           </button>
         </div>
-
+    
+        <div class="right-divider"></div>
+    
+        <!-- COMMENTS LIST -->
+        <div *ngIf="taskComments.length === 0" class="empty-comments">
+          No comments yet.
+        </div>
+    
+        <div class="comment" *ngFor="let comment of taskComments">
+    
+          <div class="avatar"
+               [style.background]="comment.role === 'admin' ? '#ef4444' : '#2563eb'">
+            {{ comment.user_name[0] }}
+          </div>
+    
+          <div class="comment-body">
+    
+            <div class="comment-header">
+              <strong>
+                {{ comment.user_name }}
+    
+                <span *ngIf="comment.role === 'admin'" class="admin-badge">
+                  Admin
+                </span>
+    
+              </strong>
+    
+              <span class="comment-date">{{ comment.created_at }}</span>
+            </div>
+    
+            <p class="comment-text">{{ comment.message }}</p>
+    
+          </div>
+          
+    
+        </div>
+    
       </div>
+    
     </div>
-
-  </div>
 </div>
