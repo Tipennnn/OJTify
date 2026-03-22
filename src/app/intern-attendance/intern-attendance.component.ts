@@ -92,18 +92,18 @@ export class InternAttendanceComponent implements OnInit {
 
   // ── Load student hours from students table ────────────────
   async loadStudentHours() {
-    try {
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
-      );
-      this.requiredHours  = (doc as any).required_hours  || 500;
-      this.completedHours = (doc as any).completed_hours || 0;
-    } catch (error: any) {
-      console.error('Failed to load hours:', error.message);
-    }
+  try {
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
+    this.requiredHours  = (doc as any).required_hours  || 500;
+    this.completedHours = (doc as any).completed_hours || 0;
+  } catch (error: any) {
+    console.error('Failed to load hours:', error.message);
   }
+}
 
   // ── Load today's attendance status ────────────────────────
   async loadTodayStatus() {

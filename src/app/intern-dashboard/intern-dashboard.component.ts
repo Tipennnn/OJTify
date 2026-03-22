@@ -15,6 +15,13 @@ interface Task {
   status: 'completed' | 'pending';
 }
 
+interface AttendanceRecord {
+  date: string;
+  time_in: string;
+  time_out: string;
+  status: string;
+}
+
 @Component({
   selector: 'app-intern-dashboard',
   standalone: true,
@@ -30,9 +37,17 @@ export class InternDashboardComponent implements OnInit {
   profileIncomplete = false;
 
   // ── Hours & attendance ────────────────────────────────────
-  requiredHours  = 500;
-  completedHours = 0;
-  todayStatus    = 'Absent';
+  requiredHours    = 500;
+  completedHours   = 0;
+  todayStatus      = 'Absent';
+
+  // ── Recent attendance ─────────────────────────────────────
+  recentAttendance : AttendanceRecord[] = [];
+
+  // ── Application info ──────────────────────────────────────
+  appliedOn    = '—';
+  acceptedOn   = '—';
+  appStatus    = '—';
 
   constructor(
     private appwrite: AppwriteService,
@@ -44,6 +59,8 @@ export class InternDashboardComponent implements OnInit {
 
     this.loadRecentTasks();
     this.loadStudentData();
+    this.loadRecentAttendance();
+    this.loadApplicationInfo();
     await this.checkAndShowAlerts();
   }
 
@@ -57,7 +74,6 @@ export class InternDashboardComponent implements OnInit {
   // ── Load student hours + today attendance ─────────────────
   async loadStudentData() {
     try {
-      // Hours from students table
       const doc = await this.appwrite.databases.getDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL,
@@ -66,7 +82,6 @@ export class InternDashboardComponent implements OnInit {
       this.requiredHours  = (doc as any).required_hours  || 500;
       this.completedHours = (doc as any).completed_hours || 0;
 
-      // Today's attendance
       const today  = new Date().toISOString().split('T')[0];
       const res    = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
@@ -79,6 +94,81 @@ export class InternDashboardComponent implements OnInit {
 
     } catch (error: any) {
       console.error('Failed to load student data:', error.message);
+    }
+  }
+
+  // ── Load recent attendance (last 5) ──────────────────────
+  async loadRecentAttendance() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+
+      const myRecords = (res.documents as any[])
+        .filter(d => d.student_id === this.currentUserId)
+        .sort((a, b) => {
+          const partsA = a.date.split('-');
+          const partsB = b.date.split('-');
+          return new Date(parseInt(partsB[0]), parseInt(partsB[1]) - 1, parseInt(partsB[2])).getTime() -
+                 new Date(parseInt(partsA[0]), parseInt(partsA[1]) - 1, parseInt(partsA[2])).getTime();
+        })
+        .slice(0, 5);
+
+      this.recentAttendance = myRecords.map(r => ({
+        date:     this.formatDate(r.date),
+        time_in:  r.time_in  || '—',
+        time_out: r.time_out || '—',
+        status:   r.status
+      }));
+
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    }
+  }
+
+  // ── Load application info ─────────────────────────────────
+  async loadApplicationInfo() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL
+      );
+
+      const applicant = (res.documents as any[])
+        .find(a => a.auth_user_id === this.currentUserId);
+
+      if (applicant) {
+        this.appliedOn  = this.formatDate(applicant.$createdAt.split('T')[0]);
+        this.appStatus  = applicant.status === 'approved' ? 'Accepted' : applicant.status;
+      }
+
+      // Get accepted date from students table creation date
+      try {
+        const studentDoc = await this.appwrite.databases.getDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          this.currentUserId
+        );
+        this.acceptedOn = this.formatDate((studentDoc as any).$createdAt.split('T')[0]);
+      } catch { }
+
+    } catch (error: any) {
+      console.error('Failed to load application info:', error.message);
+    }
+  }
+
+  // ── Format date helper ────────────────────────────────────
+  formatDate(dateStr: string): string {
+    if (!dateStr || dateStr === '—') return '—';
+    try {
+      const parts = dateStr.split('-');
+      const d     = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+    } catch {
+      return dateStr;
     }
   }
 

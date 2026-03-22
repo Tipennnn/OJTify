@@ -1,67 +1,56 @@
 <div class="dashboard-wrapper">
 
-  <!-- SIDENAV -->
   <app-intern-sidenav></app-intern-sidenav>
 
-  <!-- RIGHT SIDE -->
   <div class="dashboard-right">
-
-    <!-- TOP NAV -->
     <app-intern-topnav></app-intern-topnav>
 
-    <!-- CONTENT -->
     <div class="dashboard-content">
 
-      <!-- DASHBOARD TITLE -->
       <div class="dashboard-header">
         <h2>Dashboard</h2>
         <div class="dashboard-divider"></div>
       </div>
-<!-- PROFILE INCOMPLETE ALERT -->
 
-  
+      <!-- TOP CARDS -->
+      <div class="top-cards">
 
- 
+        <!-- TOTAL HOURS -->
+        <div class="card progress-card">
+          <div class="progress-circle">
+            <div class="circle">
+              <span>{{ hoursProgress }}%</span>
+              <small>{{ hoursProgress >= 100 ? 'Completed' : 'In Progress' }}</small>
+            </div>
+          </div>
+          <div class="progress-info">
+            <h4>Total Hours</h4>
+            <p>{{ completedHours }} of {{ requiredHours }} hours</p>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width]="hoursProgress + '%'"></div>
+            </div>
+            <small style="color:#6b7280; font-size:12px;">
+              {{ remainingHours }} hrs remaining
+            </small>
+          </div>
+        </div>
 
-     <!-- TOP CARDS -->
-<div class="top-cards">
+        <!-- TODAY ATTENDANCE -->
+        <div class="card attendance-card">
+          <div class="attendance-icon"
+               [style.background]="todayStatus === 'Present' ? '#dcfce7' : '#fee2e2'"
+               [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
+            {{ todayStatus === 'Present' ? '✔' : '✘' }}
+          </div>
+          <div>
+            <h4 [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
+              {{ todayStatus }}
+            </h4>
+            <p>Today's Attendance</p>
+          </div>
+        </div>
 
-  <!-- TOTAL HOURS -->
-  <div class="card progress-card">
-    <div class="progress-circle">
-      <div class="circle">
-        <span>{{ hoursProgress }}%</span>
-        <small>{{ hoursProgress >= 100 ? 'Completed' : 'In Progress' }}</small>
       </div>
-    </div>
-    <div class="progress-info">
-      <h4>Total Hours</h4>
-      <p>{{ completedHours }} of {{ requiredHours }} hours</p>
-      <div class="progress-bar">
-        <div class="progress-fill" [style.width]="hoursProgress + '%'"></div>
-      </div>
-      <small style="color:#6b7280; font-size:12px;">
-        {{ remainingHours }} hrs remaining
-      </small>
-    </div>
-  </div>
-
-  <!-- TODAY ATTENDANCE -->
-  <div class="card attendance-card">
-    <div class="attendance-icon"
-         [style.background]="todayStatus === 'Present' ? '#dcfce7' : '#fee2e2'"
-         [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
-      {{ todayStatus === 'Present' ? '✔' : '✘' }}
-    </div>
-    <div>
-      <h4 [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
-        {{ todayStatus }}
-      </h4>
-      <p>Today's Attendance</p>
-    </div>
-  </div>
-
-</div>
 
       <!-- APPLICATION INFORMATION -->
       <div class="table-card">
@@ -78,9 +67,11 @@
           </thead>
           <tbody>
             <tr>
-              <td>July 24, 2022</td>
-              <td>August 08, 2022</td>
-              <td><span class="status completed">Accepted</span></td>
+              <td>{{ appliedOn }}</td>
+              <td>{{ acceptedOn }}</td>
+              <td>
+                <span class="status completed">{{ appStatus }}</span>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -92,6 +83,7 @@
           <h3>Recent Attendance</h3>
           <a routerLink="/intern-attendance">View all →</a>
         </div>
+
         <table>
           <thead>
             <tr>
@@ -102,17 +94,22 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>March 2, 2026</td>
-              <td>8:00 AM</td>
-              <td>4:00 PM</td>
-              <td><span class="status present">Present</span></td>
+            <tr *ngFor="let record of recentAttendance">
+              <td>{{ record.date }}</td>
+              <td>{{ record.time_in }}</td>
+              <td>{{ record.time_out }}</td>
+              <td>
+                <span class="status"
+                      [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
+                  {{ record.status }}
+                </span>
+              </td>
             </tr>
-            <tr>
-              <td>March 3, 2026</td>
-              <td>8:00 AM</td>
-              <td>4:00 PM</td>
-              <td><span class="status present">Present</span></td>
+            <tr *ngIf="recentAttendance.length === 0">
+              <td colspan="4"
+                  style="text-align:center; color:#9ca3af; padding:20px;">
+                No attendance records yet.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -125,7 +122,6 @@
           <a routerLink="/intern-tasks">View all →</a>
         </div>
 
-        <!-- Loading -->
         <div *ngIf="tasksLoading"
              style="text-align:center; padding:20px; color:#9ca3af;">
           <i class="fa fa-spinner fa-spin"></i> Loading tasks...
@@ -142,8 +138,6 @@
             </tr>
           </thead>
           <tbody>
-
-            <!-- Real tasks -->
             <tr *ngFor="let task of recentTasks">
               <td>{{ task.title }}</td>
               <td>{{ task.description || '—' }}</td>
@@ -155,15 +149,12 @@
                 </span>
               </td>
             </tr>
-
-            <!-- Empty state -->
             <tr *ngIf="recentTasks.length === 0">
               <td colspan="5"
                   style="text-align:center; color:#9ca3af; padding:20px;">
                 No tasks assigned yet.
               </td>
             </tr>
-
           </tbody>
         </table>
       </div>

@@ -290,35 +290,66 @@ stopCamera() {
         .find(a => a.student_id === studentId && a.date === today);
 
       if (existing) {
-        if (!existing.time_out || existing.time_out === '') {
-          // Record time out
-          await this.appwrite.databases.updateDocument(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.ATTENDANCE_COL,
-            existing.$id,
-            { time_out: timeStr }
-          );
+       if (!existing.time_out || existing.time_out === '') {
+  // Record time out
+  await this.appwrite.databases.updateDocument(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.ATTENDANCE_COL,
+    existing.$id,
+    { time_out: timeStr }
+  );
 
-          this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
-          this.scanStatus = 'timeout';
+  // ── Calculate hours worked ────────────────────────
+  const timeInDate  = new Date(`${today} ${existing.time_in}`);
+  const timeOutDate = new Date(`${today} ${timeStr}`);
+  const diffMs      = timeOutDate.getTime() - timeInDate.getTime();
+  const hoursWorked = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10; // 1 decimal
 
-          // Update local log
-          const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
-          if (logIndex !== -1) {
-            this.todayLogs[logIndex].time_out = timeStr;
-            this.filteredLogs = [...this.todayLogs];
-          }
+  // ── Update completed hours in students table ──────
+  if (hoursWorked > 0) {
+    const studentDoc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      studentId
+    );
+    const currentCompleted = (studentDoc as any).completed_hours || 0;
+    const requiredHours    = (studentDoc as any).required_hours  || 500;
+    const newCompleted     = Math.min(
+      currentCompleted + hoursWorked,
+      requiredHours
+    );
 
-          Swal.fire({
-            icon: 'success',
-            title: '🕐 Time Out Recorded!',
-            html: `<b>${studentName}</b><br>${timeStr}`,
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 4000,
-            timerProgressBar: true
-          });
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      studentId,
+      { completed_hours: newCompleted }
+    );
+  }
+
+  this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked}hrs)`;
+  this.scanStatus = 'timeout';
+
+  // Update local log
+  const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
+  if (logIndex !== -1) {
+    this.todayLogs[logIndex].time_out = timeStr;
+    this.filteredLogs = [...this.todayLogs];
+  }
+
+  Swal.fire({
+    icon: 'success',
+    title: '🕐 Time Out Recorded!',
+    html: `<b>${studentName}</b><br>${timeStr}<br>
+           <span style="font-size:13px; color:#16a34a;">
+             +${hoursWorked} hrs added
+           </span>`,
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 4000,
+    timerProgressBar: true
+  });
 
         } else {
           this.scanResult = `${studentName} already completed attendance today.`;
