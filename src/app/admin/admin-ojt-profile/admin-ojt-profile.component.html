@@ -1,164 +1,330 @@
-<!-- Fixed Top Nav -->
-<div class="profile-top-nav">
-    <button class="back-btn" onclick="history.back()">
-        <i class="fa-solid fa-arrow-left"></i> 
-    </button>
-    <h2 class="top-title">OJTify</h2>
+<!-- Loading -->
+<div *ngIf="loading" style="text-align:center; padding:80px; color:#9ca3af; font-family:'Poppins',sans-serif;">
+  <i class="fa fa-spinner fa-spin" style="font-size:32px;"></i>
+  <p style="margin-top:14px;">Loading profile...</p>
 </div>
 
-<!-- Profile Wrapper -->
-<div class="profile-wrapper">
+<ng-container *ngIf="!loading && student">
+
+  <!-- Fixed Top Nav -->
+  <div class="profile-top-nav">
+    <button class="back-btn" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <h2 class="top-title">OJTify</h2>
+  </div>
+
+  <!-- Profile Wrapper -->
+  <div class="profile-wrapper">
 
     <!-- Profile Header -->
     <div class="profile-header">
-        <div class="profile-circle">
-            <img src="assets/images/profile.png" alt="Profile Picture" class="profile-pic">
-        </div>
-        <div class="profile-name-container">
-            <h2 class="profile-name">Juan Dela Cruz</h2>
-        </div>
-        <button class="edit-btn">Edit Profile</button>
+      <div class="profile-circle">
+        <img [src]="getPhotoUrl()" alt="Profile Picture" class="profile-pic">
+      </div>
+      <div class="profile-name-container">
+        <h2 class="profile-name">{{ getFullName() }}</h2>
+        <p style="margin:4px 0 0; font-size:13px; color:#6b7280;">{{ student.email }}</p>
+      </div>
+      <button class="edit-btn" (click)="toggleEdit()">
+        {{ editMode ? 'Cancel' : 'Edit Profile' }}
+      </button>
     </div>
 
     <!-- Main Info Container -->
     <div class="info-container">
 
-        <!-- Personal Information -->
-        <div class="info-section">
-            <div class="section-header">Personal Information</div>
+      <!-- PERSONAL INFORMATION -->
+      <div class="info-section">
+        <div class="section-header">Personal Information</div>
 
-            <div class="info-row three-col">
-                <div class="info-item">
-                    <span class="info-label">First Name</span>
-                    <span class="info-value">Juan</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Middle Name</span>
-                    <span class="info-value">Santos</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Last Name</span>
-                    <span class="info-value">Dela Cruz</span>
-                </div>
-            </div>
-
-            <div class="info-row two-col">
-                <div class="info-item">
-                    <span class="info-label">Contact Number</span>
-                    <span class="info-value">09123456789</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Email</span>
-                    <span class="info-value">juanexample.com</span>
-                </div>
-            </div>
-
-            <div class="info-row two-col">
-                <div class="info-item">
-                    <span class="info-label">Birthday</span>
-                    <span class="info-value">Jan 1, 2000</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Gender</span>
-                    <span class="info-value">Male</span>
-                </div>
-            </div>
-
+        <!-- VIEW MODE -->
+        <ng-container *ngIf="!editMode">
+          <div class="info-row three-col">
             <div class="info-item">
-                <span class="info-label">Home Address</span>
-                <span class="info-value">123 Barangay St., Manila</span>
+              <span class="info-label">First Name</span>
+              <span class="info-value">{{ student.first_name || '—' }}</span>
             </div>
+            <div class="info-item">
+              <span class="info-label">Middle Name</span>
+              <span class="info-value">{{ student.middle_name || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Last Name</span>
+              <span class="info-value">{{ student.last_name || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Contact Number</span>
+              <span class="info-value">{{ student.contact_number || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Email</span>
+              <span class="info-value">{{ student.email || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Birthday</span>
+              <span class="info-value">{{ student.birthday || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Gender</span>
+              <span class="info-value">{{ student.gender || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Home Address</span>
+            <span class="info-value">{{ student.home_address || '—' }}</span>
+          </div>
+        </ng-container>
+
+        <!-- EDIT MODE -->
+        <ng-container *ngIf="editMode">
+          <div class="info-row three-col">
+            <div class="edit-group">
+              <label>First Name</label>
+              <input type="text" [(ngModel)]="editFirstName">
+            </div>
+            <div class="edit-group">
+              <label>Middle Name</label>
+              <input type="text" [(ngModel)]="editMiddleName">
+            </div>
+            <div class="edit-group">
+              <label>Last Name</label>
+              <input type="text" [(ngModel)]="editLastName">
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="edit-group">
+              <label>Contact Number</label>
+              <input type="tel" [(ngModel)]="editContactNumber">
+            </div>
+            <div class="edit-group">
+              <label>Email <span style="color:#9ca3af;">(read-only)</span></label>
+              <input type="text" [value]="student.email" disabled
+                     style="background:#f3f4f6; color:#9ca3af;">
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="edit-group">
+              <label>Birthday</label>
+              <input type="date" [(ngModel)]="editBirthday">
+            </div>
+            <div class="edit-group">
+              <label>Gender</label>
+              <select [(ngModel)]="editGender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+          </div>
+          <div class="edit-group">
+            <label>Home Address</label>
+            <input type="text" [(ngModel)]="editHomeAddress">
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- ACADEMIC BACKGROUND -->
+      <div class="info-section">
+        <div class="section-header">Academic Background</div>
+
+        <!-- VIEW MODE -->
+        <ng-container *ngIf="!editMode">
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Student ID</span>
+              <span class="info-value">{{ student.student_id || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">School Name</span>
+              <span class="info-value">{{ student.school_name || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Course</span>
+              <span class="info-value">{{ student.course || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Year Level</span>
+              <span class="info-value">{{ student.year_level || '—' }}</span>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- EDIT MODE -->
+        <ng-container *ngIf="editMode">
+          <div class="info-row two-col">
+            <div class="edit-group">
+              <label>Student ID</label>
+              <input type="text" [(ngModel)]="editStudentId">
+            </div>
+            <div class="edit-group">
+              <label>School Name</label>
+              <input type="text" [(ngModel)]="editSchoolName">
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="edit-group">
+              <label>Course</label>
+              <input type="text" [(ngModel)]="editCourse">
+            </div>
+            <div class="edit-group">
+              <label>Year Level</label>
+              <select [(ngModel)]="editYearLevel">
+                <option value="1st">1st Year</option>
+                <option value="2nd">2nd Year</option>
+                <option value="3rd">3rd Year</option>
+                <option value="4th">4th Year</option>
+              </select>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- REQUIRED DOCUMENTS (always view only) -->
+      <div class="info-section">
+        <div class="section-header">Required Documents</div>
+
+        <div class="file-box">
+          <span class="file-label">Resume / CV</span>
+          <div class="file-icons" *ngIf="student.resume_file_id">
+            <a [href]="getFileUrl(student.resume_file_id, 'view')"
+               target="_blank" title="View">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <a [href]="getFileUrl(student.resume_file_id, 'download')"
+               target="_blank" title="Download">
+              <i class="fa-solid fa-download"></i>
+            </a>
+          </div>
+          <span *ngIf="!student.resume_file_id"
+                style="font-size:13px; color:#9ca3af;">No file uploaded</span>
         </div>
 
-        <!-- Academic Background -->
-        <div class="info-section">
-            <div class="section-header">Academic Background</div>
-
-            <div class="info-row two-col">
-                <div class="info-item">
-                    <span class="info-label">Student ID</span>
-                    <span class="info-value">2023-001</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">School Name</span>
-                    <span class="info-value">University of Manila</span>
-                </div>
-            </div>
-
-            <div class="info-row two-col">
-                <div class="info-item">
-                    <span class="info-label">Course</span>
-                    <span class="info-value">BSIT</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Year Level</span>
-                    <span class="info-value">3rd Year</span>
-                </div>
-            </div>
+        <div class="file-box">
+          <span class="file-label">Endorsement Letter</span>
+          <div class="file-icons" *ngIf="student.endorsement_file_id">
+            <a [href]="getFileUrl(student.endorsement_file_id, 'view')"
+               target="_blank" title="View">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <a [href]="getFileUrl(student.endorsement_file_id, 'download')"
+               target="_blank" title="Download">
+              <i class="fa-solid fa-download"></i>
+            </a>
+          </div>
+          <span *ngIf="!student.endorsement_file_id"
+                style="font-size:13px; color:#9ca3af;">No file uploaded</span>
         </div>
 
-        <!-- Required Documents -->
-        <div class="info-section">
-            <div class="section-header">Required Documents</div>
-
-            <div class="file-box">
-                <span class="file-label">Resume / CV</span>
-                <div class="file-icons">
-                    <a href="#" title="View"><i class="fa-solid fa-eye"></i></a>
-                    <a href="#" title="Download"><i class="fa-solid fa-download"></i></a>
-                </div>
-            </div>
-
-            <div class="file-box">
-                <span class="file-label">Endorsement Letter</span>
-                <div class="file-icons">
-                    <a href="#" title="View"><i class="fa-solid fa-eye"></i></a>
-                    <a href="#" title="Download"><i class="fa-solid fa-download"></i></a>
-                </div>
-            </div>
-
-            <div class="file-box">
-                <span class="file-label">Certificate of Enrollment</span>
-                <div class="file-icons">
-                    <a href="#" title="View"><i class="fa-solid fa-eye"></i></a>
-                    <a href="#" title="Download"><i class="fa-solid fa-download"></i></a>
-                </div>
-            </div>
+        <div class="file-box">
+          <span class="file-label">Certificate of Enrollment</span>
+          <div class="file-icons" *ngIf="student.coe_file_id">
+            <a [href]="getFileUrl(student.coe_file_id, 'view')"
+               target="_blank" title="View">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <a [href]="getFileUrl(student.coe_file_id, 'download')"
+               target="_blank" title="Download">
+              <i class="fa-solid fa-download"></i>
+            </a>
+          </div>
+          <span *ngIf="!student.coe_file_id"
+                style="font-size:13px; color:#9ca3af;">No file uploaded</span>
         </div>
+      </div>
 
-        <!-- OJT Hours -->
-        <div class="info-section ojt-hours-section">
-            <div class="section-header">OJT Hours</div>
+      <!-- OJT HOURS -->
+      <div class="info-section ojt-hours-section">
+        <div class="section-header">OJT Hours</div>
 
-            <div class="info-item">
-                <span class="info-label">Required Hours</span>
-                <span class="info-value">500 hrs</span>
+        <!-- VIEW MODE -->
+        <ng-container *ngIf="!editMode">
+          <div class="info-item">
+            <span class="info-label">Required Hours</span>
+            <span class="info-value">{{ student.required_hours || 500 }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Completed Hours</span>
+            <span class="info-value">{{ student.completed_hours || 0 }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Progress</span>
+            <div class="progress-bar">
+              <div class="progress" [style.width]="getProgress() + '%'"></div>
             </div>
-            <div class="info-item">
-                <span class="info-label">Completed Hours</span>
-                <span class="info-value">320 hrs</span>
+            <span class="progress-percent">{{ getProgress() }}%</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Remaining Hours</span>
+            <span class="info-value">{{ getRemainingHours() }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Status</span>
+            <span class="info-value"
+                  [style.color]="getProgress() >= 100 ? '#16a34a' : '#2563eb'">
+              {{ getProgress() >= 100 ? '✅ Completed' : '🔵 In Progress' }}
+            </span>
+          </div>
+        </ng-container>
+
+        <!-- EDIT MODE -->
+        <ng-container *ngIf="editMode">
+          <div class="info-row two-col">
+            <div class="edit-group">
+              <label>Required Hours</label>
+              <input type="number" [(ngModel)]="editRequiredHours" min="1" max="9999">
             </div>
-            <div class="info-item">
-                <span class="info-label">Progress</span>
-                <div class="progress-bar">
-                    <div class="progress" style="width: 64%;"></div>
-                </div>
-                <span class="progress-percent">64%</span>
+            <div class="edit-group">
+              <label>Completed Hours</label>
+              <input type="number" [(ngModel)]="editCompletedHours"
+                     min="0" [max]="editRequiredHours">
             </div>
-            <div class="info-item">
-                <span class="info-label">Remaining Hours</span>
-                <span class="info-value">180 hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Preview Progress</span>
+            <div class="progress-bar">
+              <div class="progress"
+                   [style.width]="(editRequiredHours > 0
+                     ? Math.min(Math.round((editCompletedHours / editRequiredHours) * 100), 100)
+                     : 0) + '%'">
+              </div>
             </div>
-        </div>
+            <span class="progress-percent">
+              {{ editRequiredHours > 0
+                ? Math.min(Math.round((editCompletedHours / editRequiredHours) * 100), 100)
+                : 0 }}%
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Remaining Hours</span>
+            <span class="info-value">
+              {{ Math.max(editRequiredHours - editCompletedHours, 0) }} hrs
+            </span>
+          </div>
+        </ng-container>
+      </div>
 
     </div>
 
     <!-- Footer Buttons -->
     <div class="profile-footer">
-        <div class="footer-buttons">
-            <button class="cancel-btn">Cancel</button>
-            <button class="save-btn">Save Changes</button>
-        </div>
+      <div class="footer-buttons">
+        <button class="cancel-btn" (click)="goBack()">Back</button>
+        <button class="save-btn"
+                *ngIf="editMode"
+                (click)="saveAll()"
+                [disabled]="saveLoading">
+          <i class="fa fa-spinner fa-spin" *ngIf="saveLoading"></i>
+          {{ saveLoading ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
     </div>
 
-</div>
+  </div>
+
+</ng-container>

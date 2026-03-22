@@ -230,3 +230,44 @@
 .save-btn:hover {
     background: #1e40af;
 }
+/* EDIT INPUTS */
+.edit-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.edit-group label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.edit-group input,
+.edit-group select {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  font-family: 'Poppins', sans-serif;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.edit-group input:focus,
+.edit-group select:focus {
+  border-color: #2563eb;
+  background: white;
+}
+
+.edit-group input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}

@@ -68,6 +68,11 @@ export class InternSidenavComponent {
       return;
     }
 
+    // ── Reset photo so next user starts fresh ──
+    this.appwrite.updateProfilePhoto(
+      'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128'
+    );
+
     sessionStorage.removeItem('welcomeShown');
     sessionStorage.removeItem('profileAlertShown');
     sessionStorage.setItem('loggedOut', 'true');

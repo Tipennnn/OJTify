@@ -23,36 +23,45 @@
 
  
 
-      <!-- TOP CARDS -->
-      <div class="top-cards">
+     <!-- TOP CARDS -->
+<div class="top-cards">
 
-        <!-- TOTAL HOURS -->
-        <div class="card progress-card">
-          <div class="progress-circle">
-            <div class="circle">
-              <span>100%</span>
-              <small>Completed</small>
-            </div>
-          </div>
-          <div class="progress-info">
-            <h4>Total Hours</h4>
-            <p>500 of 500 hours</p>
-            <div class="progress-bar">
-              <div class="progress-fill"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- TODAY ATTENDANCE -->
-        <div class="card attendance-card">
-          <div class="attendance-icon">✔</div>
-          <div>
-            <h4>Present</h4>
-            <p>Today's Attendance</p>
-          </div>
-        </div>
-
+  <!-- TOTAL HOURS -->
+  <div class="card progress-card">
+    <div class="progress-circle">
+      <div class="circle">
+        <span>{{ hoursProgress }}%</span>
+        <small>{{ hoursProgress >= 100 ? 'Completed' : 'In Progress' }}</small>
       </div>
+    </div>
+    <div class="progress-info">
+      <h4>Total Hours</h4>
+      <p>{{ completedHours }} of {{ requiredHours }} hours</p>
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width]="hoursProgress + '%'"></div>
+      </div>
+      <small style="color:#6b7280; font-size:12px;">
+        {{ remainingHours }} hrs remaining
+      </small>
+    </div>
+  </div>
+
+  <!-- TODAY ATTENDANCE -->
+  <div class="card attendance-card">
+    <div class="attendance-icon"
+         [style.background]="todayStatus === 'Present' ? '#dcfce7' : '#fee2e2'"
+         [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
+      {{ todayStatus === 'Present' ? '✔' : '✘' }}
+    </div>
+    <div>
+      <h4 [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
+        {{ todayStatus }}
+      </h4>
+      <p>Today's Attendance</p>
+    </div>
+  </div>
+
+</div>
 
       <!-- APPLICATION INFORMATION -->
       <div class="table-card">

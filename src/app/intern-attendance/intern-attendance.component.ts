@@ -5,7 +5,6 @@ import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.compone
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
 import { AppwriteService } from '../services/appwrite.service';
 import { QRCodeComponent } from 'angularx-qrcode';
-import { ID } from 'appwrite';
 import * as XLSX from 'xlsx';
 
 interface AttendanceRecord {
@@ -32,18 +31,16 @@ interface AttendanceRecord {
 })
 export class InternAttendanceComponent implements OnInit {
 
-  // Modal Controls
   showAttendanceModal = false;
   showReportsModal    = false;
   showQRModal         = false;
 
-  // Selected Attendance Info
   selectedDate = '';
   timeIn       = '—';
   timeOut      = '—';
   status       = 'No Attendance Record';
 
-  // Calendar Variables
+  firstDayOfMonth = 0;
   today = new Date();
   month = this.today.getMonth();
   year  = this.today.getFullYear();
@@ -51,18 +48,20 @@ export class InternAttendanceComponent implements OnInit {
   attendanceStatus : { [key: number]: string } = {};
   attendanceRecords: { [key: number]: any }    = {};
 
-  // Report Filters
   reportFilterMonth  = '';
   reportFilterYear   = '';
   reportFilterStatus = '';
   filteredRecordsList: AttendanceRecord[] = [];
   allRecords         : AttendanceRecord[] = [];
 
-  // User
   currentUserId = '';
   qrData        = '';
 
-  // Constants
+  // ── Hours tracking ────────────────────────────────────────
+  requiredHours  = 500;
+  completedHours = 0;
+  todayStatus    = 'Absent';
+
   months  = ['January','February','March','April','May','June',
              'July','August','September','October','November','December'];
   years   : number[] = [];
@@ -73,77 +72,125 @@ export class InternAttendanceComponent implements OnInit {
   async ngOnInit() {
     await this.getCurrentUser();
     this.generateCalendar();
-    await this.loadAttendance();
+    await Promise.all([
+      this.loadAttendance(),
+      this.loadStudentHours(),
+      this.loadTodayStatus()
+    ]);
     this.generateYears();
   }
 
-  // ── Get current user ──────────────────────────────────────
   async getCurrentUser() {
     try {
-      const user        = await this.appwrite.account.get();
+      const user         = await this.appwrite.account.get();
       this.currentUserId = user.$id;
-      // QR data contains the student's user ID
-      this.qrData       = `OJTIFY_ATTENDANCE:${user.$id}`;
+      this.qrData        = `OJTIFY_ATTENDANCE:${user.$id}`;
     } catch (error: any) {
       console.error('Failed to get user:', error.message);
     }
   }
 
-  // ── Load attendance from Appwrite ─────────────────────────
-  async loadAttendance() {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL
-    );
-
-    const docs = res.documents as any[];
-    const myRecords = docs.filter(d => d.student_id === this.currentUserId);
-
-    this.attendanceStatus  = {};
-    this.attendanceRecords = {};
-    this.allRecords        = [];
-
-    myRecords.forEach(record => {
-      // Fix: parse date parts directly to avoid UTC timezone shift
-      const parts = record.date.split('-');
-      const recordYear  = parseInt(parts[0]);
-      const recordMonth = parseInt(parts[1]) - 1; // months are 0-indexed
-      const recordDay   = parseInt(parts[2]);
-
-      if (recordMonth === this.month && recordYear === this.year) {
-        this.attendanceStatus[recordDay]  = record.status;
-        this.attendanceRecords[recordDay] = record;
-      }
-
-      // For reports
-      this.allRecords.push({
-        $id:     record.$id,
-        date:    record.date,
-        day:     new Date(recordYear, recordMonth, recordDay)
-                   .toLocaleString('default', { weekday: 'short' }),
-        timeIn:  record.time_in  || '—',
-        timeOut: record.time_out || '—',
-        status:  record.status
-      });
-    });
-
-    this.applyReportFilters();
-
-  } catch (error: any) {
-    console.error('Failed to load attendance:', error.message);
+  // ── Load student hours from students table ────────────────
+  async loadStudentHours() {
+    try {
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      this.requiredHours  = (doc as any).required_hours  || 500;
+      this.completedHours = (doc as any).completed_hours || 0;
+    } catch (error: any) {
+      console.error('Failed to load hours:', error.message);
+    }
   }
-}
 
-  // ── Calendar ──────────────────────────────────────────────
+  // ── Load today's attendance status ────────────────────────
+  async loadTodayStatus() {
+    try {
+      const today  = new Date().toISOString().split('T')[0];
+      const res    = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+      const todayRecord = (res.documents as any[])
+        .find(d => d.student_id === this.currentUserId && d.date === today);
+
+      this.todayStatus = todayRecord ? todayRecord.status : 'Absent';
+    } catch (error: any) {
+      console.error('Failed to load today status:', error.message);
+    }
+  }
+
+  // ── Computed helpers ──────────────────────────────────────
+  get remainingHours(): number {
+    return Math.max(this.requiredHours - this.completedHours, 0);
+  }
+
+  get hoursProgress(): number {
+    if (this.requiredHours === 0) return 0;
+    return Math.min(Math.round((this.completedHours / this.requiredHours) * 100), 100);
+  }
+
+  async loadAttendance() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+
+      const docs      = res.documents as any[];
+      const myRecords = docs.filter(d => d.student_id === this.currentUserId);
+
+      this.attendanceStatus  = {};
+      this.attendanceRecords = {};
+      this.allRecords        = [];
+
+      myRecords.forEach(record => {
+        const parts       = record.date.split('-');
+        const recordYear  = parseInt(parts[0]);
+        const recordMonth = parseInt(parts[1]) - 1;
+        const recordDay   = parseInt(parts[2]);
+
+        if (recordMonth === this.month && recordYear === this.year) {
+          this.attendanceStatus[recordDay]  = record.status;
+          this.attendanceRecords[recordDay] = record;
+        }
+
+        this.allRecords.push({
+          $id:     record.$id,
+          date:    record.date,
+          day:     new Date(recordYear, recordMonth, recordDay)
+                     .toLocaleString('default', { weekday: 'short' }),
+          timeIn:  record.time_in  || '—',
+          timeOut: record.time_out || '—',
+          status:  record.status
+        });
+      });
+
+      this.applyReportFilters();
+
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    }
+  }
+
   get monthName() {
     return new Date(this.year, this.month).toLocaleString('default', { month: 'long' });
   }
+  
+  getEmptyCells(): number[] {
+  return Array.from({ length: this.firstDayOfMonth }, (_, i) => i);
+}
+
 
   generateCalendar() {
-    const totalDays = new Date(this.year, this.month + 1, 0).getDate();
-    this.days = Array.from({ length: totalDays }, (_, i) => i + 1);
-  }
+  const totalDays  = new Date(this.year, this.month + 1, 0).getDate();
+  const firstDay   = new Date(this.year, this.month, 1).getDay(); // 0=Sun, 6=Sat
+
+  this.days = Array.from({ length: totalDays }, (_, i) => i + 1);
+  this.firstDayOfMonth = firstDay;
+}
 
   isWeekend(day: number): boolean {
     const date = new Date(this.year, this.month, day);
@@ -165,7 +212,7 @@ export class InternAttendanceComponent implements OnInit {
   }
 
   openAttendance(day: number) {
-    const date = new Date(this.year, this.month, day);
+    const date        = new Date(this.year, this.month, day);
     this.selectedDate = date.toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
@@ -186,7 +233,6 @@ export class InternAttendanceComponent implements OnInit {
 
   closeAttendance() { this.showAttendanceModal = false; }
 
-  // ── Reports ───────────────────────────────────────────────
   openReportsModal() {
     this.showReportsModal = true;
     this.applyReportFilters();
@@ -196,16 +242,16 @@ export class InternAttendanceComponent implements OnInit {
 
   applyReportFilters() {
     this.filteredRecordsList = this.allRecords.filter(r => {
-      const d           = new Date(r.date);
+      const parts       = r.date.split('-');
+      const recordYear  = parseInt(parts[0]);
+      const recordMonth = parseInt(parts[1]) - 1;
+      const d           = new Date(recordYear, recordMonth, parseInt(parts[2]));
       const monthMatch  = this.reportFilterMonth
-        ? d.toLocaleString('default', { month: 'long' }) === this.reportFilterMonth
-        : true;
+        ? d.toLocaleString('default', { month: 'long' }) === this.reportFilterMonth : true;
       const yearMatch   = this.reportFilterYear
-        ? d.getFullYear().toString() === this.reportFilterYear.toString()
-        : true;
+        ? d.getFullYear().toString() === this.reportFilterYear.toString() : true;
       const statusMatch = this.reportFilterStatus
-        ? r.status === this.reportFilterStatus
-        : true;
+        ? r.status === this.reportFilterStatus : true;
       return monthMatch && yearMatch && statusMatch;
     });
   }
@@ -213,11 +259,11 @@ export class InternAttendanceComponent implements OnInit {
   downloadExcel() {
     this.applyReportFilters();
     const worksheet = XLSX.utils.json_to_sheet(this.filteredRecordsList.map(r => ({
-      Date:    r.date,
-      Day:     r.day,
-      'Time In':  r.timeIn,
-      'Time Out': r.timeOut,
-      Status:  r.status
+      Date:        r.date,
+      Day:         r.day,
+      'Time In':   r.timeIn,
+      'Time Out':  r.timeOut,
+      Status:      r.status
     })));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
@@ -231,7 +277,6 @@ export class InternAttendanceComponent implements OnInit {
     }
   }
 
-  // ── QR Code Modal ─────────────────────────────────────────
   openQRModal()  { this.showQRModal = true;  }
   closeQRModal() { this.showQRModal = false; }
 }

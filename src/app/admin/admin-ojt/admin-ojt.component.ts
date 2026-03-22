@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
@@ -15,6 +15,8 @@ interface Student {
   school_name: string;
   email: string;
   profile_photo_id?: string;
+  required_hours?: number;
+  completed_hours?: number;
   $createdAt: string;
 }
 
@@ -41,7 +43,10 @@ export class AdminOjtComponent implements OnInit {
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
-  constructor(private appwrite: AppwriteService) {}
+  constructor(
+    private appwrite: AppwriteService,
+    private router  : Router
+  ) {}
 
   async ngOnInit() {
     await this.loadStudents();
@@ -63,6 +68,10 @@ export class AdminOjtComponent implements OnInit {
     }
   }
 
+  openProfile(student: Student) {
+    this.router.navigate(['/admin-ojt-profile', student.$id]);
+  }
+
   onSearch(event: any) {
     this.searchQuery = event.target.value.toLowerCase();
     this.filteredStudents = this.students.filter(s => {
@@ -82,9 +91,22 @@ export class AdminOjtComponent implements OnInit {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
   }
 
+  getProgress(s: Student): number {
+    const completed = s.completed_hours || 0;
+    const required  = s.required_hours  || 500;
+    return Math.min(Math.round((completed / required) * 100), 100);
+  }
+
   getStartDate(student: Student): string {
     return new Date(student.$createdAt).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+ getAvatarUrl(student: Student): string {
+  if (student.profile_photo_id) {
+    return this.getPhotoUrl(student.profile_photo_id);
+  }
+  const initials = `${student.first_name.charAt(0)} ${student.last_name.charAt(0)}`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
+}
 }

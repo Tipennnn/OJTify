@@ -38,5 +38,5 @@ export const routes: Routes = [
   { path: 'admin-tasks', component: AdminTasksComponent }, // <-- added route
   { path: 'admin-ojt', component: AdminOjtComponent },
   { path: 'admin-attendance', component: AdminAttendanceComponent },
-  { path: 'admin-ojt-profile', component: AdminOjtProfileComponent},
+{ path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent }
 ];

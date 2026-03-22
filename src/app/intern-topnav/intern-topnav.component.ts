@@ -48,24 +48,32 @@ export class InternTopnavComponent implements OnInit {
   }
 
   async loadProfilePhoto() {
-    try {
-      const user = await this.appwrite.account.get();
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
+  try {
+    const user = await this.appwrite.account.get();
 
-      const docs = res.documents as any[];
-      const doc  = docs.find(d => d.$id === user.$id);
+    const res  = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
 
-      if (doc?.profile_photo_id) {
-        const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
-        this.appwrite.updateProfilePhoto(url);
-      }
-    } catch {
-      // Not logged in or no photo
+    const docs = res.documents as any[];
+    const doc  = docs.find(d => d.$id === user.$id);
+
+    if (doc?.profile_photo_id) {
+      const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+      this.profilePhotoUrl = url;
+      this.appwrite.updateProfilePhoto(url);
+    } else {
+      // No photo — reset to default
+      const defaultUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=2563eb&color=fff&size=128`;
+      this.profilePhotoUrl = defaultUrl;
+      this.appwrite.updateProfilePhoto(defaultUrl);
     }
+  } catch {
+    // Not logged in
+    this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
   }
+}
 
   toggleMenu() {
     this.menuOpen = !this.menuOpen;

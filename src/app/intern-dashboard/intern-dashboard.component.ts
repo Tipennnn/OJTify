@@ -29,35 +29,73 @@ export class InternDashboardComponent implements OnInit {
   currentUserId    = '';
   profileIncomplete = false;
 
+  // ── Hours & attendance ────────────────────────────────────
+  requiredHours  = 500;
+  completedHours = 0;
+  todayStatus    = 'Absent';
+
   constructor(
     private appwrite: AppwriteService,
-    private router: Router
+    private router  : Router
   ) {}
 
   async ngOnInit() {
     await this.getCurrentUser();
 
-    // Run all in parallel — don't wait for each one
     this.loadRecentTasks();
-
-    // Check profile and show alerts together
+    this.loadStudentData();
     await this.checkAndShowAlerts();
   }
 
   async getCurrentUser() {
     try {
-      const user        = await this.appwrite.account.get();
+      const user         = await this.appwrite.account.get();
       this.currentUserId = user.$id;
     } catch { }
   }
 
-  // ── Check profile & show alerts ───────────────────────────
+  // ── Load student hours + today attendance ─────────────────
+  async loadStudentData() {
+    try {
+      // Hours from students table
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      this.requiredHours  = (doc as any).required_hours  || 500;
+      this.completedHours = (doc as any).completed_hours || 0;
+
+      // Today's attendance
+      const today  = new Date().toISOString().split('T')[0];
+      const res    = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+      const todayRecord = (res.documents as any[])
+        .find(d => d.student_id === this.currentUserId && d.date === today);
+
+      this.todayStatus = todayRecord ? todayRecord.status : 'Absent';
+
+    } catch (error: any) {
+      console.error('Failed to load student data:', error.message);
+    }
+  }
+
+  get hoursProgress(): number {
+    if (this.requiredHours === 0) return 0;
+    return Math.min(Math.round((this.completedHours / this.requiredHours) * 100), 100);
+  }
+
+  get remainingHours(): number {
+    return Math.max(this.requiredHours - this.completedHours, 0);
+  }
+
   async checkAndShowAlerts() {
     try {
-      const user = await this.appwrite.account.get();
+      const user      = await this.appwrite.account.get();
       const firstName = user.name?.split(' ')[0] || user.email || 'Student';
 
-      // Check profile completeness
       const res  = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL
@@ -65,7 +103,6 @@ export class InternDashboardComponent implements OnInit {
       const docs = res.documents as any[];
       const doc  = docs.find(d => d.$id === this.currentUserId);
 
-      // Find what's missing
       const missingFields: string[] = [];
       if (doc) {
         if (!doc.profile_photo_id?.trim()) missingFields.push('Profile photo');
@@ -75,10 +112,8 @@ export class InternDashboardComponent implements OnInit {
 
       this.profileIncomplete = missingFields.length > 0;
 
-      // Show welcome toast first (only on first login)
       if (!sessionStorage.getItem('welcomeShown')) {
         sessionStorage.setItem('welcomeShown', 'true');
-
         await Swal.fire({
           icon: 'success',
           title: `Welcome back, ${firstName}!`,
@@ -91,32 +126,25 @@ export class InternDashboardComponent implements OnInit {
         });
       }
 
-      // Show profile alert after welcome (only once per session)
       if (this.profileIncomplete && !sessionStorage.getItem('profileAlertShown')) {
         sessionStorage.setItem('profileAlertShown', 'true');
-
-        const missingText = missingFields.join(', ');
-
         const result = await Swal.fire({
           icon: 'warning',
           title: 'Profile Incomplete!',
           html: `Please complete the following in your profile:<br><br>
-                 <b style="color:#d97706;">${missingText}</b>`,
+                 <b style="color:#d97706;">${missingFields.join(', ')}</b>`,
           showCancelButton: true,
           confirmButtonText: 'Complete Now',
           cancelButtonText: 'Later',
           confirmButtonColor: '#d97706',
           cancelButtonColor: '#6b7280',
         });
-
         if (result.isConfirmed) {
           this.router.navigate(['/intern-profile']);
         }
       }
 
-    } catch {
-      // No active session
-    }
+    } catch { }
   }
 
   async loadRecentTasks() {
@@ -126,23 +154,16 @@ export class InternDashboardComponent implements OnInit {
         this.appwrite.DATABASE_ID,
         this.appwrite.TASKS_COL
       );
-
       const allTasks = res.documents as any[];
-
-      const myTasks = allTasks.filter(task => {
+      const myTasks  = allTasks.filter(task => {
         if (!task.assigned_intern_ids) return false;
-        const ids = task.assigned_intern_ids
-          .split(',')
-          .map((id: string) => id.trim());
-        return ids.includes(this.currentUserId);
+        return task.assigned_intern_ids
+          .split(',').map((id: string) => id.trim())
+          .includes(this.currentUserId);
       });
-
       this.recentTasks = myTasks
-        .sort((a, b) =>
-          new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
-        )
+        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
         .slice(0, 3);
-
     } catch (error: any) {
       console.error('Failed to load tasks:', error.message);
     } finally {

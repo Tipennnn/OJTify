@@ -75,29 +75,34 @@ export class InternProfileComponent implements OnInit {
       const docs = res.documents as any[];
       const doc  = docs.find(d => d.$id === this.currentUserId);
 
-      if (doc) {
-        this.documentId        = doc.$id;
-        this.firstName         = doc.first_name       || '';
-        this.middleName        = doc.middle_name      || '';
-        this.lastName          = doc.last_name        || '';
-        this.birthday          = doc.birthday         || '';
-        this.gender            = doc.gender           || '';
-        this.studentId         = doc.student_id       || '';
-        this.schoolName        = doc.school_name      || '';
-        this.course            = doc.course           || '';
-        this.yearLevel         = doc.year_level       || '';
-        this.contactNumber     = doc.contact_number   || '';
-        this.homeAddress       = doc.home_address     || '';
-        this.resumeFileId      = doc.resume_file_id       || '';
-        this.endorsementFileId = doc.endorsement_file_id  || '';
-        this.coeFileId         = doc.coe_file_id          || '';
-        this.profilePhotoId    = doc.profile_photo_id     || '';
+  if (doc) {
+  this.documentId        = doc.$id;
+  this.firstName         = doc.first_name       || '';
+  this.middleName        = doc.middle_name      || '';
+  this.lastName          = doc.last_name        || '';
+  this.birthday          = doc.birthday         || '';
+  this.gender            = doc.gender           || '';
+  this.studentId         = doc.student_id       || '';
+  this.schoolName        = doc.school_name      || '';
+  this.course            = doc.course           || '';
+  this.yearLevel         = doc.year_level       || '';
+  this.contactNumber     = doc.contact_number   || '';
+  this.homeAddress       = doc.home_address     || '';
+  this.resumeFileId      = doc.resume_file_id       || '';
+  this.endorsementFileId = doc.endorsement_file_id  || '';
+  this.coeFileId         = doc.coe_file_id          || '';
+  this.profilePhotoId    = doc.profile_photo_id     || '';
 
-        if (this.profilePhotoId) {
-          this.profilePhotoUrl = this.getFileUrl(this.profilePhotoId, 'view');
-          this.appwrite.updateProfilePhoto(this.profilePhotoUrl);
-        }
-      }
+  if (this.profilePhotoId) {
+    this.profilePhotoUrl = this.getFileUrl(this.profilePhotoId, 'view');
+    this.appwrite.updateProfilePhoto(this.profilePhotoUrl);
+  } else {
+    // ── Use actual name for initials instead of "User" ──
+    const name = `${this.firstName} ${this.lastName}`;
+    this.profilePhotoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=fff&size=128`;
+    this.appwrite.updateProfilePhoto(this.profilePhotoUrl);
+  }
+}
 
     } catch (error: any) {
       console.error('Failed to load profile:', error.message);

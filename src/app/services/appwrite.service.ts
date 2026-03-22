@@ -17,11 +17,13 @@ export class AppwriteService {
   readonly TASKS_COL       = 'tasks';
   readonly SUBMISSIONS_COL = 'submissions';
   readonly COMMENTS_COL    = 'comments';
-  readonly APPLICANTS_COL = 'applicants';
-  readonly ATTENDANCE_COL = 'attendance';
+  readonly APPLICANTS_COL  = 'applicants';
+  readonly ATTENDANCE_COL  = 'attendance';
 
   // ── Shared profile photo state ────────────────────────────
-  private photoUrl = new BehaviorSubject<string>('/assets/images/default-profile.png');
+  private photoUrl = new BehaviorSubject<string>(
+    'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128'
+  );
   photoUrl$ = this.photoUrl.asObservable();
 
   updateProfilePhoto(url: string) {

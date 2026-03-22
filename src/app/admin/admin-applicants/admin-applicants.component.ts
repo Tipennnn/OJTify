@@ -7,6 +7,13 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import { ID } from 'appwrite';
 import Swal from 'sweetalert2';
+import emailjs from '@emailjs/browser';
+
+// ── EmailJS config ────────────────────────────────────────
+const EMAILJS_PUBLIC_KEY   = 'XdSRm68QUyDCjTRFv';
+const EMAILJS_SERVICE_ID   = 'service_othtd6l';
+const EMAILJS_APPROVED_TID = 'template_to5v73p';
+const EMAILJS_DECLINED_TID = 'template_5v0av1q';
 
 interface Applicant {
   $id: string;
@@ -56,13 +63,15 @@ export class AdminApplicantsComponent implements OnInit {
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
-  constructor(private appwrite: AppwriteService) {}
+  constructor(private appwrite: AppwriteService) {
+    // Initialize EmailJS
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+  }
 
   async ngOnInit() {
     await this.loadApplicants();
   }
 
-  // ── Load applicants ───────────────────────────────────────
   async loadApplicants() {
     this.loading = true;
     try {
@@ -79,7 +88,6 @@ export class AdminApplicantsComponent implements OnInit {
     }
   }
 
-  // ── Filter & search ───────────────────────────────────────
   filterStatus(event: any) {
     this.statusFilter = event.target.value;
     this.applyFilter();
@@ -102,9 +110,33 @@ export class AdminApplicantsComponent implements OnInit {
     });
   }
 
-  // ── Get file URL ──────────────────────────────────────────
   getFileUrl(fileId: string, mode: 'view' | 'download' = 'view'): string {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
+  }
+
+  // ── Send email via EmailJS ────────────────────────────────
+  async sendEmail(applicant: Applicant, type: 'approved' | 'declined') {
+    try {
+      const templateId = type === 'approved'
+        ? EMAILJS_APPROVED_TID
+        : EMAILJS_DECLINED_TID;
+
+      await emailjs.send(
+  EMAILJS_SERVICE_ID,
+  templateId,
+  {
+    to_name:         `${applicant.first_name} ${applicant.last_name}`,
+    applicant_name:  `${applicant.first_name} ${applicant.last_name}`,
+    to_email:        applicant.email,
+    reply_to:        applicant.email
+  }
+);
+
+      console.log(`Email sent to ${applicant.email}`);
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      // Don't block the approval/decline process if email fails
+    }
   }
 
   // ── Approve applicant ─────────────────────────────────────
@@ -131,7 +163,7 @@ export class AdminApplicantsComponent implements OnInit {
       await this.appwrite.databases.createDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL,
-        applicant.auth_user_id, // use auth ID as document ID
+        applicant.auth_user_id,
         {
           first_name:          applicant.first_name,
           middle_name:         applicant.middle_name,
@@ -151,7 +183,7 @@ export class AdminApplicantsComponent implements OnInit {
         }
       );
 
-      // 2. Update applicant status to approved
+      // 2. Update applicant status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
@@ -159,7 +191,10 @@ export class AdminApplicantsComponent implements OnInit {
         { status: 'approved' }
       );
 
-      // 3. Update locally
+      // 3. Send approval email
+      await this.sendEmail(applicant, 'approved');
+
+      // 4. Update locally
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'approved';
       this.applyFilter();
@@ -171,11 +206,14 @@ export class AdminApplicantsComponent implements OnInit {
       Swal.fire({
         icon: 'success',
         title: 'Approved!',
-        text: `${applicant.first_name} ${applicant.last_name} is now an active intern.`,
+        html: `<b>${applicant.first_name} ${applicant.last_name}</b> is now an active intern.<br>
+               <span style="font-size:13px; color:#6b7280;">
+                 An email notification has been sent to ${applicant.email}
+               </span>`,
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
-        timer: 3000,
+        timer: 4000,
         timerProgressBar: true
       });
 
@@ -206,6 +244,7 @@ export class AdminApplicantsComponent implements OnInit {
     this.actionLoading = true;
 
     try {
+      // 1. Update status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
@@ -213,6 +252,10 @@ export class AdminApplicantsComponent implements OnInit {
         { status: 'declined' }
       );
 
+      // 2. Send decline email
+      await this.sendEmail(applicant, 'declined');
+
+      // 3. Update locally
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'declined';
       this.applyFilter();
@@ -224,11 +267,14 @@ export class AdminApplicantsComponent implements OnInit {
       Swal.fire({
         icon: 'success',
         title: 'Declined!',
-        text: `${applicant.first_name} ${applicant.last_name}'s application has been declined.`,
+        html: `<b>${applicant.first_name} ${applicant.last_name}</b>'s application has been declined.<br>
+               <span style="font-size:13px; color:#6b7280;">
+                 An email notification has been sent to ${applicant.email}
+               </span>`,
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
-        timer: 3000,
+        timer: 4000,
         timerProgressBar: true
       });
 
