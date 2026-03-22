@@ -83,44 +83,47 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
 
   // ── Load today's attendance ───────────────────────────────
   async loadTodayAttendance() {
-    this.loading = true;
-    try {
-      const today  = new Date().toISOString().split('T')[0];
-      const res    = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+  this.loading = true;
+  try {
+    // ── Use local date not UTC ────────────────────────
+    const now     = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL
+    );
 
-      const todayDocs = (res.documents as any[])
-        .filter(d => d.date === today);
+    const todayDocs = (res.documents as any[])
+      .filter(d => d.date === today);
 
-      this.todayLogs = todayDocs.map(doc => {
-        const student = this.allStudents.find(s => s.$id === doc.student_id);
-        return {
-          $id:               doc.$id,
-          student_id:        doc.student_id,
-          student_name:      student
-            ? `${student.first_name} ${student.last_name}`
-            : 'Unknown',
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              doc.date,
-          time_in:           doc.time_in  || '—',
-          time_out:          doc.time_out || '—',
-          status:            doc.status
-        };
-      });
+    this.todayLogs = todayDocs.map(doc => {
+      const student = this.allStudents.find(s => s.$id === doc.student_id);
+      return {
+        $id:               doc.$id,
+        student_id:        doc.student_id,
+        student_name:      student
+          ? `${student.first_name} ${student.last_name}`
+          : 'Unknown',
+        student_photo:     student?.profile_photo_id
+          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+          : null,
+        student_id_number: student?.student_id || '—',
+        date:              doc.date,
+        time_in:           doc.time_in  || '—',
+        time_out:          doc.time_out || '—',
+        status:            doc.status
+      };
+    });
 
-      this.filteredLogs = [...this.todayLogs];
+    this.filteredLogs = [...this.todayLogs];
 
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
-    } finally {
-      this.loading = false;
-    }
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   // ── Search ────────────────────────────────────────────────
   onSearch(event: any) {
