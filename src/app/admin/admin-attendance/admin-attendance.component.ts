@@ -350,8 +350,8 @@ stopCamera() {
         let diffMinutes = timeOutMinutes - timeInMinutes;
         if (diffMinutes < 0) diffMinutes += 24 * 60;
 
-        // For testing: treat each minute as 1 hour
-        const hoursWorked = diffMinutes;
+        // Real hours calculation
+        const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
         console.log('Diff Minutes:', diffMinutes);
         console.log('Hours Worked (test mode - mins as hrs):', hoursWorked);

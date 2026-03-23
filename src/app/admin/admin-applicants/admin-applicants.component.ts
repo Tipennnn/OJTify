@@ -7,13 +7,11 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import { ID } from 'appwrite';
 import Swal from 'sweetalert2';
-import emailjs from '@emailjs/browser';
 
-// ── EmailJS config ────────────────────────────────────────
-const EMAILJS_PUBLIC_KEY   = 'XdSRm68QUyDCjTRFv';
-const EMAILJS_SERVICE_ID   = 'service_othtd6l';
-const EMAILJS_APPROVED_TID = 'template_to5v73p';
-const EMAILJS_DECLINED_TID = 'template_5v0av1q';
+// ── Brevo config ──────────────────────────────────────────
+const BREVO_API_KEY      = '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 ';
+const BREVO_APPROVED_TID = 1; // replace with your approved template ID number
+const BREVO_DECLINED_TID = 2; // replace with your declined template ID number
 
 interface Applicant {
   $id: string;
@@ -63,10 +61,7 @@ export class AdminApplicantsComponent implements OnInit {
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
-  constructor(private appwrite: AppwriteService) {
-    // Initialize EmailJS
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-  }
+  constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
     await this.loadApplicants();
@@ -114,28 +109,45 @@ export class AdminApplicantsComponent implements OnInit {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
 
-  // ── Send email via EmailJS ────────────────────────────────
+  // ── Send email via Brevo ──────────────────────────────────
   async sendEmail(applicant: Applicant, type: 'approved' | 'declined') {
     try {
       const templateId = type === 'approved'
-        ? EMAILJS_APPROVED_TID
-        : EMAILJS_DECLINED_TID;
+        ? BREVO_APPROVED_TID
+        : BREVO_DECLINED_TID;
 
-      await emailjs.send(
-  EMAILJS_SERVICE_ID,
-  templateId,
-  {
-    to_name:         `${applicant.first_name} ${applicant.last_name}`,
-    applicant_name:  `${applicant.first_name} ${applicant.last_name}`,
-    to_email:        applicant.email,
-    reply_to:        applicant.email
-  }
-);
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': BREVO_API_KEY
+        },
+        body: JSON.stringify({
+          sender: {
+            name:  'OJTify Admin',
+            email: 'adminojtify@gmail.com'
+          },
+          to: [{
+            email: applicant.email,
+            name:  `${applicant.first_name} ${applicant.last_name}`
+          }],
+          templateId: templateId,
+          params: {
+            applicant_name: `${applicant.first_name} ${applicant.last_name}`,
+            first_name:     applicant.first_name
+          }
+        })
+      });
 
-      console.log(`Email sent to ${applicant.email}`);
+      if (!response.ok) {
+        const err = await response.json();
+        console.error('Brevo error:', err);
+      } else {
+        console.log(`Email sent to ${applicant.email}`);
+      }
+
     } catch (error) {
       console.error('Failed to send email:', error);
-      // Don't block the approval/decline process if email fails
     }
   }
 
@@ -159,7 +171,6 @@ export class AdminApplicantsComponent implements OnInit {
     this.actionLoading = true;
 
     try {
-      // 1. Copy data to students table
       await this.appwrite.databases.createDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL,
@@ -183,7 +194,6 @@ export class AdminApplicantsComponent implements OnInit {
         }
       );
 
-      // 2. Update applicant status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
@@ -191,10 +201,8 @@ export class AdminApplicantsComponent implements OnInit {
         { status: 'approved' }
       );
 
-      // 3. Send approval email
       await this.sendEmail(applicant, 'approved');
 
-      // 4. Update locally
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'approved';
       this.applyFilter();
@@ -244,7 +252,6 @@ export class AdminApplicantsComponent implements OnInit {
     this.actionLoading = true;
 
     try {
-      // 1. Update status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
@@ -252,10 +259,8 @@ export class AdminApplicantsComponent implements OnInit {
         { status: 'declined' }
       );
 
-      // 2. Send decline email
       await this.sendEmail(applicant, 'declined');
 
-      // 3. Update locally
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'declined';
       this.applyFilter();

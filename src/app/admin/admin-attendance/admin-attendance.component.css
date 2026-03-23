@@ -269,7 +269,7 @@ app-admin-topnav {
 .scanner-modal {
   background: white;
   border-radius: 16px;
-  width: 420px;
+  width: 650px;        /* changed from 420px */
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -312,7 +312,7 @@ app-admin-topnav {
   background: #111827;
   border-radius: 12px;
   overflow: hidden;
-  min-height: 280px;
+  min-height: 450px;   /* changed from 280px */
   display: flex;
   align-items: center;
   justify-content: center;

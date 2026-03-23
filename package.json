@@ -20,6 +20,7 @@
     "@angular/router": "^17.3.0",
     "@emailjs/browser": "^4.4.1",
     "@fortawesome/fontawesome-free": "^7.2.0",
+    "@getbrevo/brevo": "^5.0.1",
     "@supabase/supabase-js": "^2.99.2",
     "angularx-qrcode": "^21.0.5",
     "appwrite": "^23.0.0",
