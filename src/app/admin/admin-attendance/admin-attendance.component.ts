@@ -294,7 +294,8 @@ stopCamera() {
       return;
     }
 
-    const today   = now.toISOString().split('T')[0];
+    // ✅ CORRECT — uses local (PH) date
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const timeStr = now.toLocaleTimeString('en-US', {
       hour: '2-digit', minute: '2-digit', hour12: true
     });

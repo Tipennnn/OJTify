@@ -7,7 +7,7 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import { ID } from 'appwrite';
 import Swal from 'sweetalert2';
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 
 
 interface Applicant {

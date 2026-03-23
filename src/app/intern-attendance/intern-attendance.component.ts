@@ -106,9 +106,10 @@ export class InternAttendanceComponent implements OnInit {
 }
 
   // ── Load today's attendance status ────────────────────────
-  async loadTodayStatus() {
-    try {
-      const today  = new Date().toISOString().split('T')[0];
+async loadTodayStatus() {
+  try {
+    const now   = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const res    = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.ATTENDANCE_COL
@@ -128,9 +129,9 @@ export class InternAttendanceComponent implements OnInit {
   }
 
   get hoursProgress(): number {
-    if (this.requiredHours === 0) return 0;
-    return Math.min(Math.round((this.completedHours / this.requiredHours) * 100), 100);
-  }
+  if (this.requiredHours === 0) return 0;
+  return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
+}
 
   async loadAttendance() {
     try {

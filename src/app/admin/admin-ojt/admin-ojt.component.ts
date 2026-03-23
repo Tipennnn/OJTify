@@ -91,11 +91,11 @@ export class AdminOjtComponent implements OnInit {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
   }
 
-  getProgress(s: Student): number {
-    const completed = s.completed_hours || 0;
-    const required  = s.required_hours  || 500;
-    return Math.min(Math.round((completed / required) * 100), 100);
-  }
+ getProgress(s: Student): number {
+  const completed = s.completed_hours || 0;
+  const required  = s.required_hours  || 500;
+  return Math.min(parseFloat(((completed / required) * 100).toFixed(1)), 100);
+}
 
   getStartDate(student: Student): string {
     return new Date(student.$createdAt).toLocaleDateString('en-US', {

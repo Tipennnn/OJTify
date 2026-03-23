@@ -203,12 +203,11 @@ export class AdminOjtProfileComponent implements OnInit {
   }
 
   getProgress(): number {
-    if (!this.student) return 0;
-    const completed = this.student.completed_hours || 0;
-    const required  = this.student.required_hours  || 500;
-    return Math.min(Math.round((completed / required) * 100), 100);
-  }
-
+  if (!this.student) return 0;
+  const completed = this.student.completed_hours || 0;
+  const required  = this.student.required_hours  || 500;
+  return Math.min(parseFloat(((completed / required) * 100).toFixed(1)), 100);
+}
   getRemainingHours(): number {
     if (!this.student) return 0;
     const completed = this.student.completed_hours || 0;

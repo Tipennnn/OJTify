@@ -82,7 +82,8 @@ export class InternDashboardComponent implements OnInit {
       this.requiredHours  = (doc as any).required_hours  || 500;
       this.completedHours = (doc as any).completed_hours || 0;
 
-      const today  = new Date().toISOString().split('T')[0];
+      const now   = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const res    = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.ATTENDANCE_COL
@@ -99,33 +100,37 @@ export class InternDashboardComponent implements OnInit {
 
   // ── Load recent attendance (last 5) ──────────────────────
   async loadRecentAttendance() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL
+    );
 
-      const myRecords = (res.documents as any[])
-        .filter(d => d.student_id === this.currentUserId)
-        .sort((a, b) => {
-          const partsA = a.date.split('-');
-          const partsB = b.date.split('-');
-          return new Date(parseInt(partsB[0]), parseInt(partsB[1]) - 1, parseInt(partsB[2])).getTime() -
-                 new Date(parseInt(partsA[0]), parseInt(partsA[1]) - 1, parseInt(partsA[2])).getTime();
-        })
-        .slice(0, 5);
+    const myRecords = (res.documents as any[])
+      .filter(d => d.student_id === this.currentUserId);
 
-      this.recentAttendance = myRecords.map(r => ({
-        date:     this.formatDate(r.date),
-        time_in:  r.time_in  || '—',
-        time_out: r.time_out || '—',
-        status:   r.status
-      }));
+    // Build last 5 days (today included)
+    const last5Days: AttendanceRecord[] = [];
+    for (let i = 0; i < 5; i++) {
+      const d    = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
+      const record = myRecords.find(r => r.date === dateStr);
+      last5Days.push({
+        date:     this.formatDate(dateStr),
+        time_in:  record?.time_in  || '—',
+        time_out: record?.time_out || '—',
+        status:   record ? record.status : 'Absent'
+      });
     }
+
+    this.recentAttendance = last5Days;
+
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
   }
+}
 
   // ── Load application info ─────────────────────────────────
   async loadApplicationInfo() {
@@ -173,10 +178,9 @@ export class InternDashboardComponent implements OnInit {
   }
 
   get hoursProgress(): number {
-    if (this.requiredHours === 0) return 0;
-    return Math.min(Math.round((this.completedHours / this.requiredHours) * 100), 100);
-  }
-
+  if (this.requiredHours === 0) return 0;
+  return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
+}
   get remainingHours(): number {
     return Math.max(this.requiredHours - this.completedHours, 0);
   }
@@ -237,27 +241,37 @@ export class InternDashboardComponent implements OnInit {
     } catch { }
   }
 
-  async loadRecentTasks() {
-    this.tasksLoading = true;
-    try {
-      const res      = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL
-      );
-      const allTasks = res.documents as any[];
-      const myTasks  = allTasks.filter(task => {
-        if (!task.assigned_intern_ids) return false;
-        return task.assigned_intern_ids
-          .split(',').map((id: string) => id.trim())
-          .includes(this.currentUserId);
-      });
-      this.recentTasks = myTasks
-        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
-        .slice(0, 3);
-    } catch (error: any) {
-      console.error('Failed to load tasks:', error.message);
-    } finally {
-      this.tasksLoading = false;
-    }
+ async loadRecentTasks() {
+  this.tasksLoading = true;
+  try {
+    const res      = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.TASKS_COL
+    );
+    const allTasks = res.documents as any[];
+    const myTasks  = allTasks.filter(task => {
+      if (!task.assigned_intern_ids) return false;
+      return task.assigned_intern_ids
+        .split(',').map((id: string) => id.trim())
+        .includes(this.currentUserId);
+    });
+
+    this.recentTasks = myTasks
+      .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+      .slice(0, 3)
+      .map(task => ({
+        $id:         task.$id,
+        title:       task.title       || '—',
+        description: task.description || '—',
+        posted:      this.formatDate(task.$createdAt.split('T')[0]),
+        due:         task.due_date ? this.formatDate(task.due_date) : '—',
+        status:      task.status      || 'pending'
+      }));
+
+  } catch (error: any) {
+    console.error('Failed to load tasks:', error.message);
+  } finally {
+    this.tasksLoading = false;
   }
+}
 }

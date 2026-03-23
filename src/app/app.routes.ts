@@ -6,6 +6,7 @@ import { InternProfileComponent } from './intern-profile/intern-profile.componen
 import { InternDashboardComponent } from './intern-dashboard/intern-dashboard.component';
 import { InternAttendanceComponent } from './intern-attendance/intern-attendance.component';
 import { InternTasksComponent } from './intern-tasks/intern-tasks.component';
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
 import { AdminLoginComponent } from './admin/admin-login/admin-login.component';
 import { AdminDashboardComponent } from './admin/admin-dashboard/admin-dashboard.component';
 import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.component';
@@ -20,6 +21,7 @@ import { AdminCompletedOjtComponent } from './admin/admin-completed-ojt/admin-co
 
 import { authGuard } from './guards/auth.guard';
 
+
 export const routes: Routes = [
   { path: '', redirectTo: 'intern-login', pathMatch: 'full' },
   { path: 'intern-login', component: InternLoginComponent },
@@ -30,6 +32,7 @@ export const routes: Routes = [
   { path: 'intern-attendance', component: InternAttendanceComponent },
   { path: 'intern-tasks', component: InternTasksComponent },
   { path: 'intern-dashboard', component: InternDashboardComponent, canActivate: [authGuard] },
+  { path: 'reset-password', component: ResetPasswordComponent },
 
   // ADMIN
   { path: 'admin-login', component: AdminLoginComponent },

@@ -4,7 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-intern-login',
@@ -155,27 +155,28 @@ export class InternLoginComponent implements OnInit {
   }
 
   // STEP 2 — Verify OTP
-  verifyOtp() {
-    this.fpError = '';
+verifyOtp() {
+  this.fpError = '';
 
-    if (!this.fpEnteredOtp) {
-      this.fpError = 'Please enter the OTP code.';
-      return;
-    }
-
-    if (Date.now() > this.fpOtpExpiry) {
-      this.fpError    = 'OTP has expired. Please request a new one.';
-      this.forgotStep = 1;
-      return;
-    }
-
-    if (this.fpEnteredOtp.trim() !== this.fpOtp) {
-      this.fpError = 'Invalid OTP code. Please try again.';
-      return;
-    }
-
-    this.forgotStep = 3;
+  if (!this.fpEnteredOtp) {
+    this.fpError = 'Please enter the OTP code.';
+    return;
   }
+
+  if (Date.now() > this.fpOtpExpiry) {
+    this.fpError    = 'OTP has expired. Please request a new one.';
+    this.forgotStep = 1;
+    return;
+  }
+
+  if (this.fpEnteredOtp.trim() !== this.fpOtp) {
+    this.fpError = 'Invalid OTP code. Please try again.';
+    return;
+  }
+
+  // ✅ OTP correct — go directly to step 3
+  this.forgotStep = 3;
+}
 
   resendOtp() {
     this.fpEnteredOtp = '';
@@ -205,33 +206,42 @@ export class InternLoginComponent implements OnInit {
   this.fpLoading = true;
 
   try {
-    // Step 1 — create recovery token
-    await this.appwrite.account.createRecovery(
-      this.fpEmail,
-      'http://localhost:4200/reset-password'
+    // ✅ Directly update password via Appwrite Users API (no email needed)
+    const response = await fetch(
+      `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type':       'application/json',
+          'X-Appwrite-Project': '69ba8d9c0027d10c447f',
+          'X-Appwrite-Key':     environment.appwriteApiKey
+        },
+        body: JSON.stringify({ password: this.fpNewPassword })
+      }
     );
 
-    this.forgotStep = 0;
-    this.fpLoading  = false;
+    if (!response.ok) {
+      const err = await response.json();
+      this.fpError = err.message || 'Failed to reset password.';
+      return;
+    }
 
-    // Show instructions
-    await Swal.fire({
-      icon: 'info',
-      title: 'One More Step!',
-      html: `We sent a password reset link to <b>${this.fpEmail}</b>.<br><br>
-             <span style="font-size:13px; color:#6b7280;">
-               Check your inbox and click the link to set your new password:
-               <br><br>
-               <b style="color:#2563eb; font-size:16px;">${this.fpNewPassword}</b>
-               <br><br>
-               Copy the password above so you can paste it on the reset page!
-             </span>`,
-      confirmButtonColor: '#2563eb',
-      confirmButtonText: 'Got it!'
+    this.closeForgotPassword();
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Password Reset!',
+      text: 'Your password has been changed. You can now log in.',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 4000,
+      timerProgressBar: true
     });
 
   } catch (error: any) {
-    this.fpError = 'Failed to send reset link. Please try again.';
+    this.fpError = 'Failed to reset password. Please try again.';
+  } finally {
     this.fpLoading = false;
   }
 }
