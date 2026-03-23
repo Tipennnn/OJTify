@@ -4,10 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
-
-// ── Brevo config ──────────────────────────────────────────
-const BREVO_API_KEY  = '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';
-const BREVO_OTP_TID  = 3; // replace with your OTP template ID number
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-intern-login',
@@ -121,7 +118,7 @@ export class InternLoginComponent implements OnInit {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': BREVO_API_KEY
+          'api-key': environment.brevoApiKey
         },
         body: JSON.stringify({
           sender: {
@@ -132,7 +129,7 @@ export class InternLoginComponent implements OnInit {
             email: this.fpEmail,
             name:  this.fpUserName
           }],
-          templateId: BREVO_OTP_TID,
+          templateId: environment.brevoOtpTid,
           params: {
             user_name: this.fpUserName,
             otp_code:  this.fpOtp

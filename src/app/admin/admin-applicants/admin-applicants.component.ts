@@ -7,11 +7,8 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import { ID } from 'appwrite';
 import Swal from 'sweetalert2';
+import { environment } from '../../../environments/environment';
 
-// ── Brevo config ──────────────────────────────────────────
-const BREVO_API_KEY      = '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 ';
-const BREVO_APPROVED_TID = 1; // replace with your approved template ID number
-const BREVO_DECLINED_TID = 2; // replace with your declined template ID number
 
 interface Applicant {
   $id: string;
@@ -113,15 +110,15 @@ export class AdminApplicantsComponent implements OnInit {
   async sendEmail(applicant: Applicant, type: 'approved' | 'declined') {
     try {
       const templateId = type === 'approved'
-        ? BREVO_APPROVED_TID
-        : BREVO_DECLINED_TID;
+          ? environment.brevoApprovedTid
+          : environment.brevoDeclinedTid;
 
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'api-key': BREVO_API_KEY
-        },
+  'Content-Type': 'application/json',
+  'api-key': environment.brevoApiKey
+},
         body: JSON.stringify({
           sender: {
             name:  'OJTify Admin',
