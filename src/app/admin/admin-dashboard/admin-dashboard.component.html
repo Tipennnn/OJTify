@@ -18,68 +18,68 @@
         <div class="dashboard-divider"></div>
       </div>
 
-      <!-- CARDS & CHART WRAPPER -->
+      <!-- CENTER CONTENT -->
       <div class="center-wrapper">
 
         <!-- CARDS -->
         <div class="cards">
-         <div class="card card-blue">
-  <div class="card-left">
-    <div class="card-icon">
-      <i class="fa-solid fa-users"></i>
-    </div>
-    <div class="card-label">Total Interns</div>
-  </div>
-  <div class="card-number">{{ totalInterns }}</div>
-</div>
+          <div class="card card-blue">
+            <div class="card-left">
+              <div class="card-icon"><i class="fa-solid fa-users"></i></div>
+              <div class="card-label">Total Interns</div>
+            </div>
+            <div class="card-number">{{ totalInterns }}</div>
+          </div>
 
-<div class="card card-orange">
-  <div class="card-left">
-    <div class="card-icon">
-      <i class="fa-solid fa-user-plus"></i>
-    </div>
-    <div class="card-label">Pending Applicants</div>
-  </div>
-  <div class="card-number">{{ pendingApplicants }}</div>
-</div>
+          <div class="card card-orange">
+            <div class="card-left">
+              <div class="card-icon"><i class="fa-solid fa-user-plus"></i></div>
+              <div class="card-label">Pending Applicants</div>
+            </div>
+            <div class="card-number">{{ pendingApplicants }}</div>
+          </div>
 
           <div class="card card-green">
             <div class="card-left">
-              <div class="card-icon">
-                <i class="fa-solid fa-calendar-check"></i>
-              </div>
-              <div class="card-label">
-                Present Today
-              </div>
+              <div class="card-icon"><i class="fa-solid fa-calendar-check"></i></div>
+              <div class="card-label">Present Today</div>
             </div>
-            <div class="card-number">
-              2
-            </div>
+            <div class="card-number">2</div>
           </div>
 
           <div class="card card-red">
             <div class="card-left">
-              <div class="card-icon">
-                <i class="fa-solid fa-user-slash"></i>
-              </div>
-              <div class="card-label">
-                Absent Today
-              </div>
+              <div class="card-icon"><i class="fa-solid fa-user-slash"></i></div>
+              <div class="card-label">Absent Today</div>
             </div>
-            <div class="card-number">
-              5
-            </div>
+            <div class="card-number">5</div>
           </div>
         </div>
 
-        <!-- CHART -->
+        <!-- WEEKLY CHART -->
         <div class="chart-container">
           <h3>Attendance This Week</h3>
           <canvas id="attendanceChart"></canvas>
         </div>
 
+        <!-- SMALL CHARTS -->
+        <div class="charts-row">
+
+          <!-- DONUT CHART -->
+          <div class="chart-container small-chart">
+            <h3>Applicants Status</h3>
+            <canvas id="applicantsChart"></canvas>
+          </div>
+
+          <!-- TIME CHART -->
+          <div class="chart-container small-chart">
+            <h3>Time-In Behavior</h3>
+            <canvas id="timeChart"></canvas>
+          </div>
+
+        </div>
+
       </div>
     </div>
-
   </div>
 </div>
