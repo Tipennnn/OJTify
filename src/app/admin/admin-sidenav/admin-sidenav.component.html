@@ -1,62 +1,70 @@
 <div class="sidenav" [class.collapsed]="isCollapsed">
 
-    <!-- BRAND -->
-    <div class="brand-section">
-      <div class="brand-logo">
-        <i class="fa-solid fa-bars toggle-btn" (click)="toggleNav()"></i>
-      </div>
-      <span class="brand-title">OJTify </span>
+  <!-- BRAND -->
+  <div class="brand-section">
+    <div class="brand-logo">
+      <i class="fa-solid fa-bars toggle-btn" (click)="toggleNav()"></i>
     </div>
-  
-    <div class="divider"></div>
-  
-    <!-- MENU -->
-    <div class="nav-menu">
-      <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-table-cells-large"></i>
-        </div>
-        <span>Admin Dashboard</span>
-      </a>
-  
-      <a routerLink="/admin-applicants" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-user-plus"></i>
-        </div>
-        <span>Intern Applications</span>
-      </a>
-  
-      <a routerLink="/admin-ojt" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-users"></i>
-        </div>
-        <span>OJT Students</span>
-      </a>
-  
-      <a routerLink="/admin-attendance" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-calendar-check"></i>
-        </div>
-        <span>Attendance Logs</span>
-      </a>
-  
-      <a routerLink="/admin-tasks" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-list-check"></i>
-        </div>
-        <span>Assigned Tasks</span>
-      </a>
-    </div>
-  
-    <!-- LOGOUT -->
-    <div class="logout-section">
-      <div class="divider"></div>
-      <a class="nav-item logout" (click)="onLogout()" style="cursor:pointer;">
-        <div class="icon-box">
-          <i class="fa-solid fa-right-from-bracket"></i>
-        </div>
-        <span>Log out</span>
-      </a>
-    </div>
-  
+    <span class="brand-title">OJTify</span>
   </div>
+
+  <div class="divider"></div>
+
+  <!-- MENU -->
+  <div class="nav-menu">
+    <a routerLink="/admin-dashboard" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-table-cells-large"></i>
+      </div>
+      <span>Admin Dashboard</span>
+    </a>
+
+    <a routerLink="/admin-applicants" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-user-plus"></i>
+      </div>
+      <span>Intern Applications</span>
+    </a>
+
+    <a routerLink="/admin-ojt" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <span>OJT Students</span>
+    </a>
+
+    <a routerLink="/admin-attendance" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-calendar-check"></i>
+      </div>
+      <span>Attendance Logs</span>
+    </a>
+
+    <a routerLink="/admin-tasks" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-list-check"></i>
+      </div>
+      <span>Assigned Tasks</span>
+    </a>
+
+    <!-- NEW: Completed OJTs -->
+    <a routerLink="/admin-completed-ojt" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-box-archive"></i>
+      </div>
+      <span>Archive</span>
+    </a>
+  </div>
+
+  <!-- LOGOUT -->
+  <div class="logout-section">
+    <div class="divider"></div>
+    <a class="nav-item logout" (click)="onLogout()" style="cursor:pointer;">
+      <div class="icon-box">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </div>
+      <span>Log out</span>
+    </a>
+  </div>
+
+</div>

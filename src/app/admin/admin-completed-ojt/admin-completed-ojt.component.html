@@ -1,0 +1,216 @@
+<div class="dashboard-wrapper">
+    <app-admin-sidenav></app-admin-sidenav>
+    <div class="main-section">
+      <app-admin-topnav></app-admin-topnav>
+
+      <div class="dashboard-content">
+        <div class="dashboard-header header-flex">
+          <div><h2>Completed OJT Interns</h2></div>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search intern..." (input)="onSearch($event)">
+          </div>
+        </div>
+
+        <div class="dashboard-divider"></div>
+
+        <!-- FILTER BAR WITH LABEL -->
+        <div class="filter-bar">
+            <div class="filter-label summary-label">
+              March 2026 - 10 interns
+            </div>
+
+          <button class="filter-btn">All Completed</button>
+          <select class="filter-dropdown">
+            <option value="">Select Year</option>
+            <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+          </select>
+          <select class="filter-dropdown">
+            <option value="">Select Month</option>
+            <option *ngFor="let month of months" [value]="month">{{ month }}</option>
+          </select>
+        </div>
+
+        <div class="center-wrapper">
+          <div class="table-container">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Student ID</th>
+                  <th>Email</th>
+                  <th>OJT Start Date</th>
+                  <th>OJT End Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let student of filteredStudents" (click)="openModal(student)" style="cursor:pointer">
+                  <td class="profile-name">
+                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="Profile">
+                    <span>{{ getFullName(student) }}</span>
+                  </td>
+                  <td>{{ student.student_id }}</td>
+                  <td>{{ student.email }}</td>
+                  <td>{{ getStartDate(student) }}</td>
+                  <td>{{ getEndDate(student) }}</td>
+                </tr>
+
+                <tr *ngIf="filteredStudents.length === 0">
+                  <td colspan="5" style="text-align:center; color:#9ca3af; padding:30px;">
+                    No interns found.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pagination">
+                <button class="page-btn">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+              
+                <div class="page-numbers">
+                  <span class="page active">1</span>
+                  <span class="page">2</span>
+                  <span class="page">3</span>
+                </div>
+              
+                <button class="page-btn">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+
+<!-- MODAL -->
+<div class="modal-backdrop" *ngIf="showModal">
+    <div class="modal profile-wrapper">
+
+      <!-- Modal Header -->
+      <div class="profile-header">
+        <div class="profile-circle">
+          <img [src]="getAvatarUrl(selectedStudent)" alt="Profile Picture" class="profile-pic">
+        </div>
+        <div class="profile-name-container">
+          <h2 class="profile-name">{{ getFullName(selectedStudent) }}</h2>
+          <p style="margin:4px 0 0; font-size:13px; color:#6b7280;">{{ selectedStudent?.email }}</p>
+        </div>
+        <button class="close-btn" (click)="closeModal()">×</button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="info-container">
+
+        <!-- PERSONAL INFORMATION -->
+        <div class="info-section">
+          <div class="section-header">Personal Information</div>
+          <div class="info-row three-col">
+            <div class="info-item">
+              <span class="info-label">First Name</span>
+              <span class="info-value">{{ selectedStudent?.first_name || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Middle Name</span>
+              <span class="info-value">{{ selectedStudent?.middle_name || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Last Name</span>
+              <span class="info-value">{{ selectedStudent?.last_name || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Contact Number</span>
+              <span class="info-value">{{ selectedStudent?.contact_number || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Birthday</span>
+              <span class="info-value">{{ selectedStudent?.birthday || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Gender</span>
+              <span class="info-value">{{ selectedStudent?.gender || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Home Address</span>
+              <span class="info-value">{{ selectedStudent?.home_address || '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACADEMIC BACKGROUND -->
+        <div class="info-section">
+          <div class="section-header">Academic Background</div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Student ID</span>
+              <span class="info-value">{{ selectedStudent?.student_id || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">School Name</span>
+              <span class="info-value">{{ selectedStudent?.school_name || '—' }}</span>
+            </div>
+          </div>
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Course</span>
+              <span class="info-value">{{ selectedStudent?.course || '—' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Year Level</span>
+              <span class="info-value">{{ selectedStudent?.year_level || '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- OJT HOURS -->
+        <div class="info-section ojt-hours-section">
+          <div class="section-header">OJT Hours</div>
+          <div class="info-item">
+            <span class="info-label">Required Hours</span>
+            <span class="info-value">{{ selectedStudent?.required_hours || 500 }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Completed Hours</span>
+            <span class="info-value">{{ selectedStudent?.completed_hours || 0 }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Remaining Hours</span>
+            <span class="info-value">{{ getRemainingHours(selectedStudent) }} hrs</span>
+          </div>
+
+          <!-- FORCED 100% PROGRESS & COMPLETED -->
+          <div class="info-item">
+            <span class="info-label">Progress</span>
+            <div class="progress-bar">
+              <div class="progress" style="width:100%"></div>
+            </div>
+            <span class="progress-percent">100%</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Status</span>
+            <span class="info-value" style="color:#16a34a">
+              ✅ Completed
+            </span>
+          </div>
+
+          <!-- OJT Start & End Dates -->
+          <div class="info-item">
+            <span class="info-label">OJT Start Date</span>
+            <span class="info-value">{{ getStartDate(selectedStudent) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">OJT End Date</span>
+            <span class="info-value">{{ getEndDate(selectedStudent) }}</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+</div>

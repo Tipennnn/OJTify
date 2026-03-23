@@ -18,8 +18,10 @@ export class AdminSidenavComponent {
     private router: Router,
     private appwrite: AppwriteService
   ) {
+    // Automatically collapse sidenav on smaller screens
     this.isCollapsed = window.innerWidth < 768;
 
+    // Collapse when navigating on small screens
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -29,15 +31,18 @@ export class AdminSidenavComponent {
       });
   }
 
+  // Toggle sidenav open/close
   toggleNav() {
     this.isCollapsed = !this.isCollapsed;
   }
 
+  // Handle window resize to automatically collapse
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
     this.isCollapsed = event.target.innerWidth < 768;
   }
 
+  // Logout function
   async onLogout() {
     const result = await Swal.fire({
       title: 'Log out?',

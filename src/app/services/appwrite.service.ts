@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Client, Account, Databases, Storage } from 'appwrite';
-import { environment } from '../../environments/environment';
+import { environment } from '../../environments/environment.example';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })

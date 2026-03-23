@@ -11,11 +11,12 @@ import { AdminDashboardComponent } from './admin/admin-dashboard/admin-dashboard
 import { AdminSidenavComponent } from './admin/admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from './admin/admin-topnav/admin-topnav.component';
 import { AdminApplicantsComponent } from './admin/admin-applicants/admin-applicants.component';
-import { AdminTasksComponent } from './admin/admin-tasks/admin-tasks.component'; // <-- new component
+import { AdminTasksComponent } from './admin/admin-tasks/admin-tasks.component';
 import { AdminOjtComponent } from './admin/admin-ojt/admin-ojt.component';
 import { AdminAttendanceComponent } from './admin/admin-attendance/admin-attendance.component';
 import { AdminOjtProfileComponent } from './admin/admin-ojt-profile/admin-ojt-profile.component';
 import { AdminAttendanceHistoryComponent } from './admin/admin-attendance-history/admin-attendance-history.component';
+import { AdminCompletedOjtComponent } from './admin/admin-completed-ojt/admin-completed-ojt.component'; // <-- NEW
 
 import { authGuard } from './guards/auth.guard';
 
@@ -36,9 +37,10 @@ export const routes: Routes = [
   { path: 'admin-sidenav', component: AdminSidenavComponent },
   { path: 'admin-topnav', component: AdminTopnavComponent },
   { path: 'admin-applicants', component: AdminApplicantsComponent },
-  { path: 'admin-tasks', component: AdminTasksComponent }, // <-- added route
+  { path: 'admin-tasks', component: AdminTasksComponent },
   { path: 'admin-ojt', component: AdminOjtComponent },
   { path: 'admin-attendance', component: AdminAttendanceComponent },
   { path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent },
-  { path: 'admin-attendance-history', component: AdminAttendanceHistoryComponent }, // <-- your new route
+  { path: 'admin-attendance-history', component: AdminAttendanceHistoryComponent },
+  { path: 'admin-completed-ojt', component: AdminCompletedOjtComponent }, // <-- NEW
 ];
