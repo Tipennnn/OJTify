@@ -33,11 +33,13 @@ interface Student {
   styleUrl: './admin-ojt.component.css'
 })
 export class AdminOjtComponent implements OnInit {
+  
 
   students        : Student[] = [];
   filteredStudents: Student[] = [];
   loading         = false;
   searchQuery     = '';
+  isCollapsed     = false;
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
@@ -68,6 +70,10 @@ export class AdminOjtComponent implements OnInit {
     }
   }
 
+  onToggleSidebar(collapsed: boolean) {
+    this.isCollapsed = collapsed;
+  }
+ 
   openProfile(student: Student) {
     this.router.navigate(['/admin-ojt-profile', student.$id]);
   }
@@ -91,22 +97,23 @@ export class AdminOjtComponent implements OnInit {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
   }
 
- getProgress(s: Student): number {
-  const completed = s.completed_hours || 0;
-  const required  = s.required_hours  || 500;
-  return Math.min(parseFloat(((completed / required) * 100).toFixed(1)), 100);
-}
+  getProgress(s: Student): number {
+    const completed = s.completed_hours || 0;
+    const required  = s.required_hours  || 500;
+    return Math.min(parseFloat(((completed / required) * 100).toFixed(1)), 100);
+  }
 
   getStartDate(student: Student): string {
     return new Date(student.$createdAt).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   }
- getAvatarUrl(student: Student): string {
-  if (student.profile_photo_id) {
-    return this.getPhotoUrl(student.profile_photo_id);
+
+  getAvatarUrl(student: Student): string {
+    if (student.profile_photo_id) {
+      return this.getPhotoUrl(student.profile_photo_id);
+    }
+    const initials = `${student.first_name.charAt(0)} ${student.last_name.charAt(0)}`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
   }
-  const initials = `${student.first_name.charAt(0)} ${student.last_name.charAt(0)}`;
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
-}
 }

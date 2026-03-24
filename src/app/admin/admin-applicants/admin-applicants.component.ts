@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
-import { ID } from 'appwrite';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment.example';
 
@@ -46,6 +45,10 @@ interface Applicant {
 })
 export class AdminApplicantsComponent implements OnInit {
 
+  // 🔥 SIDENAV STATE
+  isCollapsed = false;
+
+  // DATA
   applicants        : Applicant[] = [];
   filteredApplicants: Applicant[] = [];
   selectedApplicant : Applicant | null = null;
@@ -59,6 +62,11 @@ export class AdminApplicantsComponent implements OnInit {
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
   constructor(private appwrite: AppwriteService) {}
+
+  // 🔥 RECEIVE SIDENAV TOGGLE
+  onToggleSidebar(state: boolean) {
+    this.isCollapsed = state;
+  }
 
   async ngOnInit() {
     await this.loadApplicants();
@@ -116,9 +124,9 @@ export class AdminApplicantsComponent implements OnInit {
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-  'Content-Type': 'application/json',
-  'api-key': environment.brevoApiKey
-},
+          'Content-Type': 'application/json',
+          'api-key': environment.brevoApiKey
+        },
         body: JSON.stringify({
           sender: {
             name:  'OJTify Admin',

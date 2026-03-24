@@ -1,7 +1,9 @@
-<div class="dashboard-wrapper">
+<div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-  <app-admin-sidenav></app-admin-sidenav>
+  <!-- SIDENAV -->
+  <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
 
+  <!-- MAIN SECTION -->
   <div class="main-section">
     <app-admin-topnav></app-admin-topnav>
 
@@ -43,9 +45,9 @@
                   (click)="openProfile(student)"
                   style="cursor:pointer;">
                 <td class="profile-name">
-                <img [src]="getAvatarUrl(student)"
-                  class="profile-pic"
-                   alt="Profile">
+                  <img [src]="getAvatarUrl(student)"
+                       class="profile-pic"
+                       alt="Profile">
                   <span>{{ getFullName(student) }}</span>
                 </td>
                 <td>{{ student.student_id }}</td>
@@ -58,11 +60,11 @@
                          [style.width]="getProgress(student) + '%'">
                     </div>
                   </div>
-                 <span class="progress-text">
-                {{ student.completed_hours || 0 }} /
-                {{ student.required_hours  || 500 }} hrs
-                ({{ getProgress(student) }}%)
-              </span>
+                  <span class="progress-text">
+                    {{ student.completed_hours || 0 }} /
+                    {{ student.required_hours  || 500 }} hrs
+                    ({{ getProgress(student) }}%)
+                  </span>
                 </td>
               </tr>
 
@@ -80,13 +82,13 @@
             <button class="page-btn">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
-          
+
             <div class="page-numbers">
               <span class="page active">1</span>
               <span class="page">2</span>
               <span class="page">3</span>
             </div>
-          
+
             <button class="page-btn">
               <i class="fa-solid fa-chevron-right"></i>
             </button>

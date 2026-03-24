@@ -1,8 +1,11 @@
-<div class="dashboard-wrapper">
+<div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-  <app-admin-sidenav></app-admin-sidenav>
+  <!-- SIDENAV -->
+  <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
 
+  <!-- MAIN SECTION -->
   <div class="main-section">
+
     <app-admin-topnav></app-admin-topnav>
 
     <div class="dashboard-content">
@@ -94,18 +97,15 @@
             </tbody>
           </table>
 
-          
           <div class="pagination">
             <button class="page-btn">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
-          
             <div class="page-numbers">
               <span class="page active">1</span>
               <span class="page">2</span>
               <span class="page">3</span>
             </div>
-          
             <button class="page-btn">
               <i class="fa-solid fa-chevron-right"></i>
             </button>
@@ -113,12 +113,9 @@
         </div>
       </div>
 
-
-        </div>
-      </div>
-
     </div>
-  
+  </div>
+</div>
 
 
 <!-- ══════════════════════════════════════ -->
@@ -227,8 +224,7 @@
             <i class="fa-solid fa-download"></i>
           </a>
         </div>
-        <span *ngIf="!selectedApplicant.resume_file_id"
-              class="no-file">No file uploaded</span>
+        <span *ngIf="!selectedApplicant.resume_file_id" class="no-file">No file uploaded</span>
       </div>
 
       <!-- ENDORSEMENT -->
@@ -244,8 +240,7 @@
             <i class="fa-solid fa-download"></i>
           </a>
         </div>
-        <span *ngIf="!selectedApplicant.endorsement_file_id"
-              class="no-file">No file uploaded</span>
+        <span *ngIf="!selectedApplicant.endorsement_file_id" class="no-file">No file uploaded</span>
       </div>
 
       <!-- COE -->
@@ -261,8 +256,7 @@
             <i class="fa-solid fa-download"></i>
           </a>
         </div>
-        <span *ngIf="!selectedApplicant.coe_file_id"
-              class="no-file">No file uploaded</span>
+        <span *ngIf="!selectedApplicant.coe_file_id" class="no-file">No file uploaded</span>
       </div>
 
       <!-- ACTIONS -->

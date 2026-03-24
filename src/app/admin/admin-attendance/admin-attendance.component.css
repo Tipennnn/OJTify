@@ -14,19 +14,41 @@ body {
   display: flex;
   height: 100vh;
 }
-
-.main-section {
-  margin-left: 260px;
-  flex: 1;
-  background: #f3f4f6;
+.sidenav {
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  top: 0; left: 0;
+  transition: all 0.3s ease;
 }
 
+.dashboard-wrapper.collapsed .sidenav {
+  width: 80px;
+}
+.main-section {
+  position: absolute;
+  background: #f3f4f6;
+  top: 0;
+  left: 260px;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+}
+.dashboard-wrapper.collapsed .main-section {
+  left: 80px;
+}
 app-admin-topnav {
   position: fixed;
   top: 0;
   left: 260px;
+  right: 0;
   width: calc(100% - 260px);
   z-index: 100;
+  transition: left 0.3s ease;
+}
+.dashboard-wrapper.collapsed app-admin-topnav {
+  left: 80px;
 }
 
 /* =========================
@@ -180,14 +202,12 @@ app-admin-topnav {
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
-
-  /* NEW */
-  min-height: 600px; /* adjust based on OJT table height */
+  min-height: 600px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* keeps pagination at bottom */
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
 .applicants-table {

@@ -34,6 +34,7 @@ interface AttendanceLog {
   styleUrl: './admin-attendance.component.css'
 })
 export class AdminAttendanceComponent implements OnInit, OnDestroy {
+  isCollapsed = false;
 
   // Table data
   todayLogs       : AttendanceLog[] = [];
@@ -124,7 +125,9 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
     this.loading = false;
   }
 }
-
+onToggleSidebar(collapsed: boolean) {
+  this.isCollapsed = collapsed;
+}
   // ── Search ────────────────────────────────────────────────
   onSearch(event: any) {
     this.searchQuery  = event.target.value.toLowerCase();

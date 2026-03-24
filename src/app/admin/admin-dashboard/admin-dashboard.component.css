@@ -9,6 +9,10 @@ body {
 
 /* DASHBOARD WRAPPER */
 .dashboard-wrapper { display: flex; height: 100vh; }
+/* COLLAPSED */
+.dashboard-wrapper.collapsed .main-section {  
+  margin-left: 80px;
+}
 
 /* SIDENAV */
 .sidenav {
@@ -35,7 +39,7 @@ body {
   background: #f3f4f6;
   transition: margin-left 0.3s ease;
 }
-.sidenav.collapsed ~ .main-section { margin-left: 80px; }
+
 
 /* TOP NAV */
 app-admin-topnav {
@@ -44,13 +48,13 @@ app-admin-topnav {
   left: 260px;
   width: calc(100% - 260px);
   z-index: 100;
-  transition: left 0.3s ease, width 0.3s ease;
+  transition: all 0.3s ease;
 }
-.sidenav.collapsed ~ .main-section app-admin-topnav {
+
+.dashboard-wrapper.collapsed app-admin-topnav {
   left: 80px;
   width: calc(100% - 80px);
 }
-
 /* DASHBOARD CONTENT */
 .dashboard-content { margin-top: 60px; padding: 20px; min-height: calc(100vh - 60px); }
 

@@ -1,7 +1,11 @@
-<div class="dashboard-wrapper">
-    <app-admin-sidenav></app-admin-sidenav>
-    <div class="main-section">
-      <app-admin-topnav></app-admin-topnav>
+<div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
+
+  <!-- SIDENAV -->
+  <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+    <app-admin-topnav></app-admin-topnav>
 
       <div class="dashboard-content">
         <div class="dashboard-header header-flex">

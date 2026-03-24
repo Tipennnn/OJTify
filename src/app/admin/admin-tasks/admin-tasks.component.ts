@@ -47,6 +47,7 @@ export class AdminTasksComponent implements OnInit {
   isCardModalOpen = false;
   loading         = false;
   attachmentLoading = false;
+  isCollapsed     = false;
   // Add these properties
 newAdminComment    = '';
 adminCommentLoading = false;
@@ -179,6 +180,9 @@ taskSubmissions: any[] = [];
     this.filteredInterns = this.allInterns.filter(i =>
       `${i.first_name} ${i.last_name}`.toLowerCase().includes(q)
     );
+  }
+  onToggleSidebar(collapsed: boolean) {
+    this.isCollapsed = collapsed;
   }
 
   isSelected(intern: Intern): boolean {

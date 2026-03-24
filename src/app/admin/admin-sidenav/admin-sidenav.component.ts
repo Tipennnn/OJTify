@@ -1,4 +1,4 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, Output, EventEmitter } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AppwriteService } from '../../services/appwrite.service';
@@ -14,35 +14,35 @@ import Swal from 'sweetalert2';
 export class AdminSidenavComponent {
   isCollapsed = false;
 
+  @Output() toggle = new EventEmitter<boolean>();
+
   constructor(
     private router: Router,
     private appwrite: AppwriteService
   ) {
-    // Automatically collapse sidenav on smaller screens
     this.isCollapsed = window.innerWidth < 768;
 
-    // Collapse when navigating on small screens
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
         if (window.innerWidth < 768) {
           this.isCollapsed = true;
+          this.toggle.emit(this.isCollapsed);
         }
       });
   }
 
-  // Toggle sidenav open/close
   toggleNav() {
     this.isCollapsed = !this.isCollapsed;
+    this.toggle.emit(this.isCollapsed);
   }
 
-  // Handle window resize to automatically collapse
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
     this.isCollapsed = event.target.innerWidth < 768;
+    this.toggle.emit(this.isCollapsed);
   }
 
-  // Logout function
   async onLogout() {
     const result = await Swal.fire({
       title: 'Log out?',

@@ -10,22 +10,37 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, AdminSidenavComponent, AdminTopnavComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    AdminSidenavComponent,
+    AdminTopnavComponent
+  ],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
 })
 export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
+  // 🔥 SIDENAV STATE (IMPORTANT)
+  isCollapsed = false;
+
+  // DATA
   totalInterns = 0;
   pendingApplicants = 0;
   approvedCount = 0;
   declinedCount = 0;
 
+  // CHARTS
   attendanceChart: any;
   applicantsChart: any;
   timeChart: any;
 
   constructor(private appwrite: AppwriteService) {}
+
+  // 🔥 RECEIVE SIDENAV TOGGLE
+  onToggleSidebar(state: boolean) {
+    this.isCollapsed = state;
+  }
 
   async ngOnInit() {
     await this.loadCounts();
@@ -34,6 +49,7 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
       try {
         await this.appwrite.account.get();
         sessionStorage.setItem('adminWelcomeShown', 'true');
+
         Swal.fire({
           icon: 'success',
           title: `Welcome back, Admin!`,
@@ -84,46 +100,72 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
 
     const blue = '#3b82f6';
     const gray = '#9ca3af';
-    const green = '#22c55e';
     const orange = '#f97316';
 
-    // Attendance Chart
+    // ATTENDANCE CHART
     if (this.attendanceChart) this.attendanceChart.destroy();
+
     const presentGrad = attendanceCtx.createLinearGradient(0,0,0,300);
-    presentGrad.addColorStop(0, '#3b82f6'); presentGrad.addColorStop(1, '#60a5fa');
+    presentGrad.addColorStop(0, '#3b82f6');
+    presentGrad.addColorStop(1, '#60a5fa');
+
     const absentGrad = attendanceCtx.createLinearGradient(0,0,0,300);
-    absentGrad.addColorStop(0, '#9ca3af'); absentGrad.addColorStop(1, '#d1d5db');
+    absentGrad.addColorStop(0, '#9ca3af');
+    absentGrad.addColorStop(1, '#d1d5db');
 
     this.attendanceChart = new Chart(attendanceCtx, {
       type: 'bar',
       data: {
         labels: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
         datasets: [
-          { label:'Present', data:[30,50,48,45,42,47,50], backgroundColor: presentGrad, borderRadius:10, barThickness:20 },
-          { label:'Absent', data:[20,5,7,10,8,3,5], backgroundColor: absentGrad, borderRadius:10, barThickness:20 }
+          {
+            label:'Present',
+            data:[30,50,48,45,42,47,50],
+            backgroundColor: presentGrad,
+            borderRadius:10,
+            barThickness:20
+          },
+          {
+            label:'Absent',
+            data:[20,5,7,10,8,3,5],
+            backgroundColor: absentGrad,
+            borderRadius:10,
+            barThickness:20
+          }
         ]
       },
       options: {
         responsive:true,
         maintainAspectRatio:false,
-        plugins: { legend:{ position:'top', labels:{ color:'#374151', font:{ size:13, weight:500 } } } },
+        plugins: {
+          legend:{
+            position:'top',
+            labels:{ color:'#374151', font:{ size:13, weight:500 } }
+          }
+        },
         scales: {
-          x: { grid:{ color:'#e5e7eb' }, ticks:{ color:'#6b7280', font:{ size:12 } } },
-          y: { grid:{ color:'#e5e7eb' }, ticks:{ color:'#6b7280', font:{ size:12 }, stepSize:10 } }
+          x:{ grid:{ color:'#e5e7eb' }, ticks:{ color:'#6b7280', font:{ size:12 } } },
+          y:{ grid:{ color:'#e5e7eb' }, ticks:{ color:'#6b7280', font:{ size:12 }, stepSize:10 } }
         }
       }
     });
 
-    // Donut Chart
+    // DONUT CHART
     if (this.applicantsChart) this.applicantsChart.destroy();
+
     const total = this.approvedCount + this.declinedCount + this.pendingApplicants;
 
     const gradApproved = applicantsCtx.createLinearGradient(0,0,0,150);
-    gradApproved.addColorStop(0, '#6ee7b7'); gradApproved.addColorStop(1,'#10b981');
+    gradApproved.addColorStop(0, '#6ee7b7');
+    gradApproved.addColorStop(1,'#10b981');
+
     const gradDeclined = applicantsCtx.createLinearGradient(0,0,0,150);
-    gradDeclined.addColorStop(0,'#fca5a5'); gradDeclined.addColorStop(1,'#ef4444');
+    gradDeclined.addColorStop(0,'#fca5a5');
+    gradDeclined.addColorStop(1,'#ef4444');
+
     const gradPending = applicantsCtx.createLinearGradient(0,0,0,150);
-    gradPending.addColorStop(0,'#fcd34d'); gradPending.addColorStop(1,'#f59e0b');
+    gradPending.addColorStop(0,'#fcd34d');
+    gradPending.addColorStop(1,'#f59e0b');
 
     this.applicantsChart = new Chart(applicantsCtx, {
       type:'doughnut',
@@ -141,7 +183,10 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
         maintainAspectRatio:false,
         cutout:'70%',
         plugins:{
-          legend:{ position:'bottom', labels:{ usePointStyle:true, pointStyle:'circle', padding:10, color:'#374151', font:{ size:12 } } },
+          legend:{
+            position:'bottom',
+            labels:{ usePointStyle:true, padding:10, color:'#374151', font:{ size:12 } }
+          },
           tooltip:{
             backgroundColor:'#111827',
             titleColor:'#fff',
@@ -157,30 +202,23 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
             }
           }
         }
-      },
-      plugins:[{
-        id:'centerText',
-        beforeDraw:(chart)=>{
-          const {width,height,ctx} = chart;
-          ctx.save();
-          ctx.font = '700 24px Poppins';
-          ctx.fillStyle='#111827';
-          ctx.textAlign='center';
-          ctx.textBaseline='middle';
-          ctx.fillText(total.toString(),width/2,height/2-3);
-          ctx.font='12px Poppins';
-          ctx.fillStyle='#6b7280';
-          ctx.fillText('Total',width/2,height/2+15);
-          ctx.restore();
-        }
-      }]
+      }
     });
 
-    // Time-In Chart
+    // TIME-IN CHART
     if(this.timeChart) this.timeChart.destroy();
-    const onTimeGrad = timeCtx.createLinearGradient(0,0,0,150); onTimeGrad.addColorStop(0,blue); onTimeGrad.addColorStop(1,'#60a5fa');
-    const lateGrad = timeCtx.createLinearGradient(0,0,0,150); lateGrad.addColorStop(0,orange); lateGrad.addColorStop(1,'#fb923c');
-    const absentGradTime = timeCtx.createLinearGradient(0,0,0,150); absentGradTime.addColorStop(0,gray); absentGradTime.addColorStop(1,'#d1d5db');
+
+    const onTimeGrad = timeCtx.createLinearGradient(0,0,0,150);
+    onTimeGrad.addColorStop(0,blue);
+    onTimeGrad.addColorStop(1,'#60a5fa');
+
+    const lateGrad = timeCtx.createLinearGradient(0,0,0,150);
+    lateGrad.addColorStop(0,orange);
+    lateGrad.addColorStop(1,'#fb923c');
+
+    const absentGradTime = timeCtx.createLinearGradient(0,0,0,150);
+    absentGradTime.addColorStop(0,gray);
+    absentGradTime.addColorStop(1,'#d1d5db');
 
     this.timeChart = new Chart(timeCtx,{
       type:'bar',
@@ -197,8 +235,15 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
       options:{
         responsive:true,
         maintainAspectRatio:false,
-        plugins:{ legend:{ display:false },
-          tooltip:{ backgroundColor:'#111827', titleColor:'#fff', bodyColor:'#fff', padding:8, cornerRadius:6 }
+        plugins:{
+          legend:{ display:false },
+          tooltip:{
+            backgroundColor:'#111827',
+            titleColor:'#fff',
+            bodyColor:'#fff',
+            padding:8,
+            cornerRadius:6
+          }
         },
         scales:{
           x:{ grid:{ color:'#e5e7eb' }, ticks:{ color:'#6b7280', font:{ size:12 } } },

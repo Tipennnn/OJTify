@@ -36,6 +36,7 @@ interface Student {
   styleUrls: ['./admin-completed-ojt.component.css']
 })
 export class AdminCompletedOjtComponent implements OnInit {
+  isCollapsed = false;
 
   students: Student[] = [];
   filteredStudents: Student[] = [];
@@ -73,7 +74,9 @@ export class AdminCompletedOjtComponent implements OnInit {
     ];
     this.filteredStudents = [...this.students];
   }
-
+  onToggleSidebar(collapsed: boolean) {
+    this.isCollapsed = collapsed;
+  }
   populateYears() {
     const currentYear = new Date().getFullYear();
     this.years = [];

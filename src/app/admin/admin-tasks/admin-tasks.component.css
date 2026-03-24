@@ -16,9 +16,41 @@ body {
 
 /* ---------------- LAYOUT ---------------- */
 .dashboard-wrapper { display: flex; height: 100vh; }
+.sidenav {
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  top: 0; left: 0;
+  transition: all 0.3s ease;
+}
+.dashboard-wrapper.collapsed .sidenav {
+  width: 80px;
+}
 app-admin-sidenav { width: 260px; position: fixed; left: 0; top: 0; height: 100vh; z-index: 100; }
-.main-section { margin-left: 260px; flex: 1; overflow-y: auto; background: #f3f4f6;; }
-app-admin-topnav { position: fixed; top: 0; left: 260px; width: calc(100% - 260px); z-index: 90; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+.main-section {
+  position: absolute;
+  background:  #f3f4f6;
+  top: 0;
+  left: 260px;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+}
+.dashboard-wrapper.collapsed .main-section {
+  left: 80px;
+}
+app-admin-topnav {
+  position: fixed;
+  top: 0;
+  left: 260px;
+  right: 0;
+  z-index: 100;
+  transition: left 0.3s ease;
+}
+.dashboard-wrapper.collapsed app-admin-topnav {
+  left: 80px;
+}
 .dashboard-content { margin-top: 60px; padding: 20px; }
 
 /* ---------------- HEADER ---------------- */

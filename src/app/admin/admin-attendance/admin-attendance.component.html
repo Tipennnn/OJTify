@@ -1,9 +1,10 @@
-<div class="dashboard-wrapper">
+<div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-  <app-admin-sidenav></app-admin-sidenav>
+  <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
 
   <div class="main-section">
     <app-admin-topnav></app-admin-topnav>
+    <!-- ... rest stays the same ... -->
 
     <div class="dashboard-content">
 

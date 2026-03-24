@@ -29,19 +29,24 @@ body {
   overflow-y: auto;
 }
 
-.sidenav.collapsed { width: 80px; }
+.dashboard-wrapper.collapsed .sidenav {
+  width: 80px;
+}
 
 /* MAIN SECTION */
 .main-section {
-  margin-left: 260px;
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 260px;
+  right: 0;
+  bottom: 0;
   overflow-y: auto;
   background: #f3f4f6;
-  transition: margin-left 0.3s ease;
+  transition: left 0.3s ease;
 }
 
-.sidenav.collapsed ~ .main-section {
-  margin-left: 80px;
+.dashboard-wrapper.collapsed .main-section {
+  left: 80px;
 }
 
 /* TOP NAV */
@@ -49,14 +54,13 @@ app-admin-topnav {
   position: fixed;
   top: 0;
   left: 260px;
-  width: calc(100% - 260px);
+  right: 0;
   z-index: 100;
-  transition: left 0.3s ease, width 0.3s ease;
+  transition: left 0.3s ease;
 }
 
-.sidenav.collapsed ~ .main-section app-admin-topnav {
+.dashboard-wrapper.collapsed app-admin-topnav {
   left: 80px;
-  width: calc(100% - 80px);
 }
 
 /* DASHBOARD CONTENT */
@@ -64,6 +68,8 @@ app-admin-topnav {
   margin-top: 60px;
   padding: 20px;
   min-height: calc(100vh - 60px);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* DASHBOARD HEADER */
@@ -80,7 +86,7 @@ app-admin-topnav {
   margin-bottom: 14px;
 }
 
-/* FLEX HEADER (for search bar) */
+/* FLEX HEADER */
 .header-flex {
   display: flex;
   justify-content: space-between;
@@ -95,6 +101,30 @@ app-admin-topnav {
   background: #e5e7eb;
   margin-left: 20px;
   margin-bottom: 20px;
+}
+
+/* =========================
+   HEADER ACTIONS
+========================= */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* DROPDOWN FILTER */
+.status-filter {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+}
+
+.status-filter:hover {
+  border-color: #9ca3af;
 }
 
 /* =========================
@@ -149,14 +179,14 @@ app-admin-topnav {
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
-
-  min-height: 600px; /* Fixed height for consistent UI */
+  min-height: 600px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* pagination stays at bottom */
+  justify-content: space-between;
+  box-sizing: border-box;
 }
+
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
@@ -200,14 +230,9 @@ app-admin-topnav {
   font-weight: 500;
 }
 
-.profile-pic {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-}
-
+/* =========================
+   ACTION BUTTONS (TABLE)
+========================= */
 .actions {
   display: flex;
   gap: 6px;
@@ -247,7 +272,84 @@ app-admin-topnav {
 }
 
 /* =========================
-   MODAL STYLES (UNCHANGED)
+   STATUS BADGES
+========================= */
+.status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+  transition: all 0.2s ease;
+}
+
+.badge-pending {
+  background: #fff7ed;
+  color: #f59e0b;
+}
+
+.badge-approved {
+  background: #e8f7ee;
+  color: #16a34a;
+}
+
+.badge-declined {
+  background: #fdeaea;
+  color: #dc2626;
+}
+
+/* =========================
+   PAGINATION
+========================= */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.page-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.page-btn:hover {
+  background: #f3f4f6;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.page {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: 0.2s ease;
+}
+
+.page:hover {
+  background: #e5e7eb;
+}
+
+.page.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* =========================
+   MODAL STYLES
 ========================= */
 .modal-overlay {
   position: fixed;
@@ -262,7 +364,6 @@ app-admin-topnav {
   z-index: 1000;
 }
 
-/* Modal container */
 .modern-modal {
   width: 650px;
   max-height: 90vh;
@@ -275,38 +376,26 @@ app-admin-topnav {
   transition: all 0.3s ease;
   font-family: 'Poppins', sans-serif;
 }
-.modal-header {
-  text-align: center;
-  margin-bottom: 25px;
-}
 
-.modal-header h3 {
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  border: none;
+  background: none;
   font-size: 22px;
-  font-weight: 700;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.modal-close-btn:hover {
   color: #111827;
-  margin-bottom: 8px;
 }
 
-.modal-header .status-badge {
-  padding: 8px 16px;
-  border-radius: 30px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.profile-section {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.profile-circle {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  border: 2px solid #111827;
-  position: relative;
-}
-
+/* =========================
+   MODAL FORM SECTIONS
+========================= */
 .form-section {
   background: #f9fafb;
   padding: 20px;
@@ -325,60 +414,82 @@ app-admin-topnav {
   padding-bottom: 6px;
 }
 
-
-
-
-.form-section input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  font-size: 13px;
+/* INFO GRID */
+.info-row {
+  display: grid;
+  gap: 20px;
 }
 
-.form-row {
+.three-col { grid-template-columns: repeat(3, 1fr); }
+.two-col   { grid-template-columns: repeat(2, 1fr); }
+
+.info-item {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
 }
 
+.info-label {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+/* FILE BOX */
 .file-box {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px dashed #9ca3af;
-  border-radius: 8px;
-  padding: 10px 15px;
-  margin-bottom: 10px;
+  padding: 12px 16px;
   background: #fff;
-  font-size: 13px;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
 }
 
-.file-box input[type="file"] {
-  position: absolute;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+.file-box:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-.file-icons i {
+.file-label {
   font-size: 14px;
-  color: #6b7280;
-  margin-left: 4px;
-  margin-right: 4px;
-  cursor: pointer;
+  font-weight: 600;
+  color: #111827;
 }
 
-.file-icons i:hover {
-  color: #111827;
-  transform: scale(1.1);
+.file-icons a {
+  color: #6b7280;
+  font-size: 16px;
+  margin-left: 12px;
   transition: all 0.2s ease;
 }
 
-/* Modal actions */
+.file-icons a:hover {
+  color: #2563eb;
+  transform: scale(1.2);
+}
+
+.no-file {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* MODAL ACTION BUTTONS */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -415,282 +526,4 @@ app-admin-topnav {
   background: #ef4444;
   color: #fff;
   transform: scale(1.05);
-}
-/* para magkatabi search + dropdown */
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* dropdown filter */
-.status-filter {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  font-size: 13px;
-  font-family: 'Poppins', sans-serif;
-  cursor: pointer;
-}
-
-.status-filter:hover {
-  border-color: #9ca3af;
-}
-
-/* status badge sa table */
-/* status badge plain text */
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: capitalize;
-  background: #f3f4f6; /* optional light background for shape */
-  color: #111827;      /* plain text color */
-}
-/* ACTION BUTTONS (TABLE + MODAL) */
-.actions {
-  display: flex;
-  gap: 6px;
-}
-
-.actions button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  min-width: 80px;
-}
-
-.accept-btn {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.accept-btn:hover {
-  background: #22c55e;
-  color: #fff;
-  transform: scale(1.05);
-}
-
-.decline-btn {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.decline-btn:hover {
-  background: #ef4444;
-  color: #fff;
-  transform: scale(1.05);
-}
-
-/* MODAL BUTTONS */
-.modal-actions button {
-  padding: 10px 18px;
-  border-radius: 8px;
-  border: none;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-/* INFO DISPLAY */
-/* Info sections */
-.form-section {
-  background: #f9fafb;
-  padding: 20px;
-  border-radius: 14px;
-  margin-bottom: 20px;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
-}
-
-.section-header {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 15px;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 6px;
-}
-
-/* Info grid */
-.info-row {
-  display: grid;
-  gap: 20px;
-}
-
-.three-col { grid-template-columns: repeat(3, 1fr); }
-.two-col   { grid-template-columns: repeat(2, 1fr); }
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.info-label {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  margin-top: 10px;
-  margin-bottom: 4px;
-  text-transform: uppercase;
-}
-
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-}
-/* FILE BOX */
-.file-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-  background: #fff;
-}
-
-.file-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px dashed #d1d5db;
-  margin-bottom: 12px;
-  transition: all 0.3s ease;
-}
-
-.file-box:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-
-.file-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.file-icons a {
-  color: #6b7280;
-  font-size: 16px;
-  margin-left: 12px;
-  transition: all 0.2s ease;
-}
-
-.file-icons a:hover {
-  color: #2563eb;
-  transform: scale(1.2);
-}
-
-.no-file {
-  font-size: 13px;
-  color: #9ca3af;
-}
-
-
-/* Close button */
-.modal-close-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  border: none;
-  background: none;
-  font-size: 22px;
-  cursor: pointer;
-  color: #9ca3af;
-  transition: color 0.2s ease;
-}
-
-.modal-close-btn:hover { color: #111827; }
-/* BASE BADGE */
-.status-badge {
-  display: inline-block;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 999px; /* pill shape */
-
-  letter-spacing: 0.3px;
-  text-transform: capitalize;
-
-  transition: all 0.2s ease;
-}
-
-/* 🟡 PENDING */
-.badge-pending {
-  background: #fff7ed;
-  color: #f59e0b;
-}
-
-/* 🟢 APPROVED */
-.badge-approved {
-  background: #e8f7ee;
-  color: #16a34a;
-}
-
-/* 🔴 DECLINED */
-.badge-declined {
-  background: #fdeaea;
-  color: #dc2626;
-}
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-/* Arrow buttons */
-.page-btn {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.page-btn:hover {
-  background: #f3f4f6;
-}
-
-/* Page numbers */
-.page-numbers {
-  display: flex;
-  gap: 6px;
-}
-
-.page {
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  color: #374151;
-  transition: 0.2s ease;
-}
-
-.page:hover {
-  background: #e5e7eb;
-}
-
-/* Active page */
-.page.active {
-  background: #2563eb;
-  color: #ffffff;
-  font-weight: 500;
 }

@@ -29,19 +29,24 @@ body {
   overflow-y: auto;
 }
 
-.sidenav.collapsed { width: 80px; }
+.dashboard-wrapper.collapsed .sidenav {
+  width: 80px;
+}
 
 /* MAIN SECTION */
 .main-section {
-  margin-left: 260px;
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 260px;
+  right: 0;
+  bottom: 0;
   overflow-y: auto;
   background: #f3f4f6;
-  transition: margin-left 0.3s ease;
+  transition: left 0.3s ease;
 }
 
-.sidenav.collapsed ~ .main-section {
-  margin-left: 80px;
+.dashboard-wrapper.collapsed .main-section {
+  left: 80px;
 }
 
 /* TOP NAV */
@@ -49,14 +54,13 @@ app-admin-topnav {
   position: fixed;
   top: 0;
   left: 260px;
-  width: calc(100% - 260px);
+  right: 0;
   z-index: 100;
-  transition: left 0.3s ease, width 0.3s ease;
+  transition: left 0.3s ease;
 }
 
-.sidenav.collapsed ~ .main-section app-admin-topnav {
+.dashboard-wrapper.collapsed app-admin-topnav {
   left: 80px;
-  width: calc(100% - 80px);
 }
 
 /* DASHBOARD CONTENT */
@@ -64,6 +68,8 @@ app-admin-topnav {
   margin-top: 60px;
   padding: 20px;
   min-height: calc(100vh - 60px);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* DASHBOARD HEADER */
@@ -80,7 +86,7 @@ app-admin-topnav {
   margin-bottom: 14px;
 }
 
-/* FLEX HEADER (for search bar) */
+/* FLEX HEADER */
 .header-flex {
   display: flex;
   justify-content: space-between;
@@ -141,7 +147,7 @@ app-admin-topnav {
 }
 
 /* =========================
-   TABLE STYLING (from admin-applicants)
+   TABLE STYLING
 ========================= */
 .table-container {
   background: #ffffff;
@@ -149,8 +155,12 @@ app-admin-topnav {
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
 .applicants-table {
@@ -203,7 +213,10 @@ app-admin-topnav {
   object-fit: cover;
   border: 2px solid #e5e7eb;
 }
-/* HOURS PROGRESS */
+
+/* =========================
+   HOURS PROGRESS
+========================= */
 .progress-bar {
   width: 100%;
   height: 12px;
@@ -215,7 +228,7 @@ app-admin-topnav {
 
 .progress-fill {
   height: 100%;
-  background: #10b981; /* green like approve button */
+  background: #10b981;
   border-radius: 6px;
   transition: width 0.3s ease;
 }
@@ -224,8 +237,9 @@ app-admin-topnav {
   font-size: 12px;
   color: #374151;
 }
+
 /* =========================
-   PAGINATION UI ONLY
+   PAGINATION
 ========================= */
 .pagination {
   display: flex;
@@ -235,7 +249,6 @@ app-admin-topnav {
   margin-top: 15px;
 }
 
-/* Arrow buttons */
 .page-btn {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -249,7 +262,6 @@ app-admin-topnav {
   background: #f3f4f6;
 }
 
-/* Page numbers */
 .page-numbers {
   display: flex;
   gap: 6px;
@@ -268,7 +280,6 @@ app-admin-topnav {
   background: #e5e7eb;
 }
 
-/* Active page */
 .page.active {
   background: #2563eb;
   color: #ffffff;

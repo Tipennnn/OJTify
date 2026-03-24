@@ -11,34 +11,35 @@ body {
 .dashboard-wrapper {
     display: flex;
     height: 100vh;
-}
-
-/* SIDENAV */
-.sidenav {
+  }
+  
+  .sidenav {
     width: 260px;
     height: 100vh;
     position: fixed;
-    top: 0;
-    left: 0;
-    background: #fff;
-    border-right: 1px solid #e5e7eb;
-    display: flex;
-    flex-direction: column;
-    padding: 22px;
+    top: 0; left: 0;
     transition: all 0.3s ease;
-    overflow-y: auto;
-}
-
+  }
+  
+  .dashboard-wrapper.collapsed .sidenav {
+    width: 80px;
+  }
 .sidenav.collapsed { width: 80px; }
 
+.dashboard-wrapper.collapsed .main-section {
+    left: 80px;
+  }
 /* MAIN SECTION */
 .main-section {
-    margin-left: 260px;
-    flex: 1;
+    position: absolute;
+    top: 0;
+    left: 260px;
+    right: 0;
+    bottom: 0;
     overflow-y: auto;
+    transition: left 0.3s ease;
     background: #f3f4f6;
-    transition: margin-left 0.3s ease;
-}
+  }
 
 .sidenav.collapsed ~ .main-section { margin-left: 80px; }
 
@@ -47,16 +48,17 @@ app-admin-topnav {
     position: fixed;
     top: 0;
     left: 260px;
-    width: calc(100% - 260px);
+    right: 0;
     z-index: 100;
-    transition: left 0.3s ease, width 0.3s ease;
-}
-
+    transition: left 0.3s ease;
+  }
 .sidenav.collapsed ~ .main-section app-admin-topnav {
     left: 80px;
     width: calc(100% - 80px);
 }
-
+.dashboard-wrapper.collapsed app-admin-topnav {
+    left: 80px;
+  }
 /* DASHBOARD CONTENT */
 .dashboard-content {
     margin-top: 60px;
@@ -145,8 +147,12 @@ app-admin-topnav {
     border-radius: 14px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     width: 100%;
-    max-width: 1200px;
     margin: 0 auto;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
   }
 
 .applicants-table {
@@ -230,8 +236,8 @@ app-admin-topnav {
 .filter-btn {
     background-color: #2563eb;
     color: #fff;
-    margin-left: 595px;
-    margin-right: 5px;
+    margin-left: 580px;
+    margin-right: 9px;
     padding: 8px 18px;
     border-radius: 8px;
     border: none;
