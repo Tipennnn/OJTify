@@ -13,6 +13,7 @@ import Swal from 'sweetalert2';
 })
 export class AdminSidenavComponent {
   isCollapsed = false;
+  private manuallyCollapsed = false;
 
   @Output() toggle = new EventEmitter<boolean>();
 
@@ -21,12 +22,14 @@ export class AdminSidenavComponent {
     private appwrite: AppwriteService
   ) {
     this.isCollapsed = window.innerWidth < 768;
+    this.manuallyCollapsed = this.isCollapsed;
 
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
         if (window.innerWidth < 768) {
           this.isCollapsed = true;
+          this.manuallyCollapsed = true;
           this.toggle.emit(this.isCollapsed);
         }
       });
@@ -34,12 +37,22 @@ export class AdminSidenavComponent {
 
   toggleNav() {
     this.isCollapsed = !this.isCollapsed;
+    this.manuallyCollapsed = this.isCollapsed;
     this.toggle.emit(this.isCollapsed);
   }
 
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
-    this.isCollapsed = event.target.innerWidth < 768;
+    const isMobile = event.target.innerWidth < 768;
+
+    if (isMobile) {
+      this.isCollapsed = true;
+    } else {
+      if (!this.manuallyCollapsed) {
+        this.isCollapsed = false;
+      }
+    }
+
     this.toggle.emit(this.isCollapsed);
   }
 
