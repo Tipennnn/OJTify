@@ -40,6 +40,7 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
   todayLogs       : AttendanceLog[] = [];
   filteredLogs    : AttendanceLog[] = [];
   allStudents     : any[]           = [];
+  allArchived : any[] = [];  // ← add this
   loading         = false;
   searchQuery     = '';
 
@@ -70,17 +71,26 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
   }
 
   // ── Load all students ─────────────────────────────────────
-  async loadStudents() {
-    try {
-      const res       = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      this.allStudents = res.documents as any[];
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
-    }
+ async loadStudents() {
+  try {
+    // Load active students
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    this.allStudents = res.documents as any[];
+
+    // Also load archived students so their names still resolve in logs
+    const archiveRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ARCHIVES_COL
+    );
+    this.allArchived = archiveRes.documents as any[];
+
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
   }
+}
 
   // ── Load today's attendance ───────────────────────────────
   async loadTodayAttendance() {
@@ -99,7 +109,8 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
       .filter(d => d.date === today);
 
     this.todayLogs = todayDocs.map(doc => {
-      const student = this.allStudents.find(s => s.$id === doc.student_id);
+      const student = this.allStudents.find(s => s.$id === doc.student_id)
+             ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
       return {
         $id:               doc.$id,
         student_id:        doc.student_id,
@@ -261,7 +272,8 @@ stopCamera() {
   this.scanLoading = true;
 
   try {
-    const student = this.allStudents.find(s => s.$id === studentId);
+    const student = this.allStudents.find(s => s.$id === studentId)
+             ?? this.allArchived.find(s => s.student_doc_id === studentId);
 
     if (!student) {
       Swal.fire({

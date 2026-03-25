@@ -3,15 +3,17 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
+import { AppwriteService } from '../../services/appwrite.service';
+import { Query } from 'appwrite';
 
 interface Student {
+  $id: string;
+  student_doc_id: string;
   first_name: string;
   middle_name?: string;
   last_name: string;
   student_id: string;
   email: string;
-  ojt_start: string;
-  ojt_end: string;
   contact_number?: string;
   birthday?: string;
   gender?: string;
@@ -19,8 +21,19 @@ interface Student {
   school_name?: string;
   course?: string;
   year_level?: string;
+  profile_photo_id?: string;
   required_hours?: number;
   completed_hours?: number;
+  ojt_start: string;
+  ojt_end: string;
+  archived_at: string;
+}
+
+interface AttendanceLog {
+  date: string;
+  time_in: string;
+  time_out: string;
+  status: string;
 }
 
 @Component({
@@ -37,50 +50,83 @@ interface Student {
 })
 export class AdminCompletedOjtComponent implements OnInit {
   isCollapsed = false;
+  loading = false;
 
   students: Student[] = [];
   filteredStudents: Student[] = [];
   searchQuery = '';
 
   years: number[] = [];
-  months: string[] = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  months: string[] = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
 
-  // Modal
-  showModal: boolean = false;
+  showModal = false;
   selectedStudent: Student | null = null;
 
-  ngOnInit() {
-    this.loadMockStudents();
+  // Attendance logs modal
+  showAttendanceLogsModal = false;
+  attendanceLogs: AttendanceLog[] = [];
+  attendanceLoading = false;
+
+  readonly BUCKET_ID  = '69baaf64002ceb2490df';
+  readonly PROJECT_ID = '69ba8d9c0027d10c447f';
+  readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+
+  constructor(private appwrite: AppwriteService) {}
+
+  async ngOnInit() {
     this.populateYears();
+    await this.loadCompletedStudents();
   }
 
-  loadMockStudents() {
-    this.students = [
-      { 
-        first_name: 'John Ron', middle_name: 'Bautista', last_name: 'Diza',
-        student_id: '2313213131', email: 'johnrondiza1106@gmail.com',
-        ojt_start: '2026-01-01', ojt_end: '2026-03-20',
-        contact_number:'09384718273', birthday:'2014-06-19', gender:'Male', home_address:'43 Arthur St. WBB Olongapo City',
-        school_name:'Gordon College', course:'BSIT', year_level:'3rd',
-        required_hours: 500, completed_hours: 0
-      },
-      { 
-        first_name: 'Maria', last_name: 'Santos', student_id: 'ST124', email: 'maria@example.com',
-        ojt_start: '2026-01-05', ojt_end: '2026-03-18',
-        contact_number:'09123456780', birthday:'2004-02-01', gender:'Female', home_address:'456 Street',
-        school_name:'XYZ University', course:'CS', year_level:'2nd',
-        required_hours: 500, completed_hours: 500
-      }
-    ];
-    this.filteredStudents = [...this.students];
+  async loadCompletedStudents() {
+    this.loading = true;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ARCHIVES_COL
+      );
+      this.students         = res.documents as any[];
+      this.filteredStudents = [...this.students];
+    } catch (error: any) {
+      console.error('Failed to load archived students:', error.message);
+    } finally {
+      this.loading = false;
+    }
   }
-  onToggleSidebar(collapsed: boolean) {
-    this.isCollapsed = collapsed;
+
+  async loadAttendanceLogs(student: Student) {
+    this.attendanceLoading = true;
+    this.attendanceLogs = [];
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        [
+          Query.equal('student_id', student.student_doc_id),
+          Query.orderAsc('date'),
+          Query.limit(200)
+        ]
+      );
+      this.attendanceLogs = (res.documents as any[]).map(doc => ({
+        date:     doc.date,
+        time_in:  doc.time_in  || '—',
+        time_out: doc.time_out || '—',
+        status:   doc.status
+      }));
+    } catch (error: any) {
+      console.error('Failed to load attendance logs:', error.message);
+    } finally {
+      this.attendanceLoading = false;
+    }
   }
+
+  onToggleSidebar(collapsed: boolean) { this.isCollapsed = collapsed; }
+
   populateYears() {
     const currentYear = new Date().getFullYear();
     this.years = [];
-    for(let i=currentYear; i>=currentYear-5; i--) this.years.push(i);
+    for (let i = currentYear; i >= currentYear - 5; i--) this.years.push(i);
   }
 
   onSearch(event: any) {
@@ -94,48 +140,72 @@ export class AdminCompletedOjtComponent implements OnInit {
   }
 
   getFullName(s: Student | null) {
-    if(!s) return '';
+    if (!s) return '';
     return `${s.first_name} ${s.middle_name ? s.middle_name + ' ' : ''}${s.last_name}`;
   }
 
   getStartDate(s: Student | null) {
-    if(!s) return '—';
-    return new Date(s.ojt_start).toLocaleDateString('en-US');
+    if (!s?.ojt_start) return '—';
+    return new Date(s.ojt_start).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
   }
 
   getEndDate(s: Student | null) {
-    if(!s) return '—';
-    return new Date(s.ojt_end).toLocaleDateString('en-US');
+    if (!s?.ojt_end) return '—';
+    return new Date(s.ojt_end).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '—';
+    const parts = dateStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    return d.toLocaleDateString('en-US', {
+      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+    });
   }
 
   getAvatarUrl(s: Student | null) {
-    if(!s) return 'assets/default-avatar.png';
-    const initials = `${s.first_name.charAt(0)}${s.last_name.charAt(0)}`;
-    return `https://ui-avatars.com/api/?name=${initials}&background=2563eb&color=fff&size=64`;
-  }
-
-  getProgress(s: Student | null) {
-    if(!s) return 0;
-    const req = s.required_hours || 500;
-    const comp = s.completed_hours || 0;
-    return Math.min(Math.round((comp / req) * 100), 100);
+    if (!s) return 'assets/default-avatar.png';
+    if (s.profile_photo_id) {
+      return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${s.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+    }
+    const initials = `${s.first_name.charAt(0)} ${s.last_name.charAt(0)}`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
   }
 
   getRemainingHours(s: Student | null) {
-    if(!s) return 0;
-    const req = s.required_hours || 500;
+    if (!s) return 0;
+    const req  = s.required_hours  || 500;
     const comp = s.completed_hours || 0;
     return Math.max(req - comp, 0);
   }
 
   openModal(student: Student) {
-    this.selectedStudent = student;
-    this.showModal = true;
+    this.selectedStudent      = student;
+    this.showModal            = true;
+    this.showAttendanceLogsModal = false;
+    this.attendanceLogs       = [];
   }
 
   closeModal() {
-    this.showModal = false;
-    this.selectedStudent = null;
+    this.showModal            = false;
+    this.selectedStudent      = null;
+    this.showAttendanceLogsModal = false;
+    this.attendanceLogs       = [];
   }
 
+  async openAttendanceLogsModal() {
+    this.showAttendanceLogsModal = true;
+    if (this.attendanceLogs.length === 0) {
+      await this.loadAttendanceLogs(this.selectedStudent!);
+    }
+  }
+
+  closeAttendanceLogsModal() {
+    this.showAttendanceLogsModal = false;
+    this.attendanceLogs = [];
+  }
 }

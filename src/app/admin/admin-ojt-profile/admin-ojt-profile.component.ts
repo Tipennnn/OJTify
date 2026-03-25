@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
+import { Query } from 'appwrite';
 import Swal from 'sweetalert2';
+
 
 interface Student {
   $id: string;
@@ -116,19 +118,89 @@ export class AdminOjtProfileComponent implements OnInit {
   }
 
   async saveAll() {
-    if (!this.student) return;
+  if (!this.student) return;
 
-    if (this.editCompletedHours > this.editRequiredHours) {
+  if (this.editCompletedHours > this.editRequiredHours) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Invalid Hours',
+      text: 'Completed hours cannot exceed required hours.'
+    });
+    return;
+  }
+
+  this.saveLoading = true;
+  try {
+    const willComplete = this.editCompletedHours >= this.editRequiredHours;
+
+    if (willComplete) {
+      // 1. Get OJT start date from first attendance record
+      // ✅ FIXED - using Query helper
+  const attendance = await this.appwrite.databases.listDocuments(
+  this.appwrite.DATABASE_ID,
+  this.appwrite.ATTENDANCE_COL,
+  [
+    Query.equal('student_id', this.student.student_id),
+    Query.orderAsc('date'),
+    Query.limit(1)
+  ]
+);
+      const firstAttendance = attendance.documents[0];
+      const ojtStart = firstAttendance
+        ? firstAttendance['date']
+        : this.student.$createdAt.split('T')[0];
+
+      const ojtEnd = new Date().toISOString().split('T')[0];
+
+      // 2. Copy student to archives collection
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ARCHIVES_COL,
+        'unique()',
+        {
+          student_doc_id:       this.student.$id,
+          first_name:           this.editFirstName,
+          middle_name:          this.editMiddleName,
+          last_name:            this.editLastName,
+          email:                this.student.email,
+          contact_number:       this.editContactNumber,
+          birthday:             this.editBirthday,
+          gender:               this.editGender,
+          home_address:         this.editHomeAddress,
+          student_id:           this.editStudentId,
+          school_name:          this.editSchoolName,
+          course:               this.editCourse,
+          year_level:           this.editYearLevel,
+          profile_photo_id:     this.student.profile_photo_id     || null,
+          resume_file_id:       this.student.resume_file_id       || null,
+          endorsement_file_id:  this.student.endorsement_file_id  || null,
+          coe_file_id:          this.student.coe_file_id          || null,
+          required_hours:       this.editRequiredHours,
+          completed_hours:      this.editCompletedHours,
+          ojt_start:            ojtStart,
+          ojt_end:              ojtEnd,
+          archived_at:          new Date().toISOString()
+        }
+      );
+
+      // 3. Delete student from students collection
+      await this.appwrite.databases.deleteDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.student.$id
+      );
+
       Swal.fire({
-        icon: 'warning',
-        title: 'Invalid Hours',
-        text: 'Completed hours cannot exceed required hours.'
+        icon: 'success',
+        title: 'OJT Completed!',
+        text: `${this.editFirstName} ${this.editLastName} has been archived.`,
+        confirmButtonColor: '#2563eb'
+      }).then(() => {
+        this.router.navigate(['/admin-ojt']);
       });
-      return;
-    }
 
-    this.saveLoading = true;
-    try {
+    } else {
+      // Not yet complete — just update normally
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL,
@@ -150,7 +222,7 @@ export class AdminOjtProfileComponent implements OnInit {
         }
       );
 
-      // Update local student object
+      // Update local object
       this.student.first_name      = this.editFirstName;
       this.student.middle_name     = this.editMiddleName;
       this.student.last_name       = this.editLastName;
@@ -176,14 +248,14 @@ export class AdminOjtProfileComponent implements OnInit {
         timer: 3000,
         timerProgressBar: true
       });
-
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
-    } finally {
-      this.saveLoading = false;
     }
-  }
 
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
+  } finally {
+    this.saveLoading = false;
+  }
+}
   goBack() { this.router.navigate(['/admin-ojt']); }
 
   getFullName(): string {

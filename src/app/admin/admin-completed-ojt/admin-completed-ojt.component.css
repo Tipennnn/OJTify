@@ -398,3 +398,45 @@ background: #2563eb;
 color: #ffffff;
 font-weight: 500;
 }
+
+.attendance-toggle-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.attendance-toggle-btn:hover { background: #1e40af; }
+
+.attendance-log-table {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.attendance-log-table th {
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.attendance-log-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.status-badge {
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}

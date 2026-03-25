@@ -1,11 +1,8 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-  <!-- SIDENAV -->
   <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
 
-  <!-- MAIN SECTION -->
   <div class="main-section">
-
     <app-admin-topnav></app-admin-topnav>
 
     <div class="dashboard-content">
@@ -17,6 +14,7 @@
 
       <div class="center-wrapper">
 
+        <!-- STAT CARDS -->
         <div class="cards">
           <div class="card card-blue">
             <div class="card-left">
@@ -39,7 +37,7 @@
               <div class="card-icon"><i class="fa-solid fa-calendar-check"></i></div>
               <div class="card-label">Present Today</div>
             </div>
-            <div class="card-number">2</div>
+            <div class="card-number">{{ presentToday }}</div>
           </div>
 
           <div class="card card-red">
@@ -47,15 +45,17 @@
               <div class="card-icon"><i class="fa-solid fa-user-slash"></i></div>
               <div class="card-label">Absent Today</div>
             </div>
-            <div class="card-number">5</div>
+            <div class="card-number">{{ absentToday }}</div>
           </div>
         </div>
 
+        <!-- WEEKLY ATTENDANCE CHART -->
         <div class="chart-container">
           <h3>Attendance This Week</h3>
           <canvas id="attendanceChart"></canvas>
         </div>
 
+        <!-- BOTTOM CHARTS -->
         <div class="charts-row">
           <div class="chart-container small-chart">
             <h3>Applicants Status</h3>
@@ -63,7 +63,7 @@
           </div>
 
           <div class="chart-container small-chart">
-            <h3>Time-In Behavior</h3>
+            <h3>Time-In Behavior Today</h3>
             <canvas id="timeChart"></canvas>
           </div>
         </div>

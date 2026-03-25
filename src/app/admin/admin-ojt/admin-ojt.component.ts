@@ -54,21 +54,26 @@ export class AdminOjtComponent implements OnInit {
     await this.loadStudents();
   }
 
-  async loadStudents() {
-    this.loading = true;
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      this.students         = res.documents as any[];
-      this.filteredStudents = [...this.students];
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
-    } finally {
-      this.loading = false;
-    }
+ async loadStudents() {
+  this.loading = true;
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    // Only show interns who have NOT completed their hours
+    this.students = (res.documents as any[]).filter(s => {
+      const completed = s.completed_hours || 0;
+      const required  = s.required_hours  || 500;
+      return completed < required;
+    });
+    this.filteredStudents = [...this.students];
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   onToggleSidebar(collapsed: boolean) {
     this.isCollapsed = collapsed;

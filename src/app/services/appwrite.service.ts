@@ -19,6 +19,7 @@ export class AppwriteService {
   readonly COMMENTS_COL    = 'comments';
   readonly APPLICANTS_COL  = 'applicants';
   readonly ATTENDANCE_COL  = 'attendance';
+  readonly ARCHIVES_COL = 'archives';
 
   // ── Shared profile photo state ────────────────────────────
   private photoUrl = new BehaviorSubject<string>(
