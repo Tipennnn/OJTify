@@ -55,6 +55,10 @@ export class AdminTasksComponent implements OnInit {
   taskComments   : any[] = [];
   taskSubmissions: any[] = [];
 
+  // ── ADDED: edit comment state ──
+  editingCommentId  : string | null = null;
+  editingMessage                    = '';
+
   tasks          : Task[]   = [];
   allInterns     : Intern[] = [];
   filteredInterns: Intern[] = [];
@@ -97,18 +101,15 @@ export class AdminTasksComponent implements OnInit {
     };
   }
 
-  // ── Computed: how many interns are assigned to the selected task ──────────
   get assignedCount(): number {
     return this.getAssignedIds(this.selectedTask).length;
   }
 
-  // ── Computed: how many have NOT submitted yet ─────────────────────────────
   get pendingCount(): number {
     const diff = this.assignedCount - this.taskSubmissions.length;
     return diff < 0 ? 0 : diff;
   }
 
-  // ── Load interns ──────────────────────────────────────────
   async loadInterns() {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -122,7 +123,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Load tasks ────────────────────────────────────────────
   async loadTasks() {
     try {
       const res      = await this.appwrite.databases.listDocuments(
@@ -185,7 +185,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Intern search & selection ─────────────────────────────
   onInternSearch() {
     const q = this.internSearchQuery.toLowerCase();
     this.filteredInterns = this.allInterns.filter(i =>
@@ -209,7 +208,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── File selection ────────────────────────────────────────
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file  = input.files?.[0] ?? null;
@@ -224,7 +222,6 @@ export class AdminTasksComponent implements OnInit {
     this.editAttachmentFileName = file?.name ?? '';
   }
 
-  // ── Upload new attachment for existing task ───────────────
   async uploadEditAttachment() {
     if (!this.editAttachmentFile || !this.selectedTask.$id) return;
     this.editAttachmentLoading = true;
@@ -265,7 +262,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Remove attachment ─────────────────────────────────────
   async removeAttachment() {
     if (!this.selectedTask.attachment_file_id || !this.selectedTask.$id) return;
 
@@ -299,7 +295,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Open / Close modals ───────────────────────────────────
   openModal() {
     this.selectedTask       = this.emptyTask();
     this.selectedFile       = null;
@@ -330,6 +325,8 @@ export class AdminTasksComponent implements OnInit {
     this.newAdminComment        = '';
     this.taskComments           = [];
     this.taskSubmissions        = [];
+    this.editingCommentId       = null;  // ADDED
+    this.editingMessage         = '';    // ADDED
     this.isCardModalOpen        = true;
     document.body.style.overflow = 'hidden';
 
@@ -346,6 +343,8 @@ export class AdminTasksComponent implements OnInit {
     this.newAdminComment        = '';
     this.taskComments           = [];
     this.taskSubmissions        = [];
+    this.editingCommentId       = null;  // ADDED
+    this.editingMessage         = '';    // ADDED
     document.body.style.overflow = '';
   }
 
@@ -357,7 +356,6 @@ export class AdminTasksComponent implements OnInit {
     this.isSubmissionsModalOpen = false;
   }
 
-  // ── Create task ───────────────────────────────────────────
   async onCreateTask() {
     if (!this.selectedTask.title || !this.selectedTask.due) {
       Swal.fire({ icon: 'warning', title: 'Missing fields', text: 'Please fill in the title and due date.', confirmButtonColor: '#3b82f6' });
@@ -400,7 +398,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Delete task ───────────────────────────────────────────
   async deleteTask(task: Task, event: Event) {
     event.stopPropagation();
 
@@ -426,7 +423,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────
   getFileUrl(fileId: string, mode: 'view' | 'download' = 'view'): string {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
@@ -441,10 +437,6 @@ export class AdminTasksComponent implements OnInit {
     return intern ? `${intern.first_name} ${intern.last_name}` : id;
   }
 
-  /**
-   * Returns initials from a full name.
-   * e.g. "Juan dela Cruz" → "JD"
-   */
   getInitials(fullName: string): string {
     if (!fullName) return '?';
     const parts = fullName.trim().split(' ');
@@ -453,7 +445,6 @@ export class AdminTasksComponent implements OnInit {
     return (first + last).toUpperCase();
   }
 
-  // ── Load comments ─────────────────────────────────────────
   async loadTaskComments(taskId: string) {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -468,7 +459,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Load submissions ──────────────────────────────────────
   async loadTaskSubmissions(taskId: string) {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -489,7 +479,6 @@ export class AdminTasksComponent implements OnInit {
     }
   }
 
-  // ── Send admin comment ────────────────────────────────────
   async sendAdminComment() {
     if (!this.newAdminComment.trim() || !this.selectedTask.$id) return;
     this.adminCommentLoading = true;
@@ -513,6 +502,69 @@ export class AdminTasksComponent implements OnInit {
       Swal.fire({ icon: 'error', title: 'Failed to send', text: error.message });
     } finally {
       this.adminCommentLoading = false;
+    }
+  }
+
+  // ── ADDED: Edit comment methods ───────────────────────────
+  startEditComment(comment: any) {
+    this.editingCommentId = comment.$id;
+    this.editingMessage   = comment.message;
+  }
+
+  cancelEditComment() {
+    this.editingCommentId = null;
+    this.editingMessage   = '';
+  }
+
+  async saveEditComment(comment: any) {
+    if (!this.editingMessage.trim()) return;
+
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.COMMENTS_COL,
+        comment.$id,
+        { message: this.editingMessage.trim() }
+      );
+
+      const index = this.taskComments.findIndex(c => c.$id === comment.$id);
+      if (index !== -1) {
+        this.taskComments[index] = {
+          ...this.taskComments[index],
+          message: this.editingMessage.trim()
+        };
+      }
+
+      this.cancelEditComment();
+
+      Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message });
+    }
+  }
+
+  async deleteAdminComment(comment: any) {
+    const result = await Swal.fire({
+      title: 'Delete comment?', text: 'This action cannot be undone.',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await this.appwrite.databases.deleteDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.COMMENTS_COL,
+        comment.$id
+      );
+
+      this.taskComments = this.taskComments.filter(c => c.$id !== comment.$id);
+
+      Swal.fire({ icon: 'success', title: 'Comment deleted!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message });
     }
   }
 }

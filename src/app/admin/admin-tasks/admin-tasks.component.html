@@ -396,7 +396,31 @@
               </strong>
               <span class="comment-date">{{ comment.created_at }}</span>
             </div>
-            <p class="comment-text">{{ comment.message }}</p>
+        
+            <!-- VIEW MODE -->
+<ng-container *ngIf="editingCommentId !== comment.$id">
+  <p class="comment-text">{{ comment.message }}</p>
+
+  <!-- ADDED: ipakita lang edit/delete kung admin ang nag-comment -->
+  <div class="comment-actions" *ngIf="comment.role === 'admin'">
+    <span (click)="startEditComment(comment)">
+      <i class="fas fa-pen"></i> Edit
+    </span>
+    <span (click)="deleteAdminComment(comment)">
+      <i class="fas fa-trash"></i> Delete
+    </span>
+  </div>
+</ng-container>
+        
+            <!-- EDIT MODE -->
+            <ng-container *ngIf="editingCommentId === comment.$id">
+              <textarea [(ngModel)]="editingMessage" rows="2"></textarea>
+              <div class="edit-actions">
+                <button (click)="saveEditComment(comment)">Save</button>
+                <button (click)="cancelEditComment()">Cancel</button>
+              </div>
+            </ng-container>
+        
           </div>
         </div>
 

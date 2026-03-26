@@ -513,3 +513,38 @@ textarea { resize: none; }
   font-family: 'Poppins', sans-serif;
 }
 .subs-close-btn:hover { background: #1f2937; }
+
+
+/* EDIT/DELETE ICONS - lowered and compact */
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;          /* text size small */
+  color: #2563eb;
+  cursor: pointer;
+  margin-top: 8px;           /* push it slightly lower */
+}
+
+.comment-actions span i {
+  font-size: 10px;           /* icons slightly smaller than text */
+}
+
+.comment-actions span:hover {
+  text-decoration: underline;
+}
+
+/* EDIT MODE BUTTONS */
+.edit-actions button {
+  padding: 5px 10px;         /* slightly smaller buttons */
+  border-radius: 6px;
+  font-size: 11px;           /* smaller button font */
+}
+
+.edit-actions button:first-child {
+  background: #2563eb;
+  color: white;
+}
+
+.edit-actions button:last-child {
+  background: #e5e7eb;
+}
