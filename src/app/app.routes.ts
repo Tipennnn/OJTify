@@ -18,6 +18,7 @@ import { AdminAttendanceComponent } from './admin/admin-attendance/admin-attenda
 import { AdminOjtProfileComponent } from './admin/admin-ojt-profile/admin-ojt-profile.component';
 import { AdminAttendanceHistoryComponent } from './admin/admin-attendance-history/admin-attendance-history.component';
 import { AdminCompletedOjtComponent } from './admin/admin-completed-ojt/admin-completed-ojt.component'; // <-- NEW
+import { SupervisorLoginComponent } from './supervisor/supervisor-login/supervisor-login.component';
 
 import { authGuard } from './guards/auth.guard';
 
@@ -46,4 +47,7 @@ export const routes: Routes = [
   { path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent },
   { path: 'admin-attendance-history', component: AdminAttendanceHistoryComponent },
   { path: 'admin-completed-ojt', component: AdminCompletedOjtComponent }, // <-- NEW
+
+
+  { path: 'supervisor-login', component: SupervisorLoginComponent },
 ];
