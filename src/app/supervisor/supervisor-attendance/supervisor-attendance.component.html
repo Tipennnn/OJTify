@@ -1,0 +1,168 @@
+<div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
+
+    <!-- SIDENAV -->
+    <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
+  
+    <!-- MAIN SECTION -->
+    <div class="main-section">
+      <app-supervisor-topnav></app-supervisor-topnav>
+  
+      <div class="dashboard-content">
+  
+        <div class="dashboard-header header-flex">
+          <div class="header-left">
+            <h2>Attendance</h2>
+            <div class="clickable-date-box" [routerLink]="['/supervisor-attendance-history']">
+              <i class="fa-solid fa-calendar-days"></i>
+              <span>{{ getToday() }}</span>
+            </div>
+          </div>
+  
+          <div class="header-right">
+            <button class="qr-btn" (click)="openScanner()">
+              <i class="fa-solid fa-qrcode"></i> Scan QR
+            </button>
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" placeholder="Search intern..."
+                     (input)="onSearch($event)">
+            </div>
+          </div>
+        </div>
+  
+        <div class="dashboard-divider"></div>
+  
+        <!-- Loading -->
+        <div *ngIf="loading"
+             style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+          <p style="margin-top:12px;">Loading attendance...</p>
+        </div>
+  
+        <!-- TABLE -->
+        <div class="center-wrapper" *ngIf="!loading">
+          <div class="table-container">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Student ID</th>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+  
+                <tr *ngFor="let log of filteredLogs">
+                  <td class="profile-name">
+                    <img [src]="log.student_photo ||
+                                'https://ui-avatars.com/api/?name=' + log.student_name +
+                                '&background=2563eb&color=fff&size=64'"
+                         class="profile-pic"
+                         alt="Profile">
+                    <span>{{ log.student_name }}</span>
+                  </td>
+                  <td>{{ log.student_id_number }}</td>
+                  <td>{{ log.time_in }}</td>
+                  <td>{{ log.time_out }}</td>
+                  <td>
+                    <span class="status-badge badge-approved">
+                      {{ log.status }}
+                    </span>
+                  </td>
+                </tr>
+  
+                <tr *ngIf="filteredLogs.length === 0">
+                  <td colspan="5"
+                      style="text-align:center; color:#9ca3af; padding:40px;">
+                    <i class="fas fa-calendar-times"
+                       style="font-size:32px; margin-bottom:10px; display:block;"></i>
+                    No attendance records for today yet.
+                  </td>
+                </tr>
+  
+              </tbody>
+            </table>
+  
+            <!-- PAGINATION -->
+            <div class="pagination">
+              <button class="page-btn" disabled>
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <div class="page-numbers">
+                <span class="page active">1</span>
+              </div>
+              <button class="page-btn" disabled>
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+  
+          </div>
+        </div>
+  
+      </div>
+    </div>
+  </div>
+  
+  <!-- QR SCANNER MODAL -->
+  <div class="scanner-overlay-bg" *ngIf="showScanner">
+    <div class="scanner-modal">
+  
+      <div class="scanner-modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="qr-icon-box">
+            <i class="fas fa-qrcode"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:16px;">QR Attendance Scanner</h3>
+            <p style="margin:0; font-size:12px; color:#6b7280;">
+              Point camera at intern's QR code
+            </p>
+          </div>
+        </div>
+        <button class="close-scanner-btn" (click)="closeScanner()">×</button>
+      </div>
+  
+      <div class="scanner-divider"></div>
+  
+      <div class="camera-container">
+        <video id="scanner-video"
+               playsinline autoplay muted
+               style="width:100%; border-radius:10px; display:block;">
+        </video>
+        <div class="scan-line-wrapper" *ngIf="scanning">
+          <div class="scan-line"></div>
+        </div>
+        <div class="corner top-left"></div>
+        <div class="corner top-right"></div>
+        <div class="corner bottom-left"></div>
+        <div class="corner bottom-right"></div>
+      </div>
+  
+      <div class="scanner-status">
+        <div *ngIf="scanLoading" class="status-loading">
+          <i class="fa fa-spinner fa-spin"></i> Processing scan...
+        </div>
+        <div *ngIf="!scanLoading && scanResult"
+             class="status-result"
+             [class.result-timein]="scanStatus === 'timein'"
+             [class.result-timeout]="scanStatus === 'timeout'"
+             [class.result-already]="scanStatus === 'already'">
+          <i class="fas fa-check-circle"
+             *ngIf="scanStatus === 'timein' || scanStatus === 'timeout'"></i>
+          <i class="fas fa-info-circle" *ngIf="scanStatus === 'already'"></i>
+          {{ scanResult }}
+        </div>
+        <div *ngIf="!scanLoading && !scanResult"
+             style="color:#9ca3af; font-size:13px; text-align:center;">
+          <i class="fas fa-search"></i> Scanning for QR code...
+        </div>
+      </div>
+  
+      <button class="stop-scan-btn" (click)="closeScanner()">
+        <i class="fas fa-times"></i> Close Scanner
+      </button>
+  
+    </div>
+  </div>

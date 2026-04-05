@@ -1,0 +1,110 @@
+<div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
+
+    <!-- SIDENAV -->
+    <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
+  
+    <!-- MAIN SECTION -->
+    <div class="main-section">
+      <app-supervisor-topnav></app-supervisor-topnav>
+  
+      <div class="dashboard-content">
+  
+        <div class="dashboard-header header-flex">
+          <div><h2>OJT Students</h2></div>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search student..."
+                   (input)="onSearch($event)">
+          </div>
+        </div>
+  
+        <div class="dashboard-divider"></div>
+  
+        <!-- LOADING -->
+        <div *ngIf="loading"
+             style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+          <p style="margin-top:12px;">Loading students...</p>
+        </div>
+  
+        <!-- TABLE -->
+        <div class="center-wrapper" *ngIf="!loading">
+          <div class="table-container">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Student ID</th>
+                  <th>Course</th>
+                  <th>Email</th>
+                  <th>OJT Start Date</th>
+                  <th>Hours Progress</th>
+                </tr>
+              </thead>
+              <tbody>
+  
+                <tr *ngFor="let student of pagedStudents"
+                    (click)="openProfile(student)"
+                    style="cursor:pointer;">
+                  <td class="profile-name">
+                    <img [src]="getAvatarUrl(student)"
+                         class="profile-pic"
+                         alt="Profile">
+                    <span>{{ getFullName(student) }}</span>
+                  </td>
+                  <td>{{ student.student_id }}</td>
+                  <td>{{ student.course }}</td>
+                  <td>{{ student.email }}</td>
+                  <td>{{ getStartDate(student) }}</td>
+                  <td style="min-width:160px;">
+                    <div class="progress-bar">
+                      <div class="progress-fill"
+                           [style.width]="getProgress(student) + '%'">
+                      </div>
+                    </div>
+                    <span class="progress-text">
+                      {{ student.completed_hours || 0 }} /
+                      {{ student.required_hours  || 500 }} hrs
+                      ({{ getProgress(student) }}%)
+                    </span>
+                  </td>
+                </tr>
+  
+                <tr *ngIf="filteredStudents.length === 0">
+                  <td colspan="6"
+                      style="text-align:center; color:#9ca3af; padding:30px;">
+                    No students found.
+                  </td>
+                </tr>
+  
+              </tbody>
+            </table>
+  
+            <!-- PAGINATION -->
+            <div class="pagination">
+              <button class="page-btn"
+                      (click)="prevPage()"
+                      [disabled]="currentPage === 1">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+  
+              <div class="page-numbers">
+                <span *ngFor="let p of pageNumbers"
+                      class="page"
+                      [class.active]="p === currentPage"
+                      (click)="goToPage(p)">{{ p }}</span>
+              </div>
+  
+              <button class="page-btn"
+                      (click)="nextPage()"
+                      [disabled]="currentPage === totalPages">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+  
+          </div>
+        </div>
+  
+      </div>
+    </div>
+  </div>

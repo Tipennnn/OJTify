@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -12,12 +12,14 @@ import { CommonModule } from '@angular/common';
 export class SupervisorSidenavComponent {
   isCollapsed = false;
 
+  @Output() toggle = new EventEmitter<boolean>();
+
   toggleNav(): void {
     this.isCollapsed = !this.isCollapsed;
+    this.toggle.emit(this.isCollapsed);
   }
 
   onLogout(): void {
     console.log('Logout clicked');
-    // lagyan mo ng actual logout logic later
   }
 }

@@ -1,0 +1,137 @@
+<!-- Top Nav -->
+<div class="profile-top-nav">
+    <button class="back-btn" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <h2 class="top-title">OJTify</h2>
+  </div>
+  
+  <div class="page-wrapper">
+  
+    <!-- LEFT: Calendar -->
+    <div class="calendar-panel">
+      <div class="calendar-nav">
+        <button (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
+        <h3>{{ monthName }} {{ year }}</h3>
+        <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
+      </div>
+  
+      <div class="calendar-days-header">
+        <div>Sun</div><div>Mon</div><div>Tue</div>
+        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+  
+      <div class="calendar-grid">
+        <!-- Empty offset cells -->
+        <div *ngFor="let e of getEmptyCells()" class="cal-day empty"></div>
+  
+        <!-- Day cells -->
+        <div *ngFor="let day of days"
+             class="cal-day"
+             [class.selected]="selectedDay === day"
+             [class.today]="isToday(day)"
+             [class.has-record]="hasRecord(day) && !isWeekend(day)"
+             [class.weekend]="isWeekend(day)"
+             [class.disabled]="isFuture(day) || isOlderThan30Days(day)"
+             (click)="selectDay(day)">
+          {{ day }}
+          <span class="dot" *ngIf="hasRecord(day) && !isWeekend(day)"></span>
+        </div>
+      </div>
+  
+      <div class="calendar-legend">
+        <div class="legend-item">
+          <span class="legend-dot blue"></span> Has Records
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot gray"></span> No Records / Disabled
+        </div>
+      </div>
+    </div>
+  
+    <!-- RIGHT: Table -->
+    <div class="table-panel">
+  
+      <div class="table-panel-header">
+        <div>
+          <h3 *ngIf="selectedDate">{{ formatDisplayDate(selectedDate) }}</h3>
+          <h3 *ngIf="!selectedDate" style="color:#9ca3af;">Select a day to view records</h3>
+          <span class="record-count" *ngIf="selectedDate">
+            {{ filteredLogs.length }} record(s) found
+          </span>
+        </div>
+        <div class="search-box" *ngIf="selectedDate">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search intern..."
+                 (input)="onSearch($event)">
+        </div>
+      </div>
+  
+      <!-- Loading -->
+      <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
+        <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+        <p style="margin-top:12px;">Loading...</p>
+      </div>
+  
+      <div *ngIf="!loading && !selectedDate"
+           style="text-align:center; padding:60px; color:#9ca3af;">
+        <i class="fa-solid fa-calendar-days" style="font-size:40px; margin-bottom:12px; display:block;"></i>
+        Click a day on the calendar to view attendance records.
+      </div>
+  
+      <table class="applicants-table" *ngIf="!loading && selectedDate">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Student ID</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of paginatedLogs">
+            <td class="profile-name">
+              <img [src]="log.student_photo ||
+                          'https://ui-avatars.com/api/?name=' + log.student_name +
+                          '&background=2563eb&color=fff&size=64'"
+                   class="profile-pic" alt="Profile">
+              <span>{{ log.student_name }}</span>
+            </td>
+            <td>{{ log.student_id_number }}</td>
+            <td>{{ log.time_in }}</td>
+            <td>{{ log.time_out }}</td>
+            <td>
+              <span class="status-badge badge-approved">{{ log.status }}</span>
+            </td>
+          </tr>
+  
+          <tr *ngIf="filteredLogs.length === 0">
+            <td colspan="5" style="text-align:center; color:#9ca3af; padding:40px;">
+              <i class="fas fa-calendar-times"
+                 style="font-size:32px; margin-bottom:10px; display:block;"></i>
+              No attendance records for this day.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+  
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" (click)="goToPage(currentPage - 1)"
+                [disabled]="currentPage === 1">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="page-numbers">
+          <span *ngFor="let p of pageNumbers"
+                class="page" [class.active]="p === currentPage"
+                (click)="goToPage(p)">{{ p }}</span>
+        </div>
+        <button class="page-btn" (click)="goToPage(currentPage + 1)"
+                [disabled]="currentPage === totalPages">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+  
+    </div>
+  </div>
