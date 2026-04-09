@@ -82,29 +82,22 @@
   
             <!-- PAGINATION -->
             <div class="pagination">
-              <button class="page-btn"
-                      (click)="prevPage()"
-                      [disabled]="currentPage === 1">
+              <button class="page-btn">
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
   
               <div class="page-numbers">
-                <span *ngFor="let p of pageNumbers"
-                      class="page"
-                      [class.active]="p === currentPage"
-                      (click)="goToPage(p)">{{ p }}</span>
+                <span class="page active">1</span>
+                <span class="page">2</span>
+                <span class="page">3</span>
               </div>
   
-              <button class="page-btn"
-                      (click)="nextPage()"
-                      [disabled]="currentPage === totalPages">
+              <button class="page-btn">
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
-  
           </div>
         </div>
-  
       </div>
     </div>
   </div>

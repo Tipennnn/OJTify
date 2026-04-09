@@ -241,6 +241,7 @@ body {
   /* =========================
      PAGINATION
   ========================= */
+
   .pagination {
     display: flex;
     justify-content: flex-end;
@@ -258,15 +259,8 @@ body {
     transition: 0.2s ease;
   }
   
-  .page-btn:hover:not(:disabled) {
+  .page-btn:hover {
     background: #f3f4f6;
-    border-color: #0818A8;
-    color: #0818A8;
-  }
-  
-  .page-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
   }
   
   .page-numbers {
@@ -288,7 +282,7 @@ body {
   }
   
   .page.active {
-    background: #0818A8;
+    background: #2563eb;
     color: #ffffff;
     font-weight: 500;
   }

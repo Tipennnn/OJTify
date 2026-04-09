@@ -415,9 +415,9 @@ body {
   
   .stop-scan-btn:hover { background: #e5e7eb; }
   
-  /* =========================
-     PAGINATION
-  ========================= */
+
+/* Pagination */
+
   .pagination {
     display: flex;
     justify-content: flex-end;
@@ -435,18 +435,14 @@ body {
     transition: 0.2s ease;
   }
   
-  .page-btn:hover:not(:disabled) {
+  .page-btn:hover {
     background: #f3f4f6;
-    border-color: #2563eb;
-    color: #2563eb;
   }
   
-  .page-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  .page-numbers {
+    display: flex;
+    gap: 6px;
   }
-  
-  .page-numbers { display: flex; gap: 6px; }
   
   .page {
     padding: 6px 10px;
@@ -457,7 +453,9 @@ body {
     transition: 0.2s ease;
   }
   
-  .page:hover { background: #e5e7eb; }
+  .page:hover {
+    background: #e5e7eb;
+  }
   
   .page.active {
     background: #2563eb;
