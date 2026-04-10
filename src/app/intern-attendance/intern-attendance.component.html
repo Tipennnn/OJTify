@@ -15,49 +15,50 @@
 
       <div class="top-cards">
 
-  <!-- TOTAL HOURS -->
-  <div class="stat-card total-card">
-    <div class="stat-left">
-      <h3>{{ completedHours }} / {{ requiredHours }}</h3>
-      <span>Total Hours</span>
-    </div>
-    <div class="stat-right">
-      <span class="percent">{{ hoursProgress }}%</span>
-      <div class="mini-bar">
-        <div class="mini-fill" [style.width]="hoursProgress + '%'"></div>
+        <!-- TOTAL HOURS -->
+        <div class="stat-card total-card">
+          <div class="stat-left">
+            <h3>{{ completedHours }} / {{ requiredHours }}</h3>
+            <span>Total Hours</span>
+          </div>
+          <div class="stat-right">
+            <span class="percent">{{ hoursProgress }}%</span>
+            <div class="mini-bar">
+              <div class="mini-fill" [style.width]="hoursProgress + '%'"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REMAINING -->
+        <div class="stat-card remaining-card">
+          <div class="stat-left">
+            <h3>{{ remainingHours }} hrs</h3>
+            <span>Remaining</span>
+          </div>
+          <div class="stat-right">
+            <span class="status" [ngClass]="hoursProgress >= 100 ? 'complete' : 'ongoing'">
+              {{ hoursProgress >= 100 ? 'Completed' : 'In Progress' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- TODAY ATTENDANCE -->
+        <div class="stat-card"
+             [ngClass]="todayStatus === 'Present' ? 'present-card' : 'absent-card'">
+          <div class="stat-left">
+            <h3>{{ todayStatus }}</h3>
+            <span>Today's Attendance</span>
+          </div>
+          <div class="stat-right">
+            <div class="attendance-status-icon"
+                 [style.background]="todayStatus === 'Present' ? '#dcfce7' : '#fee2e2'"
+                 [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
+              <i [class]="todayStatus === 'Present' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </div>
-  </div>
-
-  <!-- REMAINING -->
-  <div class="stat-card remaining-card">
-    <div class="stat-left">
-      <h3>{{ remainingHours }} hrs</h3>
-      <span>Remaining</span>
-    </div>
-    <div class="stat-right">
-      <span class="status" [ngClass]="hoursProgress >= 100 ? 'complete' : 'ongoing'">
-        {{ hoursProgress >= 100 ? 'Completed' : 'In Progress' }}
-      </span>
-    </div>
-  </div>
-
-  <!-- TODAY ATTENDANCE -->
-  <div class="stat-card"
-       [ngClass]="todayStatus === 'Present' ? 'present-card' : 'absent-card'">
-    <div class="stat-left">
-      <h3>{{ todayStatus }}</h3>
-      <span>Today's Attendance</span>
-    </div>
-    <div class="stat-right">
-      <span style="font-size:28px;"
-      [ngClass]="todayStatus === 'Present' ? 'present-icon' : 'absent-icon'">
-  {{ todayStatus === 'Present' ? '✔' : '✘' }}
-</span>
-    </div>
-  </div>
-
-</div>
 
       <!-- Calendar -->
       <div class="attendance-container">
@@ -78,21 +79,21 @@
         </div>
 
         <div class="calendar-grid">
-  <!-- Empty cells for offset -->
-  <div class="day empty"
-       *ngFor="let e of getEmptyCells()">
-  </div>
+          <!-- Empty cells for offset -->
+          <div class="day empty"
+               *ngFor="let e of getEmptyCells()">
+          </div>
 
-  <!-- Actual days -->
-  <div class="day"
-       *ngFor="let day of days"
-       (click)="openAttendance(day)"
-       [class.present-day]="attendanceStatus[day] === 'Present'"
-       [class.absent-day]="attendanceStatus[day] === 'Absent'"
-       [class.weekend]="isWeekend(day)">
-    {{ day }}
-  </div>
-</div>
+          <!-- Actual days -->
+          <div class="day"
+               *ngFor="let day of days"
+               (click)="openAttendance(day)"
+               [class.present-day]="attendanceStatus[day] === 'Present'"
+               [class.absent-day]="attendanceStatus[day] === 'Absent'"
+               [class.weekend]="isWeekend(day)">
+            {{ day }}
+          </div>
+        </div>
 
         <div class="attendance-legend">
           <div class="legend-item">
@@ -246,7 +247,6 @@
 
     <div class="qr-body">
       <div class="qr-wrapper">
-        <!-- Real QR code containing the student's user ID -->
         <qrcode
           [qrdata]="qrData"
           [width]="200"

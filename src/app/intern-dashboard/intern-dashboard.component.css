@@ -2,35 +2,32 @@
   display:flex;
   height:100vh;
   background:#f6f8fc;
-  }
-  
-  /* RIGHT SIDE */
-  
-  .dashboard-right{
+}
+
+/* RIGHT SIDE */
+.dashboard-right{
   flex:1;
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  }
-  
-  /* CONTENT */
-  
-  .dashboard-content{
+}
+
+/* CONTENT */
+.dashboard-content{
   flex:1;
   padding:30px;
   overflow-y:auto;
-  }
-  
-  /* TOP CARDS */
-  
-  .top-cards{
+}
+
+/* TOP CARDS */
+.top-cards{
   display:flex;
   gap:24px;
   margin-bottom:28px;
   flex-wrap:wrap;
-  }
-  
-  .card{
+}
+
+.card{
   background:#ffffff;
   padding:22px;
   border-radius:14px;
@@ -40,11 +37,10 @@
   align-items:center;
   gap:20px;
   box-shadow:0 4px 12px rgba(0,0,0,0.05);
-  }
-  
-  /* PROGRESS CIRCLE */
-  
-  .progress-circle .circle{
+}
+
+/* PROGRESS CIRCLE */
+.progress-circle .circle{
   width:85px;
   height:85px;
   border-radius:50%;
@@ -56,140 +52,136 @@
   align-items:center;
   color:#3b6fd8;
   font-weight:600;
-  }
-  
-  .circle span{
+}
+
+.circle span{
   font-size:18px;
-  }
-  
-  .circle small{
+}
+
+.circle small{
   font-size:11px;
   color:#666;
-  }
-  
-  /* PROGRESS BAR */
-  
-  .progress-bar{
+}
+
+/* PROGRESS BAR */
+.progress-bar{
   width:200px;
   height:6px;
   background:#e4e8f0;
   border-radius:20px;
   overflow:hidden;
-  }
-  
-  .progress-fill{
-  width:100%;
+}
+
+.progress-fill{
   height:6px;
   background:#3b6fd8;
-  }
-  
-  /* ATTENDANCE */
-  
-  .attendance-card{
-  border-left:5px solid #2ecc71;
-  }
-  
-  .attendance-icon{
+  border-radius:20px;
+}
+
+/* ATTENDANCE CARD */
+.attendance-card{
+  border-left:5px solid #16a34a; /* default; overridden inline */
+}
+
+.attendance-icon{
   width:48px;
   height:48px;
-  background:#2ecc71;
-  color:#fff;
-  font-size:20px;
   border-radius:10px;
   display:flex;
   justify-content:center;
   align-items:center;
-  }
-  
-  /* TABLE CARD */
-  
-  .table-card{
+  flex-shrink:0;
+}
+
+/* TABLE CARD */
+.table-card{
   background:#fff;
   border-radius:14px;
   margin-bottom:26px;
   padding:22px;
   box-shadow:0 4px 12px rgba(0,0,0,0.05);
-  }
-  
-  .table-header{
+}
+
+.table-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
   margin-bottom:14px;
-  }
-  
-  .table-header h3{
+}
+
+.table-header h3{
   font-size:16px;
   font-weight:600;
-  }
-  
-  .table-header a{
+}
+
+.table-header a{
   font-size:13px;
   text-decoration:none;
   color:#3b6fd8;
-  }
-  
-  /* TABLE */
-  
-  table{
+}
+
+/* TABLE */
+table{
   width:100%;
   border-collapse:collapse;
-  }
-  
-  th{
+}
+
+th{
   text-align:left;
   font-size:13px;
   padding:12px;
   background:#f4f6fb;
   color:#555;
-  }
-  
-  td{
+}
+
+td{
   padding:12px;
   border-bottom:1px solid #f0f0f0;
   font-size:13px;
-  }
-  
-  /* STATUS */
-  
-  .status{
+}
+
+/* STATUS BADGES */
+.status{
   padding:5px 12px;
   border-radius:20px;
   font-size:11px;
   font-weight:600;
-  }
-  
-  .present{
+}
+
+.present{
   background:#d4f4dd;
-  color:#27ae60;
-  }
-  
-  .completed{
+  color:#16a34a;
+}
+
+.absent{
+  background:#fee2e2;
+  color:#dc2626;
+}
+
+.completed{
   background:#d0e7ff;
   color:#0b61d8;
-  }
-  
-  .pending{
-  background:#f9d6d5;
-  color:#e74c3c;
-  }
-  /* DASHBOARD HEADER */
+}
 
+.pending{
+  background:#fef3c7;
+  color:#d97706;
+}
+
+/* DASHBOARD HEADER */
 .dashboard-header{
   margin-bottom:24px;
-  }
-  
-  .dashboard-header h2{
+}
+
+.dashboard-header h2{
   font-size:22px;
   font-weight:600;
   color:#1f2937;
   margin-bottom:10px;
-  }
-  
-  .dashboard-divider{
+}
+
+.dashboard-divider{
   width:100%;
   height:1px;
   background:#e5e7eb;
-  }
-
-  
+}

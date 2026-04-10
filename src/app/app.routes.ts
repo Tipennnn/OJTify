@@ -26,6 +26,7 @@ import { SupervisorOjtProfileComponent } from './supervisor/supervisor-ojt-profi
 import { SupervisorAttendanceComponent } from './supervisor/supervisor-attendance/supervisor-attendance.component';
 import { SupervisorAttendanceHistoryComponent } from './supervisor/supervisor-attendance-history/supervisor-attendance-history.component';
 import { SupervisorTasksComponent } from './supervisor/supervisor-tasks/supervisor-tasks.component';
+import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/supervisor-dashboard.component';
 
 
 import { authGuard } from './guards/auth.guard';
@@ -64,5 +65,6 @@ export const routes: Routes = [
   { path: 'supervisor-ojt-profile/:id', component: SupervisorOjtProfileComponent },
   { path: 'supervisor-attendance', component: SupervisorAttendanceComponent },
   { path: 'supervisor-attendance-history', component: SupervisorAttendanceHistoryComponent },
-  { path: 'supervisor-tasks', component: SupervisorTasksComponent },
+  { path: 'supervisor-tasks', component: SupervisorTasksComponent },   
+  { path: 'supervisor-dashboard', component: SupervisorDashboardComponent },
 ];

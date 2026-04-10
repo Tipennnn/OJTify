@@ -36,11 +36,13 @@
         </div>
 
         <!-- TODAY ATTENDANCE -->
-        <div class="card attendance-card">
+        <div class="card attendance-card"
+             [style.borderLeftColor]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
           <div class="attendance-icon"
                [style.background]="todayStatus === 'Present' ? '#dcfce7' : '#fee2e2'"
                [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
-            {{ todayStatus === 'Present' ? '✔' : '✘' }}
+            <i [class]="todayStatus === 'Present' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"
+               style="font-size:22px;"></i>
           </div>
           <div>
             <h4 [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">

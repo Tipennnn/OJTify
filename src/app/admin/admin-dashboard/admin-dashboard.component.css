@@ -42,12 +42,12 @@ body {
 .main-section {
   margin-left: 260px;
   flex: 1;
-  min-width: 0; /* KEY FIX: prevents flex child from overflowing */
+  min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: #f3f4f6;
   transition: margin-left 0.3s ease;
-  width: calc(100% - 260px); /* explicitly track available width */
+  width: calc(100% - 260px);
 }
 
 .dashboard-wrapper.collapsed .main-section {
@@ -73,7 +73,7 @@ app-admin-topnav {
 /* DASHBOARD CONTENT */
 .dashboard-content {
   margin-top: 60px;
-  padding: 20px;
+  padding: 20px 24px;
   min-height: calc(100vh - 60px);
   width: 100%;
 }
@@ -81,7 +81,7 @@ app-admin-topnav {
 /* DASHBOARD HEADER */
 .dashboard-header {
   margin-bottom: 24px;
-  padding-left: 20px;
+  padding-left: 4px;
 }
 .dashboard-header h2 {
   font-size: 22px;
@@ -91,97 +91,101 @@ app-admin-topnav {
   margin-bottom: 14px;
 }
 .dashboard-divider {
-  width: calc(100% - 20px);
+  width: 100%;
   height: 1px;
   background: #e5e7eb;
-  margin-left: 20px;
+  margin-top: 10px;
   margin-bottom: 20px;
-  margin-top: 23px;
 }
 
 /* CENTER WRAPPER */
 .center-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: stretch; /* KEY FIX: stretch instead of center so children fill width */
+  align-items: stretch;
   width: 100%;
   gap: 20px;
 }
 
-/* CARDS */
+/* =========================
+   STAT CARDS
+========================= */
 .cards {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 15px;
+  gap: 16px;
   width: 100%;
 }
 
 .card {
-  flex: 1 1 0;     /* KEY FIX: equal width distribution, no trailing space */
+  flex: 1 1 0;
   min-width: 180px;
-  max-width: none;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  padding: 16px 18px;
-  border-radius: 18px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  padding: 18px 22px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s, box-shadow 0.2s;
-  height: 100px;
+  height: 90px;
 }
+
 .card:hover {
-  box-shadow: 0 15px 30px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
 }
 
 .card-left {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
+
 .card-icon {
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 17px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .card-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #6b7280;
-  text-align: center;
 }
+
 .card-number {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   color: #111827;
-  text-align: center;
 }
 
 /* ICON COLORS */
-.card-blue .card-icon  { background: rgba(59,130,246,0.1); color: #3b82f6; }
-.card-orange .card-icon { background: rgba(249,115,22,0.1); color: #f97316; }
-.card-green .card-icon  { background: rgba(34,197,94,0.1);  color: #22c55e; }
-.card-red .card-icon    { background: rgba(239,68,68,0.1);  color: #ef4444; }
+.card-blue .card-icon   { background: rgba(37, 99, 235, 0.1);  color: #2563eb; }
+.card-orange .card-icon { background: rgba(234, 88, 12, 0.1);  color: #ea580c; }
+.card-green .card-icon  { background: rgba(22, 163, 74, 0.1);  color: #16a34a; }
+.card-red .card-icon    { background: rgba(220, 38, 38, 0.1);  color: #dc2626; }
 
-/* CHART CONTAINERS */
+/* =========================
+   CHART CONTAINERS
+========================= */
 .chart-container {
   background: #fff;
-  padding: 30px;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  width: 100%; /* KEY FIX: always 100% of parent, no fixed max-width */
+  padding: 24px 28px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  width: 100%;
   height: 320px;
 }
 
 .chart-container h3 {
-  margin: 0 0 12px 0;
+  margin: 0 0 14px 0;
   font-size: 15px;
   font-weight: 600;
   color: #1f2937;
@@ -190,15 +194,14 @@ app-admin-topnav {
 .charts-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 16px;
   width: 100%;
 }
 
 .chart-container.small-chart {
-  flex: 1 1 280px; /* KEY FIX: fluid flex-basis, not fixed 48% */
-  padding: 25px;
-  border-radius: 18px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  flex: 1 1 280px;
+  padding: 24px 28px;
+  border-radius: 14px;
   height: 280px;
 }
 
@@ -206,10 +209,12 @@ app-admin-topnav {
 .chart-container canvas {
   display: block;
   width: 100% !important;
-  height: calc(100% - 36px) !important; /* account for h3 */
+  height: calc(100% - 40px) !important;
 }
 
-/* RESPONSIVE */
+/* =========================
+   RESPONSIVE
+========================= */
 @media (max-width: 768px) {
   .card { flex: 1 1 45%; height: 90px; min-width: 0; }
   .chart-container.small-chart { flex: 1 1 100%; height: 260px; }

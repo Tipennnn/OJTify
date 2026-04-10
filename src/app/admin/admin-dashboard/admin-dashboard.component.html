@@ -16,37 +16,39 @@
 
         <!-- STAT CARDS -->
         <div class="cards">
+
           <div class="card card-blue">
             <div class="card-left">
               <div class="card-icon"><i class="fa-solid fa-users"></i></div>
-              <div class="card-label">Total Interns</div>
+              <span class="card-label">Total Interns</span>
             </div>
-            <div class="card-number">{{ totalInterns }}</div>
+            <span class="card-number">{{ totalInterns }}</span>
           </div>
 
           <div class="card card-orange">
             <div class="card-left">
-              <div class="card-icon"><i class="fa-solid fa-user-plus"></i></div>
-              <div class="card-label">Pending Applicants</div>
+              <div class="card-icon"><i class="fa-solid fa-user-clock"></i></div>
+              <span class="card-label">Pending Applicants</span>
             </div>
-            <div class="card-number">{{ pendingApplicants }}</div>
+            <span class="card-number">{{ pendingApplicants }}</span>
           </div>
 
           <div class="card card-green">
             <div class="card-left">
-              <div class="card-icon"><i class="fa-solid fa-calendar-check"></i></div>
-              <div class="card-label">Present Today</div>
+              <div class="card-icon"><i class="fa-solid fa-circle-check"></i></div>
+              <span class="card-label">Present Today</span>
             </div>
-            <div class="card-number">{{ presentToday }}</div>
+            <span class="card-number">{{ presentToday }}</span>
           </div>
 
           <div class="card card-red">
             <div class="card-left">
-              <div class="card-icon"><i class="fa-solid fa-user-slash"></i></div>
-              <div class="card-label">Absent Today</div>
+              <div class="card-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+              <span class="card-label">Absent Today</span>
             </div>
-            <div class="card-number">{{ absentToday }}</div>
+            <span class="card-number">{{ absentToday }}</span>
           </div>
+
         </div>
 
         <!-- WEEKLY ATTENDANCE CHART -->

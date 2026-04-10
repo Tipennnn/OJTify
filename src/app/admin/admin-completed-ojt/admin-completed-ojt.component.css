@@ -176,7 +176,7 @@
   
   /* Button — REMOVED fixed margin-left: 580px */
   .filter-btn {
-      background-color: #2563eb;
+      background-color: #111827;
       color: #fff;
       padding: 8px 18px;
       border-radius: 8px;
@@ -191,7 +191,7 @@
   }
   
   .filter-btn:hover {
-      background-color: #1e40af;
+      background-color: #252c3d;
       box-shadow: 0 4px 8px rgba(0,0,0,0.15);
   }
   

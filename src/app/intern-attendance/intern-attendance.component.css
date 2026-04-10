@@ -189,7 +189,15 @@
     display: flex;
     flex-direction: column;
 }
- 
+.attendance-status-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 22px;
+}
 .attendance-modal-header {
   margin-bottom: 12px;
 }

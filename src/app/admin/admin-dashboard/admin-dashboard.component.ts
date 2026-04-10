@@ -100,67 +100,65 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   async loadAttendanceData() {
-  try {
-    const now   = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    try {
+      const now   = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
-    const attendRes = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL
-    );
-    const allAttendance = attendRes.documents as any[];
+      const attendRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+      const allAttendance = attendRes.documents as any[];
 
-    // ── Today present / absent ────────────────────────────
-    const todayRecords = allAttendance.filter(a => a.date === today);
-    this.presentToday  = todayRecords.filter(a => a.status === 'Present').length;
-    this.absentToday   = this.totalInterns - this.presentToday;
-    if (this.absentToday < 0) this.absentToday = 0;
+      // ── Today present / absent ────────────────────────────
+      const todayRecords = allAttendance.filter(a => a.date === today);
+      this.presentToday  = todayRecords.filter(a => a.status === 'Present').length;
+      this.absentToday   = this.totalInterns - this.presentToday;
+      if (this.absentToday < 0) this.absentToday = 0;
 
-    // ── Weekly attendance (last 7 days) ───────────────────
-    this.weeklyPresent = [0,0,0,0,0,0,0];
-    this.weeklyAbsent  = [0,0,0,0,0,0,0];
+      // ── Weekly attendance (last 7 days) ───────────────────
+      this.weeklyPresent = [0,0,0,0,0,0,0];
+      this.weeklyAbsent  = [0,0,0,0,0,0,0];
 
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const dayIndex = 6 - i;
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr  = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const dayIndex = 6 - i;
 
-      const dayRecords = allAttendance.filter(a => a.date === dateStr);
-      this.weeklyPresent[dayIndex] = dayRecords.filter(a => a.status === 'Present').length;
-      this.weeklyAbsent[dayIndex]  = Math.max(this.totalInterns - this.weeklyPresent[dayIndex], 0);
+        const dayRecords = allAttendance.filter(a => a.date === dateStr);
+        this.weeklyPresent[dayIndex] = dayRecords.filter(a => a.status === 'Present').length;
+        this.weeklyAbsent[dayIndex]  = Math.max(this.totalInterns - this.weeklyPresent[dayIndex], 0);
+      }
+
+      // ── On-time vs late (today) ───────────────────────────
+      this.onTimeCount = 0;
+      this.lateCount   = 0;
+
+      todayRecords.forEach(record => {
+        if (!record.time_in || record.time_in === '') return;
+        try {
+          const [time, period] = record.time_in.trim().split(' ');
+          let   [hours, mins]  = time.split(':').map(Number);
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12) hours  = 0;
+
+          const totalMins    = hours * 60 + mins;
+          const onTimeStart  = 8 * 60;
+          const onTimeCutoff = 8 * 60 + 15;
+
+          if (totalMins >= onTimeStart && totalMins <= onTimeCutoff) {
+            this.onTimeCount++;
+          } else if (totalMins > onTimeCutoff) {
+            this.lateCount++;
+          }
+        } catch { }
+      });
+
+    } catch (error: any) {
+      console.error('Failed to load attendance data:', error.message);
     }
-
-    // ── On-time vs late (today) ───────────────────────────
-    this.onTimeCount = 0;
-    this.lateCount   = 0;
-
-    todayRecords.forEach(record => {
-      if (!record.time_in || record.time_in === '') return;
-      try {
-        const [time, period] = record.time_in.trim().split(' ');
-        let   [hours, mins]  = time.split(':').map(Number);
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours  = 0;
-
-        const totalMins    = hours * 60 + mins;
-        const onTimeStart  = 8 * 60;       // 8:00 AM
-        const onTimeCutoff = 8 * 60 + 15;  // 8:15 AM
-
-        if (totalMins >= onTimeStart && totalMins <= onTimeCutoff) {
-          this.onTimeCount++;
-        } else if (totalMins > onTimeCutoff) {
-          this.lateCount++;
-        }
-        // before 8:00 AM = early, not counted as either
-
-      } catch { }
-    });
-
-  } catch (error: any) {
-    console.error('Failed to load attendance data:', error.message);
   }
-}
 
   ngAfterViewInit(): void {
     setTimeout(() => this.loadCharts(), 200);
