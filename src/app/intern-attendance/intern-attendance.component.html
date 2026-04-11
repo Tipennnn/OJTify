@@ -6,16 +6,18 @@
     <div class="dashboard-content">
 
       <div class="dashboard-header">
-        <h2>Attendance</h2>
+        <div class="header-top">
+          <h2>Attendance</h2>
+          <button class="qr-btn" (click)="openQRModal()">
+            <i class="fa fa-qrcode"></i> My QR Code
+          </button>
+        </div>
         <div class="dashboard-divider"></div>
-        <button class="qr-btn" (click)="openQRModal()">
-          <i class="fa fa-qrcode"></i> My QR Code
-        </button>
       </div>
 
+      <!-- TOP CARDS -->
       <div class="top-cards">
 
-        <!-- TOTAL HOURS -->
         <div class="stat-card total-card">
           <div class="stat-left">
             <h3>{{ completedHours }} / {{ requiredHours }}</h3>
@@ -29,7 +31,6 @@
           </div>
         </div>
 
-        <!-- REMAINING -->
         <div class="stat-card remaining-card">
           <div class="stat-left">
             <h3>{{ remainingHours }} hrs</h3>
@@ -42,7 +43,6 @@
           </div>
         </div>
 
-        <!-- TODAY ATTENDANCE -->
         <div class="stat-card"
              [ngClass]="todayStatus === 'Present' ? 'present-card' : 'absent-card'">
           <div class="stat-left">
@@ -60,7 +60,7 @@
 
       </div>
 
-      <!-- Calendar -->
+      <!-- CALENDAR -->
       <div class="attendance-container">
         <div class="calendar-header">
           <div class="calendar-nav">
@@ -69,7 +69,8 @@
             <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
           </div>
           <button class="excel-btn" (click)="openReportsModal()">
-            <i class="fa fa-file-alt"></i> Attendance Reports
+            <i class="fa fa-file-alt"></i>
+            <span class="btn-label">Attendance Reports</span>
           </button>
         </div>
 
@@ -79,12 +80,7 @@
         </div>
 
         <div class="calendar-grid">
-          <!-- Empty cells for offset -->
-          <div class="day empty"
-               *ngFor="let e of getEmptyCells()">
-          </div>
-
-          <!-- Actual days -->
+          <div class="day empty" *ngFor="let e of getEmptyCells()"></div>
           <div class="day"
                *ngFor="let day of days"
                (click)="openAttendance(day)"
@@ -107,6 +103,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -191,33 +188,34 @@
       </div>
 
       <div class="table-panel">
-        <table *ngIf="filteredRecordsList.length > 0">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Day</th>
-              <th>Time In</th>
-              <th>Time Out</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let r of filteredRecordsList">
-              <td>{{ r.date }}</td>
-              <td>{{ r.day }}</td>
-              <td>{{ r.timeIn }}</td>
-              <td>{{ r.timeOut }}</td>
-              <td [class.present]="r.status === 'Present'"
-                  [class.absent]="r.status === 'Absent'"
-                  [class.no-record]="r.status === 'No Record'">
-                {{ r.status }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div *ngIf="filteredRecordsList.length === 0" class="no-records-msg">
-          No records found for selected filters.
+        <div class="table-wrap">
+          <table *ngIf="filteredRecordsList.length > 0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of filteredRecordsList">
+                <td>{{ r.date }}</td>
+                <td>{{ r.day }}</td>
+                <td>{{ r.timeIn }}</td>
+                <td>{{ r.timeOut }}</td>
+                <td [class.present]="r.status === 'Present'"
+                    [class.absent]="r.status === 'Absent'"
+                    [class.no-record]="r.status === 'No Record'">
+                  {{ r.status }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="filteredRecordsList.length === 0" class="no-records-msg">
+            No records found for selected filters.
+          </div>
         </div>
       </div>
     </div>
@@ -227,7 +225,6 @@
 <!-- QR Code Modal -->
 <div class="qr-modal" *ngIf="showQRModal">
   <div class="qr-box">
-
     <div class="qr-header">
       <div class="qr-title">
         <div class="qr-icon">
@@ -259,13 +256,10 @@
           <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
         </div>
       </div>
-      <span class="qr-note">
-        Present this QR code for attendance logging.
-      </span>
+      <span class="qr-note">Present this QR code for attendance logging.</span>
       <p style="font-size:11px; color:#9ca3af; margin-top:8px;">
         Student ID: {{ currentUserId }}
       </p>
     </div>
-
   </div>
 </div>

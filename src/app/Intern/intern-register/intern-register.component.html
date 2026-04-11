@@ -1,12 +1,16 @@
 <div class="login-wrapper">
 
+  <!-- MOBILE HEADER -->
+  <div class="mobile-reg-header">
+    <img src="/assets/images/OJTify_logo.png">
+    <div class="mob-app-name">OJTIFY</div>
+    <div class="mob-app-sub">Student Registration</div>
+  </div>
+
   <!-- LEFT PANEL -->
   <div class="login-left">
     <div class="bg-pattern"></div>
     <div class="login-left-content">
-      <div class="logo-mobile">
-        <img src="/assets/images/OJTify_logo.png">
-      </div>
       <div class="brand hide-mobile">
         <img src="/assets/images/OJTify_logo.png">
         <span>OJTIFY</span>
@@ -26,9 +30,6 @@
   <div class="login-right">
     <div class="login-card">
 
-      <!-- ══════════════════════════════════════ -->
-      <!--  REGISTRATION FORM                    -->
-      <!-- ══════════════════════════════════════ -->
       <ng-container *ngIf="!successMessage">
 
         <h2>Student Registration</h2>
@@ -61,22 +62,23 @@
           <!-- Personal Information -->
           <div class="form-section-title">Personal Information</div>
 
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-user"></i></span>
-            <input type="text" [(ngModel)]="firstName" name="firstName" placeholder=" " required>
-            <label>First Name</label>
+          <div class="input-row">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-user"></i></span>
+              <input type="text" [(ngModel)]="firstName" name="firstName" placeholder=" " required>
+              <label>First Name</label>
+            </div>
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-user"></i></span>
+              <input type="text" [(ngModel)]="lastName" name="lastName" placeholder=" " required>
+              <label>Last Name</label>
+            </div>
           </div>
 
           <div class="input-wrapper">
             <span class="icon"><i class="fa fa-user"></i></span>
             <input type="text" [(ngModel)]="middleName" name="middleName" placeholder=" ">
-            <label>Middle Name</label>
-          </div>
-
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-user"></i></span>
-            <input type="text" [(ngModel)]="lastName" name="lastName" placeholder=" " required>
-            <label>Last Name</label>
+            <label>Middle Name (optional)</label>
           </div>
 
           <div class="input-wrapper">
@@ -85,20 +87,32 @@
             <label>Contact Number</label>
           </div>
 
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-calendar"></i></span>
-            <input type="date" [(ngModel)]="birthday" name="birthday" required>
-            <label>Birthday</label>
-          </div>
+          <!-- Birthday & Gender -->
+          <div class="input-row">
 
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-venus-mars"></i></span>
-            <select [(ngModel)]="gender" name="gender" required>
-              <option value="" disabled selected hidden></option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-            <label>Gender</label>
+            <!-- BIRTHDAY — special date-wrapper -->
+            <div class="date-wrapper">
+              <span class="icon"><i class="fa fa-calendar"></i></span>
+              <input
+                type="date"
+                [(ngModel)]="birthday"
+                name="birthday"
+                required
+                [class.has-value]="birthday"
+                (change)="birthday = $any($event.target).value">
+              <span class="date-label">Birthday</span>
+            </div>
+
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-venus-mars"></i></span>
+              <select [(ngModel)]="gender" name="gender" required>
+                <option value="" disabled selected hidden></option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+              <label>Gender</label>
+            </div>
+
           </div>
 
           <div class="input-wrapper">
@@ -122,50 +136,57 @@
             <label>School Name</label>
           </div>
 
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-graduation-cap"></i></span>
-            <input type="text" [(ngModel)]="course" name="course" placeholder=" " required>
-            <label>Course</label>
-          </div>
-
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-layer-group"></i></span>
-            <select [(ngModel)]="yearLevel" name="yearLevel" required>
-              <option value="" disabled selected hidden></option>
-              <option value="1st">1st Year</option>
-              <option value="2nd">2nd Year</option>
-              <option value="3rd">3rd Year</option>
-              <option value="4th">4th Year</option>
-            </select>
-            <label>Year Level</label>
+          <div class="input-row">
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-graduation-cap"></i></span>
+              <input type="text" [(ngModel)]="course" name="course" placeholder=" " required>
+              <label>Course</label>
+            </div>
+            <div class="input-wrapper">
+              <span class="icon"><i class="fa fa-layer-group"></i></span>
+              <select [(ngModel)]="yearLevel" name="yearLevel" required>
+                <option value="" disabled selected hidden></option>
+                <option value="1st">1st Year</option>
+                <option value="2nd">2nd Year</option>
+                <option value="3rd">3rd Year</option>
+                <option value="4th">4th Year</option>
+              </select>
+              <label>Year Level</label>
+            </div>
           </div>
 
           <!-- Required Documents -->
           <div class="form-section-title">Required Documents</div>
 
-          <div class="input-wrapper">
-            <span class="icon resume-icon"><i class="fa fa-file"></i></span>
-            <input type="file" id="resumeFile" accept=".pdf,.doc,.docx"
-                   (change)="onFileChange($event, 'resume')">
-            <label for="resumeFile">Resume / CV</label>
-            <span class="file-name">{{ resumeFileName }}</span>
-          </div>
+          <label class="file-upload-card">
+            <div class="file-icon-box"><i class="fa fa-file"></i></div>
+            <div class="file-text-wrap">
+              <div class="file-label-main">Resume / CV</div>
+              <div class="file-label-sub" *ngIf="!resumeFileName">PDF, DOC, DOCX</div>
+              <div class="file-name-display" *ngIf="resumeFileName">{{ resumeFileName }}</div>
+            </div>
+            <input type="file" accept=".pdf,.doc,.docx" (change)="onFileChange($event, 'resume')">
+          </label>
 
-          <div class="input-wrapper">
-            <span class="icon endorsement-icon"><i class="fa fa-file-signature"></i></span>
-            <input type="file" id="endorsementFile" accept=".pdf,.doc,.docx"
-                   (change)="onFileChange($event, 'endorsement')">
-            <label for="endorsementFile">Endorsement Letter</label>
-            <span class="file-name">{{ endorsementFileName }}</span>
-          </div>
+          <label class="file-upload-card">
+            <div class="file-icon-box"><i class="fa fa-file-signature"></i></div>
+            <div class="file-text-wrap">
+              <div class="file-label-main">Endorsement Letter</div>
+              <div class="file-label-sub" *ngIf="!endorsementFileName">PDF, DOC, DOCX</div>
+              <div class="file-name-display" *ngIf="endorsementFileName">{{ endorsementFileName }}</div>
+            </div>
+            <input type="file" accept=".pdf,.doc,.docx" (change)="onFileChange($event, 'endorsement')">
+          </label>
 
-          <div class="input-wrapper">
-            <span class="icon certificate-icon"><i class="fa fa-certificate"></i></span>
-            <input type="file" id="coeFile" accept=".pdf,.doc,.docx"
-                   (change)="onFileChange($event, 'coe')">
-            <label for="coeFile">Certificate of Enrollment</label>
-            <span class="file-name">{{ coeFileName }}</span>
-          </div>
+          <label class="file-upload-card">
+            <div class="file-icon-box"><i class="fa fa-certificate"></i></div>
+            <div class="file-text-wrap">
+              <div class="file-label-main">Certificate of Enrollment</div>
+              <div class="file-label-sub" *ngIf="!coeFileName">PDF, DOC, DOCX</div>
+              <div class="file-name-display" *ngIf="coeFileName">{{ coeFileName }}</div>
+            </div>
+            <input type="file" accept=".pdf,.doc,.docx" (change)="onFileChange($event, 'coe')">
+          </label>
 
           <button class="login-btn" type="submit" [disabled]="loading">
             <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
@@ -177,26 +198,26 @@
             <a routerLink="/intern-login">Log in</a>
           </p>
 
+          <p class="system-mobile">OJT Management System with QR Attendance</p>
+
         </form>
 
       </ng-container>
 
-      <!-- ══════════════════════════════════════ -->
-      <!--  SUCCESS — PENDING APPROVAL           -->
-      <!-- ══════════════════════════════════════ -->
+      <!-- SUCCESS PANEL -->
       <ng-container *ngIf="successMessage === 'pending'">
         <div class="success-panel">
-          <div class="success-icon-wrap" style="background:#fef3c7;">
-            <i class="fa fa-clock" style="color:#d97706;"></i>
+          <div class="success-icon-wrap" style="background: #fef3c7;">
+            <i class="fa fa-clock" style="color: #d97706;"></i>
           </div>
           <h2>Application Submitted!</h2>
-          <p style="color:#6b7280; text-align:center; line-height:1.7;">
+          <p style="color: #6b7280; text-align: center; line-height: 1.7;">
             Your application has been submitted successfully.<br>
             Please wait for the <strong>admin to review and approve</strong> your account.<br>
             You will be able to log in once your application is approved.
           </p>
           <a routerLink="/intern-login" class="login-btn"
-             style="display:block; text-align:center; text-decoration:none; margin-top:20px;">
+             style="display: block; text-align: center; text-decoration: none; margin-top: 20px;">
             Back to Login
           </a>
         </div>

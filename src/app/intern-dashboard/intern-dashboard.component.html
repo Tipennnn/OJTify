@@ -59,24 +59,26 @@
         <div class="table-header">
           <h3>Application Information</h3>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Applied On</th>
-              <th>Accepted On</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{{ appliedOn }}</td>
-              <td>{{ acceptedOn }}</td>
-              <td>
-                <span class="status completed">{{ appStatus }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Applied On</th>
+                <th>Accepted On</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ appliedOn }}</td>
+                <td>{{ acceptedOn }}</td>
+                <td>
+                  <span class="status completed">{{ appStatus }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- RECENT ATTENDANCE -->
@@ -85,36 +87,37 @@
           <h3>Recent Attendance</h3>
           <a routerLink="/intern-attendance">View all →</a>
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time In</th>
-              <th>Time Out</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let record of recentAttendance">
-              <td>{{ record.date }}</td>
-              <td>{{ record.time_in }}</td>
-              <td>{{ record.time_out }}</td>
-              <td>
-                <span class="status"
-                      [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
-                  {{ record.status }}
-                </span>
-              </td>
-            </tr>
-            <tr *ngIf="recentAttendance.length === 0">
-              <td colspan="4"
-                  style="text-align:center; color:#9ca3af; padding:20px;">
-                No attendance records yet.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let record of recentAttendance">
+                <td>{{ record.date }}</td>
+                <td>{{ record.time_in }}</td>
+                <td>{{ record.time_out }}</td>
+                <td>
+                  <span class="status"
+                        [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
+                    {{ record.status }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="recentAttendance.length === 0">
+                <td colspan="4"
+                    style="text-align:center; color:#9ca3af; padding:20px;">
+                  No attendance records yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- RECENT TASKS -->
@@ -129,36 +132,39 @@
           <i class="fa fa-spinner fa-spin"></i> Loading tasks...
         </div>
 
-        <table *ngIf="!tasksLoading">
-          <thead>
-            <tr>
-              <th>Task</th>
-              <th>Description</th>
-              <th>Date Assigned</th>
-              <th>Due Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let task of recentTasks">
-              <td>{{ task.title }}</td>
-              <td>{{ task.description || '—' }}</td>
-              <td>{{ task.posted }}</td>
-              <td>{{ task.due }}</td>
-              <td>
-                <span class="status" [ngClass]="task.status">
-                  {{ task.status | titlecase }}
-                </span>
-              </td>
-            </tr>
-            <tr *ngIf="recentTasks.length === 0">
-              <td colspan="5"
-                  style="text-align:center; color:#9ca3af; padding:20px;">
-                No tasks assigned yet.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap" *ngIf="!tasksLoading">
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Description</th>
+                <th>Date Assigned</th>
+                <th>Due Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let task of recentTasks">
+                <td>{{ task.title }}</td>
+                <td>{{ task.description || '—' }}</td>
+                <td>{{ task.posted }}</td>
+                <td>{{ task.due }}</td>
+                <td>
+                  <span class="status" [ngClass]="task.status">
+                    {{ task.status | titlecase }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="recentTasks.length === 0">
+                <td colspan="5"
+                    style="text-align:center; color:#9ca3af; padding:20px;">
+                  No tasks assigned yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
       </div>
 
     </div>

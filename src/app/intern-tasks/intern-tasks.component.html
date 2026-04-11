@@ -58,7 +58,6 @@
     <div class="modal-left">
       <div class="submit-card">
         <h3>Task Submission</h3>
-           
 
         <label class="upload-box">
           <input type="file" (change)="onFileSelected($event)">
@@ -85,44 +84,33 @@
           {{ submitLoading ? 'Submitting...' : 'Submit Task' }}
         </button>
 
-       <!-- MY SUBMISSIONS -->
+        <!-- MY SUBMISSIONS -->
+        <h4>My Submissions</h4>
 
+        <div *ngIf="submissions.length === 0" class="empty-sub">
+          No submissions yet.
+        </div>
 
-<h4>My Submissions</h4>
-
-<div *ngIf="submissions.length === 0" class="empty-sub">
-  No submissions yet.
-</div>
-
-<div class="submission-list">
-
-  <div class="file-card" *ngFor="let sub of submissions">
-
-    <div class="file-left">
-      <div class="file-icon">
-        <i class="fa-solid fa-file"></i>
-      </div>
-
-      <div class="file-info">
-        <span class="file-name">{{ sub.file_name }}</span>
-        <span class="file-size">{{ sub.submitted_at }}</span>
-      </div>
-    </div>
-
-    <div class="file-actions">
-     
-
-      <!-- DELETE -->
-      <div class="file-action-btn delete"
-           (click)="deleteSubmission(sub)"
-           title="Delete submission">
-        <i class="fas fa-trash"></i>
-      </div>
-    </div>
-
-  </div>
-
-</div>
+        <div class="submission-list">
+          <div class="file-card" *ngFor="let sub of submissions">
+            <div class="file-left">
+              <div class="file-icon">
+                <i class="fa-solid fa-file"></i>
+              </div>
+              <div class="file-info">
+                <span class="file-name">{{ sub.file_name }}</span>
+                <span class="file-size">{{ sub.submitted_at }}</span>
+              </div>
+            </div>
+            <div class="file-actions">
+              <div class="file-action-btn delete"
+                   (click)="deleteSubmission(sub)"
+                   title="Delete submission">
+                <i class="fas fa-trash"></i>
+              </div>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -130,12 +118,10 @@
     <!-- RIGHT PANEL -->
     <div class="modal-right">
 
-      <!-- TASK TITLE -->
-<h2 class="task-title">{{ selectedTask?.title }}</h2>
-  <div class="right-divider"></div>
+      <h2 class="task-title">{{ selectedTask?.title }}</h2>
+      <div class="right-divider"></div>
 
       <div class="task-author-meta">
-        <!-- LEFT SIDE: Author + Posted -->
         <div class="author-left">
           <div class="author-avatar">{{ selectedTask?.title?.charAt(0) }}</div>
           <div class="author-info">
@@ -144,136 +130,113 @@
             <span class="posted-date">{{ selectedTask?.posted }}</span>
           </div>
         </div>
-      
-        <!-- RIGHT SIDE: Due -->
         <div class="due-right">
           <i class="fa-solid fa-clock"></i>
           <span>Due: {{ selectedTask?.due }}</span>
         </div>
       </div>
 
-
       <div class="description-card">
         <p>{{ selectedTask?.description }}</p>
       </div>
 
-      
-
-    <!-- ADMIN ATTACHMENT -->
-<div *ngIf="selectedTask?.attachment_file_id">
-
-  <strong style="font-size:14px;"> Attachment</strong>
-
-  <div class="file-card" style="margin-top:10px;">
-    <div class="file-left">
-      <i class="fa-solid fa-file-pdf file-icon" style="color:#dc2626;"></i>
-      <div class="file-info">
-        <span class="file-name">
-          {{ selectedTask?.attachment_file_name || 'Task Attachment' }}
-        </span>
-        <span class="file-size">From Admin</span>
-      </div>
-    </div>
-    <div style="display:flex; gap:10px; align-items:center;">
-
-      <!-- VIEW (magnifying glass) -->
-      <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
-                 + selectedTask!.attachment_file_id
-                 + '/view?project=69ba8d9c0027d10c447f'"
-         target="_blank"
-         title="View file">
-        <div class="file-action-btn grey">
-          <i class="fa-solid fa-magnifying-glass"></i>
+      <!-- ADMIN ATTACHMENT -->
+      <div *ngIf="selectedTask?.attachment_file_id">
+        <strong style="font-size:14px;">Attachment</strong>
+        <div class="file-card" style="margin-top:10px;">
+          <div class="file-left">
+            <i class="fa-solid fa-file-pdf file-icon" style="color:#dc2626;"></i>
+            <div class="file-info">
+              <span class="file-name">
+                {{ selectedTask?.attachment_file_name || 'Task Attachment' }}
+              </span>
+              <span class="file-size">From Admin</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
+                       + selectedTask!.attachment_file_id
+                       + '/view?project=69ba8d9c0027d10c447f'"
+               target="_blank" title="View file">
+              <div class="file-action-btn grey">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </div>
+            </a>
+            <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
+                       + selectedTask!.attachment_file_id
+                       + '/download?project=69ba8d9c0027d10c447f'"
+               target="_blank" title="Download file">
+              <div class="file-action-btn grey">
+                <i class="fas fa-download"></i>
+              </div>
+            </a>
+          </div>
         </div>
-      </a>
-
-      <!-- DOWNLOAD -->
-      <a [href]="'https://sgp.cloud.appwrite.io/v1/storage/buckets/69baaf64002ceb2490df/files/'
-                 + selectedTask!.attachment_file_id
-                 + '/download?project=69ba8d9c0027d10c447f'"
-         target="_blank"
-         title="Download file">
-        <div class="file-action-btn grey">
-          <i class="fas fa-download"></i>
-        </div>
-      </a>
-
-    </div>
-  </div>
-</div>
-
-
-
-     <!-- ================= COMMENTS ================= -->
-<div class="comments-section">
-  <div class="right-divider"></div>
-
-  <label class="comment-label">Comment</label>
-
-  <!-- COMMENT INPUT FIRST -->
-  <div class="comment-input modern">
-    <textarea placeholder="Write a comment..."
-              [(ngModel)]="newComment"
-              (keyup.enter)="sendComment()"></textarea>
-    <button class="send-btn"
-            (click)="sendComment()"
-            [disabled]="commentLoading">
-      <i class="fa fa-spinner fa-spin" *ngIf="commentLoading"></i>
-      <i class="fa-solid fa-paper-plane" *ngIf="!commentLoading"></i>
-    </button>
-  </div>
-
-  <!-- Divider -->
-  <div class="divider"></div>
-
-  <!-- COMMENTS LIST -->
-  <div *ngIf="comments.length === 0" class="empty-comments">
-    No comments yet. Be the first to comment!
-  </div>
-
-  <div class="comment" *ngFor="let comment of comments">
-    <div class="avatar"
-         [style.background]="comment.role === 'admin' ? '#ef4444' : '#2563eb'">
-      {{ comment.user_name[0] }}
-    </div>
-
-    <div class="comment-body">
-      <div class="comment-header">
-        <strong>
-          {{ comment.user_name }}
-          <span *ngIf="comment.role === 'admin'" class="admin-badge">Admin</span>
-        </strong>
-        <span class="comment-date">{{ comment.created_at }}</span>
       </div>
 
-      <!-- VIEW MODE -->
-      <ng-container *ngIf="editingCommentId !== comment.$id">
-        <p class="comment-text">{{ comment.message }}</p>
+      <!-- COMMENTS -->
+      <div class="comments-section">
+        <div class="right-divider"></div>
 
-        <!-- EDIT/DELETE -->
-        <div *ngIf="comment.user_id === currentUserId" class="comment-actions">
-          <span (click)="startEdit(comment)">
-            <i class="fas fa-pen"></i> Edit
-          </span>
-          <span (click)="deleteComment(comment)">
-            <i class="fas fa-trash"></i> Delete
-          </span>
-        </div>
-      </ng-container>
+        <label class="comment-label">Comment</label>
 
-      <!-- EDIT MODE -->
-      <ng-container *ngIf="editingCommentId === comment.$id">
-        <textarea [(ngModel)]="editingMessage" rows="2"></textarea>
-        <div class="edit-actions">
-          <button (click)="saveEdit(comment)">Save</button>
-          <button (click)="cancelEdit()">Cancel</button>
+        <div class="comment-input modern">
+          <textarea placeholder="Write a comment..."
+                    [(ngModel)]="newComment"
+                    (keyup.enter)="sendComment()"></textarea>
+          <button class="send-btn"
+                  (click)="sendComment()"
+                  [disabled]="commentLoading">
+            <i class="fa fa-spinner fa-spin" *ngIf="commentLoading"></i>
+            <i class="fa-solid fa-paper-plane" *ngIf="!commentLoading"></i>
+          </button>
         </div>
-      </ng-container>
+
+        <div class="divider"></div>
+
+        <div *ngIf="comments.length === 0" class="empty-comments">
+          No comments yet. Be the first to comment!
+        </div>
+
+        <div class="comment" *ngFor="let comment of comments">
+          <div class="avatar"
+               [style.background]="comment.role === 'admin' ? '#ef4444' : '#2563eb'">
+            {{ comment.user_name[0] }}
+          </div>
+
+          <div class="comment-body">
+            <div class="comment-header">
+              <strong>
+                {{ comment.user_name }}
+                <span *ngIf="comment.role === 'admin'" class="admin-badge">Admin</span>
+              </strong>
+              <span class="comment-date">{{ comment.created_at }}</span>
+            </div>
+
+            <ng-container *ngIf="editingCommentId !== comment.$id">
+              <p class="comment-text">{{ comment.message }}</p>
+              <div *ngIf="comment.user_id === currentUserId" class="comment-actions">
+                <span (click)="startEdit(comment)">
+                  <i class="fas fa-pen"></i> Edit
+                </span>
+                <span (click)="deleteComment(comment)">
+                  <i class="fas fa-trash"></i> Delete
+                </span>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="editingCommentId === comment.$id">
+              <textarea [(ngModel)]="editingMessage" rows="2"></textarea>
+              <div class="edit-actions">
+                <button (click)="saveEdit(comment)">Save</button>
+                <button (click)="cancelEdit()">Cancel</button>
+              </div>
+            </ng-container>
+
+          </div>
+        </div>
+      </div>
 
     </div>
-  </div>
-</div>
-
-</div>
   </div>
 </div>
