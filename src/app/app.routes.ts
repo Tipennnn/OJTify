@@ -27,6 +27,7 @@ import { SupervisorAttendanceComponent } from './supervisor/supervisor-attendanc
 import { SupervisorAttendanceHistoryComponent } from './supervisor/supervisor-attendance-history/supervisor-attendance-history.component';
 import { SupervisorTasksComponent } from './supervisor/supervisor-tasks/supervisor-tasks.component';
 import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/supervisor-dashboard.component';
+import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluation/supervisor-evaluation.component';
 
 
 import { authGuard } from './guards/auth.guard';
@@ -67,4 +68,5 @@ export const routes: Routes = [
   { path: 'supervisor-attendance-history', component: SupervisorAttendanceHistoryComponent },
   { path: 'supervisor-tasks', component: SupervisorTasksComponent },   
   { path: 'supervisor-dashboard', component: SupervisorDashboardComponent },
+  { path: 'supervisor-evaluation', component: SupervisorEvaluationComponent },
 ];

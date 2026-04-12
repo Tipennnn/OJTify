@@ -20,13 +20,12 @@ body {
   transition: margin-left 0.3s ease;
 }
 
-/* kapag collapsed */
 .sidenav.collapsed ~ .main-section {
   margin-left: 80px;
 }
 
 /* ========================= */
-/* MAIN SIDENAV */
+/* MAIN SIDENAV              */
 /* ========================= */
 .sidenav {
   width: 260px;
@@ -34,16 +33,13 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
-
   display: flex;
   flex-direction: column;
   padding: 22px;
   font-family: 'Poppins', sans-serif;
-
-  transition: all .3s ease;
+  transition: all 0.3s ease;
   overflow-y: auto;
 }
 
@@ -52,7 +48,7 @@ body {
 }
 
 /* ========================= */
-/* BRAND */
+/* BRAND                     */
 /* ========================= */
 .brand-section {
   display: flex;
@@ -72,8 +68,9 @@ body {
   justify-content: center;
   color: white;
   font-size: 18px;
-  box-shadow: 0 6px 14px rgba(8, 24, 168, .25);
+  box-shadow: 0 6px 14px rgba(8, 24, 168, 0.25);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .toggle-btn {
@@ -87,7 +84,7 @@ body {
 }
 
 /* ========================= */
-/* DIVIDER */
+/* DIVIDER                   */
 /* ========================= */
 .divider {
   height: 1px;
@@ -96,7 +93,7 @@ body {
 }
 
 /* ========================= */
-/* MENU */
+/* MENU                      */
 /* ========================= */
 .nav-menu {
   display: flex;
@@ -104,7 +101,6 @@ body {
   gap: 8px;
 }
 
-/* NAV ITEM */
 .nav-item {
   display: flex;
   align-items: center;
@@ -114,11 +110,10 @@ body {
   text-decoration: none;
   color: #374151;
   font-size: 15px;
-  transition: all .25s ease;
+  transition: all 0.25s ease;
   position: relative;
 }
 
-/* ICON BOX */
 .icon-box {
   width: 34px;
   height: 34px;
@@ -128,10 +123,10 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  transition: all .25s ease;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
 }
 
-/* 🔥 SAME HOVER ANIMATION AS ADMIN */
 .nav-item:hover {
   background: #f8fafc;
   transform: translateX(5px);
@@ -143,7 +138,7 @@ body {
   transform: scale(1.1);
 }
 
-/* ACTIVE LINK */
+/* ACTIVE */
 .nav-item.active {
   color: #0818A8;
 }
@@ -153,7 +148,6 @@ body {
   color: white;
 }
 
-/* 🔥 ACTIVE LEFT LINE (BLUE) */
 .nav-item.active::before {
   content: "";
   position: absolute;
@@ -165,7 +159,7 @@ body {
 }
 
 /* ========================= */
-/* LOGOUT */
+/* LOGOUT                    */
 /* ========================= */
 .logout-section {
   margin-top: auto;
@@ -182,7 +176,7 @@ body {
 }
 
 /* ========================= */
-/* COLLAPSED */
+/* COLLAPSED STATE           */
 /* ========================= */
 .sidenav.collapsed .brand-title {
   display: none;
@@ -201,14 +195,46 @@ body {
   padding-left: 0;
 }
 
+.sidenav.collapsed .nav-item::before {
+  left: -10px;
+}
+
 /* ========================= */
-/* RESPONSIVE */
+/* TOOLTIP ON COLLAPSED      */
+/* ========================= */
+.sidenav.collapsed .nav-item {
+  position: relative;
+}
+
+.sidenav.collapsed .nav-item:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1f2937;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 999;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.sidenav.collapsed .nav-item:hover::before {
+  display: none;
+}
+
+/* ========================= */
+/* RESPONSIVE                */
 /* ========================= */
 @media (max-width: 1024px) {
   .sidenav {
     width: 220px;
   }
-
   .main-section {
     margin-left: 220px;
   }
@@ -219,20 +245,16 @@ body {
     width: 180px;
     padding: 18px;
   }
-
   .main-section {
     margin-left: 180px;
   }
-
   .brand-title {
     font-size: 18px;
   }
-
   .nav-item {
     font-size: 14px;
     padding: 10px;
   }
-
   .icon-box {
     width: 30px;
     height: 30px;
@@ -244,20 +266,16 @@ body {
     width: 140px;
     padding: 16px;
   }
-
   .main-section {
     margin-left: 140px;
   }
-
   .brand-title {
     font-size: 16px;
   }
-
   .nav-item {
     font-size: 13px;
     gap: 10px;
   }
-
   .icon-box {
     width: 26px;
     height: 26px;
@@ -269,19 +287,15 @@ body {
   .sidenav {
     width: 120px;
   }
-
   .main-section {
     margin-left: 120px;
   }
-
   .brand-title {
     display: none;
   }
-
   .nav-item span {
     display: none;
   }
-
   .nav-item {
     justify-content: center;
   }
