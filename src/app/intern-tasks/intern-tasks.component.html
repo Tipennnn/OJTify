@@ -125,10 +125,10 @@
         <div class="author-left">
           <div class="author-avatar">{{ selectedTask?.title?.charAt(0) }}</div>
           <div class="author-info">
-            <span class="author-name"></span>
-            <span class="author-role">Admin</span>
-            <span class="posted-date">{{ selectedTask?.posted }}</span>
-          </div>
+              <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
+              <span class="author-role">Supervisor</span>
+              <span class="posted-date">{{ selectedTask?.posted }}</span>
+            </div>
         </div>
         <div class="due-right">
           <i class="fa-solid fa-clock"></i>
@@ -150,7 +150,7 @@
               <span class="file-name">
                 {{ selectedTask?.attachment_file_name || 'Task Attachment' }}
               </span>
-              <span class="file-size">From Admin</span>
+              <span class="file-size">From {{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
             </div>
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
@@ -198,20 +198,21 @@
           No comments yet. Be the first to comment!
         </div>
 
-        <div class="comment" *ngFor="let comment of comments">
-          <div class="avatar"
-               [style.background]="comment.role === 'admin' ? '#ef4444' : '#2563eb'">
-            {{ comment.user_name[0] }}
-          </div>
+       <div class="comment" *ngFor="let comment of comments">
+  <div class="avatar"
+       [style.background]="comment.role === 'supervisor' ? '#0818A8' : '#2563eb'">
+    {{ comment.user_name[0] }}
+  </div>
 
-          <div class="comment-body">
-            <div class="comment-header">
-              <strong>
-                {{ comment.user_name }}
-                <span *ngIf="comment.role === 'admin'" class="admin-badge">Admin</span>
-              </strong>
-              <span class="comment-date">{{ comment.created_at }}</span>
-            </div>
+  <div class="comment-body">
+    <div class="comment-header">
+      <strong>
+  {{ comment.user_name }}
+  <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
+  <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
+</strong>
+      <span class="comment-date">{{ comment.created_at }}</span>
+    </div>
 
             <ng-container *ngIf="editingCommentId !== comment.$id">
               <p class="comment-text">{{ comment.message }}</p>

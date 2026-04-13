@@ -43,7 +43,7 @@
             <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
             <div class="stat-info">
               <p>Total Assigned Interns</p>
-              <h3>{{ totalAssignedInterns }}</h3>
+              <h3>{{ realTotalAssignedInterns }}</h3>
             </div>
           </div>
           <div class="stat-card">
@@ -147,9 +147,9 @@
         <button class="tab-btn" [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'">
           <i class="fa-solid fa-user"></i> Profile
         </button>
-        <button class="tab-btn" [class.active]="activeTab === 'students'" (click)="switchToStudentsTab()">
-          <i class="fa-solid fa-user-graduate"></i> Assigned Students
-          <span class="tab-badge">{{ selectedSupervisor.assigned_students || 0 }}</span>
+          <button class="tab-btn" [class.active]="activeTab === 'students'" (click)="switchToStudentsTab()">
+            <i class="fa-solid fa-user-graduate"></i> Assigned Students
+            <span class="tab-badge">{{ activeTab === 'students' ? assignedInterns.length : (selectedSupervisor.assigned_students || 0) }}</span>
         </button>
       </div>
   
@@ -218,7 +218,7 @@
               <img [src]="getInternAvatarUrl(intern)" class="intern-avatar" alt="Intern">
               <div class="intern-info">
                 <div class="intern-name">{{ getInternFullName(intern) }}</div>
-                <div class="intern-meta">{{ intern.school || 'No school listed' }} &bull; {{ intern.course || '—' }}</div>
+                <div class="intern-meta">{{ intern.school_name || 'No school listed' }} &bull; {{ intern.course || '—' }}</div>
                 <div class="intern-progress-wrap">
                   <div class="intern-progress-bar">
                     <div class="intern-progress-fill"

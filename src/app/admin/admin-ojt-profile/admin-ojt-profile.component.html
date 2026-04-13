@@ -153,6 +153,14 @@
               <span class="info-value">{{ student.year_level || '—' }}</span>
             </div>
           </div>
+
+          <!-- ✅ SUPERVISOR VIEW -->
+          <div class="info-row two-col">
+            <div class="info-item">
+              <span class="info-label">Assigned Supervisor</span>
+              <span class="info-value">{{ getSupervisorName() }}</span>
+            </div>
+          </div>
         </ng-container>
 
         <!-- EDIT MODE -->
@@ -182,10 +190,24 @@
               </select>
             </div>
           </div>
+
+          <!-- ✅ SUPERVISOR DROPDOWN -->
+          <div class="info-row two-col">
+            <div class="edit-group">
+              <label>Assigned Supervisor</label>
+              <select [(ngModel)]="editSupervisorId">
+                <option value="">— No Supervisor —</option>
+                <option *ngFor="let sup of supervisors" [value]="sup.$id">
+                  {{ sup.first_name }} {{ sup.last_name }}
+                  {{ sup.employee_id ? '(' + sup.employee_id + ')' : '' }}
+                </option>
+              </select>
+            </div>
+          </div>
         </ng-container>
       </div>
 
-      <!-- REQUIRED DOCUMENTS (always view only) -->
+      <!-- REQUIRED DOCUMENTS -->
       <div class="info-section">
         <div class="section-header">Required Documents</div>
 
@@ -290,13 +312,13 @@
             <div class="progress-bar">
               <div class="progress"
                    [style.width]="(editRequiredHours > 0
-                     ? Math.min(Math.round((editCompletedHours / editRequiredHours) * 100), 100)
+                     ? Math.min(parseFloat(((editCompletedHours / editRequiredHours) * 100).toFixed(1)), 100)
                      : 0) + '%'">
               </div>
             </div>
             <span class="progress-percent">
               {{ editRequiredHours > 0
-                ? Math.min(Math.round((editCompletedHours / editRequiredHours) * 100), 100)
+                ? Math.min(parseFloat(((editCompletedHours / editRequiredHours) * 100).toFixed(1)), 100)
                 : 0 }}%
             </span>
           </div>

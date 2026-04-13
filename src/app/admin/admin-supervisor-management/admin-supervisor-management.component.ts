@@ -25,7 +25,7 @@ interface Intern {
   first_name      : string;
   last_name       : string;
   email          ?: string;
-  school         ?: string;
+  school_name         ?: string;
   course         ?: string;
   status         ?: string;
   supervisor_id  ?: string;
@@ -55,27 +55,27 @@ const DUMMY_SUPERVISORS: Supervisor[] = [
 
 const DUMMY_INTERNS: Record<string, Intern[]> = {
   '1': [
-    { $id: 'i1', first_name: 'Kevin',   last_name: 'Reyes',    school: 'PLM',  course: 'BSIT',   status: 'Active',   supervisor_id: '1', completed_hours: 240, required_hours: 500 },
-    { $id: 'i2', first_name: 'Jasmine', last_name: 'Bautista', school: 'TUP',  course: 'BSCS',   status: 'Active',   supervisor_id: '1', completed_hours: 380, required_hours: 500 },
-    { $id: 'i3', first_name: 'Mark',    last_name: 'Ong',      school: 'DLSU', course: 'BS ECE', status: 'Inactive', supervisor_id: '1', completed_hours: 100, required_hours: 500 },
+    { $id: 'i1', first_name: 'Kevin',   last_name: 'Reyes',    school_name: 'PLM',  course: 'BSIT',   status: 'Active',   supervisor_id: '1', completed_hours: 240, required_hours: 500 },
+    { $id: 'i2', first_name: 'Jasmine', last_name: 'Bautista', school_name: 'TUP',  course: 'BSCS',   status: 'Active',   supervisor_id: '1', completed_hours: 380, required_hours: 500 },
+    { $id: 'i3', first_name: 'Mark',    last_name: 'Ong',      school_name: 'DLSU', course: 'BS ECE', status: 'Inactive', supervisor_id: '1', completed_hours: 100, required_hours: 500 },
   ],
   '2': [
-    { $id: 'i4', first_name: 'Carla',  last_name: 'Dizon',  school: 'UST',  course: 'BSCS',    status: 'Active',  supervisor_id: '2', completed_hours: 450, required_hours: 500 },
-    { $id: 'i5', first_name: 'Nathan', last_name: 'Flores', school: 'AdMU', course: 'BS Math', status: 'Pending', supervisor_id: '2', completed_hours: 60,  required_hours: 500 },
+    { $id: 'i4', first_name: 'Carla',  last_name: 'Dizon',  school_name: 'UST',  course: 'BSCS',    status: 'Active',  supervisor_id: '2', completed_hours: 450, required_hours: 500 },
+    { $id: 'i5', first_name: 'Nathan', last_name: 'Flores', school_name: 'AdMU', course: 'BS Math', status: 'Pending', supervisor_id: '2', completed_hours: 60,  required_hours: 500 },
   ],
   '4': [
-    { $id: 'i6', first_name: 'Lea', last_name: 'Torres', school: 'MAPUA', course: 'BSCE', status: 'Active', supervisor_id: '4', completed_hours: 300, required_hours: 500 },
+    { $id: 'i6', first_name: 'Lea', last_name: 'Torres', school_name: 'MAPUA', course: 'BSCE', status: 'Active', supervisor_id: '4', completed_hours: 300, required_hours: 500 },
   ],
   '5': [
-    { $id: 'i7', first_name: 'Gio', last_name: 'Valdez',  school: 'FEU', course: 'BSIT', status: 'Active', supervisor_id: '5', completed_hours: 200, required_hours: 500 },
-    { $id: 'i8', first_name: 'Ria', last_name: 'Mercado', school: 'PUP', course: 'BSCS', status: 'Active', supervisor_id: '5', completed_hours: 490, required_hours: 500 },
+    { $id: 'i7', first_name: 'Gio', last_name: 'Valdez',  school_name: 'FEU', course: 'BSIT', status: 'Active', supervisor_id: '5', completed_hours: 200, required_hours: 500 },
+    { $id: 'i8', first_name: 'Ria', last_name: 'Mercado', school_name: 'PUP', course: 'BSCS', status: 'Active', supervisor_id: '5', completed_hours: 490, required_hours: 500 },
   ],
   '6': [
-    { $id: 'i9',  first_name: 'Paolo', last_name: 'Aguilar', school: 'DLSU',   course: 'BSIT', status: 'Active',   supervisor_id: '6', completed_hours: 150, required_hours: 500 },
-    { $id: 'i10', first_name: 'Trish', last_name: 'Pascual', school: 'Ateneo', course: 'BSCS', status: 'Inactive', supervisor_id: '6', completed_hours: 320, required_hours: 500 },
+    { $id: 'i9',  first_name: 'Paolo', last_name: 'Aguilar', school_name: 'DLSU',   course: 'BSIT', status: 'Active',   supervisor_id: '6', completed_hours: 150, required_hours: 500 },
+    { $id: 'i10', first_name: 'Trish', last_name: 'Pascual', school_name: 'Ateneo', course: 'BSCS', status: 'Inactive', supervisor_id: '6', completed_hours: 320, required_hours: 500 },
   ],
   '7': [
-    { $id: 'i11', first_name: 'Dan', last_name: 'Lim', school: 'TIP', course: 'BSECE', status: 'Active', supervisor_id: '7', completed_hours: 410, required_hours: 500 },
+    { $id: 'i11', first_name: 'Dan', last_name: 'Lim', school_name: 'TIP', course: 'BSECE', status: 'Active', supervisor_id: '7', completed_hours: 410, required_hours: 500 },
   ],
 };
 
@@ -115,6 +115,7 @@ export class AdminSupervisorManagementComponent implements OnInit {
 
   currentPage = 1;
   pageSize    = 3;
+  realTotalAssignedInterns = 0;
 
   readonly BUCKET_ID       = '69baaf64002ceb2490df';
   readonly PROJECT_ID      = '69ba8d9c0027d10c447f';
@@ -125,8 +126,22 @@ export class AdminSupervisorManagementComponent implements OnInit {
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
-    await this.loadSupervisors();
+  await this.loadSupervisors();
+  await this.loadTotalAssignedCount(); // ← add this
+}
+
+async loadTotalAssignedCount() {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    this.realTotalAssignedInterns = (res.documents as any[])
+      .filter(s => s.supervisor_id && s.supervisor_id !== '').length;
+  } catch (err: any) {
+    console.error('Failed to count assigned interns:', err.message);
   }
+}
 
   async loadSupervisors() {
     this.loading = true;
@@ -146,8 +161,8 @@ export class AdminSupervisorManagementComponent implements OnInit {
   }
 
   get totalAssignedInterns(): number {
-    return this.supervisors.reduce((s, sup) => s + (sup.assigned_students || 0), 0);
-  }
+  return this.supervisors.reduce((s, sup) => s + (sup.assigned_students || 0), 0);
+}
 
   get avgInternsPerSupervisor(): string {
     if (!this.supervisors.length) return '0';
@@ -186,25 +201,28 @@ export class AdminSupervisorManagementComponent implements OnInit {
     if (p >= 1 && p <= this.totalPages) this.currentPage = p;
   }
 
-  openViewModal(sup: Supervisor) {
-    this.selectedSupervisor = sup;
-    this.isEditing          = false;
-    this.formError          = '';
-    this.showPassword       = false;
-    this.activeTab          = 'profile';
-    this.assignedInterns    = [];
-    this.isAccountActive    = (sup.status || 'Active') === 'Active';
-    this.form = {
-      first_name  : sup.first_name,
-      last_name   : sup.last_name,
-      employee_id : sup.employee_id  || '',
-      email       : sup.email,
-      password    : '',
-      grade_level : sup.grade_level  || '',
-    };
-    this.editingId = sup.$id;
-    this.showModal = true;
-  }
+openViewModal(sup: Supervisor) {
+  this.selectedSupervisor = sup;
+  this.isEditing          = false;
+  this.formError          = '';
+  this.showPassword       = false;
+  this.activeTab          = 'profile';
+  this.assignedInterns    = [];
+  this.isAccountActive    = (sup.status || 'Active') === 'Active';
+  this.form = {
+    first_name  : sup.first_name,
+    last_name   : sup.last_name,
+    employee_id : sup.employee_id  || '',
+    email       : sup.email,
+    password    : '',
+    grade_level : sup.grade_level  || '',
+  };
+  this.editingId = sup.$id;
+  this.showModal = true;
+
+  // ✅ Load interns immediately so profile tab count is correct
+  this.loadAssignedInterns();
+}
 
   openAddModal() {
     this.selectedSupervisor = null;
@@ -233,29 +251,46 @@ export class AdminSupervisorManagementComponent implements OnInit {
   }
 
   async switchToStudentsTab() {
-    this.activeTab = 'students';
-    if (this.assignedInterns.length === 0) {
-      await this.loadAssignedInterns();
-    }
-  }
+  this.activeTab = 'students';
+  // Always reload to get fresh data
+  await this.loadAssignedInterns();
+}
 
-  async loadAssignedInterns() {
-    if (!this.selectedSupervisor) return;
-    this.internsLoading = true;
-    try {
-      const { Query } = await import('appwrite');
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.INTERNS_COL,
-        [Query.equal('supervisor_id', this.selectedSupervisor.$id)]
-      );
-      this.assignedInterns = res.documents as any[];
-    } catch {
-      this.assignedInterns = DUMMY_INTERNS[this.selectedSupervisor.$id] ?? [];
-    } finally {
-      this.internsLoading = false;
-    }
+async loadAssignedInterns() {
+  if (!this.selectedSupervisor) return;
+  this.internsLoading = true;
+  try {
+    const { Query } = await import('appwrite');
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      [Query.equal('supervisor_id', this.selectedSupervisor.$id)]
+    );
+    this.assignedInterns = res.documents as any[];
+
+    // ✅ Sync the real count back to the local supervisor object
+    const realCount = this.assignedInterns.length;
+    this.selectedSupervisor = { ...this.selectedSupervisor, assigned_students: realCount };
+
+    // ✅ Also update the supervisors list so table column reflects it
+    const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
+    if (idx !== -1) this.supervisors[idx].assigned_students = realCount;
+
+    // ✅ Persist to DB so it's correct next time
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.SUPERVISORS_COL,
+      this.selectedSupervisor.$id,
+      { assigned_students: realCount }
+    );
+
+  } catch (err: any) {
+    console.error('Failed to load assigned interns:', err.message);
+    this.assignedInterns = [];
+  } finally {
+    this.internsLoading = false;
   }
+}
 
   async toggleAccountStatus() {
     if (!this.selectedSupervisor) return;

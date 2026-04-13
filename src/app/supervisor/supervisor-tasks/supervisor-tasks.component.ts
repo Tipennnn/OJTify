@@ -3,12 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupervisorSidenavComponent } from '../supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from '../supervisor-topnav/supervisor-topnav.component';
+import { AppwriteService } from '../../services/appwrite.service';
+import { ID } from 'appwrite';
+import Swal from 'sweetalert2';
 
 interface Intern {
   $id: string;
   first_name: string;
   last_name: string;
   course: string;
+  supervisor_id?: string;
 }
 
 interface Task {
@@ -22,8 +26,9 @@ interface Task {
   attachment_file_id?: string;
   attachment_file_name?: string;
   assignedInterns?: { name: string; img: string }[];
-  comments?: { author: string; authorImg: string; text: string; date: string }[];
-  submissions?: { name: string; img: string; fileName: string }[];
+  comments?: any[];
+  submissions?: any[];
+  supervisor_name?: string;
 }
 
 @Component({
@@ -48,8 +53,9 @@ export class SupervisorTasksComponent implements OnInit {
   isCollapsed            = false;
 
   newSupervisorComment = '';
-  taskComments        : any[] = [];
-  taskSubmissions     : any[] = [];
+  supervisorCommentLoading = false;
+  taskComments    : any[] = [];
+  taskSubmissions : any[] = [];
 
   editingCommentId : string | null = null;
   editingMessage                   = '';
@@ -68,7 +74,10 @@ export class SupervisorTasksComponent implements OnInit {
   editAttachmentFile    : File | null = null;
   editAttachmentFileName              = '';
 
-  /* ─── PAGINATION ─── */
+  currentSupervisorId = '';
+  supervisorName      = '';
+
+  // ── Pagination ────────────────────────────────────────────
   currentPage = 1;
   pageSize    = 5;
 
@@ -90,7 +99,6 @@ export class SupervisorTasksComponent implements OnInit {
     this.currentPage = page;
   }
 
-  /* ─── COUNTS ─── */
   get assignedCount(): number {
     return this.getAssignedIds(this.selectedTask).length;
   }
@@ -100,207 +108,71 @@ export class SupervisorTasksComponent implements OnInit {
     return diff < 0 ? 0 : diff;
   }
 
-  ngOnInit() {
-    this.seedDummyData();
+  readonly BUCKET_ID  = '69baaf64002ceb2490df';
+  readonly PROJECT_ID = '69ba8d9c0027d10c447f';
+  readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+
+  constructor(private appwrite: AppwriteService) {}
+
+  async ngOnInit() {
+    await this.getCurrentSupervisor();
+    await this.loadAssignedInterns();
+    await this.loadTasks();
   }
 
-  /* ══════════════════════════════════════════
-     DUMMY DATA
-  ══════════════════════════════════════════ */
-  seedDummyData() {
+  // ── Get current supervisor ────────────────────────────────
+  async getCurrentSupervisor() {
+    try {
+      const user = await this.appwrite.account.get();
+      this.currentSupervisorId = user.$id;
 
-    this.allInterns = [
-      { $id: 'i1', first_name: 'Maria',    last_name: 'Santos',    course: 'BSCS' },
-      { $id: 'i2', first_name: 'Juan',     last_name: 'Dela Cruz',  course: 'BSIT' },
-      { $id: 'i3', first_name: 'Angela',   last_name: 'Reyes',      course: 'BSCS' },
-      { $id: 'i4', first_name: 'Carlo',    last_name: 'Mendoza',    course: 'BSIT' },
-      { $id: 'i5', first_name: 'Patricia', last_name: 'Lim',        course: 'BSCS' },
-      { $id: 'i6', first_name: 'Kevin',    last_name: 'Tan',        course: 'BSIT' },
-      { $id: 'i7', first_name: 'Denise',   last_name: 'Garcia',     course: 'BSCS' },
-      { $id: 'i8', first_name: 'Marco',    last_name: 'Villanueva', course: 'BSIT' },
-    ];
-    this.filteredInterns = [...this.allInterns];
-
-    this.tasks = [
-      {
-        $id: 't1',
-        title: 'Weekly Progress Report',
-        description: 'Submit a detailed weekly progress report covering all tasks completed, challenges encountered, and goals for the upcoming week. Minimum 500 words.',
-        posted: '4/1/2026, 8:00 AM',
-        due: '2026-04-07',
-        status: 'pending',
-        assigned_intern_ids: 'i1,i2,i3,i4,i5,i6,i7,i8',
-        attachment_file_id: 'dummy_file_1',
-        attachment_file_name: 'report-template.docx',
-      },
-      {
-        $id: 't2',
-        title: 'UI/UX Case Study',
-        description: 'Conduct a UI/UX case study on a mobile application of your choice. Identify usability issues and propose redesign solutions with wireframes.',
-        posted: '4/2/2026, 9:30 AM',
-        due: '2026-04-14',
-        status: 'pending',
-        assigned_intern_ids: 'i1,i3,i5,i7',
-        attachment_file_id: '',
-        attachment_file_name: '',
-      },
-      {
-        $id: 't3',
-        title: 'Database Design Task',
-        description: 'Design an Entity-Relationship Diagram (ERD) for a hospital management system. Include at least 8 entities with proper relationships and cardinalities.',
-        posted: '4/3/2026, 10:00 AM',
-        due: '2026-04-10',
-        status: 'pending',
-        assigned_intern_ids: 'i2,i4,i6,i8',
-        attachment_file_id: 'dummy_file_2',
-        attachment_file_name: 'erd-guidelines.pdf',
-      },
-      {
-        $id: 't4',
-        title: 'API Integration Exercise',
-        description: 'Integrate a public REST API (e.g. OpenWeatherMap or JSONPlaceholder) into a simple web app. Document the endpoints used and provide screenshots.',
-        posted: '4/4/2026, 11:15 AM',
-        due: '2026-04-18',
-        status: 'pending',
-        assigned_intern_ids: 'i1,i2,i3,i4,i5,i6,i7,i8',
-        attachment_file_id: '',
-        attachment_file_name: '',
-      },
-      {
-        $id: 't5',
-        title: 'Internship Reflection Essay',
-        description: 'Write a reflective essay (800–1000 words) on your internship experience so far. Discuss skills gained, lessons learned, and career aspirations.',
-        posted: '4/5/2026, 8:45 AM',
-        due: '2026-04-21',
-        status: 'pending',
-        assigned_intern_ids: 'i1,i2,i3,i4,i5,i6,i7,i8',
-        attachment_file_id: '',
-        attachment_file_name: '',
-      },
-      {
-        $id: 't6',
-        title: 'Agile Sprint Planning',
-        description: 'Create a mock sprint plan for a 2-week development sprint. Define user stories, acceptance criteria, story points, and assign tasks to team members.',
-        posted: '4/6/2026, 9:00 AM',
-        due: '2026-04-20',
-        status: 'pending',
-        assigned_intern_ids: 'i3,i4,i5,i6',
-        attachment_file_id: 'dummy_file_3',
-        attachment_file_name: 'agile-template.xlsx',
-      },
-      {
-        $id: 't7',
-        title: 'System Architecture Diagram',
-        description: 'Create a detailed system architecture diagram for a cloud-based e-commerce platform. Include front-end, back-end, database, and third-party services.',
-        posted: '4/7/2026, 10:30 AM',
-        due: '2026-04-25',
-        status: 'pending',
-        assigned_intern_ids: 'i1,i2,i5,i6,i7,i8',
-        attachment_file_id: '',
-        attachment_file_name: '',
-      },
-    ];
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        user.$id
+      );
+      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+    } catch (error: any) {
+      console.error('Failed to get supervisor:', error.message);
+    }
   }
 
-  /* ══════════════════════════════════════════
-     DUMMY COMMENTS & SUBMISSIONS PER TASK
-  ══════════════════════════════════════════ */
-  getDummyComments(taskId: string): any[] {
-    const map: Record<string, any[]> = {
-      't1': [
-        { $id: 'c1', task_id: 't1', user_id: 'sup1', user_name: 'Supervisor Rivera', role: 'supervisor', message: 'Please use the provided template for your report. Make sure all sections are filled in.', created_at: '4/1/2026, 9:00 AM' },
-        { $id: 'c2', task_id: 't1', user_id: 'i1',   user_name: 'Maria Santos',       role: 'intern',     message: 'Noted! Will submit by end of the week.', created_at: '4/1/2026, 10:15 AM' },
-        { $id: 'c3', task_id: 't1', user_id: 'i2',   user_name: 'Juan Dela Cruz',     role: 'intern',     message: 'Got it. Quick question — does the word count include the title and headers?', created_at: '4/2/2026, 8:30 AM' },
-        { $id: 'c4', task_id: 't1', user_id: 'sup1', user_name: 'Supervisor Rivera', role: 'supervisor', message: 'No, the 500-word minimum is for body text only.', created_at: '4/2/2026, 9:00 AM' },
-      ],
-      't2': [
-        { $id: 'c5', task_id: 't2', user_id: 'sup1', user_name: 'Supervisor Rivera', role: 'supervisor', message: 'You may choose any popular mobile app — Shopee, Grab, or GCash are great options.', created_at: '4/2/2026, 10:00 AM' },
-        { $id: 'c6', task_id: 't2', user_id: 'i3',   user_name: 'Angela Reyes',      role: 'intern',     message: 'I will be analyzing GCash. Looking forward to this task!', created_at: '4/3/2026, 7:45 AM' },
-      ],
-      't3': [
-        {
-          $id: 'c7',
-          task_id: 't3',
-          user_id: 'sup1',
-          user_name: 'Supervisor Rivera',
-          role: 'supervisor',
-          message: `Refer to the attached guidelines for the expected ERD format. Use crow's foot notation.`,
-          created_at: '4/3/2026, 10:30 AM'
-        },
-      ],
-      't4': [],
-      't5': [
-        { $id: 'c8', task_id: 't5', user_id: 'sup1', user_name: 'Supervisor Rivera', role: 'supervisor', message: 'Be honest and specific in your reflection. Generic essays will be returned for revision.', created_at: '4/5/2026, 9:00 AM' },
-        { $id: 'c9', task_id: 't5', user_id: 'i5',   user_name: 'Patricia Lim',      role: 'intern',     message: 'Understood! Will make it personal and detailed.', created_at: '4/5/2026, 11:20 AM' },
-      ],
-      't6': [],
-      't7': [
-        { $id: 'c10', task_id: 't7', user_id: 'sup1', user_name: 'Supervisor Rivera', role: 'supervisor', message: 'Use draw.io or Lucidchart for the diagram. Export as PNG or PDF.', created_at: '4/7/2026, 11:00 AM' },
-      ],
-    };
-    return map[taskId] ?? [];
+  // ── Load only interns assigned to this supervisor ─────────
+  async loadAssignedInterns() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+      this.allInterns = (res.documents as any[]).filter(
+        s => s.supervisor_id === this.currentSupervisorId
+      );
+      this.filteredInterns = [...this.allInterns];
+    } catch (error: any) {
+      console.error('Failed to load interns:', error.message);
+    }
   }
 
-  getDummySubmissions(taskId: string): any[] {
-    const map: Record<string, any[]> = {
-      't1': [
-        { file_id: 'f1', file_name: 'weekly-report-maria.pdf',   student_name: 'Maria Santos',    student_id: 'i1', submitted_at: '4/6/2026, 11:00 AM' },
-        { file_id: 'f2', file_name: 'progress-report-juan.docx', student_name: 'Juan Dela Cruz',  student_id: 'i2', submitted_at: '4/6/2026, 2:30 PM'  },
-        { file_id: 'f3', file_name: 'report-angela.pdf',         student_name: 'Angela Reyes',    student_id: 'i3', submitted_at: '4/7/2026, 8:15 AM'  },
-      ],
-      't2': [
-        { file_id: 'f4', file_name: 'ux-casestudy-angela.pdf',   student_name: 'Angela Reyes',    student_id: 'i3', submitted_at: '4/13/2026, 4:00 PM' },
-      ],
-      't3': [
-        { file_id: 'f5', file_name: 'erd-carlo.png',             student_name: 'Carlo Mendoza',   student_id: 'i4', submitted_at: '4/9/2026, 9:00 AM'  },
-        { file_id: 'f6', file_name: 'hospital-erd-kevin.pdf',    student_name: 'Kevin Tan',        student_id: 'i6', submitted_at: '4/9/2026, 3:45 PM'  },
-      ],
-      't4': [],
-      't5': [
-        { file_id: 'f7', file_name: 'reflection-patricia.docx',  student_name: 'Patricia Lim',    student_id: 'i5', submitted_at: '4/20/2026, 10:00 AM' },
-        { file_id: 'f8', file_name: 'essay-marco.pdf',           student_name: 'Marco Villanueva', student_id: 'i8', submitted_at: '4/20/2026, 11:30 AM' },
-        { file_id: 'f9', file_name: 'reflection-denise.docx',    student_name: 'Denise Garcia',    student_id: 'i7', submitted_at: '4/21/2026, 7:50 AM'  },
-      ],
-      't6': [
-        { file_id: 'f10', file_name: 'sprint-plan-angela.xlsx',  student_name: 'Angela Reyes',    student_id: 'i3', submitted_at: '4/19/2026, 1:00 PM'  },
-      ],
-      't7': [],
-    };
-    return map[taskId] ?? [];
-  }
 
-  /* ══════════════════════════════════════════
-     HELPERS
-  ══════════════════════════════════════════ */
-  emptyTask(): Task {
-    return {
-      title: '', description: '',
-      posted: new Date().toLocaleString(),
-      due: '', status: 'pending',
-      assigned_intern_ids: '',
-      attachment_file_id: '',
-      attachment_file_name: '',
-      assignedInterns: [], comments: [], submissions: []
-    };
-  }
+// ── Load tasks created by THIS supervisor only ────────────
+async loadTasks() {
+  try {
+    const res      = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.TASKS_COL
+    );
 
-  getAssignedIds(task: Task): string[] {
-    if (!task.assigned_intern_ids) return [];
-    return task.assigned_intern_ids.split(',').filter(id => id.trim());
-  }
+    // Only show tasks created by this supervisor
+    this.tasks = (res.documents as any[])
+      .filter(task => task.supervisor_id === this.currentSupervisorId)
+      .sort((a, b) =>
+        new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
+      );
 
-  getInternName(id: string): string {
-    const intern = this.allInterns.find(i => i.$id === id);
-    return intern ? `${intern.first_name} ${intern.last_name}` : id;
+  } catch (error: any) {
+    console.error('Failed to load tasks:', error.message);
   }
-
-  getInitials(fullName: string): string {
-    if (!fullName) return '?';
-    const parts = fullName.trim().split(' ');
-    const first = parts[0]?.[0] ?? '';
-    const last  = parts[parts.length - 1]?.[0] ?? '';
-    return (first + last).toUpperCase();
-  }
+}
 
   onInternSearch() {
     const q = this.internSearchQuery.toLowerCase();
@@ -339,9 +211,98 @@ export class SupervisorTasksComponent implements OnInit {
     this.editAttachmentFileName = file?.name ?? '';
   }
 
-  /* ══════════════════════════════════════════
-     MODAL OPEN/CLOSE
-  ══════════════════════════════════════════ */
+  async uploadEditAttachment() {
+    if (!this.editAttachmentFile || !this.selectedTask.$id) return;
+    this.editAttachmentLoading = true;
+
+    try {
+      if (this.selectedTask.attachment_file_id) {
+        try {
+          await this.appwrite.storage.deleteFile(
+            this.BUCKET_ID, this.selectedTask.attachment_file_id
+          );
+        } catch { }
+      }
+
+      const uploaded = await this.appwrite.storage.createFile(
+        this.BUCKET_ID, ID.unique(), this.editAttachmentFile
+      );
+
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, this.selectedTask.$id,
+        {
+          attachment_file_id:   uploaded.$id,
+          attachment_file_name: this.editAttachmentFile.name
+        }
+      );
+
+      this.selectedTask.attachment_file_id   = uploaded.$id;
+      this.selectedTask.attachment_file_name = this.editAttachmentFile.name;
+
+      const index = this.tasks.findIndex(t => t.$id === this.selectedTask.$id);
+      if (index !== -1) {
+        this.tasks[index].attachment_file_id   = uploaded.$id;
+        this.tasks[index].attachment_file_name = this.editAttachmentFile.name;
+      }
+
+      this.editAttachmentFile     = null;
+      this.editAttachmentFileName = '';
+
+      Swal.fire({
+        icon: 'success', title: 'Attachment Updated!',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 3000, timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Upload Failed', text: error.message });
+    } finally {
+      this.editAttachmentLoading = false;
+    }
+  }
+
+  async removeAttachment() {
+    if (!this.selectedTask.attachment_file_id || !this.selectedTask.$id) return;
+
+    const result = await Swal.fire({
+      title: 'Remove attachment?',
+      text: 'This will permanently delete the attached file.',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Yes, remove it', cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      await this.appwrite.storage.deleteFile(
+        this.BUCKET_ID, this.selectedTask.attachment_file_id
+      );
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, this.selectedTask.$id,
+        { attachment_file_id: '', attachment_file_name: '' }
+      );
+
+      this.selectedTask.attachment_file_id   = '';
+      this.selectedTask.attachment_file_name = '';
+
+      const index = this.tasks.findIndex(t => t.$id === this.selectedTask.$id);
+      if (index !== -1) {
+        this.tasks[index].attachment_file_id   = '';
+        this.tasks[index].attachment_file_name = '';
+      }
+
+      this.editAttachmentFile     = null;
+      this.editAttachmentFileName = '';
+
+      Swal.fire({
+        icon: 'success', title: 'Attachment Removed!',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 3000, timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to remove', text: error.message });
+    }
+  }
+
   openModal() {
     this.selectedTask       = this.emptyTask();
     this.selectedFile       = null;
@@ -360,24 +321,30 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   openCardModal(task: Task) {
-    const assignedIds      = this.getAssignedIds(task);
-    const assignedInterns  = assignedIds.map(id => {
+    const assignedIds     = this.getAssignedIds(task);
+    const assignedInterns = assignedIds.map(id => {
       const intern = this.allInterns.find(i => i.$id === id);
-      return { name: intern ? `${intern.first_name} ${intern.last_name}` : id, img: '' };
+      return {
+        name: intern ? `${intern.first_name} ${intern.last_name}` : id,
+        img: ''
+      };
     });
 
     this.selectedTask           = { ...task, assignedInterns, comments: [], submissions: [] };
     this.editAttachmentFile     = null;
     this.editAttachmentFileName = '';
     this.newSupervisorComment   = '';
+    this.taskComments           = [];
+    this.taskSubmissions        = [];
     this.editingCommentId       = null;
     this.editingMessage         = '';
-
-    this.taskComments    = task.$id ? this.getDummyComments(task.$id)    : [];
-    this.taskSubmissions = task.$id ? this.getDummySubmissions(task.$id) : [];
-
-    this.isCardModalOpen = true;
+    this.isCardModalOpen        = true;
     document.body.style.overflow = 'hidden';
+
+    if (task.$id) {
+      this.loadTaskComments(task.$id);
+      this.loadTaskSubmissions(task.$id);
+    }
   }
 
   closeCardModal() {
@@ -395,93 +362,168 @@ export class SupervisorTasksComponent implements OnInit {
   openSubmissionsModal()  { this.isSubmissionsModalOpen = true;  }
   closeSubmissionsModal() { this.isSubmissionsModalOpen = false; }
 
-  /* ══════════════════════════════════════════
-     CREATE TASK (dummy — no backend)
-  ══════════════════════════════════════════ */
-  onCreateTask() {
-    if (!this.selectedTask.title || !this.selectedTask.due) {
-      alert('Please fill in the title and due date.');
-      return;
-    }
-    this.loading = true;
-
-    setTimeout(() => {
-      const newTask: Task = {
-        $id: 't' + Date.now(),
-        title:               this.selectedTask.title,
-        description:         this.selectedTask.description,
-        posted:              new Date().toLocaleString(),
-        due:                 this.selectedTask.due,
-        status:              'pending',
-        assigned_intern_ids: this.assignMode === 'all'
-          ? this.allInterns.map(i => i.$id).join(',')
-          : this.selectedInterns.map(i => i.$id).join(','),
-        attachment_file_id:   this.selectedFile ? 'local_' + Date.now() : '',
-        attachment_file_name: this.selectedFile?.name ?? '',
-      };
-
-      this.tasks.unshift(newTask);
-      this.currentPage = 1;
-      this.closeModal();
-      this.loading = false;
-    }, 600);
+ async onCreateTask() {
+  if (!this.selectedTask.title || !this.selectedTask.due) {
+    Swal.fire({
+      icon: 'warning', title: 'Missing fields',
+      text: 'Please fill in the title and due date.',
+      confirmButtonColor: '#3b82f6'
+    });
+    return;
   }
+  this.loading = true;
 
-  /* ══════════════════════════════════════════
-     ATTACHMENT (dummy — no backend)
-  ══════════════════════════════════════════ */
-  uploadEditAttachment() {
-    if (!this.editAttachmentFile) return;
-    this.editAttachmentLoading = true;
+  try {
+    let attachmentFileId   = '';
+    let attachmentFileName = '';
 
-    setTimeout(() => {
-      this.selectedTask.attachment_file_id   = 'local_' + Date.now();
-      this.selectedTask.attachment_file_name = this.editAttachmentFile!.name;
+    if (this.selectedFile) {
+      const uploaded     = await this.appwrite.storage.createFile(
+        this.BUCKET_ID, ID.unique(), this.selectedFile
+      );
+      attachmentFileId   = uploaded.$id;
+      attachmentFileName = this.selectedFile.name;
+    }
 
-      const index = this.tasks.findIndex(t => t.$id === this.selectedTask.$id);
-      if (index !== -1) {
-        this.tasks[index].attachment_file_id   = this.selectedTask.attachment_file_id;
-        this.tasks[index].attachment_file_name = this.selectedTask.attachment_file_name;
+    let assignedIds = '';
+    if (this.assignMode === 'all') {
+      assignedIds = this.allInterns.map(i => i.$id).join(',');
+    } else {
+      assignedIds = this.selectedInterns.map(i => i.$id).join(',');
+    }
+
+        const doc = await this.appwrite.databases.createDocument(
+          this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, ID.unique(),
+          {
+            title:                this.selectedTask.title,
+            description:          this.selectedTask.description,
+            posted:               new Date().toLocaleString(),
+            due:                  this.selectedTask.due,
+            status:               'pending',
+            assigned_intern_ids:  assignedIds,
+            attachment_file_id:   attachmentFileId,
+            attachment_file_name: attachmentFileName,
+            supervisor_id:        this.currentSupervisorId,
+            supervisor_name:      this.supervisorName   // ← ADD THIS
+          }
+        );
+        
+    this.tasks.unshift(doc as any);
+    this.currentPage = 1;
+    this.closeModal();
+
+    Swal.fire({
+      icon: 'success', title: 'Task Created!',
+      text: `"${doc['title']}" has been created successfully.`,
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 3000, timerProgressBar: true
+    });
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
+  } finally {
+    this.loading = false;
+  }
+}
+
+  async deleteTask(task: Task, event: Event) {
+    event.stopPropagation();
+
+    const result = await Swal.fire({
+      title: 'Delete task?',
+      text: `"${task.title}" will be permanently deleted.`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      if (task.attachment_file_id) {
+        try {
+          await this.appwrite.storage.deleteFile(
+            this.BUCKET_ID, task.attachment_file_id
+          );
+        } catch { }
+      }
+      await this.appwrite.databases.deleteDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, task.$id!
+      );
+      this.tasks = this.tasks.filter(t => t.$id !== task.$id);
+      if (this.isCardModalOpen) this.closeCardModal();
+      if (this.currentPage > this.totalPages && this.totalPages > 0) {
+        this.currentPage = this.totalPages;
       }
 
-      this.editAttachmentFile     = null;
-      this.editAttachmentFileName = '';
-      this.editAttachmentLoading  = false;
-    }, 500);
-  }
-
-  removeAttachment() {
-    if (!confirm('Remove this attachment?')) return;
-    this.selectedTask.attachment_file_id   = '';
-    this.selectedTask.attachment_file_name = '';
-
-    const index = this.tasks.findIndex(t => t.$id === this.selectedTask.$id);
-    if (index !== -1) {
-      this.tasks[index].attachment_file_id   = '';
-      this.tasks[index].attachment_file_name = '';
+      Swal.fire({
+        icon: 'success', title: 'Task Deleted!',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 3000, timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message });
     }
-    this.editAttachmentFile     = null;
-    this.editAttachmentFileName = '';
   }
 
-  /* ══════════════════════════════════════════
-     COMMENTS (dummy — no backend)
-  ══════════════════════════════════════════ */
-  sendSupervisorComment() {
-    if (!this.newSupervisorComment.trim()) return;
+  async loadTaskComments(taskId: string) {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL
+      );
+      this.taskComments = (res.documents as any[])
+        .filter(c => c.task_id === taskId)
+        .sort((a, b) =>
+          new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime()
+        );
+    } catch (error: any) {
+      console.error('Failed to load comments:', error.message);
+    }
+  }
 
-    const newComment = {
-      $id:        'c' + Date.now(),
-      task_id:    this.selectedTask.$id,
-      user_id:    'sup1',
-      user_name:  'Supervisor Rivera',
-      role:       'supervisor',
-      message:    this.newSupervisorComment.trim(),
-      created_at: new Date().toLocaleString()
-    };
+  async loadTaskSubmissions(taskId: string) {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL
+      );
+      const taskSubs = (res.documents as any[]).filter(s => s.task_id === taskId);
 
-    this.taskComments.push(newComment);
-    this.newSupervisorComment = '';
+      this.taskSubmissions = taskSubs.map(sub => {
+        const intern = this.allInterns.find(i => i.$id === sub.student_id);
+        return {
+          ...sub,
+          student_name: intern
+            ? `${intern.first_name} ${intern.last_name}`
+            : 'Unknown'
+        };
+      });
+    } catch (error: any) {
+      console.error('Failed to load submissions:', error.message);
+    }
+  }
+
+  async sendSupervisorComment() {
+    if (!this.newSupervisorComment.trim() || !this.selectedTask.$id) return;
+    this.supervisorCommentLoading = true;
+
+    try {
+      const user = await this.appwrite.account.get();
+      const doc  = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, ID.unique(),
+        {
+          task_id:    this.selectedTask.$id,
+          user_id:    user.$id,
+          user_name:  this.supervisorName || user.name || user.email,
+          role:       'supervisor',
+          message:    this.newSupervisorComment.trim(),
+          created_at: new Date().toLocaleString()
+        }
+      );
+      this.taskComments.push(doc as any);
+      this.newSupervisorComment = '';
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to send', text: error.message });
+    } finally {
+      this.supervisorCommentLoading = false;
+    }
   }
 
   startEditComment(comment: any) {
@@ -494,33 +536,85 @@ export class SupervisorTasksComponent implements OnInit {
     this.editingMessage   = '';
   }
 
-  saveEditComment(comment: any) {
+  async saveEditComment(comment: any) {
     if (!this.editingMessage.trim()) return;
-    const index = this.taskComments.findIndex(c => c.$id === comment.$id);
-    if (index !== -1) {
-      this.taskComments[index] = {
-        ...this.taskComments[index],
-        message: this.editingMessage.trim()
-      };
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id,
+        { message: this.editingMessage.trim() }
+      );
+      const index = this.taskComments.findIndex(c => c.$id === comment.$id);
+      if (index !== -1) {
+        this.taskComments[index] = {
+          ...this.taskComments[index],
+          message: this.editingMessage.trim()
+        };
+      }
+      this.cancelEditComment();
+      Swal.fire({
+        icon: 'success', title: 'Comment updated!',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 2000, timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message });
     }
-    this.cancelEditComment();
   }
 
-  deleteSupervisorComment(comment: any) {
-    if (!confirm('Delete this comment?')) return;
-    this.taskComments = this.taskComments.filter(c => c.$id !== comment.$id);
+  async deleteSupervisorComment(comment: any) {
+    const result = await Swal.fire({
+      title: 'Delete comment?', text: 'This action cannot be undone.',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      await this.appwrite.databases.deleteDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id
+      );
+      this.taskComments = this.taskComments.filter(c => c.$id !== comment.$id);
+      Swal.fire({
+        icon: 'success', title: 'Comment deleted!',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 2000, timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message });
+    }
   }
 
-  /* ══════════════════════════════════════════
-     DELETE TASK (dummy — no backend)
-  ══════════════════════════════════════════ */
-  deleteTask(task: Task, event: Event) {
-    event.stopPropagation();
-    if (!confirm(`Delete "${task.title}"?`)) return;
-    this.tasks = this.tasks.filter(t => t.$id !== task.$id);
-    if (this.isCardModalOpen) this.closeCardModal();
-    if (this.currentPage > this.totalPages && this.totalPages > 0) {
-      this.currentPage = this.totalPages;
-    }
+  emptyTask(): Task {
+    return {
+      title: '', description: '',
+      posted: new Date().toLocaleString(),
+      due: '', status: 'pending',
+      assigned_intern_ids: '',
+      attachment_file_id: '',
+      attachment_file_name: '',
+      assignedInterns: [], comments: [], submissions: []
+    };
+  }
+
+  getAssignedIds(task: Task): string[] {
+    if (!task.assigned_intern_ids) return [];
+    return task.assigned_intern_ids.split(',').filter(id => id.trim());
+  }
+
+  getInternName(id: string): string {
+    const intern = this.allInterns.find(i => i.$id === id);
+    return intern ? `${intern.first_name} ${intern.last_name}` : id;
+  }
+
+  getInitials(fullName: string): string {
+    if (!fullName) return '?';
+    const parts = fullName.trim().split(' ');
+    // Correct:
+return ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase();
+  }
+
+  getFileUrl(fileId: string, mode: 'view' | 'download' = 'view'): string {
+    return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
 }

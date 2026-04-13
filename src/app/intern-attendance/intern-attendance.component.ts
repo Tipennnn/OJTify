@@ -278,6 +278,22 @@ async loadTodayStatus() {
     }
   }
 
+  isPastWeekdayWithNoRecord(day: number): boolean {
+  // Skip weekends
+  if (this.isWeekend(day)) return false;
+
+  // Skip future dates
+  const date = new Date(this.year, this.month, day);
+  const now  = new Date();
+  now.setHours(0, 0, 0, 0);
+  if (date >= now) return false;
+
+  // Skip if has a record
+  if (this.attendanceStatus[day]) return false;
+
+  return true;
+}
+
   openQRModal()  { this.showQRModal = true;  }
   closeQRModal() { this.showQRModal = false; }
 }

@@ -27,6 +27,7 @@ interface Student {
   coe_file_id?: string;
   required_hours?: number;
   completed_hours?: number;
+  supervisor_id?: string;
   $createdAt: string;
 }
 
@@ -40,6 +41,7 @@ interface Student {
 export class AdminOjtProfileComponent implements OnInit {
 
   student     : Student | null = null;
+  supervisors    : any[] = [];
   loading     = false;
   saveLoading = false;
   editMode    = false;
@@ -58,8 +60,10 @@ export class AdminOjtProfileComponent implements OnInit {
   editYearLevel     = '';
   editRequiredHours  = 500;
   editCompletedHours = 0;
+  editSupervisorId = '';
 
   Math = Math;
+  parseFloat = parseFloat;
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
@@ -72,9 +76,10 @@ export class AdminOjtProfileComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) await this.loadStudent(id);
-  }
+  const id = this.route.snapshot.paramMap.get('id');
+  if (id) await this.loadStudent(id);
+  await this.loadSupervisors();  // ← add this
+}
 
   async loadStudent(id: string) {
     this.loading = true;
@@ -108,6 +113,7 @@ export class AdminOjtProfileComponent implements OnInit {
     this.editYearLevel      = this.student.year_level      || '';
     this.editRequiredHours  = this.student.required_hours  || 500;
     this.editCompletedHours = this.student.completed_hours || 0;
+    this.editSupervisorId = (this.student as any).supervisor_id || '';
   }
 
   toggleEdit() {
@@ -201,26 +207,47 @@ export class AdminOjtProfileComponent implements OnInit {
 
     } else {
       // Not yet complete — just update normally
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.student.$id,
-        {
-          first_name:      this.editFirstName,
-          middle_name:     this.editMiddleName,
-          last_name:       this.editLastName,
-          contact_number:  this.editContactNumber,
-          birthday:        this.editBirthday,
-          gender:          this.editGender,
-          home_address:    this.editHomeAddress,
-          student_id:      this.editStudentId,
-          school_name:     this.editSchoolName,
-          course:          this.editCourse,
-          year_level:      this.editYearLevel,
-          required_hours:  this.editRequiredHours,
-          completed_hours: this.editCompletedHours
-        }
-      );
+     await this.appwrite.databases.updateDocument(
+  this.appwrite.DATABASE_ID,
+  this.appwrite.STUDENTS_COL,
+  this.student.$id,
+  {
+    first_name:      this.editFirstName,
+    middle_name:     this.editMiddleName,
+    last_name:       this.editLastName,
+    contact_number:  this.editContactNumber,
+    birthday:        this.editBirthday,
+    gender:          this.editGender,
+    home_address:    this.editHomeAddress,
+    student_id:      this.editStudentId,
+    school_name:     this.editSchoolName,
+    course:          this.editCourse,
+    year_level:      this.editYearLevel,
+    required_hours:  this.editRequiredHours,
+    completed_hours: this.editCompletedHours,
+    supervisor_id:   this.editSupervisorId || null  // ← add this
+  }
+);
+// ✅ Update assigned_students count on the supervisor
+if (this.editSupervisorId) {
+  try {
+    // Count how many students have this supervisor
+    const { Query } = await import('appwrite');
+    const countRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      [Query.equal('supervisor_id', this.editSupervisorId)]
+    );
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      this.editSupervisorId,
+      { assigned_students: countRes.total }
+    );
+  } catch (e) {
+    console.error('Failed to update supervisor student count:', e);
+  }
+}
 
       // Update local object
       this.student.first_name      = this.editFirstName;
@@ -286,4 +313,24 @@ export class AdminOjtProfileComponent implements OnInit {
     const required  = this.student.required_hours  || 500;
     return Math.max(required - completed, 0);
   }
+
+  async loadSupervisors() {
+  try {
+    const res        = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL
+    );
+    this.supervisors = (res.documents as any[])
+      .filter(s => (s.status || 'Active') === 'Active');
+  } catch (error: any) {
+    console.error('Failed to load supervisors:', error.message);
+  }
+}
+
+getSupervisorName(): string {
+  if (!(this.student as any)?.supervisor_id) return '—';
+  const sup = this.supervisors.find(s => s.$id === (this.student as any).supervisor_id);
+  return sup ? `${sup.first_name} ${sup.last_name}` : '—';
+}
+
 }

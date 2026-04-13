@@ -39,6 +39,7 @@ export class SupervisorOjtComponent implements OnInit {
   loading          = false;
   searchQuery      = '';
   isCollapsed      = false;
+  currentSupervisorId = '';
 
   // Pagination
   currentPage  = 1;
@@ -56,30 +57,34 @@ export class SupervisorOjtComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    await this.loadStudents();
-  }
+  await this.getCurrentSupervisor();  // ← must finish first
+  await this.loadStudents();          // ← then this runs with the ID ready
+}
 
-  async loadStudents() {
-    this.loading = true;
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      // Only show students who have NOT yet completed their hours
-      this.students = (res.documents as any[]).filter(s => {
-        const completed = s.completed_hours || 0;
-        const required  = s.required_hours  || 500;
-        return completed < required;
-      });
-      this.filteredStudents = [...this.students];
-      this.updatePagination();
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
-    } finally {
-      this.loading = false;
-    }
+ async loadStudents() {
+  this.loading = true;
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+
+    // Only show students assigned to THIS supervisor
+    // AND who have NOT yet completed their hours
+    this.students = (res.documents as any[]).filter(s => {
+      const completed = s.completed_hours || 0;
+      const required  = s.required_hours  || 500;
+      return s.supervisor_id === this.currentSupervisorId && completed < required;
+    });
+
+    this.filteredStudents = [...this.students];
+    this.updatePagination();
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   onSearch(event: any) {
     this.searchQuery = event.target.value.toLowerCase();
@@ -151,4 +156,12 @@ export class SupervisorOjtComponent implements OnInit {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+  async getCurrentSupervisor() {
+  try {
+    const user = await this.appwrite.account.get();
+    this.currentSupervisorId = user.$id;
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
+  }
+}
 }

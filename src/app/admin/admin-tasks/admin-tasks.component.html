@@ -315,10 +315,11 @@
           <div class="author-avatar">
             {{ selectedTask.title?.charAt(0) }}
           </div>
-          <div class="author-info">
-            <span class="author-role">Admin</span>
-            <span class="posted-date">{{ selectedTask.posted }}</span>
-          </div>
+         <div class="author-info">
+          <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
+          <span class="author-role">Supervisor</span>   <!-- change "Admin" → "Supervisor" -->
+          <span class="posted-date">{{ selectedTask?.posted }}</span>
+        </div>
         </div>
         <div class="due-right">
           <i class="fa-solid fa-clock"></i>

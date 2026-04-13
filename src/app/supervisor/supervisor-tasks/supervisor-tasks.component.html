@@ -183,26 +183,32 @@
         <h3>Attachment</h3>
         <div class="divider"></div>
 
-        <div *ngIf="selectedTask.attachment_file_id" class="file-card">
-          <div class="file-left">
-            <div class="file-icon">
-              <i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i>
-            </div>
-            <div class="file-info">
-              <span class="file-name">
-                {{ selectedTask.attachment_file_name || 'Attachment' }}
-              </span>
-              <span class="file-size">Task attachment</span>
-            </div>
-          </div>
-          <div class="file-actions">
-            <div class="file-action-btn delete"
-                 (click)="removeAttachment()"
-                 title="Remove attachment">
-              <i class="fas fa-trash"></i>
-            </div>
-          </div>
-        </div>
+       <div *ngIf="selectedTask.attachment_file_id" class="file-card">
+  <div class="file-left">
+    <div class="file-icon">
+      <i class="fa-solid fa-file-pdf" style="color:#dc2626;"></i>
+    </div>
+    <div class="file-info">
+      <span class="file-name">
+        {{ selectedTask.attachment_file_name || 'Attachment' }}
+      </span>
+      <span class="file-size">Task attachment</span>
+    </div>
+  </div>
+  <div class="file-actions">
+    <a [href]="getFileUrl(selectedTask.attachment_file_id, 'view')"
+       target="_blank" title="View file">
+      <div class="file-action-btn grey">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </div>
+    </a>
+    <div class="file-action-btn delete"
+         (click)="removeAttachment()"
+         title="Remove attachment">
+      <i class="fas fa-trash"></i>
+    </div>
+  </div>
+</div>
 
         <p *ngIf="!selectedTask.attachment_file_id"
            style="font-size:13px; color:#9ca3af; text-align:center; padding:12px 0;">
@@ -276,14 +282,18 @@
                 <span class="file-size">{{ sub.student_name }} &bull; {{ sub.submitted_at }}</span>
               </div>
             </div>
-            <div class="file-actions">
-              <div class="file-action-btn grey" title="View file">
-                <i class="fa-solid fa-magnifying-glass"></i>
-              </div>
-              <div class="file-action-btn grey" title="Download file">
-                <i class="fas fa-download"></i>
-              </div>
-            </div>
+          <div class="file-actions">
+  <a [href]="getFileUrl(sub.file_id, 'view')" target="_blank" title="View file">
+    <div class="file-action-btn grey">
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </div>
+  </a>
+  <a [href]="getFileUrl(sub.file_id, 'download')" target="_blank" title="Download file">
+    <div class="file-action-btn grey">
+      <i class="fas fa-download"></i>
+    </div>
+  </a>
+</div>
           </div>
         </div>
 
@@ -310,7 +320,8 @@
           <div class="author-avatar">
             {{ selectedTask.title?.charAt(0) }}
           </div>
-          <div class="author-info">
+        <div class="author-info">
+            <span class="author-name">{{ selectedTask.supervisor_name || 'Supervisor' }}</span>
             <span class="author-role">Supervisor</span>
             <span class="posted-date">{{ selectedTask.posted }}</span>
           </div>
@@ -355,9 +366,10 @@
           <div class="comment-body">
             <div class="comment-header">
               <strong>
-                {{ comment.user_name }}
-                <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
-              </strong>
+  {{ comment.user_name }}
+  <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
+  <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
+</strong>
               <span class="comment-date">{{ comment.created_at }}</span>
             </div>
 
@@ -452,13 +464,17 @@
           </div>
 
           <div class="file-actions">
-            <div class="file-action-btn grey" title="View file">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </div>
-            <div class="file-action-btn grey" title="Download file">
-              <i class="fas fa-download"></i>
-            </div>
-          </div>
+  <a [href]="getFileUrl(sub.file_id, 'view')" target="_blank" title="View file">
+    <div class="file-action-btn grey">
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </div>
+  </a>
+  <a [href]="getFileUrl(sub.file_id, 'download')" target="_blank" title="Download file">
+    <div class="file-action-btn grey">
+      <i class="fas fa-download"></i>
+    </div>
+  </a>
+</div>
 
         </div>
       </div>

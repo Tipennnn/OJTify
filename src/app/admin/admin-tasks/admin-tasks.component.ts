@@ -27,6 +27,7 @@ interface Task {
   assignedInterns?: { name: string; img: string }[];
   comments?: { author: string; authorImg: string; text: string; date: string }[];
   submissions?: { name: string; img: string; fileName: string }[];
+  supervisor_name?: string;
 }
 
 @Component({

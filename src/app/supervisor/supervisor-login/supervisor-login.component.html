@@ -1,115 +1,163 @@
-<!-- supervisor-login.html -->
 <div class="login-wrapper">
 
-    <!-- LEFT PANEL -->
-    <div class="login-left">
-      <div class="bg-pattern"></div>
-      <div class="login-left-content">
-  
-        <div class="logo-mobile">
-          <img src="/assets/images/OJTify_logo.png">
-        </div>
-  
-        <div class="brand hide-mobile">
-          <img src="/assets/images/OJTify_logo.png">
-          <span>OJTIFY</span>
-        </div>
-  
-        <div class="welcome-text hide-mobile">
-          <h1>Welcome back, OJT Supervisor</h1>
-          <p>
-            Monitor your assigned interns, review daily logs,
-            check tasks, and manage attendance records 
-            all from one centralized dashboard.
-          </p>
-        </div>
-  
-        <div class="system-info hide-mobile">
-          <span>OJTIFY Supervisor Module v1.0</span>
-          <span>OJT Management System with QR Attendance</span>
-        </div>
-  
+  <!-- LEFT PANEL -->
+  <div class="login-left">
+    <div class="bg-pattern"></div>
+    <div class="login-left-content">
+      <div class="logo-mobile">
+        <img src="/assets/images/OJTify_logo.png">
+      </div>
+      <div class="brand hide-mobile">
+        <img src="/assets/images/OJTify_logo.png">
+        <span>OJTIFY</span>
+      </div>
+      <div class="welcome-text hide-mobile">
+        <h1>Welcome back, OJT Supervisor</h1>
+        <p>Monitor your assigned interns, review daily logs,
+           check tasks, and manage attendance records
+           all from one centralized dashboard.</p>
+      </div>
+      <div class="system-info hide-mobile">
+        <span>OJTIFY Supervisor Module v1.0</span>
+        <span>OJT Management System with QR Attendance</span>
       </div>
     </div>
-  
-    <!-- RIGHT PANEL -->
-    <div class="login-right">
-      <div class="login-card">
-  
-        <h2>Supervisor Portal</h2>
-  
-        <form>
-  
-          <!-- EMAIL -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-chalkboard-user"></i></span>
-              <input type="email" required>
-              <label>Supervisor Email</label>
-            </div>
-          </div>
-  
-          <!-- PASSWORD -->
-          <div class="input-group">
-            <div class="input-wrapper">
-              <span class="icon"><i class="fa fa-lock"></i></span>
-              <input type="password" required>
-              <label>Password</label>
-              <span class="show-pass">
-                <i class="fa fa-eye"></i>
-              </span>
-            </div>
-          </div>
-  
-          <div class="checkbox-group">
-            <label>
-              <input type="checkbox">
-              Remember me
-            </label>
-            <a href="#">Forgot Password?</a>
-          </div>
-  
-          <button class="login-btn" type="button">
-            Log in
-          </button>
-  
-          <p class="system-mobile">OJT Management System with QR Attendance</p>
-  
-        </form>
-  
-      </div>
-    </div>
-  
   </div>
-  
-  <!-- ══════════════════════════════════════════ -->
-  <!-- FORGOT PASSWORD MODAL -->
-  <!-- ══════════════════════════════════════════ -->
-  
-  <div class="fp-overlay" style="display: none;">
-    <div class="fp-modal">
-  
-      <div class="fp-header">
-        <h3>Forgot Password</h3>
-        <button class="fp-close">×</button>
+
+  <!-- RIGHT PANEL -->
+  <div class="login-right">
+    <div class="login-card">
+
+      <h2>Supervisor Portal</h2>
+
+      <div class="alert-error" *ngIf="errorMessage">
+        <i class="fa fa-circle-exclamation"></i> {{ errorMessage }}
       </div>
-  
-      <div class="fp-divider"></div>
-  
-      <div>
-        <p class="fp-desc">
-          Enter your registered supervisor email and we'll send you a 6-digit reset code.
-        </p>
-  
-        <div class="fp-input-group">
-          <label>Email Address</label>
-          <input type="email" placeholder="Enter your supervisor email">
+
+      <form (ngSubmit)="onLogin()">
+
+        <div class="input-group">
+          <div class="input-wrapper">
+            <span class="icon"><i class="fa fa-chalkboard-user"></i></span>
+            <input type="email" [(ngModel)]="email" name="email"
+                   placeholder=" " required>
+            <label>Supervisor Email</label>
+          </div>
         </div>
-  
-        <button class="fp-btn">
-          Send OTP Code
+
+        <div class="input-group">
+          <div class="input-wrapper">
+            <span class="icon"><i class="fa fa-lock"></i></span>
+            <input [type]="showPassword ? 'text' : 'password'"
+                   [(ngModel)]="password" name="password"
+                   placeholder=" " required>
+            <label>Password</label>
+            <span class="show-pass" (click)="togglePassword()">
+              <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+            </span>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe">
+            Remember me
+          </label>
+          <a href="javascript:void(0)" (click)="openForgotPassword()">
+            Forgot password?
+          </a>
+        </div>
+
+        <button class="login-btn" type="submit" [disabled]="loading">
+          <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
+          {{ loading ? 'Logging in…' : 'Log in' }}
         </button>
-      </div>
-  
+
+        <p class="system-mobile">OJT Management System with QR Attendance</p>
+
+      </form>
     </div>
   </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="fp-overlay" *ngIf="forgotStep > 0">
+  <div class="fp-modal">
+
+    <div class="fp-header">
+      <h3>
+        {{ forgotStep === 1 ? 'Forgot Password'
+         : forgotStep === 2 ? 'Enter OTP Code'
+         : 'Set New Password' }}
+      </h3>
+      <button class="fp-close" (click)="closeForgotPassword()">×</button>
+    </div>
+
+    <div class="fp-divider"></div>
+
+    <div class="fp-error" *ngIf="fpError">
+      <i class="fa fa-circle-exclamation"></i> {{ fpError }}
+    </div>
+
+    <!-- STEP 1 -->
+    <div *ngIf="forgotStep === 1">
+      <p class="fp-desc">Enter your registered supervisor email and we'll send you a reset code.</p>
+      <div class="fp-input-group">
+        <label>Email Address</label>
+        <input type="email" [(ngModel)]="fpEmail"
+               placeholder="Enter your supervisor email"
+               (keyup.enter)="sendOtp()">
+      </div>
+      <button class="fp-btn" (click)="sendOtp()" [disabled]="fpLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="fpLoading"></i>
+        {{ fpLoading ? 'Sending...' : 'Send OTP Code' }}
+      </button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div *ngIf="forgotStep === 2">
+      <p class="fp-desc">We sent a 6-digit code to <strong>{{ fpEmail }}</strong>.</p>
+      <div class="fp-input-group">
+        <label>6-Digit OTP Code</label>
+        <input type="text" [(ngModel)]="fpEnteredOtp"
+               placeholder="_ _ _ _ _ _" maxlength="6"
+               style="letter-spacing:8px; font-size:22px; font-weight:700; text-align:center;"
+               (keyup.enter)="verifyOtp()">
+      </div>
+      <button class="fp-btn" (click)="verifyOtp()">Verify Code</button>
+      <button class="fp-btn-secondary" (click)="resendOtp()">
+        <i class="fa fa-rotate-right"></i> Resend Code
+      </button>
+    </div>
+
+    <!-- STEP 3 -->
+    <div *ngIf="forgotStep === 3">
+      <p class="fp-desc">OTP verified! ✅ Enter your new password below.</p>
+      <div class="fp-input-group">
+        <label>New Password</label>
+        <div class="fp-pass-wrap">
+          <input [type]="fpShowNew ? 'text' : 'password'"
+                 [(ngModel)]="fpNewPassword" placeholder="At least 8 characters">
+          <span (click)="fpShowNew = !fpShowNew">
+            <i [class]="fpShowNew ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+          </span>
+        </div>
+      </div>
+      <div class="fp-input-group">
+        <label>Confirm New Password</label>
+        <div class="fp-pass-wrap">
+          <input [type]="fpShowConfirm ? 'text' : 'password'"
+                 [(ngModel)]="fpConfirmPassword" placeholder="Repeat your password">
+          <span (click)="fpShowConfirm = !fpShowConfirm">
+            <i [class]="fpShowConfirm ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+          </span>
+        </div>
+      </div>
+      <button class="fp-btn" (click)="resetPassword()" [disabled]="fpLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="fpLoading"></i>
+        {{ fpLoading ? 'Processing...' : 'Reset Password' }}
+      </button>
+    </div>
+
+  </div>
+</div>

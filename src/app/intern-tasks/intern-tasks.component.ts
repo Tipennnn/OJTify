@@ -17,6 +17,7 @@ interface Task {
   assigned_intern_ids?: string;
   attachment_file_id?: string;
   attachment_file_name?: string;
+  supervisor_name?: string;
 }
 
 interface Submission {
@@ -90,29 +91,49 @@ currentUserName = '';
 
   // ── Load tasks assigned to this intern ────────────────────
   async loadTasks() {
-    this.loading = true;
-    try {
-      const res = await this.appwrite.databases.listDocuments(
+  this.loading = true;
+  try {
+    const [tasksRes, subsRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.TASKS_COL
-      );
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUBMISSIONS_COL
+      )
+    ]);
 
-      const allTasks = res.documents as any[];
+    const allTasks = tasksRes.documents as any[];
+    const allSubs  = subsRes.documents as any[];
 
-      this.tasks = allTasks.filter(task => {
+    // Get submission IDs for THIS intern only
+    const mySubmittedTaskIds = new Set(
+      allSubs
+        .filter(s => s.student_id === this.currentUserId)
+        .map(s => s.task_id)
+    );
+
+    this.tasks = allTasks
+      .filter(task => {
         if (!task.assigned_intern_ids) return false;
         const ids = task.assigned_intern_ids
           .split(',')
           .map((id: string) => id.trim());
         return ids.includes(this.currentUserId);
-      });
+      })
+      .map(task => ({
+        ...task,
+        // Override status based on THIS intern's submissions only
+        status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending'
+      }));
 
-    } catch (error: any) {
-      console.error('Failed to load tasks:', error.message);
-    } finally {
-      this.loading = false;
-    }
+  } catch (error: any) {
+    console.error('Failed to load tasks:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   // ── Load submissions for selected task ────────────────────
   async loadSubmissions(taskId: string) {
@@ -326,13 +347,7 @@ async submitFile() {
     this.submissions.unshift(submission as any);
     this.selectedFile = null;
 
-    // ── Update task status to completed ──
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.TASKS_COL,
-      this.selectedTask.$id,
-      { status: 'completed' }
-    );
+  
 
     // Update locally
     this.selectedTask.status = 'completed';
@@ -391,19 +406,11 @@ async deleteSubmission(submission: Submission) {
     this.submissions = this.submissions.filter(s => s.$id !== submission.$id);
 
     // ── Revert to pending if no submissions left ──
-    if (this.submissions.length === 0 && this.selectedTask?.$id) {
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL,
-        this.selectedTask.$id,
-        { status: 'pending' }
-      );
-
-      // Update locally
-      this.selectedTask.status = 'pending';
-      const index = this.tasks.findIndex(t => t.$id === this.selectedTask?.$id);
-      if (index !== -1) this.tasks[index].status = 'pending';
-    }
+   if (this.submissions.length === 0) {
+  this.selectedTask!.status = 'pending';
+  const index = this.tasks.findIndex(t => t.$id === this.selectedTask?.$id);
+  if (index !== -1) this.tasks[index].status = 'pending';
+}
 
     Swal.fire({
       icon: 'success',

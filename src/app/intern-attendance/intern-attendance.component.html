@@ -81,14 +81,14 @@
 
         <div class="calendar-grid">
           <div class="day empty" *ngFor="let e of getEmptyCells()"></div>
-          <div class="day"
-               *ngFor="let day of days"
-               (click)="openAttendance(day)"
-               [class.present-day]="attendanceStatus[day] === 'Present'"
-               [class.absent-day]="attendanceStatus[day] === 'Absent'"
-               [class.weekend]="isWeekend(day)">
-            {{ day }}
-          </div>
+        <div class="day"
+     *ngFor="let day of days"
+     (click)="openAttendance(day)"
+     [class.present-day]="attendanceStatus[day] === 'Present'"
+     [class.absent-day]="isPastWeekdayWithNoRecord(day)"
+     [class.weekend]="isWeekend(day)">
+  {{ day }}
+</div>
         </div>
 
         <div class="attendance-legend">

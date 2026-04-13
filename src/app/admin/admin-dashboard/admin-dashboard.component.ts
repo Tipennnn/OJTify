@@ -113,8 +113,11 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
       // ── Today present / absent ────────────────────────────
       const todayRecords = allAttendance.filter(a => a.date === today);
       this.presentToday  = todayRecords.filter(a => a.status === 'Present').length;
-      this.absentToday   = this.totalInterns - this.presentToday;
-      if (this.absentToday < 0) this.absentToday = 0;
+
+      // No absents on weekends (0=Sun, 6=Sat)
+      const todayDayOfWeek = now.getDay();
+      const isWeekend      = todayDayOfWeek === 0 || todayDayOfWeek === 6;
+      this.absentToday     = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
 
       // ── Weekly attendance (last 7 days) ───────────────────
       this.weeklyPresent = [0,0,0,0,0,0,0];

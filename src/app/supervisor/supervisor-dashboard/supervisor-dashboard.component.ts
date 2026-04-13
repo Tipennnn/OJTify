@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AppwriteService } from '../../services/appwrite.service';
 import { SupervisorSidenavComponent } from '../supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from '../supervisor-topnav/supervisor-topnav.component';
+import Swal from 'sweetalert2';
 
 interface Task {
   $id?: string;
@@ -32,6 +33,7 @@ interface Student {
   profile_photo_id?: string;
   required_hours?: number;
   completed_hours?: number;
+  supervisor_id?: string;
 }
 
 @Component({
@@ -63,7 +65,11 @@ export class SupervisorDashboardComponent implements OnInit {
   recentTasks  : Task[] = [];
   tasksLoading = false;
 
-  // ── Local student map for name/avatar lookup ──────────────
+  // ── Current supervisor ────────────────────────────────────
+  currentSupervisorId = '';
+  supervisorName      = '';
+
+  // ── Local student map ─────────────────────────────────────
   private studentMap: Map<string, Student> = new Map();
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
@@ -73,29 +79,64 @@ export class SupervisorDashboardComponent implements OnInit {
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
-    await this.loadStudents();
+    await this.getCurrentSupervisor();
+    await this.loadAssignedStudents();
+
     this.loadTodayStats();
     this.loadRecentAttendance();
     this.loadRecentTasks();
+
+    // Welcome toast
+    if (!sessionStorage.getItem('supervisorWelcomeShown')) {
+      sessionStorage.setItem('supervisorWelcomeShown', 'true');
+      Swal.fire({
+        icon: 'success',
+        title: `Welcome back, ${this.supervisorName || 'Supervisor'}!`,
+        text: 'You are logged in as a supervisor.',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+    }
   }
 
-  // ── Load all active interns ───────────────────────────────
-  async loadStudents() {
+  // ── Get logged-in supervisor ──────────────────────────────
+  async getCurrentSupervisor() {
+    try {
+      const user = await this.appwrite.account.get();
+      this.currentSupervisorId = user.$id;
+
+      // Get supervisor doc for name
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        user.$id
+      );
+      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+    } catch (error: any) {
+      console.error('Failed to get supervisor:', error.message);
+    }
+  }
+
+  // ── Load only students assigned to this supervisor ────────
+  async loadAssignedStudents() {
     try {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL
       );
-      const students = (res.documents as any[]).filter(s => {
-        const completed = s.completed_hours || 0;
-        const required  = s.required_hours  || 500;
-        return completed < required;
-      });
 
-      this.totalInterns = students.length;
+      // Filter by supervisor_id matching current user
+      const assigned = (res.documents as any[]).filter(
+        s => s.supervisor_id === this.currentSupervisorId
+      );
 
-      // Build map for quick lookup
-      students.forEach(s => {
+      this.totalInterns = assigned.length;
+
+      this.studentMap.clear();
+      assigned.forEach(s => {
         this.studentMap.set(s.$id, {
           $id:              s.$id,
           first_name:       s.first_name,
@@ -104,14 +145,15 @@ export class SupervisorDashboardComponent implements OnInit {
           profile_photo_id: s.profile_photo_id,
           required_hours:   s.required_hours,
           completed_hours:  s.completed_hours,
+          supervisor_id:    s.supervisor_id,
         });
       });
     } catch (error: any) {
-      console.error('Failed to load students:', error.message);
+      console.error('Failed to load assigned students:', error.message);
     }
   }
 
-  // ── Today's present / absent counts ──────────────────────
+  // ── Today's present / absent ──────────────────────────────
   async loadTodayStats() {
     try {
       const now   = new Date();
@@ -122,47 +164,58 @@ export class SupervisorDashboardComponent implements OnInit {
         this.appwrite.ATTENDANCE_COL
       );
 
-      const todayRecords = (res.documents as any[]).filter(d => d.date === today);
+      const internIds    = Array.from(this.studentMap.keys());
+      const todayRecords = (res.documents as any[])
+        .filter(d => d.date === today && internIds.includes(d.student_id));
 
-      // Only count records for interns in our student map
-      const internIds = Array.from(this.studentMap.keys());
-      const relevant  = todayRecords.filter(d => internIds.includes(d.student_id));
-
-      this.presentToday = relevant.filter(d => d.status === 'Present').length;
-      this.absentToday  = this.totalInterns - this.presentToday;
+      const isWeekend   = now.getDay() === 0 || now.getDay() === 6;
+      this.presentToday = todayRecords.filter(d => d.status === 'Present').length;
+      this.absentToday  = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
 
     } catch (error: any) {
       console.error('Failed to load today stats:', error.message);
     }
   }
 
-  // ── Recent attendance (last 5 records across all interns) ─
+  // ── Recent attendance (last 5 days) ──────────────────────
   async loadRecentAttendance() {
     this.attendanceLoading = true;
     try {
-      const res = await this.appwrite.databases.listDocuments(
+      const res       = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.ATTENDANCE_COL
       );
-
       const internIds = Array.from(this.studentMap.keys());
 
-      this.recentAttendance = (res.documents as any[])
-        .filter(d => internIds.includes(d.student_id))
-        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
-        .slice(0, 10)
-        .map(d => {
-          const student = this.studentMap.get(d.student_id);
-          return {
-            intern_name:      student ? this.getFullName(student) : 'Unknown',
-            profile_photo_id: student?.profile_photo_id,
-            student_id:       d.student_id,
-            date:             this.formatDate(d.date),
-            time_in:          d.time_in  || '—',
-            time_out:         d.time_out || '—',
-            status:           d.status   || 'Absent',
-          };
-        });
+      // Build last 5 days
+      const last5: AttendanceRecord[] = [];
+      const allDocs = (res.documents as any[]).filter(d => internIds.includes(d.student_id));
+
+      for (let i = 0; i < 5; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        // Get all records for this day across assigned interns
+        const dayRecords = allDocs.filter(doc => doc.date === dateStr);
+
+        if (dayRecords.length > 0) {
+          dayRecords.forEach(doc => {
+            const student = this.studentMap.get(doc.student_id);
+            last5.push({
+              intern_name:      student ? this.getFullName(student) : 'Unknown',
+              profile_photo_id: student?.profile_photo_id,
+              student_id:       doc.student_id,
+              date:             this.formatDate(dateStr),
+              time_in:          doc.time_in  || '—',
+              time_out:         doc.time_out || '—',
+              status:           doc.status   || 'Absent',
+            });
+          });
+        }
+      }
+
+      this.recentAttendance = last5.slice(0, 10);
 
     } catch (error: any) {
       console.error('Failed to load attendance:', error.message);
@@ -175,12 +228,20 @@ export class SupervisorDashboardComponent implements OnInit {
   async loadRecentTasks() {
     this.tasksLoading = true;
     try {
-      const res = await this.appwrite.databases.listDocuments(
+      const res       = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.TASKS_COL
       );
+      const internIds = Array.from(this.studentMap.keys());
 
-      this.recentTasks = (res.documents as any[])
+      // Only tasks assigned to this supervisor's interns
+      const myTasks = (res.documents as any[]).filter(task => {
+        if (!task.assigned_intern_ids) return false;
+        const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
+        return ids.some((id: string) => internIds.includes(id));
+      });
+
+      this.recentTasks = myTasks
         .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
         .slice(0, 3)
         .map(task => ({
@@ -200,9 +261,7 @@ export class SupervisorDashboardComponent implements OnInit {
   }
 
   // ── Helpers ───────────────────────────────────────────────
-  onToggleSidebar(collapsed: boolean) {
-    this.isCollapsed = collapsed;
-  }
+  onToggleSidebar(collapsed: boolean) { this.isCollapsed = collapsed; }
 
   getFullName(s: Student): string {
     return `${s.first_name} ${s.middle_name ? s.middle_name + ' ' : ''}${s.last_name}`;
@@ -216,9 +275,7 @@ export class SupervisorDashboardComponent implements OnInit {
       return d.toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric'
       });
-    } catch {
-      return dateStr;
-    }
+    } catch { return dateStr; }
   }
 
   getAvatarUrl(record: AttendanceRecord): string {
@@ -226,11 +283,7 @@ export class SupervisorDashboardComponent implements OnInit {
       return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${record.profile_photo_id}/view?project=${this.PROJECT_ID}`;
     }
     const initials = record.intern_name
-      .split(' ')
-      .filter(Boolean)
-      .map(n => n[0])
-      .slice(0, 2)
-      .join(' ');
+      .split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join(' ');
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=0818A8&color=fff&size=64`;
   }
 }
