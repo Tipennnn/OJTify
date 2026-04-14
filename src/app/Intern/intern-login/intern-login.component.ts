@@ -4,7 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-intern-login',

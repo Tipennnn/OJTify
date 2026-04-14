@@ -18,6 +18,8 @@ interface AttendanceLog {
   time_in: string;
   time_out: string;
   status: string;
+  scanned_by_name?: string;
+
 }
 
 @Component({
@@ -52,6 +54,10 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   scanStatus   = '';
   lastScanned  = '';
 
+  supervisorId = '';
+  supervisorName = '';
+
+
   private stream    : MediaStream | null = null;
   private animFrame : number = 0;
 
@@ -61,14 +67,35 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
 
   constructor(private appwrite: AppwriteService) {}
 
-  async ngOnInit() {
-    await this.loadStudents();
-    await this.loadTodayAttendance();
-  }
+ async ngOnInit() {
+  await this.loadCurrentSupervisor(); // ADD THIS
+  await this.loadStudents();
+  await this.loadTodayAttendance();
+}
+
 
   ngOnDestroy() {
     this.stopCamera();
   }
+
+
+  async loadCurrentSupervisor() {
+  try {
+    const user = await this.appwrite.account.get();
+    this.supervisorId = user.$id;
+
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL
+    );
+    const sup = (res.documents as any[]).find(s => s.$id === user.$id);
+    if (sup) {
+      this.supervisorName = `${sup.first_name} ${sup.last_name}`;
+    }
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
+  }
+}
 
   // ── Load all students ─────────────────────────────────────
   async loadStudents() {
@@ -120,7 +147,8 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
           date:              doc.date,
           time_in:           doc.time_in  || '—',
           time_out:          doc.time_out || '—',
-          status:            doc.status
+          status:            doc.status,
+          scanned_by_name: doc.scanned_by_name || '—'
         };
       });
 
@@ -252,20 +280,33 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     this.scanLoading = true;
 
     try {
-      const student = this.allStudents.find(s => s.$id === studentId)
-             ?? this.allArchived.find(s => s.student_doc_id === studentId);
+     const student = this.allStudents.find(s => s.$id === studentId)
+       ?? this.allArchived.find(s => s.student_doc_id === studentId);
 
-      if (!student) {
-        Swal.fire({
-          icon: 'error', title: 'Student Not Found',
-          text: 'This QR code does not match any registered intern.',
-          toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
-        });
-        this.scanLoading = false;
-        setTimeout(() => { this.lastScanned = ''; }, 3000);
-        return;
-      }
+if (!student) {
+  Swal.fire({
+    icon: 'error', title: 'Student Not Found',
+    text: 'This QR code does not match any registered intern.',
+    toast: true, position: 'top-end',
+    showConfirmButton: false, timer: 3000
+  });
+  this.scanLoading = false;
+  setTimeout(() => { this.lastScanned = ''; }, 3000);
+  return;
+}
+
+// ── Check if intern belongs to this supervisor ────────────
+if (student.supervisor_id !== this.supervisorId) {
+  Swal.fire({
+    icon: 'error',
+    title: 'Wrong Supervisor',
+    text: `${student.first_name} ${student.last_name} is not assigned to you. `,
+    confirmButtonColor: '#ef4444'
+  });
+  this.scanLoading = false;
+  setTimeout(() => { this.lastScanned = ''; }, 3000);
+  return;
+}
 
       const studentName = `${student.first_name} ${student.last_name}`;
       const now         = new Date();
@@ -302,9 +343,12 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
             this.appwrite.DATABASE_ID,
             this.appwrite.ATTENDANCE_COL,
             existing.$id,
-            { time_out: timeStr }
+            {
+              time_out: timeStr,
+              scanned_by: this.supervisorId,       // ADD
+              scanned_by_name: this.supervisorName // ADD
+            }
           );
-
           // ── CALCULATE HOURS ───────────────────────────────
           const parseTimeToMinutes = (t: string): number => {
             try {
@@ -387,12 +431,21 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
 
       } else {
         // ── RECORD TIME IN ────────────────────────────────────
-        const doc = await this.appwrite.databases.createDocument(
+            const doc = await this.appwrite.databases.createDocument(
           this.appwrite.DATABASE_ID,
           this.appwrite.ATTENDANCE_COL,
           ID.unique(),
-          { student_id: studentId, date: today, time_in: timeStr, time_out: '', status: 'Present' }
+          {
+            student_id: studentId,
+            date: today,
+            time_in: timeStr,
+            time_out: '',
+            status: 'Present',
+            scanned_by: this.supervisorId,        // ADD
+            scanned_by_name: this.supervisorName  // ADD
+          }
         );
+
 
         this.scanResult = `Time In: ${studentName} at ${timeStr}`;
         this.scanStatus = 'timein';

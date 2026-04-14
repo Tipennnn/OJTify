@@ -113,10 +113,10 @@ export class InternRegisterComponent {
       }
 
       // 3. Save to applicants table with status = pending
-      await this.appwrite.databases.createDocument(
+     await this.appwrite.databases.createDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
-        ID.unique(),
+        user.$id,
         {
           auth_user_id:        user.$id,
           first_name:          this.firstName,
