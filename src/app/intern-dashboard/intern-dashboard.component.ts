@@ -43,6 +43,7 @@ export class InternDashboardComponent implements OnInit {
 
   // ── Recent attendance ─────────────────────────────────────
   recentAttendance : AttendanceRecord[] = [];
+  internStartDate: Date | null = null;
 
   // ── Application info ──────────────────────────────────────
   appliedOn    = '—';
@@ -72,31 +73,46 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load student hours + today attendance ─────────────────
-  async loadStudentData() {
-    try {
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
-      );
-      this.requiredHours  = (doc as any).required_hours  || 500;
-      this.completedHours = (doc as any).completed_hours || 0;
+ async loadStudentData() {
+  try {
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
+    this.requiredHours  = (doc as any).required_hours  || 500;
+    this.completedHours = (doc as any).completed_hours || 0;
 
-      const now   = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const res    = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
-      const todayRecord = (res.documents as any[])
-        .find(d => d.student_id === this.currentUserId && d.date === today);
+    const start = new Date((doc as any).$createdAt);
+    start.setHours(0, 0, 0, 0);
+    this.internStartDate = start;
 
-      this.todayStatus = todayRecord ? todayRecord.status : 'Absent';
+    const now   = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    } catch (error: any) {
-      console.error('Failed to load student data:', error.message);
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL
+    );
+    const todayRecord = (res.documents as any[])
+      .find(d => d.student_id === this.currentUserId && d.date === today);
+
+    if (todayRecord) {
+      this.todayStatus = todayRecord.status;
+    } else {
+      // Only show Absent if they were accepted before today
+      const createdAt = (doc as any).$createdAt;
+      const startDate = new Date(createdAt);
+      startDate.setHours(0, 0, 0, 0);
+      now.setHours(0, 0, 0, 0);
+
+      this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
     }
+
+  } catch (error: any) {
+    console.error('Failed to load student data:', error.message);
   }
+}
 
   // ── Load recent attendance (last 5) ──────────────────────
   async loadRecentAttendance() {
@@ -117,12 +133,14 @@ export class InternDashboardComponent implements OnInit {
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
       const record = myRecords.find(r => r.date === dateStr);
-      last5Days.push({
-        date:     this.formatDate(dateStr),
-        time_in:  record?.time_in  || '—',
-        time_out: record?.time_out || '—',
-        status:   record ? record.status : 'Absent'
-      });
+      if (record) {
+        last5Days.push({
+          date: record.date,
+          time_in: record.time_in || '—',
+          time_out: record.time_out || '—',
+          status: record.status
+        });
+      }
     }
 
     this.recentAttendance = last5Days;
@@ -133,36 +151,42 @@ export class InternDashboardComponent implements OnInit {
 }
 
   // ── Load application info ─────────────────────────────────
-  async loadApplicationInfo() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL
-      );
+ async loadApplicationInfo() {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.APPLICANTS_COL
+    );
 
-      const applicant = (res.documents as any[])
-        .find(a => a.auth_user_id === this.currentUserId);
+    // Match by auth_user_id OR by $id
+    const applicant = (res.documents as any[])
+      .find(a => a.auth_user_id === this.currentUserId || a.$id === this.currentUserId);
 
-      if (applicant) {
-        this.appliedOn  = this.formatDate(applicant.$createdAt.split('T')[0]);
-        this.appStatus  = applicant.status === 'approved' ? 'Accepted' : applicant.status;
-      }
-
-      // Get accepted date from students table creation date
-      try {
-        const studentDoc = await this.appwrite.databases.getDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL,
-          this.currentUserId
-        );
-        this.acceptedOn = this.formatDate((studentDoc as any).$createdAt.split('T')[0]);
-      } catch { }
-
-    } catch (error: any) {
-      console.error('Failed to load application info:', error.message);
+    if (applicant) {
+      this.appliedOn = this.formatDate(applicant.$createdAt.split('T')[0]);
+      this.appStatus = applicant.status === 'approved' ? 'Accepted'
+                     : applicant.status === 'declined' ? 'Declined'
+                     : 'Pending';
+    } else {
+      // Fallback: no applicant record found
+      this.appliedOn = '—';
+      this.appStatus = 'Accepted'; // they're already in students, so accepted
     }
-  }
 
+    // Get accepted date from students table
+    try {
+      const studentDoc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      this.acceptedOn = this.formatDate((studentDoc as any).$createdAt.split('T')[0]);
+    } catch { }
+
+  } catch (error: any) {
+    console.error('Failed to load application info:', error.message);
+  }
+}
   // ── Format date helper ────────────────────────────────────
   formatDate(dateStr: string): string {
     if (!dateStr || dateStr === '—') return '—';

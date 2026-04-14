@@ -39,6 +39,8 @@ export class InternAttendanceComponent implements OnInit {
   timeIn       = '—';
   timeOut      = '—';
   status       = 'No Attendance Record';
+  scannedBy = '—';
+  calendarReady = false;
 
   firstDayOfMonth = 0;
   today = new Date();
@@ -47,6 +49,7 @@ export class InternAttendanceComponent implements OnInit {
   days  : number[] = [];
   attendanceStatus : { [key: number]: string } = {};
   attendanceRecords: { [key: number]: any }    = {};
+  internStartDate: Date | null = null;
 
   reportFilterMonth  = '';
   reportFilterYear   = '';
@@ -69,16 +72,18 @@ export class InternAttendanceComponent implements OnInit {
 
   constructor(private appwrite: AppwriteService) {}
 
-  async ngOnInit() {
-    await this.getCurrentUser();
-    this.generateCalendar();
-    await Promise.all([
-      this.loadAttendance(),
-      this.loadStudentHours(),
-      this.loadTodayStatus()
-    ]);
-    this.generateYears();
-  }
+async ngOnInit() {
+  await this.getCurrentUser();
+  this.generateCalendar();
+  await Promise.all([
+    this.loadAttendance(),
+    this.loadStudentHours(),
+    this.loadTodayStatus(),
+    this.loadInternStartDate()
+  ]);
+  this.calendarReady = true;  // ← ADD THIS
+  this.generateYears();
+}
 
   async getCurrentUser() {
     try {
@@ -122,6 +127,24 @@ async loadTodayStatus() {
       console.error('Failed to load today status:', error.message);
     }
   }
+
+  async loadInternStartDate() {
+  try {
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
+    const createdAt = (doc as any).$createdAt;
+    if (createdAt) {
+      const d = new Date(createdAt);
+      d.setHours(0, 0, 0, 0);
+      this.internStartDate = d;
+    }
+  } catch (error: any) {
+    console.error('Failed to load intern start date:', error.message);
+  }
+}
 
   // ── Computed helpers ──────────────────────────────────────
   get remainingHours(): number {
@@ -213,24 +236,26 @@ async loadTodayStatus() {
   }
 
   openAttendance(day: number) {
-    const date        = new Date(this.year, this.month, day);
-    this.selectedDate = date.toLocaleDateString('en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
+  const date        = new Date(this.year, this.month, day);
+  this.selectedDate = date.toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
 
-    const record = this.attendanceRecords[day];
-    if (record) {
-      this.status  = record.status;
-      this.timeIn  = record.time_in  || '—';
-      this.timeOut = record.time_out || '—';
-    } else {
-      this.status  = 'No Attendance Record';
-      this.timeIn  = '—';
-      this.timeOut = '—';
-    }
-
-    this.showAttendanceModal = true;
+  const record = this.attendanceRecords[day];
+  if (record) {
+    this.status    = record.status;
+    this.timeIn    = record.time_in  || '—';
+    this.timeOut   = record.time_out || '—';
+    this.scannedBy = record.scanned_by_name || '—'; // ADD THIS
+  } else {
+    this.status    = 'No Attendance Record';
+    this.timeIn    = '—';
+    this.timeOut   = '—';
+    this.scannedBy = '—'; // ADD THIS
   }
+
+  this.showAttendanceModal = true;
+}
 
   closeAttendance() { this.showAttendanceModal = false; }
 
@@ -278,15 +303,18 @@ async loadTodayStatus() {
     }
   }
 
-  isPastWeekdayWithNoRecord(day: number): boolean {
-  // Skip weekends
+ isPastWeekdayWithNoRecord(day: number): boolean {
   if (this.isWeekend(day)) return false;
 
-  // Skip future dates
   const date = new Date(this.year, this.month, day);
   const now  = new Date();
   now.setHours(0, 0, 0, 0);
+
+  // Don't mark absent for future dates
   if (date >= now) return false;
+
+  // Don't mark absent for dates before the intern was accepted
+  if (this.internStartDate && date < this.internStartDate) return false;
 
   // Skip if has a record
   if (this.attendanceStatus[day]) return false;

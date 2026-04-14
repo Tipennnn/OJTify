@@ -79,17 +79,23 @@
           <div>Thu</div><div>Fri</div><div>Sat</div>
         </div>
 
-        <div class="calendar-grid">
-          <div class="day empty" *ngFor="let e of getEmptyCells()"></div>
-        <div class="day"
-     *ngFor="let day of days"
-     (click)="openAttendance(day)"
-     [class.present-day]="attendanceStatus[day] === 'Present'"
-     [class.absent-day]="isPastWeekdayWithNoRecord(day)"
-     [class.weekend]="isWeekend(day)">
-  {{ day }}
+       <div class="calendar-grid" *ngIf="calendarReady">
+  <div class="day empty" *ngFor="let e of getEmptyCells()"></div>
+  <div class="day"
+       *ngFor="let day of days"
+       (click)="openAttendance(day)"
+       [class.present-day]="attendanceStatus[day] === 'Present'"
+       [class.absent-day]="isPastWeekdayWithNoRecord(day)"
+       [class.weekend]="isWeekend(day)">
+    {{ day }}
+  </div>
 </div>
-        </div>
+
+<div *ngIf="!calendarReady"
+     style="text-align:center; padding:40px; color:#9ca3af;">
+  <i class="fa fa-spinner fa-spin" style="font-size:24px;"></i>
+</div>
+        
 
         <div class="attendance-legend">
           <div class="legend-item">
@@ -134,6 +140,12 @@
         <span class="label">Time Out</span>
         <span class="value">{{ timeOut }}</span>
       </div>
+
+      <div class="info-row">
+    <span class="label">Scanned By</span>
+    <span class="value">{{ scannedBy }}</span>
+  </div>
+
       <div class="status">
         <span [class.present]="status === 'Present'"
               [class.absent]="status === 'Absent'"
