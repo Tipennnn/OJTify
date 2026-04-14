@@ -160,7 +160,7 @@ app-supervisor-topnav {
   display: flex;
   align-items: center;
   gap: 6px;
-  background:  #0818A8;;
+  background: #0818A8;
   color: #fff;
   border: none;
   padding: 9px 14px;
@@ -173,7 +173,7 @@ app-supervisor-topnav {
 }
 
 .qr-btn i { font-size: 14px; }
-.qr-btn:hover { background:  #0015d0; }
+.qr-btn:hover { background: #0015d0; }
 
 /* =========================
    CENTER WRAPPER
@@ -415,9 +415,109 @@ app-supervisor-topnav {
 
 .stop-scan-btn:hover { background: #e5e7eb; }
 
+/* =========================
+   MANUAL ENTRY
+========================= */
+.manual-entry-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-/* Pagination */
+.manual-toggle-btn {
+  background: none;
+  border: 1px dashed #d1d5db;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #6b7280;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+}
 
+.manual-toggle-btn:hover {
+  border-color: #0818A8;
+  color: #0818A8;
+  background: #f0f2ff;
+}
+
+.manual-entry-form {
+  display: flex;
+  gap: 8px;
+  animation: slideDown 0.25s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.manual-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+
+.manual-input-wrapper:focus-within {
+  border-color: #0818A8;
+}
+
+.manual-icon {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.manual-id-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  padding: 10px 0;
+  background: transparent;
+  color: #111827;
+}
+
+.manual-submit-btn {
+  background: #0818A8;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.manual-submit-btn:hover:not(:disabled) {
+  background: #0015d0;
+}
+
+.manual-submit-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* =========================
+   PAGINATION
+========================= */
 .pagination {
   display: flex;
   justify-content: flex-end;
@@ -463,8 +563,6 @@ app-supervisor-topnav {
   font-weight: 500;
 }
 
-
-
 /* =========================
    RESPONSIVE
 ========================= */
@@ -472,6 +570,8 @@ app-supervisor-topnav {
   .applicants-table th,
   .applicants-table td { padding: 10px; font-size: 13px; }
   .scanner-modal { width: 95%; }
+  .manual-entry-form { flex-direction: column; }
+  .manual-submit-btn { width: 100%; justify-content: center; }
 }
 
 @media (max-width: 480px) {

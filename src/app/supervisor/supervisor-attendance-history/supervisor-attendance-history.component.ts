@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
+import { ID } from 'appwrite';
 
 interface AttendanceLog {
+  $id?: string;
   student_id: string;
   student_name: string;
   student_photo: string | null;
@@ -40,12 +42,26 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
   selectedDay     : number | null = null;
   selectedDate    = '';
 
-  // Which dates have records
   datesWithRecords: Set<string> = new Set();
 
   // Pagination
   currentPage = 1;
   pageSize    = 10;
+
+  // Manual Add Modal
+  showAddModal    = false;
+  addLoading      = false;
+  addError        = '';
+  addSuccess      = false;
+  studentSearch   = '';
+  studentResults  : any[] = [];
+  selectedStudent : any   = null;
+
+  addForm = {
+    time_in : '',
+    time_out: '',
+    status  : 'Present'
+  };
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
@@ -76,7 +92,6 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
         this.appwrite.ARCHIVES_COL
       );
       this.allArchived = archiveRes.documents as any[];
-
     } catch (error: any) {
       console.error('Failed to load students:', error.message);
     }
@@ -99,32 +114,32 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
       }
 
       const recent = allDocs.filter(d => last30.includes(d.date));
-
       this.datesWithRecords = new Set(recent.map(d => d.date));
 
-      this.allLogs = recent.map(doc => {
-        const student = this.allStudents.find(s => s.$id === doc.student_id)
-               ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
-        return {
-          student_id:        doc.student_id,
-          student_name:      student
-            ? `${student.first_name} ${student.last_name}` : 'Unknown',
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              doc.date,
-          time_in:           doc.time_in  || '—',
-          time_out:          doc.time_out || '—',
-          status:            doc.status
-        };
-      });
-
+      this.allLogs = recent.map(doc => this.mapDoc(doc));
     } catch (error: any) {
       console.error('Failed to load history:', error.message);
     } finally {
       this.loading = false;
     }
+  }
+
+  private mapDoc(doc: any): AttendanceLog {
+    const student = this.allStudents.find(s => s.$id === doc.student_id)
+           ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
+    return {
+      $id:               doc.$id,
+      student_id:        doc.student_id,
+      student_name:      student ? `${student.first_name} ${student.last_name}` : 'Unknown',
+      student_photo:     student?.profile_photo_id
+        ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+        : null,
+      student_id_number: student?.student_id || '—',
+      date:              doc.date,
+      time_in:           doc.time_in  || '—',
+      time_out:          doc.time_out || '—',
+      status:            doc.status
+    };
   }
 
   generateCalendar() {
@@ -172,6 +187,8 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
     thirtyDaysAgo.setHours(0, 0, 0, 0);
     if (clicked < thirtyDaysAgo) return;
 
+    if (this.isWeekend(day)) return;
+
     this.selectedDay  = day;
     this.selectedDate = `${this.year}-${String(this.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     this.currentPage  = 1;
@@ -195,6 +212,87 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
     this.currentPage = 1;
     this.applyFilters();
   }
+
+  // ── Manual Add Modal ──────────────────────────────
+
+  openAddModal() {
+    this.showAddModal   = true;
+    this.addError       = '';
+    this.addSuccess     = false;
+    this.studentSearch  = '';
+    this.studentResults = [];
+    this.selectedStudent = null;
+    this.addForm = { time_in: '', time_out: '', status: 'Present' };
+  }
+
+  closeAddModal() {
+    this.showAddModal = false;
+  }
+
+  searchStudents() {
+    const q = this.studentSearch.toLowerCase().trim();
+    if (!q) { this.studentResults = []; return; }
+    this.studentResults = [...this.allStudents, ...this.allArchived].filter(s =>
+      `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
+      (s.student_id || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+  }
+
+  pickStudent(s: any) {
+    this.selectedStudent = s;
+    this.studentSearch   = `${s.first_name} ${s.last_name}`;
+    this.studentResults  = [];
+  }
+
+  async submitManualAttendance() {
+    this.addError = '';
+    if (!this.selectedStudent) { this.addError = 'Please select a student.'; return; }
+    if (!this.addForm.time_in)  { this.addError = 'Time In is required.'; return; }
+
+    // Check if already has a record for this date
+    const already = this.allLogs.find(
+      l => l.date === this.selectedDate &&
+           (l.student_id === this.selectedStudent.$id ||
+            l.student_id === this.selectedStudent.student_doc_id)
+    );
+    if (already) {
+      this.addError = 'This student already has a record for this date.';
+      return;
+    }
+
+    this.addLoading = true;
+    try {
+      const studentDocId = this.selectedStudent.$id ?? this.selectedStudent.student_doc_id;
+
+      const doc = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        ID.unique(),
+        {
+          student_id: studentDocId,
+          date      : this.selectedDate,
+          time_in   : this.addForm.time_in,
+          time_out  : this.addForm.time_out || null,
+          status    : this.addForm.status
+        }
+      );
+
+      // Update local state
+      const newLog = this.mapDoc({ ...doc, student_id: studentDocId });
+      this.allLogs.push(newLog);
+      this.datesWithRecords.add(this.selectedDate);
+      this.addSuccess = true;
+      this.applyFilters();
+
+      setTimeout(() => this.closeAddModal(), 1200);
+    } catch (error: any) {
+      this.addError = error.message || 'Failed to save record.';
+    } finally {
+      this.addLoading = false;
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────
 
   isToday(day: number): boolean {
     return day === this.today.getDate() &&

@@ -1,85 +1,92 @@
 <!-- Top Nav -->
 <div class="profile-top-nav">
-    <button class="back-btn" (click)="goBack()">
-      <i class="fa-solid fa-arrow-left"></i>
-    </button>
-    <h2 class="top-title">OJTify</h2>
-  </div>
-  
-  <div class="page-wrapper">
-  
-    <!-- LEFT: Calendar -->
-    <div class="calendar-panel">
-      <div class="calendar-nav">
-        <button (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
-        <h3>{{ monthName }} {{ year }}</h3>
-        <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
-      </div>
-  
-      <div class="calendar-days-header">
-        <div>Sun</div><div>Mon</div><div>Tue</div>
-        <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-      </div>
-  
-      <div class="calendar-grid">
-        <!-- Empty offset cells -->
-        <div *ngFor="let e of getEmptyCells()" class="cal-day empty"></div>
-  
-        <!-- Day cells -->
-        <div *ngFor="let day of days"
-             class="cal-day"
-             [class.selected]="selectedDay === day"
-             [class.today]="isToday(day)"
-             [class.has-record]="hasRecord(day) && !isWeekend(day)"
-             [class.weekend]="isWeekend(day)"
-             [class.disabled]="isFuture(day) || isOlderThan30Days(day)"
-             (click)="selectDay(day)">
-          {{ day }}
-          <span class="dot" *ngIf="hasRecord(day) && !isWeekend(day)"></span>
-        </div>
-      </div>
-  
-      <div class="calendar-legend">
-        <div class="legend-item">
-          <span class="legend-dot blue"></span> Has Records
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot gray"></span> No Records / Disabled
-        </div>
+  <button class="back-btn" (click)="goBack()">
+    <i class="fa-solid fa-arrow-left"></i>
+  </button>
+  <h2 class="top-title">OJTify</h2>
+  <span class="nav-subtitle">Attendance History</span>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- LEFT: Calendar -->
+  <div class="calendar-panel">
+    <div class="calendar-nav">
+      <button (click)="prevMonth()"><i class="fa fa-chevron-left"></i></button>
+      <h3>{{ monthName }} {{ year }}</h3>
+      <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
+    </div>
+
+    <div class="calendar-days-header">
+      <div>Sun</div><div>Mon</div><div>Tue</div>
+      <div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+
+    <div class="calendar-grid">
+      <div *ngFor="let e of getEmptyCells()" class="cal-day empty"></div>
+      <div *ngFor="let day of days"
+           class="cal-day"
+           [class.selected]="selectedDay === day"
+           [class.today]="isToday(day)"
+           [class.has-record]="hasRecord(day) && !isWeekend(day)"
+           [class.weekend]="isWeekend(day)"
+           [class.disabled]="isFuture(day) || isOlderThan30Days(day)"
+           (click)="selectDay(day)">
+        {{ day }}
+        <span class="dot" *ngIf="hasRecord(day) && !isWeekend(day)"></span>
       </div>
     </div>
-  
-    <!-- RIGHT: Table -->
-    <div class="table-panel">
-  
-      <div class="table-panel-header">
-        <div>
-          <h3 *ngIf="selectedDate">{{ formatDisplayDate(selectedDate) }}</h3>
-          <h3 *ngIf="!selectedDate" style="color:#9ca3af;">Select a day to view records</h3>
-          <span class="record-count" *ngIf="selectedDate">
-            {{ filteredLogs.length }} record(s) found
-          </span>
-        </div>
+
+    <div class="calendar-legend">
+      <div class="legend-item">
+        <span class="legend-dot green"></span> Has Records
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot blue"></span> Selected
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot gray"></span> Disabled
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Table Panel -->
+  <div class="table-panel">
+
+    <div class="table-panel-header">
+      <div>
+        <h3 *ngIf="selectedDate">{{ formatDisplayDate(selectedDate) }}</h3>
+        <h3 *ngIf="!selectedDate" class="muted-title">Select a day to view records</h3>
+        <span class="record-count" *ngIf="selectedDate">
+          {{ filteredLogs.length }} record(s) found
+        </span>
+      </div>
+      <div class="header-actions">
         <div class="search-box" *ngIf="selectedDate">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search intern..."
-                 (input)="onSearch($event)">
+          <input type="text" placeholder="Search intern..." (input)="onSearch($event)">
         </div>
+        <button class="add-btn" *ngIf="selectedDate" (click)="openAddModal()">
+          <i class="fa-solid fa-plus"></i> Add Record
+        </button>
       </div>
-  
-      <!-- Loading -->
-      <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
-        <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
-        <p style="margin-top:12px;">Loading...</p>
-      </div>
-  
-      <div *ngIf="!loading && !selectedDate"
-           style="text-align:center; padding:60px; color:#9ca3af;">
-        <i class="fa-solid fa-calendar-days" style="font-size:40px; margin-bottom:12px; display:block;"></i>
-        Click a day on the calendar to view attendance records.
-      </div>
-  
-      <table class="applicants-table" *ngIf="!loading && selectedDate">
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="empty-state">
+      <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+      <p>Loading records...</p>
+    </div>
+
+    <!-- No date selected -->
+    <div *ngIf="!loading && !selectedDate" class="empty-state">
+      <i class="fa-solid fa-calendar-days" style="font-size:40px; margin-bottom:12px; display:block;"></i>
+      <p>Click a weekday on the calendar to view attendance records.</p>
+    </div>
+
+    <!-- Table -->
+    <div class="table-scroll" *ngIf="!loading && selectedDate">
+      <table class="applicants-table">
         <thead>
           <tr>
             <th>Name</th>
@@ -90,48 +97,177 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let log of paginatedLogs">
+          <tr *ngFor="let log of paginatedLogs" class="table-row">
             <td class="profile-name">
               <img [src]="log.student_photo ||
                           'https://ui-avatars.com/api/?name=' + log.student_name +
-                          '&background=2563eb&color=fff&size=64'"
+                          '&background=0818A8&color=fff&size=64'"
                    class="profile-pic" alt="Profile">
               <span>{{ log.student_name }}</span>
             </td>
             <td>{{ log.student_id_number }}</td>
-            <td>{{ log.time_in }}</td>
-            <td>{{ log.time_out }}</td>
+            <td>
+              <span class="time-chip">
+                <i class="fa-regular fa-clock"></i> {{ log.time_in }}
+              </span>
+            </td>
+            <td>
+              <span class="time-chip" *ngIf="log.time_out !== '—'">
+                <i class="fa-regular fa-clock"></i> {{ log.time_out }}
+              </span>
+              <span class="muted-dash" *ngIf="log.time_out === '—'">—</span>
+            </td>
             <td>
               <span class="status-badge badge-approved">{{ log.status }}</span>
             </td>
           </tr>
-  
+
           <tr *ngIf="filteredLogs.length === 0">
-            <td colspan="5" style="text-align:center; color:#9ca3af; padding:40px;">
-              <i class="fas fa-calendar-times"
-                 style="font-size:32px; margin-bottom:10px; display:block;"></i>
+            <td colspan="5" class="empty-row">
+              <i class="fas fa-calendar-times" style="font-size:32px; margin-bottom:10px; display:block;"></i>
               No attendance records for this day.
+              <br>
+              <!--<button class="add-inline-btn" (click)="openAddModal()">
+                <i class="fa-solid fa-plus"></i> Add first record
+              </button>-->
             </td>
           </tr>
         </tbody>
       </table>
-  
-      <!-- Pagination -->
-      <div class="pagination" *ngIf="totalPages > 1">
-        <button class="page-btn" (click)="goToPage(currentPage - 1)"
-                [disabled]="currentPage === 1">
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <div class="page-numbers">
-          <span *ngFor="let p of pageNumbers"
-                class="page" [class.active]="p === currentPage"
-                (click)="goToPage(p)">{{ p }}</span>
-        </div>
-        <button class="page-btn" (click)="goToPage(currentPage + 1)"
-                [disabled]="currentPage === totalPages">
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
-      </div>
-  
     </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <div class="page-numbers">
+        <span *ngFor="let p of pageNumbers"
+              class="page" [class.active]="p === currentPage"
+              (click)="goToPage(p)">{{ p }}</span>
+      </div>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+
   </div>
+</div>
+
+<!-- ============================
+     ADD ATTENDANCE MODAL
+============================= -->
+<div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()"></div>
+
+<div class="modal-card" *ngIf="showAddModal">
+  <div class="modal-header">
+    <div>
+      <h4 class="modal-title">Add Attendance Record</h4>
+      <p class="modal-subtitle">{{ formatDisplayDate(selectedDate) }}</p>
+    </div>
+    <button class="modal-close" (click)="closeAddModal()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- Success -->
+  <div class="modal-success" *ngIf="addSuccess">
+    <i class="fa-solid fa-circle-check"></i>
+    <span>Record saved successfully!</span>
+  </div>
+
+  <div *ngIf="!addSuccess">
+
+    <!-- Student Search -->
+    <div class="form-group">
+      <label class="form-label">Student</label>
+      <div class="student-search-wrap">
+        <div class="search-input-row">
+          <i class="fa-solid fa-user-graduate search-icon"></i>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Type name or student ID..."
+            [(ngModel)]="studentSearch"
+            (input)="searchStudents()"
+          >
+        </div>
+
+        <!-- Selected pill -->
+        <div class="selected-student" *ngIf="selectedStudent">
+          <img
+            [src]="selectedStudent.profile_photo_id
+              ? (this.ENDPOINT + '/storage/buckets/' + this.BUCKET_ID + '/files/' + selectedStudent.profile_photo_id + '/view?project=' + this.PROJECT_ID)
+              : ('https://ui-avatars.com/api/?name=' + selectedStudent.first_name + '+' + selectedStudent.last_name + '&background=0818A8&color=fff&size=64')"
+            class="mini-avatar" alt="">
+          <span>{{ selectedStudent.first_name }} {{ selectedStudent.last_name }}</span>
+          <span class="student-id-tag">{{ selectedStudent.student_id }}</span>
+          <button class="clear-btn" (click)="selectedStudent = null; studentSearch = ''">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Dropdown results -->
+        <div class="student-dropdown" *ngIf="studentResults.length > 0">
+          <div
+            class="student-result"
+            *ngFor="let s of studentResults"
+            (click)="pickStudent(s)">
+            <img
+              [src]="s.profile_photo_id
+                ? (this.ENDPOINT + '/storage/buckets/' + this.BUCKET_ID + '/files/' + s.profile_photo_id + '/view?project=' + this.PROJECT_ID)
+                : ('https://ui-avatars.com/api/?name=' + s.first_name + '+' + s.last_name + '&background=0818A8&color=fff&size=64')"
+              class="mini-avatar" alt="">
+            <div>
+              <div class="result-name">{{ s.first_name }} {{ s.last_name }}</div>
+              <div class="result-id">{{ s.student_id }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Time Fields -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Time In <span class="required">*</span></label>
+        <input type="time" class="form-input" [(ngModel)]="addForm.time_in">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Time Out <span class="optional">(optional)</span></label>
+        <input type="time" class="form-input" [(ngModel)]="addForm.time_out">
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="status-options">
+        <label class="status-opt" [class.active]="addForm.status === 'Present'">
+          <input type="radio" [(ngModel)]="addForm.status" value="Present"> Present
+        </label>
+        <label class="status-opt" [class.active]="addForm.status === 'Late'">
+          <input type="radio" [(ngModel)]="addForm.status" value="Late"> Late
+        </label>
+        <label class="status-opt" [class.active]="addForm.status === 'Half Day'">
+          <input type="radio" [(ngModel)]="addForm.status" value="Half Day"> Half Day
+        </label>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="modal-error" *ngIf="addError">
+      <i class="fa-solid fa-triangle-exclamation"></i> {{ addError }}
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="closeAddModal()">Cancel</button>
+      <button class="btn-submit" (click)="submitManualAttendance()" [disabled]="addLoading">
+        <span *ngIf="!addLoading"><i class="fa-solid fa-floppy-disk"></i> Save Record</span>
+        <span *ngIf="addLoading"><i class="fa fa-spinner fa-spin"></i> Saving...</span>
+      </button>
+    </div>
+
+  </div>
+</div>

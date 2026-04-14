@@ -19,7 +19,6 @@ interface AttendanceLog {
   time_out: string;
   status: string;
   scanned_by_name?: string;
-
 }
 
 @Component({
@@ -38,7 +37,6 @@ interface AttendanceLog {
 export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   isCollapsed = false;
 
-  // Table data
   todayLogs    : AttendanceLog[] = [];
   filteredLogs : AttendanceLog[] = [];
   allStudents  : any[]           = [];
@@ -46,7 +44,6 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   loading      = false;
   searchQuery  = '';
 
-  // Scanner
   showScanner  = false;
   scanning     = false;
   scanLoading  = false;
@@ -54,9 +51,11 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   scanStatus   = '';
   lastScanned  = '';
 
-  supervisorId = '';
-  supervisorName = '';
+  showManualEntry  = false;
+  manualStudentId  = '';
 
+  supervisorId   = '';
+  supervisorName = '';
 
   private stream    : MediaStream | null = null;
   private animFrame : number = 0;
@@ -67,37 +66,34 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
 
   constructor(private appwrite: AppwriteService) {}
 
- async ngOnInit() {
-  await this.loadCurrentSupervisor(); // ADD THIS
-  await this.loadStudents();
-  await this.loadTodayAttendance();
-}
-
+  async ngOnInit() {
+    await this.loadCurrentSupervisor();
+    await this.loadStudents();
+    await this.loadTodayAttendance();
+  }
 
   ngOnDestroy() {
     this.stopCamera();
   }
 
-
   async loadCurrentSupervisor() {
-  try {
-    const user = await this.appwrite.account.get();
-    this.supervisorId = user.$id;
+    try {
+      const user = await this.appwrite.account.get();
+      this.supervisorId = user.$id;
 
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL
-    );
-    const sup = (res.documents as any[]).find(s => s.$id === user.$id);
-    if (sup) {
-      this.supervisorName = `${sup.first_name} ${sup.last_name}`;
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL
+      );
+      const sup = (res.documents as any[]).find(s => s.$id === user.$id);
+      if (sup) {
+        this.supervisorName = `${sup.first_name} ${sup.last_name}`;
+      }
+    } catch (error: any) {
+      console.error('Failed to get supervisor:', error.message);
     }
-  } catch (error: any) {
-    console.error('Failed to get supervisor:', error.message);
   }
-}
 
-  // ── Load all students ─────────────────────────────────────
   async loadStudents() {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -117,7 +113,27 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Load today's attendance ───────────────────────────────
+  // Add these properties
+currentPage  = 1;
+pageSize     = 10;
+totalPages   = 1;
+pageNumbers  : number[] = [];
+
+// Add these methods
+updatePagination() {
+  this.totalPages  = Math.max(1, Math.ceil(this.filteredLogs.length / this.pageSize));
+  this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+}
+
+goToPage(page: number) { this.currentPage = page; }
+prevPage() { if (this.currentPage > 1) this.currentPage--; }
+nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; }
+
+get pagedLogs() {
+  const start = (this.currentPage - 1) * this.pageSize;
+  return this.filteredLogs.slice(start, start + this.pageSize);
+}
+
   async loadTodayAttendance() {
     this.loading = true;
     try {
@@ -148,7 +164,7 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
           time_in:           doc.time_in  || '—',
           time_out:          doc.time_out || '—',
           status:            doc.status,
-          scanned_by_name: doc.scanned_by_name || '—'
+          scanned_by_name:   doc.scanned_by_name || '—'
         };
       });
 
@@ -165,7 +181,6 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     this.isCollapsed = collapsed;
   }
 
-  // ── Search ────────────────────────────────────────────────
   onSearch(event: any) {
     this.searchQuery  = event.target.value.toLowerCase();
     this.filteredLogs = this.todayLogs.filter(log =>
@@ -174,23 +189,61 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     );
   }
 
-  // ── Open/close scanner modal ──────────────────────────────
   openScanner() {
-    this.showScanner = true;
-    this.scanResult  = '';
-    this.scanStatus  = '';
-    this.lastScanned = '';
+    this.showScanner     = true;
+    this.scanResult      = '';
+    this.scanStatus      = '';
+    this.lastScanned     = '';
+    this.showManualEntry = false;
+    this.manualStudentId = '';
     setTimeout(() => { this.startCamera(); }, 500);
   }
 
   closeScanner() {
     this.stopCamera();
-    this.showScanner = false;
-    this.scanResult  = '';
-    this.scanStatus  = '';
+    this.showScanner     = false;
+    this.scanResult      = '';
+    this.scanStatus      = '';
+    this.showManualEntry = false;
+    this.manualStudentId = '';
   }
 
-  // ── Start camera ──────────────────────────────────────────
+  toggleManualEntry() {
+    this.showManualEntry = !this.showManualEntry;
+    if (!this.showManualEntry) {
+      this.manualStudentId = '';
+    }
+  }
+
+  async submitManualId() {
+    const inputId = this.manualStudentId.trim();
+    if (!inputId) return;
+
+    const student = this.allStudents.find(
+      s => s.student_id?.toLowerCase() === inputId.toLowerCase()
+    ) ?? this.allArchived.find(
+      s => s.student_id?.toLowerCase() === inputId.toLowerCase()
+    );
+
+    if (!student) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Student Not Found',
+        text: `No intern found with ID "${inputId}". Please check and try again.`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3500
+      });
+      return;
+    }
+
+    const qrPayload      = `OJTIFY_ATTENDANCE:${student.$id}`;
+    this.manualStudentId = '';
+    this.showManualEntry = false;
+    await this.processQR(qrPayload);
+  }
+
   async startCamera() {
     this.stopCamera();
     this.scanning = true;
@@ -218,7 +271,6 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Scan frames ───────────────────────────────────────────
   scanFrame(video: HTMLVideoElement) {
     if (!this.scanning) return;
 
@@ -244,7 +296,6 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     this.animFrame = requestAnimationFrame(() => this.scanFrame(video));
   }
 
-  // ── Stop camera ───────────────────────────────────────────
   stopCamera() {
     this.scanning = false;
     cancelAnimationFrame(this.animFrame);
@@ -263,7 +314,6 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Process QR ────────────────────────────────────────────
   async processQR(data: string) {
     if (!data.startsWith('OJTIFY_ATTENDANCE:')) {
       Swal.fire({
@@ -280,33 +330,32 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     this.scanLoading = true;
 
     try {
-     const student = this.allStudents.find(s => s.$id === studentId)
-       ?? this.allArchived.find(s => s.student_doc_id === studentId);
+      const student = this.allStudents.find(s => s.$id === studentId)
+        ?? this.allArchived.find(s => s.student_doc_id === studentId);
 
-if (!student) {
-  Swal.fire({
-    icon: 'error', title: 'Student Not Found',
-    text: 'This QR code does not match any registered intern.',
-    toast: true, position: 'top-end',
-    showConfirmButton: false, timer: 3000
-  });
-  this.scanLoading = false;
-  setTimeout(() => { this.lastScanned = ''; }, 3000);
-  return;
-}
+      if (!student) {
+        Swal.fire({
+          icon: 'error', title: 'Student Not Found',
+          text: 'This QR code does not match any registered intern.',
+          toast: true, position: 'top-end',
+          showConfirmButton: false, timer: 3000
+        });
+        this.scanLoading = false;
+        setTimeout(() => { this.lastScanned = ''; }, 3000);
+        return;
+      }
 
-// ── Check if intern belongs to this supervisor ────────────
-if (student.supervisor_id !== this.supervisorId) {
-  Swal.fire({
-    icon: 'error',
-    title: 'Wrong Supervisor',
-    text: `${student.first_name} ${student.last_name} is not assigned to you. `,
-    confirmButtonColor: '#ef4444'
-  });
-  this.scanLoading = false;
-  setTimeout(() => { this.lastScanned = ''; }, 3000);
-  return;
-}
+      if (student.supervisor_id !== this.supervisorId) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Wrong Supervisor',
+          text: `${student.first_name} ${student.last_name} is not assigned to you.`,
+          confirmButtonColor: '#ef4444'
+        });
+        this.scanLoading = false;
+        setTimeout(() => { this.lastScanned = ''; }, 3000);
+        return;
+      }
 
       const studentName = `${student.first_name} ${student.last_name}`;
       const now         = new Date();
@@ -344,11 +393,12 @@ if (student.supervisor_id !== this.supervisorId) {
             this.appwrite.ATTENDANCE_COL,
             existing.$id,
             {
-              time_out: timeStr,
-              scanned_by: this.supervisorId,       // ADD
-              scanned_by_name: this.supervisorName // ADD
+              time_out:        timeStr,
+              scanned_by:      this.supervisorId,
+              scanned_by_name: this.supervisorName
             }
           );
+
           // ── CALCULATE HOURS ───────────────────────────────
           const parseTimeToMinutes = (t: string): number => {
             try {
@@ -369,7 +419,10 @@ if (student.supervisor_id !== this.supervisorId) {
           if (diffMinutes < 0) diffMinutes += 24 * 60;
           const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
-          if (hoursWorked > 0) {
+          // ── UPDATE HOURS — only for active (non-archived) students ──
+          const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
+
+          if (hoursWorked > 0 && isActiveStudent) {
             try {
               const studentDoc = await this.appwrite.databases.getDocument(
                 this.appwrite.DATABASE_ID,
@@ -379,21 +432,32 @@ if (student.supervisor_id !== this.supervisorId) {
 
               const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
               const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
-              const newCompleted     = Math.min(currentCompleted + hoursWorked, requiredHours);
+              const newCompleted     = Math.min(
+                parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+                requiredHours
+              );
 
-              const updateResult = await this.appwrite.databases.updateDocument(
+              await this.appwrite.databases.updateDocument(
                 this.appwrite.DATABASE_ID,
                 this.appwrite.STUDENTS_COL,
                 studentId,
                 { completed_hours: newCompleted }
               );
 
+              // Keep local allStudents cache in sync so OJT page reflects
+              // the new value immediately when navigated to (same session)
               const idx = this.allStudents.findIndex(s => s.$id === studentId);
-              if (idx !== -1) this.allStudents[idx].completed_hours = newCompleted;
+              if (idx !== -1) {
+                this.allStudents[idx] = {
+                  ...this.allStudents[idx],
+                  completed_hours: newCompleted
+                };
+              }
 
               this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
               this.scanStatus = 'timeout';
 
+              // Update the attendance table row in place
               const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
               if (logIndex !== -1) {
                 this.todayLogs[logIndex].time_out = timeStr;
@@ -413,6 +477,25 @@ if (student.supervisor_id !== this.supervisorId) {
             } catch (updateErr: any) {
               Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
             }
+
+          } else if (hoursWorked > 0 && !isActiveStudent) {
+            // Archived student — attendance recorded but no hours update needed
+            this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
+            this.scanStatus = 'timeout';
+
+            const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
+            if (logIndex !== -1) {
+              this.todayLogs[logIndex].time_out = timeStr;
+              this.filteredLogs = [...this.todayLogs];
+            }
+
+            Swal.fire({
+              icon: 'success', title: '🕐 Time Out Recorded!',
+              html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
+              toast: true, position: 'top-end',
+              showConfirmButton: false, timer: 4000, timerProgressBar: true
+            });
+
           } else {
             this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
             this.scanStatus = 'timeout';
@@ -431,21 +514,20 @@ if (student.supervisor_id !== this.supervisorId) {
 
       } else {
         // ── RECORD TIME IN ────────────────────────────────────
-            const doc = await this.appwrite.databases.createDocument(
+        const doc = await this.appwrite.databases.createDocument(
           this.appwrite.DATABASE_ID,
           this.appwrite.ATTENDANCE_COL,
           ID.unique(),
           {
-            student_id: studentId,
-            date: today,
-            time_in: timeStr,
-            time_out: '',
-            status: 'Present',
-            scanned_by: this.supervisorId,        // ADD
-            scanned_by_name: this.supervisorName  // ADD
+            student_id:      studentId,
+            date:            today,
+            time_in:         timeStr,
+            time_out:        '',
+            status:          'Present',
+            scanned_by:      this.supervisorId,
+            scanned_by_name: this.supervisorName
           }
         );
-
 
         this.scanResult = `Time In: ${studentName} at ${timeStr}`;
         this.scanStatus = 'timein';
