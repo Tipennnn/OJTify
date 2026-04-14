@@ -1,318 +1,333 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-    <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
-  
-    <div class="main-section">
-      <app-supervisor-topnav></app-supervisor-topnav>
-  
-      <div class="dashboard-content">
-  
-        <!-- HEADER -->
-        <div class="dashboard-header header-flex">
-          <div><h2>Student Evaluation</h2></div>
-          <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Search student..." (input)="onSearch($event)">
-          </div>
+  <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
+
+  <div class="main-section">
+    <app-supervisor-topnav></app-supervisor-topnav>
+
+    <div class="dashboard-content">
+
+      <div class="dashboard-header header-flex">
+        <div><h2>Student Evaluation</h2></div>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search student..." (input)="onSearch($event)">
         </div>
-  
-        <div class="dashboard-divider"></div>
-  
-        <!-- TABS -->
-        <div class="tab-bar">
-          <button class="tab-btn" [class.active]="activeTab === 'pending'"
-                  (click)="setTab('pending')">
-            <i class="fa-solid fa-hourglass-half"></i>
-            Pending
-            <span class="tab-badge pending">{{ students.length }}</span>
-          </button>
-          <button class="tab-btn" [class.active]="activeTab === 'evaluated'"
-                  (click)="setTab('evaluated')">
-            <i class="fa-solid fa-circle-check"></i>
-            Evaluated
-            <span class="tab-badge done">{{ evaluatedStudents.length }}</span>
-          </button>
-        </div>
-  
-        <!-- LOADING -->
-        <div *ngIf="loading" class="loading-state">
-          <i class="fa fa-spinner fa-spin"></i>
-          <p>Loading students...</p>
-        </div>
-  
-        <!-- ── PENDING TABLE ── -->
-        <div class="center-wrapper" *ngIf="!loading && activeTab === 'pending'">
-          <div class="table-container">
-            <table class="applicants-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Student ID</th>
-                  <th>Course</th>
-                  <th>Hours Progress</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let student of pagedStudents">
-                  <td class="profile-name">
-                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
-                    <span>{{ getFullName(student) }}</span>
-                  </td>
-                  <td class="plain-text">{{ student.student_id }}</td>
-                  <td class="plain-text">{{ student.course }}</td>
-                  <td style="min-width: 180px;">
-                    <div class="progress-bar">
-                      <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
-                    </div>
-                    <span class="progress-text">
-                      {{ student.completed_hours || 0 }} / {{ student.required_hours || 500 }} hrs
-                      &nbsp;({{ getProgress(student) }}%)
-                    </span>
-                  </td>
-                  <td>
-                    <button class="btn-evaluate" (click)="openEvaluate(student)">
-                      <i class="fa-solid fa-clipboard-check"></i> Evaluate
-                    </button>
-                  </td>
-                </tr>
-                <tr *ngIf="filteredStudents.length === 0">
-                  <td colspan="5" class="empty-state">No pending students found.</td>
-                </tr>
-              </tbody>
-            </table>
-  
-            <div class="pagination">
-              <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <div class="page-numbers">
-                <span class="page" *ngFor="let p of pageNumbers"
-                      [class.active]="p === currentPage"
-                      (click)="goToPage(p)">{{ p }}</span>
-              </div>
-              <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-  
-        <!-- ── EVALUATED TABLE ── -->
-        <div class="center-wrapper" *ngIf="!loading && activeTab === 'evaluated'">
-          <div class="table-container">
-            <table class="applicants-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Student ID</th>
-                  <th>Course</th>
-                  <th>Overall Rating</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let student of pagedEvaluated">
-                  <td class="profile-name">
-                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
-                    <span>{{ getFullName(student) }}</span>
-                  </td>
-                  <td class="plain-text">{{ student.student_id }}</td>
-                  <td class="plain-text">{{ student.course }}</td>
-                  <td>
-                    <span class="overall-pill"
-                          [style.background]="getOverallColor(getEvalAverage(student)) + '18'"
-                          [style.color]="getOverallColor(getEvalAverage(student))">
-                      ★ {{ getEvalAverage(student) }}
-                      &nbsp;—&nbsp;
-                      {{ getOverallLabel(getEvalAverage(student)) }}
-                    </span>
-                  </td>
-                  <td>
-                    <button class="btn-view-action" (click)="viewEvaluation(student)">
-                      <i class="fa-solid fa-eye"></i> View
-                    </button>
-                  </td>
-                </tr>
-                <tr *ngIf="filteredEvaluated.length === 0">
-                  <td colspan="5" class="empty-state">No evaluated students yet.</td>
-                </tr>
-              </tbody>
-            </table>
-  
-            <div class="pagination">
-              <button class="page-btn" (click)="prevPageEval()" [disabled]="currentPageEval === 1">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <div class="page-numbers">
-                <span class="page" *ngFor="let p of pageNumbersEval"
-                      [class.active]="p === currentPageEval"
-                      (click)="goToPageEval(p)">{{ p }}</span>
-              </div>
-              <button class="page-btn" (click)="nextPageEval()" [disabled]="currentPageEval === totalPagesEval">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-  
       </div>
-    </div>
-  </div>
-  
-  <!-- ════════════════════════════════════════
-       EVALUATION MODAL
-  ════════════════════════════════════════ -->
-  <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
-    <div class="modal-box" (click)="$event.stopPropagation()">
-  
-      <!-- MODAL HEADER -->
-      <div class="modal-header">
-        <div class="modal-student-info">
-          <img [src]="getAvatarUrl(selectedStudent!)" class="modal-avatar" alt="">
-          <div>
-            <div class="modal-student-name">{{ getFullName(selectedStudent!) }}</div>
-            <div class="modal-student-sub">
-              {{ selectedStudent?.course }} &nbsp;·&nbsp; {{ selectedStudent?.student_id }}
-            </div>
-          </div>
-        </div>
-        <button class="modal-close-btn" (click)="closeModal()">
-          <i class="fa-solid fa-xmark"></i>
+
+      <div class="dashboard-divider"></div>
+
+      <div class="tab-bar">
+        <button class="tab-btn" [class.active]="activeTab === 'pending'" (click)="setTab('pending')">
+          <i class="fa-solid fa-hourglass-half"></i>
+          Pending
+          <span class="tab-badge pending">{{ students.length }}</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'evaluated'" (click)="setTab('evaluated')">
+          <i class="fa-solid fa-circle-check"></i>
+          Evaluated
+          <span class="tab-badge done">{{ evaluatedStudents.length }}</span>
         </button>
       </div>
-  
-      <!-- HOURS PROGRESS -->
-      <div class="modal-hours-section">
-        <div class="hours-row">
-          <span class="hours-label">
-            <i class="fa-regular fa-clock"></i> OJT Hours Progress
-          </span>
-          <span class="hours-value">
-            {{ selectedStudent?.completed_hours || 0 }} /
-            {{ selectedStudent?.required_hours  || 500 }} hrs
-            &nbsp;({{ getProgress(selectedStudent!) }}%)
-          </span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" [style.width]="getProgress(selectedStudent!) + '%'"></div>
-        </div>
+
+      <div *ngIf="loading" class="loading-state">
+        <i class="fa fa-spinner fa-spin"></i>
+        <p>Loading students...</p>
       </div>
-  
-      <!-- RATING LEGEND -->
-      <div class="rating-legend">
-        <span *ngFor="let item of [
-          {v:5,l:'Excellent'},{v:4,l:'Very Good'},{v:3,l:'Good'},{v:2,l:'Fair'},{v:1,l:'Poor'}
-        ]" class="legend-item" [style.color]="getRatingColor(item.v)">
-          <span class="legend-dot" [style.background]="getRatingColor(item.v)"></span>
-          {{ item.v }} = {{ item.l }}
-        </span>
-      </div>
-  
-      <!-- CRITERIA -->
-      <div class="modal-body">
-        <div class="section-title">Performance Appraisal</div>
-  
-        <div class="criterion-card" *ngFor="let c of CRITERIA; let i = index">
-          <div class="criterion-top">
-            <div class="criterion-number">{{ i + 1 }}</div>
-            <div class="criterion-info">
-              <div class="criterion-name">
-                <i class="fa-solid {{ c.icon }}"></i>
-                {{ c.label }}
-              </div>
-              <div class="criterion-question">{{ c.question }}</div>
+
+      <div class="center-wrapper" *ngIf="!loading && activeTab === 'pending'">
+        <div class="table-container">
+          <table class="applicants-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Course</th>
+                <th>Hours Progress</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let student of pagedStudents">
+                <td class="profile-name">
+                  <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
+                  <span>{{ getFullName(student) }}</span>
+                </td>
+                <td class="plain-text">{{ student.student_id }}</td>
+                <td class="plain-text">{{ student.course }}</td>
+                <td style="min-width: 180px;">
+                  <div class="progress-bar">
+                    <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
+                  </div>
+                  <span class="progress-text">
+                    {{ student.completed_hours || 0 }} / {{ student.required_hours || 500 }} hrs
+                    &nbsp;({{ getProgress(student) }}%)
+                  </span>
+                </td>
+                <td>
+                  <button class="btn-evaluate" (click)="openEvaluate(student)">
+                    <i class="fa-solid fa-clipboard-check"></i> Evaluate
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredStudents.length === 0">
+                <td colspan="5" class="empty-state">No pending students found.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="page-numbers">
+              <span class="page" *ngFor="let p of pageNumbers" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</span>
             </div>
-          </div>
-  
-          <div class="rating-row">
-            <button *ngFor="let v of [1,2,3,4,5]"
-                    class="rating-btn"
-                    [class.selected]="getRating(c.key) === v"
-                    [class.readonly]="isViewMode()"
-                    [style.--accent]="getRatingColor(v)"
-                    (click)="setRating(c.key, v)">
-              <span class="rating-num">{{ v }}</span>
-              <span class="rating-word">{{ getRatingLabelForValue(v) }}</span>
+            <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
+              <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
-  
-          <div class="selected-label" *ngIf="getRating(c.key) > 0"
-               [style.color]="getRatingColor(getRating(c.key))">
-            <i class="fa-solid fa-circle-check"></i>
-            Rated: <strong>{{ getRating(c.key) }} — {{ getRatingLabelForValue(getRating(c.key)) }}</strong>
-          </div>
-          <div class="selected-label unrated"
-               *ngIf="getRating(c.key) === 0 && !isViewMode()">
-            <i class="fa-solid fa-circle-exclamation"></i> Not yet rated
-          </div>
-        </div>
-  
-        <!-- OVERALL -->
-        <div class="overall-summary" *ngIf="getOverallAverage() > 0">
-          <div class="overall-left">
-            <div class="overall-title">Overall Rating</div>
-            <div class="overall-sub">Average of all 8 criteria</div>
-          </div>
-          <div class="overall-score"
-               [style.background]="getOverallColor(getOverallAverage()) + '15'"
-               [style.color]="getOverallColor(getOverallAverage())">
-            ★ {{ getOverallAverage() }}
-            <span class="overall-word">{{ getOverallLabel(getOverallAverage()) }}</span>
-          </div>
-        </div>
-  
-        <!-- REMARKS -->
-        <div class="section-title" style="margin-top: 22px;">Remarks / Comments</div>
-        <textarea class="remarks-textarea"
-                  placeholder="Write your overall remarks about this student's performance during OJT..."
-                  [(ngModel)]="evaluation.remarks"
-                  [readonly]="isViewMode()"
-                  rows="4"></textarea>
-  
-        <!-- SIGNATURE -->
-        <div class="section-title" style="margin-top: 22px;">
-          Supervisor E-Signature
-          <button *ngIf="!isViewMode()" class="clear-btn" (click)="clearCanvas()">
-            <i class="fa-solid fa-eraser"></i> Clear
-          </button>
-        </div>
-        <div class="sig-wrapper" [class.view-only]="isViewMode()">
-          <canvas id="sigCanvas"
-                  width="600" height="120"
-                  (mousedown)="onMouseDown($event)"
-                  (mousemove)="onMouseMove($event)"
-                  (mouseup)="onMouseUp()"
-                  (mouseleave)="onMouseLeave()"
-                  (touchstart)="onTouchStart($event)"
-                  (touchmove)="onTouchMove($event)"
-                  (touchend)="onTouchEnd()">
-          </canvas>
-          <div class="sig-placeholder" *ngIf="!hasSignature && !isViewMode()">
-            <i class="fa-solid fa-pen-nib"></i> Draw your signature here
-          </div>
-        </div>
-  
-        <div class="sig-warning" *ngIf="!hasSignature && !isViewMode()">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          Signature is required before submitting.
         </div>
       </div>
-  
-      <!-- MODAL FOOTER -->
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeModal()">
-          {{ isViewMode() ? 'Close' : 'Cancel' }}
-        </button>
-        <button class="btn-submit"
-                *ngIf="!isViewMode()"
-                [disabled]="!isFormValid() || submitting"
-                (click)="submitEvaluation()">
-          <i class="fa-solid fa-paper-plane" *ngIf="!submitting"></i>
-          <i class="fa fa-spinner fa-spin"   *ngIf="submitting"></i>
-          {{ submitting ? 'Submitting...' : 'Submit Evaluation' }}
-        </button>
+
+      <div class="center-wrapper" *ngIf="!loading && activeTab === 'evaluated'">
+        <div class="table-container">
+          <table class="applicants-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Course</th>
+                <th>Overall Rating</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let student of pagedEvaluated">
+                <td class="profile-name">
+                  <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
+                  <span>{{ getFullName(student) }}</span>
+                </td>
+                <td class="plain-text">{{ student.student_id }}</td>
+                <td class="plain-text">{{ student.course }}</td>
+                <td>
+                  <span class="overall-pill"
+                        [style.background]="getOverallColor(getEvalAverage(student)) + '18'"
+                        [style.color]="getOverallColor(getEvalAverage(student))">
+                    ★ {{ getEvalAverage(student) }}
+                    &nbsp;—&nbsp;
+                    {{ getOverallLabel(getEvalAverage(student)) }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn-view-action" (click)="viewEvaluation(student)">
+                    <i class="fa-solid fa-eye"></i> View
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredEvaluated.length === 0">
+                <td colspan="5" class="empty-state">No evaluated students yet.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <button class="page-btn" (click)="prevPageEval()" [disabled]="currentPageEval === 1">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="page-numbers">
+              <span class="page" *ngFor="let p of pageNumbersEval" [class.active]="p === currentPageEval" (click)="goToPageEval(p)">{{ p }}</span>
+            </div>
+            <button class="page-btn" (click)="nextPageEval()" [disabled]="currentPageEval === totalPagesEval">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
       </div>
-  
+
     </div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     EVALUATION MODAL
+══════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <div class="modal-student-info">
+        <img [src]="getAvatarUrl(selectedStudent!)" class="modal-avatar" alt="">
+        <div>
+          <div class="modal-student-name">{{ getFullName(selectedStudent!) }}</div>
+          <div class="modal-student-sub">
+            {{ selectedStudent?.course }} &nbsp;·&nbsp; {{ selectedStudent?.student_id }}
+          </div>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- HOURS -->
+    <div class="modal-hours-section">
+      <div class="hours-row">
+        <span class="hours-label">
+          <i class="fa-regular fa-clock"></i> OJT Hours Progress
+        </span>
+        <span class="hours-value">
+          {{ selectedStudent?.completed_hours || 0 }} /
+          {{ selectedStudent?.required_hours  || 500 }} hrs
+          &nbsp;({{ getProgress(selectedStudent!) }}%)
+        </span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width]="getProgress(selectedStudent!) + '%'"></div>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="rating-legend">
+      <span *ngFor="let item of [{v:5,l:'Excellent'},{v:4,l:'Very Good'},{v:3,l:'Good'},{v:2,l:'Fair'},{v:1,l:'Poor'}]"
+            class="legend-item" [style.color]="getRatingColor(item.v)">
+        <span class="legend-dot" [style.background]="getRatingColor(item.v)"></span>
+        {{ item.v }} = {{ item.l }}
+      </span>
+    </div>
+
+    <!-- CRITERIA -->
+    <div class="modal-body">
+      <div class="section-title">Performance Appraisal</div>
+
+      <div class="criterion-card" *ngFor="let c of CRITERIA; let i = index">
+        <div class="criterion-top">
+          <div class="criterion-number">{{ i + 1 }}</div>
+          <div class="criterion-info">
+            <div class="criterion-name">
+              <i class="fa-solid {{ c.icon }}"></i>
+              {{ c.label }}
+            </div>
+            <div class="criterion-question">{{ c.question }}</div>
+          </div>
+        </div>
+        <div class="rating-row">
+          <button *ngFor="let v of [1,2,3,4,5]"
+                  class="rating-btn"
+                  [class.selected]="getRating(c.key) === v"
+                  [class.readonly]="isViewMode()"
+                  [style.--accent]="getRatingColor(v)"
+                  (click)="setRating(c.key, v)">
+            <span class="rating-num">{{ v }}</span>
+            <span class="rating-word">{{ getRatingLabelForValue(v) }}</span>
+          </button>
+        </div>
+        <div class="selected-label" *ngIf="getRating(c.key) > 0"
+             [style.color]="getRatingColor(getRating(c.key))">
+          <i class="fa-solid fa-circle-check"></i>
+          Rated: <strong>{{ getRating(c.key) }} — {{ getRatingLabelForValue(getRating(c.key)) }}</strong>
+        </div>
+        <div class="selected-label unrated" *ngIf="getRating(c.key) === 0 && !isViewMode()">
+          <i class="fa-solid fa-circle-exclamation"></i> Not yet rated
+        </div>
+      </div>
+
+      <!-- OVERALL -->
+      <div class="overall-summary" *ngIf="getOverallAverage() > 0">
+        <div>
+          <div class="overall-title">Overall Rating</div>
+          <div class="overall-sub">Average of all 8 criteria</div>
+        </div>
+        <div class="overall-score"
+             [style.background]="getOverallColor(getOverallAverage()) + '15'"
+             [style.color]="getOverallColor(getOverallAverage())">
+          ★ {{ getOverallAverage() }}
+          <span class="overall-word">{{ getOverallLabel(getOverallAverage()) }}</span>
+        </div>
+      </div>
+
+      <!-- REMARKS -->
+      <div class="section-title" style="margin-top: 22px;">Remarks / Comments</div>
+      <textarea class="remarks-textarea"
+                placeholder="Write your overall remarks about this student's performance during OJT..."
+                [(ngModel)]="evaluation.remarks"
+                [readonly]="isViewMode()"
+                rows="3"></textarea>
+
+      <!-- SIGNATURE -->
+      <div class="section-title" style="margin-top: 22px;">
+        <span>Supervisor E-Signature</span>
+        <button *ngIf="!isViewMode() && signatureMode === 'draw' && hasSignature" class="clear-btn" (click)="clearCanvas()">
+          <i class="fa-solid fa-eraser"></i> Clear
+        </button>
+      </div>
+
+      <!-- Signature Mode Tabs (hide in view mode) -->
+      <div class="sig-mode-tabs" *ngIf="!isViewMode()">
+        <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
+          <i class="fa-solid fa-pen-nib"></i> Draw
+        </button>
+        <button class="sig-tab-btn" [class.active]="signatureMode === 'upload'" (click)="setSignatureMode('upload')">
+          <i class="fa-solid fa-image"></i> Upload Image
+        </button>
+      </div>
+
+      <!-- Draw Mode -->
+      <div class="sig-wrapper" [class.view-only]="isViewMode()" *ngIf="signatureMode === 'draw' || isViewMode()">
+        <canvas id="sigCanvas"
+                width="560" height="110"
+                (mousedown)="onMouseDown($event)"
+                (mousemove)="onMouseMove($event)"
+                (mouseup)="onMouseUp()"
+                (mouseleave)="onMouseLeave()"
+                (touchstart)="onTouchStart($event)"
+                (touchmove)="onTouchMove($event)"
+                (touchend)="onTouchEnd()">
+        </canvas>
+        <div class="sig-placeholder" *ngIf="!hasSignature && !isViewMode()">
+          <i class="fa-solid fa-pen-nib"></i> Draw your signature here
+        </div>
+      </div>
+
+      <!-- Upload Mode -->
+      <div class="sig-upload-area" *ngIf="signatureMode === 'upload' && !isViewMode()">
+        <input type="file" id="sigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+               style="display:none" (change)="onSignatureImageUpload($event)">
+        <div *ngIf="!hasSignature" class="sig-upload-placeholder" (click)="triggerFileInput()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p>Click to upload your signature image</p>
+          <span>PNG, JPG, GIF, or WebP · Will be fitted to the signature area</span>
+        </div>
+        <div *ngIf="hasSignature" class="sig-upload-preview">
+          <canvas id="sigCanvas" width="560" height="110" style="pointer-events:none"></canvas>
+          <div class="sig-upload-actions">
+            <span class="sig-filename"><i class="fa-solid fa-image"></i> {{ uploadedFileName }}</span>
+            <button class="clear-btn" (click)="clearCanvas(); uploadedFileName = ''">
+              <i class="fa-solid fa-eraser"></i> Remove
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sig-warning" *ngIf="!hasSignature && !isViewMode()">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Signature is required before submitting.
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeModal()">
+        {{ isViewMode() ? 'Close' : 'Cancel' }}
+      </button>
+      <button class="btn-submit"
+              *ngIf="!isViewMode()"
+              [disabled]="!isFormValid() || submitting"
+              (click)="submitEvaluation()">
+        <i class="fa-solid fa-paper-plane" *ngIf="!submitting"></i>
+        <i class="fa fa-spinner fa-spin"   *ngIf="submitting"></i>
+        {{ submitting ? 'Submitting...' : 'Submit Evaluation' }}
+      </button>
+    </div>
+
+  </div>
+</div>

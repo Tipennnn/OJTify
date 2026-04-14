@@ -29,6 +29,7 @@ import { SupervisorTasksComponent } from './supervisor/supervisor-tasks/supervis
 import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/supervisor-dashboard.component';
 import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluation/supervisor-evaluation.component';
 import { AdminSupervisorManagementComponent } from './admin/admin-supervisor-management/admin-supervisor-management.component';
+import { InternEvaluationComponent } from './Intern/intern-evaluation/intern-evaluation.component';
 
 
 import { authGuard } from './guards/auth.guard';
@@ -45,6 +46,7 @@ export const routes: Routes = [
   { path: 'intern-tasks', component: InternTasksComponent },
   { path: 'intern-dashboard', component: InternDashboardComponent, canActivate: [authGuard] },
   { path: 'reset-password', component: ResetPasswordComponent },
+  { path: 'intern-evaluation', component: InternEvaluationComponent },
 
   // ADMIN
   { path: 'admin-login', component: AdminLoginComponent },

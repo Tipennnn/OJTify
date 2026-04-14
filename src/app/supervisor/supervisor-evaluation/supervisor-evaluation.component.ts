@@ -71,6 +71,8 @@ export class SupervisorEvaluationComponent implements OnInit {
   lastX                = 0;
   lastY                = 0;
   hasSignature         = false;
+  signatureMode        : 'draw' | 'upload' = 'draw';
+  uploadedFileName     = '';
   private canvas       : HTMLCanvasElement | null = null;
   private ctx          : CanvasRenderingContext2D | null = null;
 
@@ -92,21 +94,20 @@ export class SupervisorEvaluationComponent implements OnInit {
   evaluation: Evaluation = this.freshEval();
 
   readonly CRITERIA = [
-    { key: 'punctuality',     label: 'Punctuality',          icon: 'fa-clock',        question: 'Does the trainee arrive on time and follow the assigned schedule?' },
-    { key: 'attendance',      label: 'Attendance',           icon: 'fa-calendar-check',question: 'Does the trainee maintain consistent attendance and avoid unnecessary absences?' },
-    { key: 'quality_of_work', label: 'Quality of Work',      icon: 'fa-medal',        question: 'Does the trainee complete tasks accurately and with attention to detail?' },
-    { key: 'productivity',    label: 'Productivity',         icon: 'fa-chart-line',   question: 'Does the trainee complete assigned tasks efficiently and on time?' },
-    { key: 'initiative',      label: 'Initiative',           icon: 'fa-bolt',         question: 'Does the trainee show willingness to take responsibility and perform tasks without being told?' },
-    { key: 'cooperation',     label: 'Cooperation / Teamwork',icon: 'fa-handshake',   question: 'Does the trainee work well with others and maintain good relationships?' },
-    { key: 'communication',   label: 'Communication Skills', icon: 'fa-comments',     question: 'Does the trainee communicate clearly and professionally with staff and supervisors?' },
-    { key: 'professionalism', label: 'Professionalism',      icon: 'fa-user-tie',     question: 'Does the trainee demonstrate proper behavior, attitude, and respect in the workplace?' }
+    { key: 'punctuality',     label: 'Punctuality',           icon: 'fa-clock',          question: 'Does the trainee arrive on time and follow the assigned schedule?' },
+    { key: 'attendance',      label: 'Attendance',            icon: 'fa-calendar-check', question: 'Does the trainee maintain consistent attendance and avoid unnecessary absences?' },
+    { key: 'quality_of_work', label: 'Quality of Work',       icon: 'fa-medal',          question: 'Does the trainee complete tasks accurately and with attention to detail?' },
+    { key: 'productivity',    label: 'Productivity',          icon: 'fa-chart-line',     question: 'Does the trainee complete assigned tasks efficiently and on time?' },
+    { key: 'initiative',      label: 'Initiative',            icon: 'fa-bolt',           question: 'Does the trainee show willingness to take responsibility and perform tasks without being told?' },
+    { key: 'cooperation',     label: 'Cooperation / Teamwork',icon: 'fa-handshake',      question: 'Does the trainee work well with others and maintain good relationships?' },
+    { key: 'communication',   label: 'Communication Skills',  icon: 'fa-comments',       question: 'Does the trainee communicate clearly and professionally with staff and supervisors?' },
+    { key: 'professionalism', label: 'Professionalism',       icon: 'fa-user-tie',       question: 'Does the trainee demonstrate proper behavior, attitude, and respect in the workplace?' }
   ];
 
   readonly RATING_LABELS: Record<number, string> = {
-    1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Very Good', 5: 'Excellent'
+    1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V. Good', 5: 'Excellent'
   };
 
-  // ── DUMMY DATA ───────────────────────────────────────────
   private readonly DUMMY_STUDENTS: Student[] = [
     { $id: 'dummy1', first_name: 'Juan', middle_name: 'Santos', last_name: 'Dela Cruz', student_id: '2021-00123', course: 'BSIT', school_name: 'PLM', email: 'juan@email.com', required_hours: 500, completed_hours: 500, $createdAt: '2024-06-01T00:00:00.000Z' },
     { $id: 'dummy2', first_name: 'Maria', middle_name: '', last_name: 'Reyes', student_id: '2021-00456', course: 'BSCS', school_name: 'PLM', email: 'maria@email.com', required_hours: 500, completed_hours: 500, $createdAt: '2024-06-01T00:00:00.000Z' },
@@ -186,21 +187,37 @@ export class SupervisorEvaluationComponent implements OnInit {
   openEvaluate(student: Student) {
     this.selectedStudent = student;
     this.evaluation = { ...this.freshEval(), student_id_ref: student.$id };
-    this.hasSignature = false; this.showModal = true;
+    this.hasSignature = false;
+    this.signatureMode = 'draw';
+    this.uploadedFileName = '';
+    this.showModal = true;
     setTimeout(() => this.initCanvas(), 150);
   }
 
   viewEvaluation(student: Student) {
     const ev = this.evaluationMap.get(student.$id); if (!ev) return;
-    this.selectedStudent = student; this.evaluation = { ...ev }; this.hasSignature = !!ev.signature_data; this.showModal = true;
+    this.selectedStudent = student; this.evaluation = { ...ev };
+    this.hasSignature = !!ev.signature_data;
+    this.signatureMode = 'draw';
+    this.showModal = true;
     setTimeout(() => {
       this.initCanvas();
-      if (ev.signature_data && this.ctx && this.canvas) { const img = new Image(); img.onload = () => this.ctx!.drawImage(img, 0, 0); img.src = ev.signature_data; }
+      if (ev.signature_data && this.ctx && this.canvas) {
+        const img = new Image(); img.onload = () => this.ctx!.drawImage(img, 0, 0); img.src = ev.signature_data;
+      }
     }, 150);
   }
 
-  closeModal() { this.showModal = false; this.selectedStudent = null; this.clearCanvas(); }
+  closeModal() { this.showModal = false; this.selectedStudent = null; this.clearCanvas(); this.uploadedFileName = ''; }
   isViewMode(): boolean { return !!this.selectedStudent && this.evaluationMap.has(this.selectedStudent.$id); }
+
+  setSignatureMode(mode: 'draw' | 'upload') {
+    if (this.isViewMode()) return;
+    this.signatureMode = mode;
+    this.hasSignature = false;
+    this.uploadedFileName = '';
+    if (mode === 'draw') { setTimeout(() => { this.initCanvas(); this.clearCanvas(); }, 50); }
+  }
 
   setRating(criterion: string, value: number) { if (this.isViewMode()) return; (this.evaluation as any)[criterion] = value; }
   getRating(criterion: string): number { return (this.evaluation as any)[criterion] || 0; }
@@ -239,7 +256,7 @@ export class SupervisorEvaluationComponent implements OnInit {
   initCanvas() {
     this.canvas = document.getElementById('sigCanvas') as HTMLCanvasElement; if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
-    if (this.ctx) { this.ctx.strokeStyle = '#0818A8'; this.ctx.lineWidth = 2.5; this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; }
+    if (this.ctx) { this.ctx.strokeStyle = '#0818A8'; this.ctx.lineWidth = 2; this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round'; }
   }
 
   onMouseDown(e: MouseEvent) {
@@ -283,6 +300,46 @@ export class SupervisorEvaluationComponent implements OnInit {
   clearCanvas() {
     if (this.ctx && this.canvas) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.hasSignature = false;
+  }
+
+  onSignatureImageUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    this.uploadedFileName = file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        if (!this.canvas || !this.ctx) this.initCanvas();
+        if (!this.canvas || !this.ctx) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const canvasRatio = this.canvas.width / this.canvas.height;
+        const imgRatio    = img.width / img.height;
+        let drawW = this.canvas.width;
+        let drawH = this.canvas.height;
+        let drawX = 0;
+        let drawY = 0;
+        if (imgRatio > canvasRatio) {
+          drawH = this.canvas.width / imgRatio;
+          drawY = (this.canvas.height - drawH) / 2;
+        } else {
+          drawW = this.canvas.height * imgRatio;
+          drawX = (this.canvas.width - drawW) / 2;
+        }
+        this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        this.hasSignature = true;
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  triggerFileInput() {
+    const el = document.getElementById('sigFileInput') as HTMLInputElement;
+    if (el) el.click();
   }
 
   async submitEvaluation() {

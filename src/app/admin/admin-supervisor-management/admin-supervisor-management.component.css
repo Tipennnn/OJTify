@@ -327,7 +327,7 @@ body {
   .modal-icon {
     width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; background: #eff6ff; color: #2563eb;
+    font-size: 18px; background: #e1f5ee; color: #0f6e56; 
   }
   .modal-icon.edit-mode   { background: #f0fdf4; color: #16a34a; }
   .modal-icon.danger-mode { background: #fef2f2; color: #ef4444; }

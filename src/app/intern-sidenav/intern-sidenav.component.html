@@ -1,48 +1,55 @@
 <div class="sidenav" [class.collapsed]="isCollapsed">
 
-    <!-- BRAND -->
-    <div class="brand-section">
-      <div class="brand-logo">
-        <i class="fa-solid fa-bars toggle-btn" (click)="toggleNav()"></i>
-      </div>
-      <span class="brand-title">OJTify</span>
+  <!-- BRAND -->
+  <div class="brand-section">
+    <div class="brand-logo">
+      <i class="fa-solid fa-bars toggle-btn" (click)="toggleNav()"></i>
     </div>
-  
-    <div class="divider"></div>
-  
-    <!-- MENU -->
-    <div class="nav-menu">
-      <a routerLink="/intern-dashboard" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-table-cells-large"></i>
-        </div>
-        <span>Dashboard</span>
-      </a>
-  
-      <a routerLink="/intern-attendance" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-calendar-check"></i>
-        </div>
-        <span>Attendance</span>
-      </a>
-  
-      <a routerLink="/intern-tasks" routerLinkActive="active" class="nav-item">
-        <div class="icon-box">
-          <i class="fa-solid fa-list-check"></i>
-        </div>
-        <span>Tasks</span>
-      </a>
-    </div>
-  
- <!-- LOGOUT -->
-<div class="logout-section">
-  <div class="divider"></div>
-  <a class="nav-item logout" (click)="onLogout()" style="cursor: pointer;">
-    <div class="icon-box">
-      <i class="fa-solid fa-right-from-bracket"></i>
-    </div>
-    <span>Log out</span>
-  </a>
-</div>
-  
+    <span class="brand-title">OJTify</span>
   </div>
+
+  <div class="divider"></div>
+
+  <!-- MENU -->
+  <div class="nav-menu">
+    <a routerLink="/intern-dashboard" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-table-cells-large"></i>
+      </div>
+      <span>Dashboard</span>
+    </a>
+
+    <a routerLink="/intern-attendance" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-calendar-check"></i>
+      </div>
+      <span>Attendance</span>
+    </a>
+
+    <a routerLink="/intern-tasks" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-list-check"></i>
+      </div>
+      <span>Tasks</span>
+    </a>
+
+    <a routerLink="/intern-evaluation" routerLinkActive="active" class="nav-item">
+      <div class="icon-box">
+        <i class="fa-solid fa-star-half-stroke"></i>
+      </div>
+      <span>Evaluation</span>
+    </a>
+  </div>
+
+  <!-- LOGOUT -->
+  <div class="logout-section">
+    <div class="divider"></div>
+    <a class="nav-item logout" (click)="onLogout()" style="cursor: pointer;">
+      <div class="icon-box">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </div>
+      <span>Log out</span>
+    </a>
+  </div>
+
+</div>

@@ -1,138 +1,150 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-    <!-- SIDENAV -->
-    <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
-  
-    <!-- MAIN SECTION -->
-    <div class="main-section">
-      <app-supervisor-topnav></app-supervisor-topnav>
-  
-      <div class="dashboard-content">
-  
-        <div class="dashboard-header header-flex">
-          <div class="header-left">
-            <h2>Attendance</h2>
-            <div class="clickable-date-box" [routerLink]="['/supervisor-attendance-history']">
-              <i class="fa-solid fa-calendar-days"></i>
-              <span>{{ getToday() }}</span>
-            </div>
+  <!-- SIDENAV -->
+  <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+    <app-supervisor-topnav></app-supervisor-topnav>
+
+    <div class="dashboard-content">
+
+      <div class="dashboard-header header-flex">
+        <div class="header-left">
+          <h2>Attendance</h2>
+          <div class="clickable-date-box" [routerLink]="['/supervisor-attendance-history']">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>{{ getToday() }}</span>
           </div>
-  
-          <div class="header-right">
-            <button class="qr-btn" (click)="openScanner()">
-              <i class="fa-solid fa-qrcode"></i> Scan QR
+        </div>
+
+        <div class="header-right">
+          <button class="qr-btn" (click)="openScanner()">
+            <i class="fa-solid fa-qrcode"></i> Scan QR
+          </button>
+          <button class="override-btn" (click)="openManualOverride()">
+            <i class="fa-solid fa-pen-to-square"></i> Manual Override
+          </button>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search intern..." (input)="onSearch($event)">
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-divider"></div>
+
+      <!-- Loading -->
+      <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
+        <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+        <p style="margin-top:12px;">Loading attendance...</p>
+      </div>
+
+      <!-- TABLE -->
+      <div class="center-wrapper" *ngIf="!loading">
+        <div class="table-container">
+          <table class="applicants-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let log of filteredLogs">
+                <td class="profile-name">
+                  <img [src]="log.student_photo ||
+                              'https://ui-avatars.com/api/?name=' + log.student_name +
+                              '&background=2563eb&color=fff&size=64'"
+                       class="profile-pic" alt="Profile">
+                  <span>{{ log.student_name }}</span>
+                </td>
+                <td>{{ log.student_id_number }}</td>
+                <td>{{ log.time_in }}</td>
+                <td>{{ log.time_out }}</td>
+                <td>
+                  <span class="status-badge badge-approved">{{ log.status }}</span>
+                </td>
+                <td>
+                  <button class="edit-time-btn" (click)="openEditTime(log)">
+                    <i class="fa-solid fa-clock"></i> Edit Time
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="filteredLogs.length === 0">
+                <td colspan="6" style="text-align:center; color:#9ca3af; padding:40px;">
+                  <i class="fas fa-calendar-times" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+                  No attendance records for today yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- PAGINATION -->
+          <div class="pagination">
+            <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
+              <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <div class="search-box">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" placeholder="Search intern..."
-                     (input)="onSearch($event)">
+            <div class="page-numbers">
+              <span *ngFor="let p of pageNumbers"
+                    class="page"
+                    [class.active]="p === currentPage"
+                    (click)="goToPage(p)">{{ p }}</span>
             </div>
-          </div>
-        </div>
-  
-        <div class="dashboard-divider"></div>
-  
-        <!-- Loading -->
-        <div *ngIf="loading"
-             style="text-align:center; padding:40px; color:#9ca3af;">
-          <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
-          <p style="margin-top:12px;">Loading attendance...</p>
-        </div>
-  
-        <!-- TABLE -->
-        <div class="center-wrapper" *ngIf="!loading">
-          <div class="table-container">
-            <table class="applicants-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Student ID</th>
-                  <th>Time In</th>
-                  <th>Time Out</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-  
-                <tr *ngFor="let log of filteredLogs">
-                  <td class="profile-name">
-                    <img [src]="log.student_photo ||
-                                'https://ui-avatars.com/api/?name=' + log.student_name +
-                                '&background=2563eb&color=fff&size=64'"
-                         class="profile-pic"
-                         alt="Profile">
-                    <span>{{ log.student_name }}</span>
-                  </td>
-                  <td>{{ log.student_id_number }}</td>
-                  <td>{{ log.time_in }}</td>
-                  <td>{{ log.time_out }}</td>
-                  <td>
-                    <span class="status-badge badge-approved">
-                      {{ log.status }}
-                    </span>
-                  </td>
-                </tr>
-  
-                <tr *ngIf="filteredLogs.length === 0">
-                  <td colspan="5"
-                      style="text-align:center; color:#9ca3af; padding:40px;">
-                    <i class="fas fa-calendar-times"
-                       style="font-size:32px; margin-bottom:10px; display:block;"></i>
-                    No attendance records for today yet.
-                  </td>
-                </tr>
-  
-              </tbody>
-            </table>
-  
-            <!-- PAGINATION -->
-            <div class="pagination">
-              <button class="page-btn">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-  
-              <div class="page-numbers">
-                <span class="page active">1</span>
-                <span class="page">2</span>
-                <span class="page">3</span>
-              </div>
-  
-              <button class="page-btn">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
+            <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
-  <!-- QR SCANNER MODAL -->
-  <div class="scanner-overlay-bg" *ngIf="showScanner">
-    <div class="scanner-modal">
-  
-      <div class="scanner-modal-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div class="qr-icon-box">
-            <i class="fas fa-qrcode"></i>
-          </div>
-          <div>
-            <h3 style="margin:0; font-size:16px;">QR Attendance Scanner</h3>
-            <p style="margin:0; font-size:12px; color:#6b7280;">
-              Point camera at intern's QR code
-            </p>
-          </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     QR SCANNER MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showScanner">
+  <div class="scanner-modal">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-box blue">
+          <i class="fas fa-qrcode"></i>
         </div>
-        <button class="close-scanner-btn" (click)="closeScanner()">×</button>
+        <div>
+          <h3 class="modal-title">QR Attendance Scanner</h3>
+          <p class="modal-subtitle">Scan QR code or search manually below</p>
+        </div>
       </div>
-  
-      <div class="scanner-divider"></div>
-  
+      <button class="modal-close-btn" (click)="closeScanner()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-divider"></div>
+
+    <!-- Tabs -->
+    <div class="scanner-tabs">
+      <button class="tab-btn" [class.tab-active]="scannerTab === 'qr'" (click)="scannerTab = 'qr'">
+        <i class="fa-solid fa-qrcode"></i> QR Scan
+      </button>
+      <button class="tab-btn" [class.tab-active]="scannerTab === 'manual'" (click)="scannerTab = 'manual'; stopCamera()">
+        <i class="fa-solid fa-keyboard"></i> Manual Search
+      </button>
+    </div>
+
+    <!-- QR TAB -->
+    <div *ngIf="scannerTab === 'qr'">
       <div class="camera-container">
-        <video id="scanner-video"
-               playsinline autoplay muted
-               style="width:100%; border-radius:10px; display:block;">
-        </video>
+        <video id="scanner-video" playsinline autoplay muted
+               style="width:100%; border-radius:10px; display:block;"></video>
         <div class="scan-line-wrapper" *ngIf="scanning">
           <div class="scan-line"></div>
         </div>
@@ -141,30 +153,248 @@
         <div class="corner bottom-left"></div>
         <div class="corner bottom-right"></div>
       </div>
-  
-      <div class="scanner-status">
-        <div *ngIf="scanLoading" class="status-loading">
-          <i class="fa fa-spinner fa-spin"></i> Processing scan...
-        </div>
-        <div *ngIf="!scanLoading && scanResult"
-             class="status-result"
-             [class.result-timein]="scanStatus === 'timein'"
-             [class.result-timeout]="scanStatus === 'timeout'"
-             [class.result-already]="scanStatus === 'already'">
-          <i class="fas fa-check-circle"
-             *ngIf="scanStatus === 'timein' || scanStatus === 'timeout'"></i>
-          <i class="fas fa-info-circle" *ngIf="scanStatus === 'already'"></i>
-          {{ scanResult }}
-        </div>
-        <div *ngIf="!scanLoading && !scanResult"
-             style="color:#9ca3af; font-size:13px; text-align:center;">
-          <i class="fas fa-search"></i> Scanning for QR code...
+    </div>
+
+    <!-- MANUAL TAB -->
+    <div *ngIf="scannerTab === 'manual'" class="manual-search-section">
+      <div class="manual-search-label">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        Search by Student ID or Email
+      </div>
+      <div class="manual-input-row">
+        <input class="manual-input"
+               type="text"
+               placeholder="e.g. 2021-00123 or juan@student.edu.ph"
+               [(ngModel)]="manualQuery"
+               (input)="onManualSearch()"
+               (keyup.enter)="confirmManualStudent()">
+        <button class="manual-search-btn" (click)="confirmManualStudent()" [disabled]="!selectedManualStudent">
+          <i class="fa-solid fa-check"></i> Confirm
+        </button>
+      </div>
+
+      <!-- Search Results -->
+      <div class="manual-results" *ngIf="manualResults.length > 0 && !selectedManualStudent">
+        <div class="manual-result-item"
+             *ngFor="let s of manualResults"
+             (click)="selectManualStudent(s)">
+          <img [src]="getStudentAvatarUrl(s)" class="manual-result-avatar" alt="">
+          <div class="manual-result-info">
+            <span class="manual-result-name">{{ s.first_name }} {{ s.last_name }}</span>
+            <span class="manual-result-id">{{ s.student_id }} · {{ s.email }}</span>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color:#9ca3af; font-size:12px;"></i>
         </div>
       </div>
-  
-      <button class="stop-scan-btn" (click)="closeScanner()">
-        <i class="fas fa-times"></i> Close Scanner
-      </button>
-  
+
+      <!-- No results -->
+      <div class="manual-no-result" *ngIf="manualQuery.length > 1 && manualResults.length === 0 && !selectedManualStudent">
+        <i class="fa-solid fa-user-slash"></i> No intern found
+      </div>
+
+      <!-- Selected student preview -->
+      <div class="manual-selected-card" *ngIf="selectedManualStudent">
+        <img [src]="getStudentAvatarUrl(selectedManualStudent)" class="manual-selected-avatar" alt="">
+        <div class="manual-selected-info">
+          <span class="manual-selected-name">{{ selectedManualStudent.first_name }} {{ selectedManualStudent.last_name }}</span>
+          <span class="manual-selected-meta">{{ selectedManualStudent.student_id }} · {{ selectedManualStudent.course }}</span>
+        </div>
+        <button class="manual-clear-btn" (click)="clearManualStudent()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="manual-action-row" *ngIf="selectedManualStudent">
+        <button class="manual-timein-btn" (click)="processManualAttendance('timein')">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> Record Time In
+        </button>
+        <button class="manual-timeout-btn" (click)="processManualAttendance('timeout')">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Record Time Out
+        </button>
+      </div>
     </div>
+
+    <!-- Scan status -->
+    <div class="scanner-status">
+      <div *ngIf="scanLoading" class="status-loading">
+        <i class="fa fa-spinner fa-spin"></i> Processing...
+      </div>
+      <div *ngIf="!scanLoading && scanResult"
+           class="status-result"
+           [class.result-timein]="scanStatus === 'timein'"
+           [class.result-timeout]="scanStatus === 'timeout'"
+           [class.result-already]="scanStatus === 'already'">
+        <i class="fas fa-check-circle" *ngIf="scanStatus === 'timein' || scanStatus === 'timeout'"></i>
+        <i class="fas fa-info-circle" *ngIf="scanStatus === 'already'"></i>
+        {{ scanResult }}
+      </div>
+      <div *ngIf="!scanLoading && !scanResult && scannerTab === 'qr'"
+           style="color:#9ca3af; font-size:13px; text-align:center;">
+        <i class="fas fa-search"></i> Scanning for QR code...
+      </div>
+    </div>
+
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MANUAL OVERRIDE MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showOverrideModal">
+  <div class="override-modal">
+
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-box amber">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </div>
+        <div>
+          <h3 class="modal-title">Manual Time Override</h3>
+          <p class="modal-subtitle">Adjust or create attendance records manually</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeOverrideModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-divider"></div>
+
+    <!-- Step 1: Search student -->
+    <div class="override-step" *ngIf="overrideStep === 1">
+      <div class="step-label"><span class="step-num">1</span> Find Intern</div>
+      <div class="manual-input-row">
+        <input class="manual-input"
+               type="text"
+               placeholder="Search by name, student ID or email..."
+               [(ngModel)]="overrideQuery"
+               (input)="onOverrideSearch()">
+      </div>
+
+      <div class="manual-results" *ngIf="overrideResults.length > 0">
+        <div class="manual-result-item"
+             *ngFor="let s of overrideResults"
+             (click)="selectOverrideStudent(s)">
+          <img [src]="getStudentAvatarUrl(s)" class="manual-result-avatar" alt="">
+          <div class="manual-result-info">
+            <span class="manual-result-name">{{ s.first_name }} {{ s.last_name }}</span>
+            <span class="manual-result-id">{{ s.student_id }} · {{ s.email }}</span>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color:#9ca3af; font-size:12px;"></i>
+        </div>
+      </div>
+
+      <div class="manual-no-result" *ngIf="overrideQuery.length > 1 && overrideResults.length === 0">
+        <i class="fa-solid fa-user-slash"></i> No intern found
+      </div>
+    </div>
+
+    <!-- Step 2: Set time -->
+    <div class="override-step" *ngIf="overrideStep === 2">
+      <div class="step-label"><span class="step-num">2</span> Set Attendance</div>
+
+      <!-- Selected student card -->
+      <div class="manual-selected-card" style="margin-bottom:16px;">
+        <img [src]="getStudentAvatarUrl(overrideStudent)" class="manual-selected-avatar" alt="">
+        <div class="manual-selected-info">
+          <span class="manual-selected-name">{{ overrideStudent?.first_name }} {{ overrideStudent?.last_name }}</span>
+          <span class="manual-selected-meta">{{ overrideStudent?.student_id }}</span>
+        </div>
+        <button class="manual-clear-btn" (click)="overrideStep = 1; overrideStudent = null">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="override-fields">
+        <div class="override-field">
+          <label class="override-label">Date</label>
+          <input class="override-input" type="date" [(ngModel)]="overrideDate">
+        </div>
+        <div class="override-field">
+          <label class="override-label">Time In</label>
+          <input class="override-input" type="time" [(ngModel)]="overrideTimeIn">
+        </div>
+        <div class="override-field">
+          <label class="override-label">Time Out <span class="optional-tag">optional</span></label>
+          <input class="override-input" type="time" [(ngModel)]="overrideTimeOut">
+        </div>
+      </div>
+
+      <div class="override-reason-field">
+        <label class="override-label">Reason for Override <span class="required-tag">required</span></label>
+        <textarea class="override-textarea"
+                  rows="3"
+                  placeholder="e.g. Student forgot to scan QR code, technical issue with scanner..."
+                  [(ngModel)]="overrideReason"></textarea>
+      </div>
+
+      <div class="override-action-row">
+        <button class="override-cancel-btn" (click)="overrideStep = 1; overrideStudent = null">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </button>
+        <button class="override-save-btn"
+                (click)="saveManualOverride()"
+                [disabled]="!overrideDate || !overrideTimeIn || !overrideReason">
+          <i class="fa-solid fa-floppy-disk"></i> Save Override
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     EDIT TIME MODAL (row-level override)
+══════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="override-modal">
+
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-box green">
+          <i class="fa-solid fa-clock"></i>
+        </div>
+        <div>
+          <h3 class="modal-title">Edit Attendance Time</h3>
+          <p class="modal-subtitle">Adjust time for {{ editLog?.student_name }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeEditModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-divider"></div>
+
+    <div class="override-step">
+      <div class="override-fields">
+        <div class="override-field">
+          <label class="override-label">Time In</label>
+          <input class="override-input" type="time" [(ngModel)]="editTimeIn">
+        </div>
+        <div class="override-field">
+          <label class="override-label">Time Out <span class="optional-tag">optional</span></label>
+          <input class="override-input" type="time" [(ngModel)]="editTimeOut">
+        </div>
+      </div>
+
+      <div class="override-reason-field">
+        <label class="override-label">Reason <span class="required-tag">required</span></label>
+        <textarea class="override-textarea"
+                  rows="3"
+                  placeholder="e.g. Scanner was not working properly..."
+                  [(ngModel)]="editReason"></textarea>
+      </div>
+
+      <div class="override-action-row">
+        <button class="override-cancel-btn" (click)="closeEditModal()">Cancel</button>
+        <button class="override-save-btn"
+                (click)="saveEditTime()"
+                [disabled]="!editTimeIn || !editReason">
+          <i class="fa-solid fa-floppy-disk"></i> Save Changes
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
