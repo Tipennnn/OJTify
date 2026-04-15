@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { InternSidenavComponent } from '../../intern-sidenav/intern-sidenav.component';
+import { InternTopnavComponent } from '../../intern-topnav/intern-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 
 interface Student {
@@ -29,6 +31,7 @@ interface Evaluation {
   cooperation: number;
   communication: number;
   professionalism: number;
+  dependability: number;
   remarks: string;
   strengths?: string;
   areas_for_improvement?: string;
@@ -52,7 +55,7 @@ interface SupervisorInfo {
 @Component({
   selector: 'app-intern-evaluation',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, InternSidenavComponent, InternTopnavComponent],
   templateUrl: './intern-evaluation.component.html',
   styleUrl: './intern-evaluation.component.css'
 })
@@ -73,10 +76,9 @@ export class InternEvaluationComponent implements OnInit {
   readonly SCHOOL     = 'Olongapo City Elementary School';
   readonly AY         = 'A.Y. 2023 – 2024';
 
-  // CRITERIA keys used for overall average calculation
   readonly CRITERIA_KEYS = [
     'punctuality', 'attendance', 'quality_of_work', 'productivity',
-    'initiative', 'cooperation', 'communication', 'professionalism'
+    'initiative', 'cooperation', 'communication', 'professionalism', 'dependability'
   ];
 
   private readonly DUMMY_STUDENT: Student = {
@@ -90,6 +92,7 @@ export class InternEvaluationComponent implements OnInit {
     student_id_ref: 'd1',
     punctuality: 5, attendance: 5, quality_of_work: 4, productivity: 4,
     initiative: 4, cooperation: 5, communication: 4, professionalism: 5,
+    dependability: 5,
     remarks: 'Juan has demonstrated exceptional dedication and professionalism throughout his OJT period. His meticulous attention to detail, punctuality, and collaborative spirit contributed meaningfully to the team. He is highly recommended for any future professional endeavor.',
     strengths: 'Strong work ethic, excellent punctuality, collaborative attitude, and demonstrates initiative in completing assigned tasks.',
     areas_for_improvement: 'Can further develop technical writing skills and improve documentation practices.',

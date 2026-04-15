@@ -1,646 +1,632 @@
-<!-- SCREEN SHELL (hidden on print) -->
-<div class="screen-shell no-print" *ngIf="!loading && hasEvaluation">
-    <div class="screen-topbar">
-      <div class="topbar-left">
-        <div class="status-badge">
-          <span class="status-dot"></span>
-          Evaluation Complete
+<!-- WRAPPER (same structure as dashboard) -->
+<div class="dashboard-wrapper">
+
+  <app-intern-sidenav></app-intern-sidenav>
+
+  <div class="dashboard-right">
+    <app-intern-topnav></app-intern-topnav>
+
+    <div class="dashboard-content">
+
+      <!-- DASHBOARD-STYLE HEADER (screen only) -->
+      <div class="dashboard-header no-print" *ngIf="!loading">
+        <div class="eval-header-row">
+          <h2>Evaluation</h2>
+          <button
+            class="btn-download"
+            *ngIf="hasEvaluation"
+            (click)="printEvaluation()">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            Download PDF
+          </button>
+        </div>
+        <div class="dashboard-divider"></div>
+
+        <!-- Status badge below the divider -->
+        <div class="eval-status-row" *ngIf="hasEvaluation">
+          <span class="status-badge">
+            <span class="status-dot"></span>
+            Evaluation Complete
+          </span>
         </div>
       </div>
-      <button class="btn-download" (click)="printEvaluation()">
-        <i class="fa-solid fa-file-arrow-down"></i>
-        Download PDF
-      </button>
-    </div>
-  </div>
-  
-  <!-- LOADING -->
-  <div class="loading-wrap" *ngIf="loading">
-    <div class="spinner"></div>
-    <p>Loading your appraisal…</p>
-  </div>
-  
-  <!-- NO EVALUATION -->
-  <div class="no-eval-wrap" *ngIf="!loading && !hasEvaluation">
-    <div class="no-eval-card">
-      <div class="no-eval-icon"><i class="fa-regular fa-clock"></i></div>
-      <h3>Appraisal Not Yet Available</h3>
-      <p>Your supervisor has not yet submitted your performance evaluation. You will be notified once the appraisal has been finalized.</p>
-      <div class="no-eval-details" *ngIf="student">
-        <div class="ned-row"><span>Student</span><span>{{ getFullName() }}</span></div>
-        <div class="ned-row"><span>ID No.</span><span>{{ student.student_id }}</span></div>
-        <div class="ned-row"><span>Hours Rendered</span><span>{{ student.completed_hours ?? 0 }} / {{ student.required_hours ?? 500 }} hrs</span></div>
+
+      <!-- LOADING -->
+      <div class="loading-wrap" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading your appraisal…</p>
       </div>
-    </div>
-  </div>
-  
-  <!-- ══════════════════════════════════════════
-       PRINTABLE EVALUATION DOCUMENT
-  ══════════════════════════════════════════ -->
-  <div class="eval-doc" *ngIf="!loading && hasEvaluation" id="printArea">
-  
-    <!-- ▌HEADER ▐ -->
-    <div class="doc-header">
-      <div class="header-inner">
-        <div class="header-brand">
-          <div class="brand-icon"><i class="fa-solid fa-school"></i></div>
-          <div class="brand-text">
-            <div class="brand-school">{{ SCHOOL }}</div>
-            <div class="brand-tagline">On-the-Job Training Program</div>
-          </div>
-        </div>
-        <div class="header-meta">
-          <div class="hm-row">
-            <span class="hm-key">Document Type</span>
-            <span class="hm-val">Performance Appraisal Report</span>
-          </div>
-          <div class="hm-row">
-            <span class="hm-key">Reference No.</span>
-            <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
-          </div>
-          <div class="hm-row">
-            <span class="hm-key">Date Issued</span>
-            <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
-          </div>
-          <div class="hm-row">
-            <span class="hm-key">Academic Year</span>
-            <span class="hm-val">{{ AY }}</span>
+
+      <!-- NO EVALUATION -->
+      <div class="no-eval-wrap" *ngIf="!loading && !hasEvaluation">
+        <div class="no-eval-card">
+          <div class="no-eval-icon"><i class="fa-regular fa-clock"></i></div>
+          <h3>Appraisal Not Yet Available</h3>
+          <p>Your supervisor has not yet submitted your performance evaluation. You will be notified once the appraisal has been finalized.</p>
+          <div class="no-eval-details" *ngIf="student">
+            <div class="ned-row"><span>Student</span><span>{{ getFullName() }}</span></div>
+            <div class="ned-row"><span>ID No.</span><span>{{ student.student_id }}</span></div>
+            <div class="ned-row"><span>Hours Rendered</span><span>{{ student.completed_hours ?? 0 }} / {{ student.required_hours ?? 500 }} hrs</span></div>
           </div>
         </div>
       </div>
-      <div class="header-accent-bar"></div>
-    </div>
-  
-    <!-- ▌BODY ▐ -->
-    <div class="doc-body">
-  
-      <!-- ── SECTION TITLE ── -->
-      <div class="doc-section-title">OFFICIAL OJT PERFORMANCE APPRAISAL</div>
-  
-      <!-- ══════════════════════════════════════
-           PART I: INTERN & SUPERVISOR INFORMATION (combined)
-      ══════════════════════════════════════ -->
-      <div class="part-header">
-        <span class="part-num">PART I</span>
-        <span class="part-label">Intern &amp; Supervisor Information</span>
-      </div>
-  
-      <div class="info-table-wrap">
-        <table class="info-table">
-          <tbody>
-            <!-- Intern rows -->
-            <tr class="info-section-divider">
-              <td colspan="4" class="info-group-label"><i class="fa-solid fa-user-graduate"></i> Intern Information</td>
-            </tr>
-            <tr>
-              <td class="it-key">Full Name</td>
-              <td class="it-val it-name">{{ getFullName() }}</td>
-              <td class="it-key">Student ID No.</td>
-              <td class="it-val">{{ student?.student_id }}</td>
-            </tr>
-            <tr>
-              <td class="it-key">Course / Program</td>
-              <td class="it-val" colspan="3">{{ student?.course }}</td>
-            </tr>
-            <tr>
-              <td class="it-key">Institution</td>
-              <td class="it-val" colspan="3">{{ SCHOOL }}</td>
-            </tr>
-            <tr>
-              <td class="it-key">Email Address</td>
-              <td class="it-val">{{ student?.email }}</td>
-              <td class="it-key">Required Hours</td>
-              <td class="it-val">{{ student?.required_hours ?? 500 }} hours</td>
-            </tr>
-            <tr>
-              <td class="it-key">Hours Rendered</td>
-              <td class="it-val"><strong>{{ student?.completed_hours ?? 0 }} hours</strong></td>
-              <td class="it-key">Completion Rate</td>
-              <td class="it-val">
-                <div class="it-progress">
-                  <div class="itp-track">
-                    <div class="itp-fill" [style.width]="getProgress() + '%'"></div>
-                  </div>
-                  <span>{{ getProgress() }}%</span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="it-key">Company / Dept.</td>
-              <td class="it-val">{{ supervisor?.company_name ?? '—' }}</td>
-              <td class="it-key">Evaluation Period</td>
-              <td class="it-val">{{ getEvaluationPeriod() }}</td>
-            </tr>
-  
-            <!-- Supervisor rows -->
-            <tr class="info-section-divider">
-              <td colspan="4" class="info-group-label"><i class="fa-solid fa-user-tie"></i> Evaluating Supervisor</td>
-            </tr>
-            <tr>
-              <td class="it-key">Supervisor Name</td>
-              <td class="it-val it-name">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</td>
-              <td class="it-key">Position / Title</td>
-              <td class="it-val">{{ supervisor?.position ?? '—' }}</td>
-            </tr>
-            <tr>
-              <td class="it-key">Organization</td>
-              <td class="it-val" colspan="3">{{ supervisor?.company_name ?? '—' }}</td>
-            </tr>
-            <tr>
-              <td class="it-key">Department</td>
-              <td class="it-val">{{ supervisor?.department ?? '—' }}</td>
-              <td class="it-key">Email Address</td>
-              <td class="it-val">{{ supervisor?.email ?? '—' }}</td>
-            </tr>
-            <tr>
-              <td class="it-key">Evaluation Date</td>
-              <td class="it-val" colspan="3">{{ formatDate(evaluation?.evaluated_at ?? '') }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-  
-      <!-- ══════════════════════════════════════
-           PART II: RATING SCALE
-      ══════════════════════════════════════ -->
-      <div class="part-header">
-        <span class="part-num">PART II</span>
-        <span class="part-label">Rating Scale</span>
-      </div>
-  
-      <div class="scale-legend-full">
-        <div *ngFor="let item of [{v:5,l:'Excellent',d:'Outstanding performance exceeding expectations'},{v:4,l:'Very Good',d:'Above average, consistently meets high standards'},{v:3,l:'Good',d:'Meets expectations and requirements'},{v:2,l:'Fair',d:'Below expectations, needs improvement'},{v:1,l:'Poor',d:'Fails to meet minimum requirements'}]" class="sl-card">
-          <span class="sl-score-lg" [attr.data-v]="item.v">{{ item.v }}</span>
-          <div class="sl-card-text">
-            <span class="sl-card-label">{{ item.l }}</span>
-            <span class="sl-card-desc">{{ item.d }}</span>
-          </div>
-        </div>
-      </div>
-  
-      <!-- ══════════════════════════════════════
-           PART III: PERFORMANCE RATINGS
-      ══════════════════════════════════════ -->
-      <div class="part-header">
-        <span class="part-num">PART III</span>
-        <span class="part-label">Performance Ratings</span>
-      </div>
-  
-      <!-- Criteria table -->
-      <table class="criteria-table">
-        <thead>
-          <tr>
-            <th class="ct-no">#</th>
-            <th class="ct-crit">Category</th>
-            <th class="ct-sub">Sub-Criteria / Indicators</th>
-            <th class="ct-score">Score</th>
-            <th class="ct-rating">Rating</th>
-            <th class="ct-bar">Performance</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- 1. Attendance & Punctuality -->
-          <tr class="ct-group-header">
-            <td class="ct-no">1</td>
-            <td class="ct-crit-val" colspan="5"><strong>Attendance &amp; Punctuality</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Punctuality</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Reports on time regularly</li>
-                <li>Observes working hours properly</li>
-                <li>Rarely absent without valid reason</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('punctuality')">{{ getRating('punctuality') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('punctuality')">{{ getRatingLabel(getRating('punctuality')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('punctuality') / 5 * 100) + '%'" [attr.data-v]="getRating('punctuality')"></div>
+
+      <!-- ═══════════════════════════════════════
+           PRINTABLE EVALUATION DOCUMENT
+      ═══════════════════════════════════════ -->
+      <div class="eval-doc" *ngIf="!loading && hasEvaluation" id="printArea">
+
+        <!-- HEADER -->
+        <div class="doc-header">
+          <div class="header-inner">
+            <div class="header-brand">
+              <div class="brand-icon"><i class="fa-solid fa-school"></i></div>
+              <div class="brand-text">
+                <div class="brand-school">{{ SCHOOL }}</div>
+                <div class="brand-tagline">On-the-Job Training Program</div>
               </div>
-            </td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Attendance</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Maintains regular presence</li>
-                <li>Avoids unnecessary absences</li>
-                <li>Informs ahead for planned leaves</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('attendance')">{{ getRating('attendance') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('attendance')">{{ getRatingLabel(getRating('attendance')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('attendance') / 5 * 100) + '%'" [attr.data-v]="getRating('attendance')"></div>
+            </div>
+            <div class="header-meta">
+              <div class="hm-row">
+                <span class="hm-key">Document Type</span>
+                <span class="hm-val">Performance Appraisal Report</span>
               </div>
-            </td>
-          </tr>
-  
-          <!-- 2. Work Attitude & Professionalism -->
-          <tr class="ct-group-header">
-            <td class="ct-no">2</td>
-            <td class="ct-crit-val" colspan="5"><strong>Work Attitude &amp; Professionalism</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Professionalism</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Shows respect to supervisors and staff</li>
-                <li>Follows company rules and policies</li>
-                <li>Demonstrates proper behavior in workplace</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('professionalism')">{{ getRating('professionalism') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('professionalism')">{{ getRatingLabel(getRating('professionalism')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('professionalism') / 5 * 100) + '%'" [attr.data-v]="getRating('professionalism')"></div>
+              <div class="hm-row">
+                <span class="hm-key">Reference No.</span>
+                <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
               </div>
-            </td>
-          </tr>
-  
-          <!-- 3. Communication Skills -->
-          <tr class="ct-group-header">
-            <td class="ct-no">3</td>
-            <td class="ct-crit-val" colspan="5"><strong>Communication Skills</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Communication</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Communicates clearly (oral &amp; written)</li>
-                <li>Listens and understands instructions</li>
-                <li>Asks appropriate questions when needed</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('communication')">{{ getRating('communication') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('communication')">{{ getRatingLabel(getRating('communication')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('communication') / 5 * 100) + '%'" [attr.data-v]="getRating('communication')"></div>
+              <div class="hm-row">
+                <span class="hm-key">Date Issued</span>
+                <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
               </div>
-            </td>
-          </tr>
-  
-          <!-- 4. Job Knowledge & Learning Ability -->
-          <tr class="ct-group-header">
-            <td class="ct-no">4</td>
-            <td class="ct-crit-val" colspan="5"><strong>Job Knowledge &amp; Learning Ability</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Quality of Work</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Understands assigned tasks</li>
-                <li>Learns quickly and applies knowledge effectively</li>
-                <li>Delivers accurate, thorough, and detail-oriented outputs</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('quality_of_work')">{{ getRating('quality_of_work') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('quality_of_work')">{{ getRatingLabel(getRating('quality_of_work')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('quality_of_work') / 5 * 100) + '%'" [attr.data-v]="getRating('quality_of_work')"></div>
+              <div class="hm-row">
+                <span class="hm-key">Academic Year</span>
+                <span class="hm-val">{{ AY }}</span>
               </div>
-            </td>
-          </tr>
-  
-          <!-- 5. Work Quality -->
-          <tr class="ct-group-header">
-            <td class="ct-no">5</td>
-            <td class="ct-crit-val" colspan="5"><strong>Work Quality</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Productivity</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Produces accurate work with attention to detail</li>
-                <li>Completes tasks properly and completely</li>
-                <li>Delivers consistent output quality</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('productivity')">{{ getRating('productivity') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('productivity')">{{ getRatingLabel(getRating('productivity')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('productivity') / 5 * 100) + '%'" [attr.data-v]="getRating('productivity')"></div>
-              </div>
-            </td>
-          </tr>
-  
-          <!-- 6. Productivity & Efficiency -->
-          <tr class="ct-group-header">
-            <td class="ct-no">6</td>
-            <td class="ct-crit-val" colspan="5"><strong>Productivity &amp; Efficiency</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Efficiency</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Completes assigned tasks efficiently and within timelines</li>
-                <li>Works with minimal supervision</li>
-                <li>Manages time well</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('productivity')">{{ getRating('productivity') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('productivity')">{{ getRatingLabel(getRating('productivity')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('productivity') / 5 * 100) + '%'" [attr.data-v]="getRating('productivity')"></div>
-              </div>
-            </td>
-          </tr>
-  
-          <!-- 7. Initiative & Problem Solving -->
-          <tr class="ct-group-header">
-            <td class="ct-no">7</td>
-            <td class="ct-crit-val" colspan="5"><strong>Initiative &amp; Problem Solving</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Initiative</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Proactively takes on responsibilities without waiting to be directed</li>
-                <li>Can solve simple problems independently</li>
-                <li>Shows willingness to improve</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('initiative')">{{ getRating('initiative') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('initiative')">{{ getRatingLabel(getRating('initiative')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('initiative') / 5 * 100) + '%'" [attr.data-v]="getRating('initiative')"></div>
-              </div>
-            </td>
-          </tr>
-  
-          <!-- 8. Teamwork -->
-          <tr class="ct-group-header">
-            <td class="ct-no">8</td>
-            <td class="ct-crit-val" colspan="5"><strong>Teamwork</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Cooperation</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Works collaboratively and maintains positive relationships</li>
-                <li>Cooperates with team members</li>
-                <li>Contributes positively to group tasks</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('cooperation')">{{ getRating('cooperation') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('cooperation')">{{ getRatingLabel(getRating('cooperation')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('cooperation') / 5 * 100) + '%'" [attr.data-v]="getRating('cooperation')"></div>
-              </div>
-            </td>
-          </tr>
-  
-          <!-- 9. Dependability & Responsibility -->
-          <tr class="ct-group-header">
-            <td class="ct-no">9</td>
-            <td class="ct-crit-val" colspan="5"><strong>Dependability &amp; Responsibility</strong></td>
-          </tr>
-          <tr class="ct-sub-row">
-            <td class="ct-no"></td>
-            <td class="ct-crit-val"><strong>Dependability</strong></td>
-            <td class="ct-sub-val">
-              <ul class="indicator-list">
-                <li>Can be trusted with assigned tasks</li>
-                <li>Follows through on commitments</li>
-                <li>Takes responsibility for mistakes and learns from them</li>
-              </ul>
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle" [attr.data-v]="getRating('professionalism')">{{ getRating('professionalism') }}</span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag" [attr.data-v]="getRating('professionalism')">{{ getRatingLabel(getRating('professionalism')) }}</span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill" [style.width]="(getRating('professionalism') / 5 * 100) + '%'" [attr.data-v]="getRating('professionalism')"></div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-  
-        <!-- Overall -->
-        <tfoot>
-          <tr class="ct-overall">
-            <td colspan="3" class="ct-overall-label">
-              <i class="fa-solid fa-star"></i>&nbsp; OVERALL AVERAGE RATING
-            </td>
-            <td class="ct-score-val">
-              <span class="score-circle overall-circle"
-                [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : getOverallAverage() >= 2.5 ? 3 : getOverallAverage() >= 1.5 ? 2 : 1">
-                {{ getOverallAverage() }}
-              </span>
-            </td>
-            <td class="ct-rating-val">
-              <span class="rating-tag overall-tag"
-                [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : getOverallAverage() >= 2.5 ? 3 : getOverallAverage() >= 1.5 ? 2 : 1">
-                {{ getOverallLabel(getOverallAverage()) }}
-              </span>
-            </td>
-            <td class="ct-bar-val">
-              <div class="bar-track">
-                <div class="bar-fill overall-bar" [style.width]="(getOverallAverage() / 5 * 100) + '%'"
-                  [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : 3"></div>
-              </div>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-  
-      <!-- ══════════════════════════════════════
-           PART IV: OVERALL EVALUATION & REMARKS
-      ══════════════════════════════════════ -->
-      <div class="part-header">
-        <span class="part-num">PART IV</span>
-        <span class="part-label">Overall Evaluation &amp; Remarks</span>
-      </div>
-  
-      <div class="remarks-grid">
-        <div class="remarks-col">
-          <div class="remarks-box">
-            <div class="remarks-box-label"><i class="fa-solid fa-thumbs-up"></i> Strengths</div>
-            <p class="remarks-text">{{ evaluation?.strengths ?? evaluation?.remarks ?? 'No remarks provided.' }}</p>
-          </div>
-        </div>
-        <div class="remarks-col">
-          <div class="remarks-box remarks-box-improvement">
-            <div class="remarks-box-label"><i class="fa-solid fa-arrow-trend-up"></i> Areas for Improvement</div>
-            <p class="remarks-text">{{ evaluation?.areas_for_improvement ?? 'Not specified.' }}</p>
-          </div>
-        </div>
-      </div>
-  
-      <!-- ── SUPERVISOR COMMENTS ── -->
-      <div class="part-header">
-        <span class="part-num">PART V</span>
-        <span class="part-label">Supervisor's Comments</span>
-      </div>
-  
-      <div class="remarks-section">
-        <p class="remarks-text">{{ evaluation?.remarks ?? 'No additional comments provided.' }}</p>
-      </div>
-  
-      <!-- ── RECOMMENDATION ── -->
-      <div class="part-header">
-        <span class="part-num">PART VI</span>
-        <span class="part-label">Recommendation</span>
-      </div>
-  
-      <div class="recommendation-row">
-        <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'highly_recommended' || getOverallAverage() >= 4.5">
-          <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-          <span class="rec-label">Highly Recommended</span>
-        </div>
-        <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'recommended' || (getOverallAverage() >= 3.5 && getOverallAverage() < 4.5)">
-          <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-          <span class="rec-label">Recommended</span>
-        </div>
-        <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'recommended_with_reservations' || (getOverallAverage() >= 2.5 && getOverallAverage() < 3.5)">
-          <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-          <span class="rec-label">Recommended with Reservations</span>
-        </div>
-        <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'not_recommended' || getOverallAverage() < 2.5">
-          <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-          <span class="rec-label">Not Recommended</span>
-        </div>
-      </div>
-  
-      <!-- ══════════════════════════════════════
-           PART VII: CERTIFICATION & SIGNATURE
-      ══════════════════════════════════════ -->
-      <div class="part-header">
-        <span class="part-num">PART VII</span>
-        <span class="part-label">Certification &amp; Signature</span>
-      </div>
-  
-      <div class="cert-section">
-        <p class="cert-statement">
-          I hereby certify that the above ratings and remarks represent an honest, objective, and fair assessment of the intern's performance during the official On-the-Job Training period. This document has been prepared in good faith and in accordance with the OJT program guidelines of <strong>{{ SCHOOL }}</strong>.
-        </p>
-  
-        <div class="cert-details-row">
-          <div class="cd-item">
-            <span class="cd-key">Training Venue</span>
-            <span class="cd-val">{{ supervisor?.company_name ?? SCHOOL }}</span>
-          </div>
-          <div class="cd-item">
-            <span class="cd-key">Training Period</span>
-            <span class="cd-val">{{ AY }}</span>
-          </div>
-          <div class="cd-item">
-            <span class="cd-key">Date of Evaluation</span>
-            <span class="cd-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
-          </div>
-        </div>
-      </div>
-  
-      <!-- SIGNATURE BLOCKS -->
-      <div class="sig-row">
-  
-        <!-- Supervisor -->
-        <div class="sig-block">
-          <div class="sig-canvas">
-            <img *ngIf="evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
-            <div *ngIf="!evaluation?.signature_data" class="sig-placeholder">
-              <i class="fa-solid fa-pen-nib"></i>
             </div>
           </div>
-          <div class="sig-line"></div>
-          <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
-          <div class="sig-title">{{ supervisor?.position ?? 'Supervisor' }}</div>
-          <div class="sig-sub-title">{{ supervisor?.company_name ?? '—' }}</div>
-          <div class="sig-label">Evaluating Supervisor</div>
+          <div class="header-accent-bar"></div>
         </div>
-  
-        <!-- Noted by (blank for school coordinator) -->
-        <div class="sig-block">
-          <div class="sig-canvas blank-sig"></div>
-          <div class="sig-line"></div>
-          <div class="sig-fullname blank-line">&nbsp;</div>
-          <div class="sig-title blank-line-sm">&nbsp;</div>
-          <div class="sig-label">OJT Coordinator</div>
-        </div>
-  
-        <!-- Received by (intern) -->
-        <div class="sig-block">
-          <div class="sig-canvas blank-sig">
-            <img [src]="getAvatarUrl()" class="intern-avatar" alt="">
+
+        <!-- BODY -->
+        <div class="doc-body">
+
+          <div class="doc-section-title">OFFICIAL OJT PERFORMANCE APPRAISAL</div>
+
+          <!-- PART I: INTERN INFORMATION -->
+          <div class="part-header">
+            <span class="part-num">PART I</span>
+            <span class="part-label">Intern Information</span>
           </div>
-          <div class="sig-line"></div>
-          <div class="sig-fullname">{{ getFullName() }}</div>
-          <div class="sig-title">{{ student?.student_id }}</div>
-          <div class="sig-sub-title">{{ student?.course }}</div>
-          <div class="sig-label">OJT Intern</div>
+
+          <div class="info-table-wrap">
+            <table class="info-table">
+              <tbody>
+                <tr>
+                  <td class="it-key">Full Name</td>
+                  <td class="it-val it-name">{{ getFullName() }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Student ID No.</td>
+                  <td class="it-val">{{ student?.student_id }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Course / Program</td>
+                  <td class="it-val">{{ student?.course }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Institution</td>
+                  <td class="it-val">{{ SCHOOL }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Email Address</td>
+                  <td class="it-val">{{ student?.email }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Required Hours</td>
+                  <td class="it-val">{{ student?.required_hours ?? 500 }} hours</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Hours Rendered</td>
+                  <td class="it-val"><strong>{{ student?.completed_hours ?? 0 }} hours</strong></td>
+                </tr>
+                <tr>
+                  <td class="it-key">Completion Rate</td>
+                  <td class="it-val">
+                    <div class="it-progress">
+                      <div class="itp-track">
+                        <div class="itp-fill" [style.width]="getProgress() + '%'"></div>
+                      </div>
+                      <span>{{ getProgress() }}%</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="it-key">Evaluation Period</td>
+                  <td class="it-val">{{ getEvaluationPeriod() }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Company / Dept.</td>
+                  <td class="it-val">{{ supervisor?.company_name ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PART II: EVALUATING SUPERVISOR -->
+          <div class="part-header">
+            <span class="part-num">PART II</span>
+            <span class="part-label">Evaluating Supervisor</span>
+          </div>
+
+          <div class="info-table-wrap">
+            <table class="info-table">
+              <tbody>
+                <tr>
+                  <td class="it-key">Supervisor Name</td>
+                  <td class="it-val it-name">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Position / Title</td>
+                  <td class="it-val">{{ supervisor?.position ?? '—' }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Organization</td>
+                  <td class="it-val">{{ supervisor?.company_name ?? '—' }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Department</td>
+                  <td class="it-val">{{ supervisor?.department ?? '—' }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Email Address</td>
+                  <td class="it-val">{{ supervisor?.email ?? '—' }}</td>
+                </tr>
+                <tr>
+                  <td class="it-key">Evaluation Date</td>
+                  <td class="it-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PART III: RATING SCALE -->
+          <div class="part-header">
+            <span class="part-num">PART III</span>
+            <span class="part-label">Rating Scale</span>
+          </div>
+
+          <div class="scale-legend-full">
+            <div *ngFor="let item of [
+              {v:5,l:'Excellent',d:'Outstanding performance exceeding expectations'},
+              {v:4,l:'Very Good',d:'Above average, consistently meets high standards'},
+              {v:3,l:'Good',d:'Meets expectations and requirements'},
+              {v:2,l:'Fair',d:'Below expectations, needs improvement'},
+              {v:1,l:'Poor',d:'Fails to meet minimum requirements'}
+            ]" class="sl-card">
+              <span class="sl-score-lg" [attr.data-v]="item.v">{{ item.v }}</span>
+              <div class="sl-card-text">
+                <span class="sl-card-label">{{ item.l }}</span>
+                <span class="sl-card-desc">{{ item.d }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PART IV: PERFORMANCE RATINGS -->
+          <div class="part-header">
+            <span class="part-num">PART IV</span>
+            <span class="part-label">Performance Ratings</span>
+          </div>
+
+          <table class="criteria-table">
+            <thead>
+              <tr>
+                <th class="ct-no">#</th>
+                <th class="ct-crit">Category</th>
+                <th class="ct-sub">Sub-Criteria / Indicators</th>
+                <th class="ct-score">Score</th>
+                <th class="ct-rating">Rating</th>
+                <th class="ct-bar">Performance</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <!-- 1. Attendance & Punctuality -->
+              <tr class="ct-group-header">
+                <td class="ct-no">1</td>
+                <td colspan="5" class="ct-crit-val"><strong>Attendance &amp; Punctuality</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Punctuality</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Reports on time regularly</li>
+                    <li>Observes working hours properly</li>
+                    <li>Rarely absent without valid reason</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('punctuality')">{{ getRating('punctuality') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('punctuality')">{{ getRatingLabel(getRating('punctuality')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('punctuality') / 5 * 100) + '%'" [attr.data-v]="getRating('punctuality')"></div>
+                  </div>
+                </td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Attendance</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Maintains regular presence</li>
+                    <li>Avoids unnecessary absences</li>
+                    <li>Informs ahead for planned leaves</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('attendance')">{{ getRating('attendance') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('attendance')">{{ getRatingLabel(getRating('attendance')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('attendance') / 5 * 100) + '%'" [attr.data-v]="getRating('attendance')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 2. Work Attitude & Professionalism -->
+              <tr class="ct-group-header">
+                <td class="ct-no">2</td>
+                <td colspan="5" class="ct-crit-val"><strong>Work Attitude &amp; Professionalism</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Professionalism</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Shows respect to supervisors and staff</li>
+                    <li>Follows company rules and policies</li>
+                    <li>Demonstrates proper behavior in the workplace</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('professionalism')">{{ getRating('professionalism') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('professionalism')">{{ getRatingLabel(getRating('professionalism')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('professionalism') / 5 * 100) + '%'" [attr.data-v]="getRating('professionalism')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 3. Communication Skills -->
+              <tr class="ct-group-header">
+                <td class="ct-no">3</td>
+                <td colspan="5" class="ct-crit-val"><strong>Communication Skills</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Communication</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Communicates clearly (oral &amp; written)</li>
+                    <li>Listens and understands instructions</li>
+                    <li>Asks appropriate questions when needed</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('communication')">{{ getRating('communication') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('communication')">{{ getRatingLabel(getRating('communication')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('communication') / 5 * 100) + '%'" [attr.data-v]="getRating('communication')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 4. Job Knowledge & Learning Ability -->
+              <tr class="ct-group-header">
+                <td class="ct-no">4</td>
+                <td colspan="5" class="ct-crit-val"><strong>Job Knowledge &amp; Learning Ability</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Quality of Work</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Understands assigned tasks well</li>
+                    <li>Learns quickly and applies knowledge effectively</li>
+                    <li>Delivers accurate, thorough, and detail-oriented outputs</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('quality_of_work')">{{ getRating('quality_of_work') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('quality_of_work')">{{ getRatingLabel(getRating('quality_of_work')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('quality_of_work') / 5 * 100) + '%'" [attr.data-v]="getRating('quality_of_work')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 5. Productivity & Efficiency -->
+              <tr class="ct-group-header">
+                <td class="ct-no">5</td>
+                <td colspan="5" class="ct-crit-val"><strong>Productivity &amp; Efficiency</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Productivity</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Completes assigned tasks efficiently and within timelines</li>
+                    <li>Works with minimal supervision</li>
+                    <li>Manages time well and delivers consistent output</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('productivity')">{{ getRating('productivity') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('productivity')">{{ getRatingLabel(getRating('productivity')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('productivity') / 5 * 100) + '%'" [attr.data-v]="getRating('productivity')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 6. Initiative & Problem Solving -->
+              <tr class="ct-group-header">
+                <td class="ct-no">6</td>
+                <td colspan="5" class="ct-crit-val"><strong>Initiative &amp; Problem Solving</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Initiative</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Proactively takes on responsibilities without waiting to be directed</li>
+                    <li>Can solve simple problems independently</li>
+                    <li>Shows willingness to improve</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('initiative')">{{ getRating('initiative') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('initiative')">{{ getRatingLabel(getRating('initiative')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('initiative') / 5 * 100) + '%'" [attr.data-v]="getRating('initiative')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 7. Teamwork & Cooperation -->
+              <tr class="ct-group-header">
+                <td class="ct-no">7</td>
+                <td colspan="5" class="ct-crit-val"><strong>Teamwork &amp; Cooperation</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Cooperation</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Works collaboratively and maintains positive relationships</li>
+                    <li>Cooperates with team members</li>
+                    <li>Contributes positively to group tasks</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('cooperation')">{{ getRating('cooperation') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('cooperation')">{{ getRatingLabel(getRating('cooperation')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('cooperation') / 5 * 100) + '%'" [attr.data-v]="getRating('cooperation')"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 8. Dependability & Responsibility -->
+              <tr class="ct-group-header">
+                <td class="ct-no">8</td>
+                <td colspan="5" class="ct-crit-val"><strong>Dependability &amp; Responsibility</strong></td>
+              </tr>
+              <tr class="ct-sub-row">
+                <td class="ct-no"></td>
+                <td class="ct-crit-val"><strong>Dependability</strong></td>
+                <td class="ct-sub-val">
+                  <ul class="indicator-list">
+                    <li>Can be trusted with assigned tasks</li>
+                    <li>Follows through on commitments</li>
+                    <li>Takes responsibility for mistakes and learns from them</li>
+                  </ul>
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle" [attr.data-v]="getRating('dependability')">{{ getRating('dependability') }}</span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag" [attr.data-v]="getRating('dependability')">{{ getRatingLabel(getRating('dependability')) }}</span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width]="(getRating('dependability') / 5 * 100) + '%'" [attr.data-v]="getRating('dependability')"></div>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+            <tfoot>
+              <tr class="ct-overall">
+                <td colspan="3" class="ct-overall-label">
+                  <i class="fa-solid fa-star"></i>&nbsp; OVERALL AVERAGE RATING
+                </td>
+                <td class="ct-score-val">
+                  <span class="score-circle overall-circle"
+                    [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : getOverallAverage() >= 2.5 ? 3 : getOverallAverage() >= 1.5 ? 2 : 1">
+                    {{ getOverallAverage() }}
+                  </span>
+                </td>
+                <td class="ct-rating-val">
+                  <span class="rating-tag overall-tag"
+                    [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : getOverallAverage() >= 2.5 ? 3 : getOverallAverage() >= 1.5 ? 2 : 1">
+                    {{ getOverallLabel(getOverallAverage()) }}
+                  </span>
+                </td>
+                <td class="ct-bar-val">
+                  <div class="bar-track">
+                    <div class="bar-fill overall-bar" [style.width]="(getOverallAverage() / 5 * 100) + '%'"
+                      style="background: var(--blue)"></div>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <!-- PART V: OVERALL EVALUATION & REMARKS -->
+          <div class="part-header">
+            <span class="part-num">PART V</span>
+            <span class="part-label">Overall Evaluation &amp; Remarks</span>
+          </div>
+
+          <div class="remarks-grid">
+            <div class="remarks-box">
+              <div class="remarks-box-label"><i class="fa-solid fa-thumbs-up"></i> Strengths</div>
+              <p class="remarks-text">{{ evaluation?.strengths ?? evaluation?.remarks ?? 'No remarks provided.' }}</p>
+            </div>
+            <div class="remarks-box remarks-box-improvement">
+              <div class="remarks-box-label"><i class="fa-solid fa-arrow-trend-up"></i> Areas for Improvement</div>
+              <p class="remarks-text">{{ evaluation?.areas_for_improvement ?? 'Not specified.' }}</p>
+            </div>
+          </div>
+
+          <!-- PART VI: SUPERVISOR'S COMMENTS -->
+          <div class="part-header">
+            <span class="part-num">PART VI</span>
+            <span class="part-label">Supervisor's Comments</span>
+          </div>
+
+          <div class="remarks-section">
+            <p class="remarks-text">{{ evaluation?.remarks ?? 'No additional comments provided.' }}</p>
+          </div>
+
+          <!-- PART VII: RECOMMENDATION -->
+          <div class="part-header">
+            <span class="part-num">PART VII</span>
+            <span class="part-label">Recommendation</span>
+          </div>
+
+          <div class="recommendation-row">
+            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'highly_recommended' || getOverallAverage() >= 4.5">
+              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+              <span class="rec-label">Highly Recommended</span>
+            </div>
+            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'recommended' || (getOverallAverage() >= 3.5 && getOverallAverage() < 4.5)">
+              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+              <span class="rec-label">Recommended</span>
+            </div>
+            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'recommended_with_reservations' || (getOverallAverage() >= 2.5 && getOverallAverage() < 3.5)">
+              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+              <span class="rec-label">Recommended with Reservations</span>
+            </div>
+            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'not_recommended' || getOverallAverage() < 2.5">
+              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+              <span class="rec-label">Not Recommended</span>
+            </div>
+          </div>
+
+          <!-- PART VIII: CERTIFICATION & SIGNATURE -->
+          <div class="part-header">
+            <span class="part-num">PART VIII</span>
+            <span class="part-label">Certification &amp; Signature</span>
+          </div>
+
+          <div class="cert-section">
+            <p class="cert-statement">
+              I hereby certify that the above ratings and remarks represent an honest, objective, and fair assessment of the intern's performance during the official On-the-Job Training period. This document has been prepared in good faith and in accordance with the OJT program guidelines of <strong>{{ SCHOOL }}</strong>.
+            </p>
+            <div class="cert-details-row">
+              <div class="cd-item">
+                <span class="cd-key">Training Venue</span>
+                <span class="cd-val">{{ supervisor?.company_name ?? SCHOOL }}</span>
+              </div>
+              <div class="cd-item">
+                <span class="cd-key">Training Period</span>
+                <span class="cd-val">{{ AY }}</span>
+              </div>
+              <div class="cd-item">
+                <span class="cd-key">Date of Evaluation</span>
+                <span class="cd-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIGNATURE BLOCKS -->
+          <div class="sig-row">
+
+            <!-- Supervisor -->
+            <div class="sig-block">
+              <div class="sig-canvas">
+                <img *ngIf="evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
+                <div *ngIf="!evaluation?.signature_data" class="sig-placeholder">
+                  <i class="fa-solid fa-pen-nib"></i>
+                </div>
+              </div>
+              <div class="sig-line"></div>
+              <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
+              <div class="sig-title">{{ supervisor?.position ?? 'Supervisor' }}</div>
+              <div class="sig-sub-title">{{ supervisor?.company_name ?? '—' }}</div>
+              <div class="sig-label">Evaluating Supervisor</div>
+            </div>
+
+            <!-- Intern -->
+            <div class="sig-block">
+              <div class="sig-canvas"></div>
+              <div class="sig-line"></div>
+              <div class="sig-fullname">{{ getFullName() }}</div>
+              <div class="sig-title">{{ student?.student_id }}</div>
+              <div class="sig-sub-title">{{ student?.course }}</div>
+              <div class="sig-label">OJT Intern</div>
+            </div>
+
+          </div>
+
         </div>
-  
+        <!-- end doc-body -->
+
+        <!-- FOOTER -->
+        <div class="doc-footer">
+          <div class="footer-inner">
+            <span>{{ SCHOOL }} · On-the-Job Training Program · {{ AY }}</span>
+            <span>This is an official digitally-issued appraisal document. Page 1 of 1.</span>
+          </div>
+        </div>
+
       </div>
-      <!-- end sig-row -->
-  
+      <!-- end .eval-doc -->
+
     </div>
-    <!-- end doc-body -->
-  
-    <!-- ▌FOOTER ▐ -->
-    <div class="doc-footer">
-      <div class="footer-inner">
-        <span>{{ SCHOOL }} · On-the-Job Training Program · {{ AY }}</span>
-        <span>This is an official digitally-issued appraisal document. Page 1 of 1.</span>
-      </div>
-    </div>
-  
   </div>
-  <!-- end .eval-doc -->
+</div>
