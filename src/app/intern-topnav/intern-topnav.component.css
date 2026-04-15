@@ -1,259 +1,537 @@
-/* =========================
-TOP NAVBAR
-========================= */
-
-.topnav{
-  height:60px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0 25px;
-  background:#ffffff;
-  border-bottom:1px solid #e5e5e5;
-  position:relative;
+/* =============================
+   TOP NAVBAR
+============================= */
+.topnav {
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 25px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  position: relative;
 }
-  
-.topnav-left .greeting{
-  font-size:16px;
-  font-weight:500;
-  color:#000000;
+.topnav-left .greeting {
+  font-size: 16px;
+  font-weight: 500;
+  color: #000000;
 }
-  
-.topnav-right{
-  display:flex;
-  align-items:center;
-  position:relative;
+.topnav-right {
+  display: flex;
+  align-items: center;
+  position: relative;
 }
-
-/* PROFILE IMAGE */
-
-.profile{
-  cursor:pointer;
+.profile { cursor: pointer; }
+.profile img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  transition: 0.2s;
 }
-  
-.profile img{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  object-fit:cover;
-  transition:0.2s;
-}
-  
-.profile img:hover{
-  transform:scale(1.05);
-}
+.profile img:hover { transform: scale(1.05); }
 
 
-/* =========================
-DROPDOWN MENU
-========================= */
-
-.dropdown{
-  position:absolute;
-  top:55px;
-  right:0;
-  width:200px;
-  background:white;
-  border-radius:10px;
-  border:1px solid #e5e5e5;
-  box-shadow:0 8px 20px rgba(0,0,0,0.08);
-  overflow:hidden;
-  z-index:10;
+/* =============================
+   DROPDOWN
+============================= */
+.dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 210px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+  z-index: 10;
 }
-  
-.dropdown-item{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:12px 16px;
-  cursor:pointer;
-  font-size:14px;
-  transition:0.2s;
-  white-space:nowrap;
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+  white-space: nowrap;
+  position: relative;
 }
-  
-.dropdown-item i{
-  width:18px;
-  color:#555;
-}
-  
-.dropdown-item:hover{
-  background:#f5f7fb;
+.dropdown-item i { width: 18px; color: #555; }
+.dropdown-item:hover { background: #f5f7fb; }
+.cert-badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 
-/* =========================
-MODAL OVERLAY
-========================= */
-
-.modal-overlay{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.35);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:1000;
+/* =============================
+   MODAL OVERLAY (shared)
+============================= */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
 
-/* =========================
-PASSWORD MODAL
-========================= */
-
-.password-modal{
-  width:400px;
-  background:white;
-  padding:26px 28px 30px 28px;
-  border-radius:16px;
-  box-shadow:0 20px 50px rgba(0,0,0,0.15);
-  animation:fadeIn .25s ease;
+/* =============================
+   PASSWORD MODAL
+============================= */
+.password-modal {
+  width: 400px;
+  background: white;
+  padding: 26px 28px 30px;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  animation: fadeIn .25s ease;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.password-modal h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2563eb;
+}
+.close-icon {
+  font-size: 18px;
+  cursor: pointer;
+  color: #777;
+  transition: .2s;
+}
+.close-icon:hover { color: #000; transform: scale(1.1); }
+.note {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 18px;
+}
+.input-group { margin-bottom: 16px; }
+.input-group label {
+  font-size: 13px;
+  display: block;
+  margin-bottom: 6px;
+  color: #444;
+}
+.password-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0 10px;
+  transition: .2s;
+  background: #fff;
+}
+.password-field:focus-within {
+  border: 1px solid #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+}
+.password-field input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px;
+  font-size: 14px;
+  background: transparent;
+}
+.password-field i {
+  cursor: pointer;
+  color: #2563eb;
+  transition: .2s;
+  font-size: 16px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 22px;
+}
+.save-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: .25s;
+}
+.save-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37,99,235,0.25);
+}
+.modal-divider {
+  width: 100%;
+  height: 1px;
+  background: #e5e7eb;
+  margin: 16px 0 18px;
 }
 
 
-/* MODAL HEADER */
+/* =============================
+   CERTIFICATE MODAL WRAPPER
+============================= */
+.cert-overlay { align-items: center; }
 
-.modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:8px;
+.cert-modal-wrapper {
+  width: min(860px, 96vw);
+  background: #eef2ff;
+  border-radius: 18px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+  overflow: hidden;
+  animation: fadeIn .3s ease;
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
 }
 
-.password-modal h2{
-  font-size:20px;
-  font-weight:600;
-  color:#2563eb; /* updated blue */
+.cert-modal-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
-
-.close-icon{
-  font-size:18px;
-  cursor:pointer;
-  color:#777;
-  transition:.2s;
+.cert-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-
-.close-icon:hover{
-  color:#000;
-  transform:scale(1.1);
+.cert-modal-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 16px;
 }
-
-/* NOTE TEXT */
-
-.note{
-  font-size:12px;
-  color:#777;
-  margin-bottom:18px;
+.cert-modal-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.3;
 }
-
-
-/* =========================
-INPUT GROUP
-========================= */
-
-.input-group{
-  margin-bottom:16px;
+.cert-modal-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.3;
 }
-
-.input-group label{
-  font-size:13px;
-  display:block;
-  margin-bottom:6px;
-  color:#444;
+.cert-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-
-
-/* PASSWORD INPUT */
-
-.password-field{
-  display:flex;
-  align-items:center;
-  border:1px solid #ddd;
-  border-radius:8px;
-  padding:0 10px;
-  transition:.2s;
-  background:#fff;
+.cert-dl-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: .2s;
 }
-
-.password-field:focus-within{
-  border:1px solid #2563eb; /* updated blue */
-  box-shadow:0 0 0 2px rgba(37,99,235,0.1);
+.cert-dl-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37,99,235,0.35);
 }
-
-.password-field input{
-  flex:1;
-  border:none;
-  outline:none;
-  padding:10px;
-  font-size:14px;
-  background:transparent;
+.cert-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .2s;
 }
+.cert-close-btn:hover { background: #f1f5f9; color: #1e293b; }
 
-/* ADD ICON TO CHANGE PASSWORD */
-.password-field i{
-  cursor:pointer;
-  color:#2563eb; /* blue icon */
-  transition:.2s;
-  font-size:16px;
-}
-
-.password-field i:hover{
-  color:#2563eb; /* remain same blue */
-}
-
-
-/* =========================
-MODAL BUTTON
-========================= */
-
-.modal-actions{
-  display:flex;
-  justify-content:center;
-  margin-top:22px;
-}
-
-.save-btn{
-  background:#2563eb; /* updated blue */
-  color:white;
-  border:none;
-  padding:10px 24px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:14px;
-  font-weight:500;
-  transition:.25s;
-}
-
-.save-btn:hover{
-  background:#081a9a;
-  transform:translateY(-1px);
-  box-shadow:0 6px 16px rgba(37,99,235,0.25);
+.cert-scroll-area {
+  overflow-y: auto;
+  padding: 28px 24px;
+  display: flex;
+  justify-content: center;
 }
 
 
-/* =========================
-ANIMATION
-========================= */
-
-@keyframes fadeIn{
-  from{
-    opacity:0;
-    transform:scale(.95);
-  }
-  to{
-    opacity:1;
-    transform:scale(1);
-  }
+/* =============================
+   CERTIFICATE — Reference style
+   Landscape, wave corners, cursive
+============================= */
+.certificate {
+  width: 780px;
+  min-height: 520px;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  box-shadow: 0 8px 40px rgba(30,58,138,0.18);
 }
 
-/* MODAL DIVIDER */
+/* Wave SVG panels — top-left and bottom-right */
+.cert-wave-tl,
+.cert-wave-br {
+  position: absolute;
+  width: 420px;
+  height: 240px;
+  pointer-events: none;
+}
+.cert-wave-tl { top: 0; left: 0; }
+.cert-wave-br { bottom: 0; right: 0; transform: none; }
 
-.modal-divider{
-  width:100%;
-  height:1px;
-  background:#e5e7eb;
-  margin:16px 0 18px 0;
+/* Double border frame */
+.cert-frame-outer {
+  position: absolute;
+  inset: 18px;
+  border: 2px solid #1e3a8a;
+  pointer-events: none;
+}
+.cert-frame-inner {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid #c9a84c;
+}
+
+/* Content area sits above waves */
+.cert-content {
+  position: relative;
+  z-index: 2;
+  padding: 32px 60px 28px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Header */
+.cert-header { margin-bottom: 6px; }
+.cert-republic {
+  font-size: 11px;
+  color: #374151;
+  margin: 0;
+  letter-spacing: 0.5px;
+  font-family: 'Arial', sans-serif;
+}
+.cert-dept {
+  font-size: 11px;
+  font-weight: 700;
+  color: #374151;
+  margin: 1px 0;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-family: 'Arial', sans-serif;
+}
+.cert-school-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1e3a8a;
+  margin: 3px 0 1px;
+  letter-spacing: 0.3px;
+  font-family: 'Arial', sans-serif;
+}
+.cert-address {
+  font-size: 10.5px;
+  color: #6b7280;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Main title */
+.cert-title-wrap { margin: 10px 0 4px; }
+.cert-main-title {
+  font-size: 30px;
+  font-weight: 900;
+  color: #1e3a8a;
+  letter-spacing: 2px;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  font-family: 'Arial Black', 'Arial', sans-serif;
+}
+.cert-title-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.cert-tl-blue {
+  width: 460px;
+  height: 3px;
+  background: #1e3a8a;
+  border-radius: 2px;
+}
+.cert-tl-gold {
+  width: 420px;
+  height: 2px;
+  background: #c9a84c;
+  border-radius: 2px;
+}
+
+/* Awarded to */
+.cert-awarded-text {
+  font-size: 13px;
+  color: #374151;
+  margin: 10px 0 2px;
+  font-style: italic;
+  font-family: 'Georgia', serif;
+}
+
+/* Cursive name */
+.cert-name-wrap { margin: 2px 0 8px; }
+.cert-cursive-name {
+  font-size: 40px;
+  color: #1e3a8a;
+  margin: 0;
+  line-height: 1.2;
+  font-family: 'Brush Script MT', 'Segoe Script', 'Dancing Script', cursive;
+  font-weight: 400;
+}
+.cert-name-underline {
+  width: 400px;
+  height: 1px;
+  background: #1e3a8a;
+  margin: 4px auto 0;
+}
+
+/* Body paragraphs */
+.cert-body-para {
+  font-size: 12.5px;
+  color: #374151;
+  margin: 5px 0;
+  line-height: 1.65;
+  max-width: 580px;
+  font-family: 'Arial', sans-serif;
+}
+.cert-body-para strong { color: #1e3a8a; }
+.cert-given {
+  font-size: 12px;
+  color: #4b5563;
+  margin-top: 3px;
+}
+
+/* Signature row */
+.cert-sig-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.cert-sig-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 190px;
+}
+.cert-sig-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0 0 4px;
+  font-family: 'Arial', sans-serif;
+}
+.cert-sig-underline {
+  width: 170px;
+  height: 1px;
+  background: #374151;
+  margin-bottom: 4px;
+}
+.cert-sig-pos {
+  font-size: 11px;
+  color: #4b5563;
+  margin: 0;
+  font-style: italic;
+  font-family: 'Georgia', serif;
+}
+.cert-sig-school {
+  font-size: 10px;
+  color: #6b7280;
+  margin: 2px 0 0;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Gold seal with ribbon */
+.cert-seal-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.cert-seal-ring {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4af37 0%, #f0c040 40%, #b8922a 70%, #d4af37 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 12px rgba(184,146,42,0.4);
+}
+.cert-seal-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1e3a8a 100%);
+  border: 2px solid #f0c040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f0c040;
+  font-size: 22px;
+}
+/* Ribbon below seal */
+.cert-ribbon {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+.cert-ribbon-left,
+.cert-ribbon-right {
+  width: 18px;
+  height: 28px;
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+}
+.cert-ribbon-left  { background: #1e3a8a; }
+.cert-ribbon-right { background: #2563eb; }
+
+
+/* =============================
+   ANIMATION
+============================= */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: scale(1); }
 }

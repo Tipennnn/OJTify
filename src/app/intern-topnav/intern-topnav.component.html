@@ -1,16 +1,12 @@
 <header class="topnav">
-
   <div class="topnav-left">
     <span class="greeting">{{ greeting }}</span>
   </div>
-
   <div class="topnav-right">
-
     <div class="profile" (click)="toggleMenu()">
       <img [src]="profilePhotoUrl" alt="Profile Picture"
-           style="width:38px; height:38px; border-radius:50%; object-fit:cover;">
+           style="width:38px;height:38px;border-radius:50%;object-fit:cover;">
     </div>
-
     <div class="dropdown" *ngIf="menuOpen">
       <div class="dropdown-item" (click)="goProfile()">
         <i class="fa-solid fa-user"></i> Profile
@@ -18,25 +14,28 @@
       <div class="dropdown-item" (click)="openChangePassword()">
         <i class="fa-solid fa-lock"></i> Change Password
       </div>
+      <div class="dropdown-item" (click)="openCertificate()">
+        <i class="fa-solid fa-certificate"></i> My Certificate
+        <span class="cert-badge" *ngIf="!hoursReached">
+          <i class="fa-solid fa-clock"></i>
+        </span>
+      </div>
     </div>
-
   </div>
-
 </header>
 
-<!-- CHANGE PASSWORD MODAL -->
+
+<!-- ========================
+     CHANGE PASSWORD MODAL
+========================= -->
 <div class="modal-overlay" *ngIf="showPasswordModal">
   <div class="password-modal">
-
     <div class="modal-header">
       <h2><i class="fa-solid fa-lock"></i> Change Password</h2>
       <i class="fa-solid fa-xmark close-icon" (click)="closeModal()"></i>
     </div>
-
     <p class="note">Password must be at least 8 characters long.</p>
     <div class="modal-divider"></div>
-
-    <!-- CURRENT PASSWORD -->
     <div class="input-group">
       <label>Current Password</label>
       <div class="password-field">
@@ -48,8 +47,6 @@
            (click)="showCurrent = !showCurrent"></i>
       </div>
     </div>
-
-    <!-- NEW PASSWORD -->
     <div class="input-group">
       <label>New Password</label>
       <div class="password-field">
@@ -61,8 +58,6 @@
            (click)="showNew = !showNew"></i>
       </div>
     </div>
-
-    <!-- CONFIRM PASSWORD -->
     <div class="input-group">
       <label>Confirm New Password</label>
       <div class="password-field">
@@ -74,13 +69,148 @@
            (click)="showConfirm = !showConfirm"></i>
       </div>
     </div>
-
     <div class="modal-actions">
       <button class="save-btn" (click)="updatePassword()" [disabled]="passwordLoading">
         <i class="fa fa-spinner fa-spin" *ngIf="passwordLoading"></i>
         {{ passwordLoading ? 'Updating...' : 'Update Password' }}
       </button>
     </div>
+  </div>
+</div>
+
+
+<!-- ========================
+     CERTIFICATE MODAL
+========================= -->
+<div class="modal-overlay cert-overlay" *ngIf="showCertModal" (click)="closeCertModal()">
+  <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
+
+    <!-- Modal Top Bar -->
+    <div class="cert-modal-topbar">
+      <div class="cert-modal-title-group">
+        <div class="cert-modal-icon-wrap">
+          <i class="fa-solid fa-certificate"></i>
+        </div>
+        <div>
+          <p class="cert-modal-label">Certificate of Completion</p>
+          <p class="cert-modal-sub">On-the-Job Training Program</p>
+        </div>
+      </div>
+      <div class="cert-modal-actions">
+        <button class="cert-dl-btn" (click)="downloadCertificate()">
+          <i class="fa-solid fa-download"></i> Download
+        </button>
+        <button class="cert-close-btn" (click)="closeCertModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Certificate Preview -->
+    <div class="cert-scroll-area">
+      <div id="certificate-preview" class="certificate">
+
+        <!-- Wave decorations (top-left and bottom-right) -->
+        <div class="cert-wave-tl">
+          <svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path d="M0 0 L420 0 L420 28 Q310 85 200 45 Q100 10 0 55 Z" fill="#1e3a8a"/>
+            <path d="M0 0 L380 0 L380 18 Q270 68 165 32 Q80 4 0 38 Z" fill="#c9a84c"/>
+            <path d="M0 180 Q90 130 190 162 Q290 195 390 148 L420 132 L420 240 L0 240 Z" fill="#1e3a8a"/>
+            <path d="M0 195 Q100 150 200 178 Q300 208 405 164 L420 152 L420 240 L0 240 Z" fill="#c9a84c"/>
+          </svg>
+        </div>
+        <div class="cert-wave-br">
+          <svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path d="M420 0 L0 0 L0 28 Q110 85 220 45 Q320 10 420 55 Z" fill="#1e3a8a"/>
+            <path d="M420 0 L40 0 L40 18 Q150 68 255 32 Q340 4 420 38 Z" fill="#c9a84c"/>
+            <path d="M420 180 Q330 130 230 162 Q130 195 30 148 L0 132 L0 240 L420 240 Z" fill="#1e3a8a"/>
+            <path d="M420 195 Q320 150 220 178 Q120 208 15 164 L0 152 L0 240 L420 240 Z" fill="#c9a84c"/>
+          </svg>
+        </div>
+
+        <!-- Thin double border frame -->
+        <div class="cert-frame-outer">
+          <div class="cert-frame-inner">
+
+            <div class="cert-content">
+
+              <!-- Header info -->
+              <div class="cert-header">
+                <p class="cert-republic">Republic of the Philippines</p>
+                <p class="cert-dept">SCHOOLS DIVISION OF OLONGAPO CITY</p>
+                <p class="cert-school-name">Olongapo City Elementary School</p>
+                <p class="cert-address">Olongapo City, Zambales</p>
+              </div>
+
+              <!-- Main title -->
+              <div class="cert-title-wrap">
+                <h1 class="cert-main-title">CERTIFICATE OF COMPLETION</h1>
+                <div class="cert-title-lines">
+                  <div class="cert-tl-blue"></div>
+                  <div class="cert-tl-gold"></div>
+                </div>
+              </div>
+
+              <!-- Awarded to -->
+              <p class="cert-awarded-text">This certificate is awarded to</p>
+
+              <!-- Student name in cursive -->
+              <div class="cert-name-wrap">
+                <p class="cert-cursive-name">{{ certData.studentName }}</p>
+                <div class="cert-name-underline"></div>
+              </div>
+
+              <!-- Body text -->
+              <p class="cert-body-para">
+                for successfully completing the
+                <strong>{{ certData.hoursCompleted }}-hour On-the-Job Training (OJT)</strong>,
+                taking up <strong>{{ certData.course }}</strong>
+                from <strong>{{ certData.school }}</strong>,
+                conducted at <strong>Olongapo City Elementary School</strong>.
+              </p>
+
+              <p class="cert-body-para cert-given">
+                Given this {{ certData.endDate }}, Olongapo City, Zambales.
+              </p>
+
+              <!-- Signatures + Seal -->
+              <div class="cert-sig-row">
+
+                <div class="cert-sig-block">
+                  <p class="cert-sig-name">{{ certData.supervisorName }}</p>
+                  <div class="cert-sig-underline"></div>
+                  <p class="cert-sig-pos">{{ certData.supervisorPos }}</p>
+                  <p class="cert-sig-school">Olongapo City Elementary School</p>
+                </div>
+
+                <!-- Gold seal with ribbon -->
+                <div class="cert-seal-wrap">
+                  <div class="cert-seal-ring">
+                    <div class="cert-seal-circle">
+                      <i class="fa-solid fa-award"></i>
+                    </div>
+                  </div>
+                  <div class="cert-ribbon">
+                    <div class="cert-ribbon-left"></div>
+                    <div class="cert-ribbon-right"></div>
+                  </div>
+                </div>
+
+                <div class="cert-sig-block">
+                  <p class="cert-sig-name">{{ certData.studentName }}</p>
+                  <div class="cert-sig-underline"></div>
+                  <p class="cert-sig-pos">OJT Intern</p>
+                  <p class="cert-sig-school">{{ certData.school }}</p>
+                </div>
+
+              </div>
+
+            </div><!-- /cert-content -->
+          </div><!-- /cert-frame-inner -->
+        </div><!-- /cert-frame-outer -->
+
+      </div><!-- /certificate -->
+    </div><!-- /cert-scroll-area -->
 
   </div>
 </div>
