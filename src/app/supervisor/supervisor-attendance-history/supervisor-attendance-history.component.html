@@ -162,7 +162,12 @@
 <div class="modal-card" *ngIf="showAddModal">
   <div class="modal-header">
     <div>
-      <h4 class="modal-title">Add Attendance Record</h4>
+      <div class="modal-title-row">
+        <div class="modal-title-icon">
+          <i class="fa-solid fa-clipboard-list"></i>
+        </div>
+        <h4 class="modal-title">Add Attendance Record</h4>
+      </div>
       <p class="modal-subtitle">{{ formatDisplayDate(selectedDate) }}</p>
     </div>
     <button class="modal-close" (click)="closeAddModal()">
@@ -253,7 +258,7 @@
           <input type="radio" [(ngModel)]="addForm.status" value="Half Day"> Half Day
         </label>
       </div>
-    </div>__>
+    </div>-->
 
     <!-- Error -->
     <div class="modal-error" *ngIf="addError">
