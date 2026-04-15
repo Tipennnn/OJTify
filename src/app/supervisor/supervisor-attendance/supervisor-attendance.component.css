@@ -263,34 +263,48 @@ app-supervisor-topnav {
 .badge-declined { background: #fdeaea; color: #dc2626; }
 
 /* =========================
-   SCANNER MODAL
+   SCANNER MODAL — REDESIGNED
 ========================= */
 .scanner-overlay-bg {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.6);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 500;
+  
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeInOverlay 0.2s ease;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .scanner-modal {
-  background: white;
-  border-radius: 16px;
-  width: 650px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  background: #ffffff;
+  border-radius: 20px;
+  width: 680px;                          /* dati: 580px */
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  animation: slideUpModal 0.25s ease;
 }
 
+@keyframes slideUpModal {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Header --- */
 .scanner-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .qr-icon-box {
@@ -302,71 +316,127 @@ app-supervisor-topnav {
   align-items: center;
   justify-content: center;
   color: #2563eb;
-  font-size: 18px;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.scanner-modal-header > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scanner-modal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.scanner-modal-header p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .close-scanner-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   background: none;
-  border: none;
-  font-size: 22px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #6b7280;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Poppins', sans-serif;
+  flex-shrink: 0;
 }
-.close-scanner-btn:hover { color: #111827; }
 
-.scanner-divider { height: 1px; background: #e5e7eb; }
+.close-scanner-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
 
-/* CAMERA */
+/* --- Camera --- */
 .camera-container {
   position: relative;
-  background: #111827;
-  border-radius: 12px;
+  background: #0f172a;
+  margin: 20px 28px;                     /* dati: 16px 24px */
+  border-radius: 16px;
   overflow: hidden;
-  min-height: 450px;
+  height: 360px;                         /* dati: 300px */
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.camera-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+
+/* Corner viewfinder brackets */
 .scan-line-wrapper {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  inset: 0;
   pointer-events: none;
 }
 
-.scan-line {
-  width: 100%;
-  height: 3px;
-  background: #2563eb;
-  box-shadow: 0 0 12px #2563eb;
-  position: absolute;
-  animation: scanMove 2s linear infinite;
-}
-
-@keyframes scanMove {
-  0%   { top: 10%; }
-  50%  { top: 90%; }
-  100% { top: 10%; }
-}
-
-/* Corner decorations */
 .corner {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  border-color: #2563eb;
+  width: 28px;
+  height: 28px;
+  border-color: #3b82f6;
   border-style: solid;
 }
 
-.top-left     { top: 10px;    left: 10px;  border-width: 3px 0 0 3px; }
-.top-right    { top: 10px;    right: 10px; border-width: 3px 3px 0 0; }
-.bottom-left  { bottom: 10px; left: 10px;  border-width: 0 0 3px 3px; }
-.bottom-right { bottom: 10px; right: 10px; border-width: 0 3px 3px 0; }
+.top-left     { top: 14px;    left: 14px;  border-width: 3px 0 0 3px; border-top-left-radius: 6px; }
+.top-right    { top: 14px;    right: 14px; border-width: 3px 3px 0 0; border-top-right-radius: 6px; }
+.bottom-left  { bottom: 14px; left: 14px;  border-width: 0 0 3px 3px; border-bottom-left-radius: 6px; }
+.bottom-right { bottom: 14px; right: 14px; border-width: 0 3px 3px 0; border-bottom-right-radius: 6px; }
 
-/* SCAN STATUS */
+.scan-line {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6 30%, #60a5fa 50%, #3b82f6 70%, transparent);
+  animation: scanMove 2s ease-in-out infinite;
+}
+
+@keyframes scanMove {
+  0%   { top: 14px; opacity: 0.7; }
+  50%  { top: calc(100% - 14px); opacity: 1; }
+  100% { top: 14px; opacity: 0.7; }
+}
+
+.camera-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: #94a3b8;
+  font-size: 11px;
+  font-family: 'Poppins', sans-serif;
+  padding: 5px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* --- Scan Status --- */
 .scanner-status {
-  min-height: 40px;
+  margin: 0 24px 14px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -374,51 +444,68 @@ app-supervisor-topnav {
 
 .status-loading {
   color: #2563eb;
-  font-size: 14px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.status-idle-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: livePulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
 }
 
 .status-result {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 500;
   width: 100%;
   justify-content: center;
+  animation: fadeIn 0.2s ease;
 }
 
-.result-timein  { background: #e8f7ee; color: #16a34a; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-timein  { background: #f0fdf4; color: #16a34a; }
 .result-timeout { background: #eff6ff; color: #2563eb; }
-.result-already { background: #fef3c7; color: #d97706; }
+.result-already { background: #fefce8; color: #ca8a04; }
 
-/* CLOSE BUTTON */
-.stop-scan-btn {
-  background: #f3f4f6;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: #374151;
-  font-family: 'Poppins', sans-serif;
+/* --- Divider --- */
+.scanner-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0 24px;
 }
-
-.stop-scan-btn:hover { background: #e5e7eb; }
 
 /* =========================
-   MANUAL ENTRY
+   MANUAL ENTRY — REDESIGNED
 ========================= */
 .manual-entry-section {
+  padding: 14px 24px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -427,10 +514,10 @@ app-supervisor-topnav {
 .manual-toggle-btn {
   background: none;
   border: 1px dashed #d1d5db;
-  padding: 9px 14px;
-  border-radius: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #6b7280;
   font-family: 'Poppins', sans-serif;
   display: flex;
@@ -438,22 +525,25 @@ app-supervisor-topnav {
   justify-content: center;
   gap: 7px;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
-.manual-toggle-btn:hover {
-  border-color: #0818A8;
-  color: #0818A8;
-  background: #f0f2ff;
+.manual-toggle-btn:hover,
+.manual-toggle-btn.open {
+  border-color: #2563eb;
+  border-style: solid;
+  color: #2563eb;
+  background: #eff6ff;
 }
 
 .manual-entry-form {
   display: flex;
   gap: 8px;
-  animation: slideDown 0.25s ease;
+  animation: slideDown 0.2s ease;
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -461,21 +551,22 @@ app-supervisor-topnav {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
   padding: 0 12px;
   gap: 8px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .manual-input-wrapper:focus-within {
-  border-color: #0818A8;
+  border-color: #2563eb;
+  background: #fff;
 }
 
 .manual-icon {
   color: #9ca3af;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .manual-id-input {
@@ -489,12 +580,14 @@ app-supervisor-topnav {
   color: #111827;
 }
 
+.manual-id-input::placeholder { color: #9ca3af; }
+
 .manual-submit-btn {
-  background: #0818A8;
+  background: #1d4ed8;
   color: #fff;
   border: none;
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -507,7 +600,7 @@ app-supervisor-topnav {
 }
 
 .manual-submit-btn:hover:not(:disabled) {
-  background: #0015d0;
+  background: #1e40af;
 }
 
 .manual-submit-btn:disabled {
@@ -569,7 +662,23 @@ app-supervisor-topnav {
 @media (max-width: 768px) {
   .applicants-table th,
   .applicants-table td { padding: 10px; font-size: 13px; }
-  .scanner-modal { width: 95%; }
+  .scanner-modal { border-radius: 16px; }
+  .camera-container { height: 240px; margin: 12px 16px; }
+  .scanner-modal-header {
+    padding: 22px 28px;                    /* dati: 20px 24px */
+  }
+  
+  .scanner-status {
+    margin: 0 28px 14px;                   /* dati: 0 24px 14px */
+  }
+  
+  .scanner-divider {
+    margin: 0 28px;                        /* dati: 0 24px */
+  }
+  
+  .manual-entry-section {
+    padding: 16px 28px 24px;              /* dati: 14px 24px 20px */
+  }
   .manual-entry-form { flex-direction: column; }
   .manual-submit-btn { width: 100%; justify-content: center; }
 }

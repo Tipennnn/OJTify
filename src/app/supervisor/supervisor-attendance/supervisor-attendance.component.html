@@ -127,41 +127,51 @@
 <div class="scanner-overlay-bg" *ngIf="showScanner">
   <div class="scanner-modal">
 
+    <!-- Header -->
     <div class="scanner-modal-header">
-      <div style="display:flex; align-items:center; gap:10px;">
+      <div>
         <div class="qr-icon-box">
           <i class="fas fa-qrcode"></i>
         </div>
         <div>
-          <h3 style="margin:0; font-size:16px;">QR Attendance Scanner</h3>
-          <p style="margin:0; font-size:12px; color:#6b7280;">
-            Point camera at intern's QR code
-          </p>
+          <h3>QR Attendance Scanner</h3>
+          <p>Point camera at intern's QR code</p>
         </div>
       </div>
-      <button class="close-scanner-btn" (click)="closeScanner()">×</button>
+      <button class="close-scanner-btn" (click)="closeScanner()">✕</button>
     </div>
 
-    <div class="scanner-divider"></div>
-
+    <!-- Camera -->
     <div class="camera-container">
       <video id="scanner-video"
              playsinline autoplay muted
-             style="width:100%; border-radius:10px; display:block;">
+             style="width:100%; height:100%; object-fit:cover; display:block;">
       </video>
+
+      <!-- Scan animation overlay -->
       <div class="scan-line-wrapper" *ngIf="scanning">
         <div class="scan-line"></div>
       </div>
+
+      <!-- Corner viewfinder brackets -->
       <div class="corner top-left"></div>
       <div class="corner top-right"></div>
       <div class="corner bottom-left"></div>
       <div class="corner bottom-right"></div>
+
+      <!-- Bottom hint -->
+      <div class="camera-hint">Scanning for QR code...</div>
     </div>
 
+    <!-- Scan status -->
     <div class="scanner-status">
+
+      <!-- Processing -->
       <div *ngIf="scanLoading" class="status-loading">
         <i class="fa fa-spinner fa-spin"></i> Processing scan...
       </div>
+
+      <!-- Result -->
       <div *ngIf="!scanLoading && scanResult"
            class="status-result"
            [class.result-timein]="scanStatus === 'timein'"
@@ -172,15 +182,22 @@
         <i class="fas fa-info-circle" *ngIf="scanStatus === 'already'"></i>
         {{ scanResult }}
       </div>
-      <div *ngIf="!scanLoading && !scanResult"
-           style="color:#9ca3af; font-size:13px; text-align:center;">
-        <i class="fas fa-search"></i> Scanning for QR code...
+
+      <!-- Idle -->
+      <div *ngIf="!scanLoading && !scanResult" class="status-idle-indicator">
+        <div class="live-dot"></div>
+        Scanner active — waiting for QR code
       </div>
+
     </div>
 
-    <!-- MANUAL ID ENTRY -->
+    <div class="scanner-divider"></div>
+
+    <!-- Manual entry -->
     <div class="manual-entry-section">
-      <button class="manual-toggle-btn" (click)="toggleManualEntry()">
+      <button class="manual-toggle-btn"
+              [class.open]="showManualEntry"
+              (click)="toggleManualEntry()">
         <i class="fas fa-keyboard"></i>
         {{ showManualEntry ? 'Hide manual entry' : 'Can\'t scan? Enter ID manually' }}
       </button>
@@ -199,7 +216,7 @@
         <button class="manual-submit-btn"
                 (click)="submitManualId()"
                 [disabled]="!manualStudentId.trim()">
-          <i class="fas fa-check"></i> Record Attendance
+          <i class="fas fa-check"></i> Record
         </button>
       </div>
     </div>
