@@ -656,6 +656,98 @@ app-supervisor-topnav {
   font-weight: 500;
 }
 
+.selected-student-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.manual-profile-pic {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.manual-student-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.manual-student-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e3a5f;
+}
+
+.manual-student-id,
+.manual-student-course {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.manual-clear-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.manual-search-dropdown {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.manual-search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.manual-search-item:hover {
+  background: #f0f9ff;
+}
+
+.manual-search-pic {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.manual-search-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.manual-search-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.manual-search-id {
+  font-size: 12px;
+  color: #6b7280;
+}
+
 /* =========================
    RESPONSIVE
 ========================= */

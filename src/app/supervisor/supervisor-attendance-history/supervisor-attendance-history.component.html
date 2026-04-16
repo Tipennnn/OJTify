@@ -4,7 +4,6 @@
     <i class="fa-solid fa-arrow-left"></i>
   </button>
   <h2 class="top-title">OJTify</h2>
-  <!--<span class="nav-subtitle">Attendance History</span>-->
 </div>
 
 <div class="page-wrapper">
@@ -94,6 +93,7 @@
             <th>Time In</th>
             <th>Time Out</th>
             <th>Status</th>
+            <th>Source</th>  <!-- NEW column -->
           </tr>
         </thead>
         <tbody>
@@ -120,16 +120,34 @@
             <td>
               <span class="status-badge badge-approved">{{ log.status }}</span>
             </td>
+
+            <!-- ── NEW: Source column shows who added it ── -->
+            <td>
+              <ng-container *ngIf="log.is_manual; else qrSource">
+                <span class="source-badge badge-manual"
+                      [title]="'Added manually by ' + log.scanned_by_name">
+                  <i class="fa-solid fa-pen-to-square"></i> Manual
+                </span>
+                <div class="source-by" *ngIf="log.scanned_by_name">
+                  by {{ log.scanned_by_name }}
+                </div>
+              </ng-container>
+             <ng-template #qrSource>
+  <span class="source-badge badge-qr">
+    <i class="fa-solid fa-qrcode"></i> QR Scan
+  </span>
+  <div class="source-by" *ngIf="log.scanned_by_name">
+    by {{ log.scanned_by_name }}
+  </div>
+</ng-template>
+            </td>
+
           </tr>
 
           <tr *ngIf="filteredLogs.length === 0">
-            <td colspan="5" class="empty-row">
+            <td colspan="6" class="empty-row">
               <i class="fas fa-calendar-times" style="font-size:32px; margin-bottom:10px; display:block;"></i>
               No attendance records for this day.
-              <br>
-              <!--<button class="add-inline-btn" (click)="openAddModal()">
-                <i class="fa-solid fa-plus"></i> Add first record
-              </button>-->
             </td>
           </tr>
         </tbody>
@@ -164,9 +182,9 @@
     <div>
       <div class="modal-title-row">
         <div class="modal-title-icon">
-          <i class="fa-solid fa-clipboard-list"></i>
+          <i class="fa-solid fa-pen-to-square"></i>
         </div>
-        <h4 class="modal-title">Add Attendance Record</h4>
+        <h4 class="modal-title">Manual Attendance Entry</h4>
       </div>
       <p class="modal-subtitle">{{ formatDisplayDate(selectedDate) }}</p>
     </div>
@@ -175,17 +193,23 @@
     </button>
   </div>
 
+  <!-- Supervisor attribution banner -->
+  <div class="supervisor-banner" *ngIf="currentSupervisor">
+    <i class="fa-solid fa-user-tie"></i>
+    <span>Recording as <strong>{{ supervisorFullName }}</strong></span>
+  </div>
+
   <!-- Success -->
   <div class="modal-success" *ngIf="addSuccess">
     <i class="fa-solid fa-circle-check"></i>
-    <span>Record saved successfully!</span>
+    <span>Record saved &amp; hours updated successfully!</span>
   </div>
 
   <div *ngIf="!addSuccess">
 
     <!-- Student Search -->
     <div class="form-group">
-      <label class="form-label">Student</label>
+      <label class="form-label">Student <span class="required">*</span></label>
       <div class="student-search-wrap">
         <div class="search-input-row">
           <i class="fa-solid fa-user-graduate search-icon"></i>
@@ -244,21 +268,28 @@
       </div>
     </div>
 
-    <!-- Status -->
-   <!--- <div class="form-group">
-      <label class="form-label">Status</label>
-      <div class="status-options">
-        <label class="status-opt" [class.active]="addForm.status === 'Present'">
-          <input type="radio" [(ngModel)]="addForm.status" value="Present"> Present
-        </label>
-        <label class="status-opt" [class.active]="addForm.status === 'Late'">
-          <input type="radio" [(ngModel)]="addForm.status" value="Late"> Late
-        </label>
-        <label class="status-opt" [class.active]="addForm.status === 'Half Day'">
-          <input type="radio" [(ngModel)]="addForm.status" value="Half Day"> Half Day
-        </label>
-      </div>
-    </div>-->
+    <!-- ── NEW: Hours preview chip ── -->
+    <div class="hours-preview" *ngIf="computedHours !== null">
+      <i class="fa-solid fa-hourglass-half"></i>
+      <span>
+        <strong>{{ computedHours }} hrs</strong> will be added to the intern's completed hours
+      </span>
+    </div>
+    <div class="hours-preview hours-preview--warn" *ngIf="addForm.time_in && !addForm.time_out">
+      <i class="fa-solid fa-circle-info"></i>
+      <span>No Time Out provided — completed hours will <strong>not</strong> be updated yet.</span>
+    </div>
+
+    <!-- ── NEW: Reason field ── -->
+    <div class="form-group">
+      <label class="form-label">Reason for Manual Entry <span class="optional">(optional)</span></label>
+      <input
+        type="text"
+        class="form-input"
+        placeholder="e.g. Intern forgot to scan QR code"
+        [(ngModel)]="addForm.reason"
+        maxlength="200">
+    </div>
 
     <!-- Error -->
     <div class="modal-error" *ngIf="addError">

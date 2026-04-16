@@ -729,3 +729,76 @@ body {
 }
 .btn-submit:hover:not(:disabled) { background: #0612a0; }
 .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ─── Add these styles to supervisor-attendance-history.component.css ─── */
+
+/* Supervisor banner in modal */
+.supervisor-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #3730a3;
+}
+.supervisor-banner i {
+  font-size: 15px;
+  color: #4f46e5;
+}
+
+/* Hours preview chip */
+.hours-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #166534;
+}
+.hours-preview i {
+  color: #16a34a;
+}
+.hours-preview--warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.hours-preview--warn i {
+  color: #d97706;
+}
+
+/* Source column badges */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-manual {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.badge-qr {
+  background: #ede9fe;
+  color: #4c1d95;
+  border: 1px solid #c4b5fd;
+}
+.source-by {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 3px;
+  padding-left: 2px;
+}

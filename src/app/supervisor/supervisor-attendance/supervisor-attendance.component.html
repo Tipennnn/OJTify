@@ -203,22 +203,68 @@
       </button>
 
       <div class="manual-entry-form" *ngIf="showManualEntry">
-        <div class="manual-input-wrapper">
-          <i class="fas fa-id-card manual-icon"></i>
-          <input
-            type="text"
-            class="manual-id-input"
-            placeholder="Enter Student ID (e.g. 2021-00123)"
-            [(ngModel)]="manualStudentId"
-            (keydown.enter)="submitManualId()"
-          />
-        </div>
-        <button class="manual-submit-btn"
-                (click)="submitManualId()"
-                [disabled]="!manualStudentId.trim()">
-          <i class="fas fa-check"></i> Record
-        </button>
+
+  <!-- Selected student preview -->
+  <div class="selected-student-card" *ngIf="selectedManualStudent">
+    <img [src]="selectedManualStudent.profile_photo_id
+                ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
+                  + selectedManualStudent.profile_photo_id + '/view?project=' + PROJECT_ID
+                : 'https://ui-avatars.com/api/?name='
+                  + selectedManualStudent.first_name + '+'
+                  + selectedManualStudent.last_name
+                  + '&background=2563eb&color=fff&size=64'"
+         class="manual-profile-pic" alt="Profile">
+    <div class="manual-student-info">
+      <span class="manual-student-name">
+        {{ selectedManualStudent.first_name }} {{ selectedManualStudent.last_name }}
+      </span>
+      <span class="manual-student-id">{{ selectedManualStudent.student_id }}</span>
+      <span class="manual-student-course">{{ selectedManualStudent.course }}</span>
+    </div>
+    <button class="manual-clear-btn" (click)="clearManualSelection()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Search input -->
+  <div class="manual-input-wrapper" *ngIf="!selectedManualStudent">
+    <i class="fas fa-id-card manual-icon"></i>
+    <input
+      type="text"
+      class="manual-id-input"
+      placeholder="Search by name or Student ID..."
+      [(ngModel)]="manualStudentId"
+      (input)="onManualIdInput()"
+      (keydown.enter)="submitManualId()"
+      autocomplete="off"
+    />
+  </div>
+
+  <!-- Dropdown results -->
+  <div class="manual-search-dropdown" *ngIf="manualSearchResults.length > 0">
+    <div class="manual-search-item"
+         *ngFor="let s of manualSearchResults"
+         (click)="selectManualStudent(s)">
+      <img [src]="s.profile_photo_id
+                  ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
+                    + s.profile_photo_id + '/view?project=' + PROJECT_ID
+                  : 'https://ui-avatars.com/api/?name=' + s.first_name + '+'
+                    + s.last_name + '&background=2563eb&color=fff&size=64'"
+           class="manual-search-pic" alt="">
+      <div class="manual-search-info">
+        <span class="manual-search-name">{{ s.first_name }} {{ s.last_name }}</span>
+        <span class="manual-search-id">{{ s.student_id }}</span>
       </div>
+    </div>
+  </div>
+
+  <button class="manual-submit-btn"
+          (click)="submitManualId()"
+          [disabled]="!manualStudentId.trim()">
+    <i class="fas fa-check"></i> Record Attendance
+  </button>
+
+</div>
     </div>
 
   </div>

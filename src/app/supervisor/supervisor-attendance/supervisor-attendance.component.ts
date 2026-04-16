@@ -57,6 +57,9 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   supervisorId   = '';
   supervisorName = '';
 
+  manualSearchResults : any[] = [];
+selectedManualStudent : any = null;
+
   private stream    : MediaStream | null = null;
   private animFrame : number = 0;
 
@@ -216,33 +219,31 @@ get pagedLogs() {
   }
 
   async submitManualId() {
-    const inputId = this.manualStudentId.trim();
-    if (!inputId) return;
+  const inputId = this.manualStudentId.trim();
+  if (!inputId) return;
 
-    const student = this.allStudents.find(
-      s => s.student_id?.toLowerCase() === inputId.toLowerCase()
-    ) ?? this.allArchived.find(
+  const student = this.selectedManualStudent
+    ?? this.allStudents.find(
       s => s.student_id?.toLowerCase() === inputId.toLowerCase()
     );
 
-    if (!student) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Student Not Found',
-        text: `No intern found with ID "${inputId}". Please check and try again.`,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3500
-      });
-      return;
-    }
-
-    const qrPayload      = `OJTIFY_ATTENDANCE:${student.$id}`;
-    this.manualStudentId = '';
-    this.showManualEntry = false;
-    await this.processQR(qrPayload);
+  if (!student) {
+    Swal.fire({
+      icon: 'error', title: 'Student Not Found',
+      text: `No intern found with ID "${inputId}".`,
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 3500
+    });
+    return;
   }
+
+  const qrPayload           = `OJTIFY_ATTENDANCE:${student.$id}`;
+  this.manualStudentId      = '';
+  this.selectedManualStudent = null;
+  this.manualSearchResults  = [];
+  this.showManualEntry      = false;
+  await this.processQR(qrPayload);
+}
 
   async startCamera() {
     this.stopCamera();
@@ -575,4 +576,36 @@ get pagedLogs() {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+  onManualIdInput() {
+  const query = this.manualStudentId.trim().toLowerCase();
+  if (!query) {
+    this.manualSearchResults  = [];
+    this.selectedManualStudent = null;
+    return;
+  }
+
+  // Filter only students assigned to this supervisor
+  this.manualSearchResults = this.allStudents
+    .filter(s =>
+      s.supervisor_id === this.supervisorId &&
+      (
+        s.student_id?.toLowerCase().includes(query) ||
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(query)
+      )
+    )
+    .slice(0, 5); // max 5 results
+}
+
+selectManualStudent(student: any) {
+  this.selectedManualStudent = student;
+  this.manualStudentId       = student.student_id;
+  this.manualSearchResults   = [];
+}
+
+clearManualSelection() {
+  this.selectedManualStudent = null;
+  this.manualStudentId       = '';
+  this.manualSearchResults   = [];
+}
+
 }
