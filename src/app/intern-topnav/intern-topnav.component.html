@@ -110,104 +110,96 @@
     <div class="cert-scroll-area">
       <div id="certificate-preview" class="certificate">
 
-        <!-- Wave decorations (top-left and bottom-right) -->
-        <div class="cert-wave-tl">
-          <svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <path d="M0 0 L420 0 L420 28 Q310 85 200 45 Q100 10 0 55 Z" fill="#1e3a8a"/>
-            <path d="M0 0 L380 0 L380 18 Q270 68 165 32 Q80 4 0 38 Z" fill="#c9a84c"/>
-            <path d="M0 180 Q90 130 190 162 Q290 195 390 148 L420 132 L420 240 L0 240 Z" fill="#1e3a8a"/>
-            <path d="M0 195 Q100 150 200 178 Q300 208 405 164 L420 152 L420 240 L0 240 Z" fill="#c9a84c"/>
+        <!-- Top accent bars -->
+        <div class="cert-top-bar"></div>
+        <div class="cert-top-bar-gold"></div>
+
+        <div class="cert-body">
+
+          <!-- Double inner border -->
+          <div class="cert-inner-border"></div>
+
+          <!-- Corner ornaments -->
+          <svg class="cert-corner-ornament tl" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
           </svg>
-        </div>
-        <div class="cert-wave-br">
-          <svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <path d="M420 0 L0 0 L0 28 Q110 85 220 45 Q320 10 420 55 Z" fill="#1e3a8a"/>
-            <path d="M420 0 L40 0 L40 18 Q150 68 255 32 Q340 4 420 38 Z" fill="#c9a84c"/>
-            <path d="M420 180 Q330 130 230 162 Q130 195 30 148 L0 132 L0 240 L420 240 Z" fill="#1e3a8a"/>
-            <path d="M420 195 Q320 150 220 178 Q120 208 15 164 L0 152 L0 240 L420 240 Z" fill="#c9a84c"/>
+          <svg class="cert-corner-ornament tr" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
           </svg>
-        </div>
+          <svg class="cert-corner-ornament bl" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
+          </svg>
+          <svg class="cert-corner-ornament br" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
+          </svg>
 
-        <!-- Thin double border frame -->
-        <div class="cert-frame-outer">
-          <div class="cert-frame-inner">
+          <div class="cert-content">
 
-            <div class="cert-content">
-
-              <!-- Header info -->
-              <div class="cert-header">
+            <!-- Header (no logo) -->
+            <div class="cert-header">
+              <div>
                 <p class="cert-republic">Republic of the Philippines</p>
-                <p class="cert-dept">SCHOOLS DIVISION OF OLONGAPO CITY</p>
+                <p class="cert-dept">Schools Division of Olongapo City</p>
                 <p class="cert-school-name">Olongapo City Elementary School</p>
                 <p class="cert-address">Olongapo City, Zambales</p>
               </div>
+            </div>
 
-              <!-- Main title -->
-              <div class="cert-title-wrap">
-                <h1 class="cert-main-title">CERTIFICATE OF COMPLETION</h1>
-                <div class="cert-title-lines">
-                  <div class="cert-tl-blue"></div>
-                  <div class="cert-tl-gold"></div>
-                </div>
+            <!-- Title -->
+            <h1 class="cert-main-title">Certificate of Completion</h1>
+            <p class="cert-subtitle-tag">On-the-Job Training Program</p>
+
+            <!-- Awarded to -->
+            <p class="cert-awarded-text">This certificate is proudly awarded to</p>
+
+            <!-- Student name -->
+            <div class="cert-name-wrap">
+              <p class="cert-cursive-name">{{ certData.studentName }}</p>
+              <div class="cert-name-line"></div>
+            </div>
+
+            <!-- Body text -->
+            <p class="cert-body-para">
+              for successfully completing the
+              <strong>{{ certData.hoursCompleted }}-hour On-the-Job Training (OJT)</strong>,
+              taking up <strong>{{ certData.course }}</strong>
+              from <strong>{{ certData.school }}</strong>,
+              conducted at <strong>Olongapo City Elementary School</strong>.
+            </p>
+
+            <p class="cert-given-text">
+              Given this {{ certData.endDate }}, Olongapo City, Zambales.
+            </p>
+
+            <!-- Signatures (no seal) -->
+            <div class="cert-sig-row">
+
+              <div class="cert-sig-block">
+                <p class="cert-sig-name">{{ certData.supervisorName | uppercase }}</p>
+                <div class="cert-sig-underline"></div>
+                <p class="cert-sig-pos">{{ certData.supervisorPos }}</p>
+                <p class="cert-sig-school">Olongapo City Elementary School</p>
               </div>
 
-              <!-- Awarded to -->
-              <p class="cert-awarded-text">This certificate is awarded to</p>
-
-              <!-- Student name in cursive -->
-              <div class="cert-name-wrap">
-                <p class="cert-cursive-name">{{ certData.studentName }}</p>
-                <div class="cert-name-underline"></div>
+              <div class="cert-sig-block">
+                <p class="cert-sig-name">{{ certData.supervisorName | uppercase }}</p>
+                <div class="cert-sig-underline"></div>
+                <p class="cert-sig-pos">Supervisor</p>
+                <p class="cert-sig-school">Olongapo City Elementary School</p>
               </div>
 
-              <!-- Body text -->
-              <p class="cert-body-para">
-                for successfully completing the
-                <strong>{{ certData.hoursCompleted }}-hour On-the-Job Training (OJT)</strong>,
-                taking up <strong>{{ certData.course }}</strong>
-                from <strong>{{ certData.school }}</strong>,
-                conducted at <strong>Olongapo City Elementary School</strong>.
-              </p>
+            </div>
 
-              <p class="cert-body-para cert-given">
-                Given this {{ certData.endDate }}, Olongapo City, Zambales.
-              </p>
+          </div><!-- /cert-content -->
+        </div><!-- /cert-body -->
 
-              <!-- Signatures + Seal -->
-              <div class="cert-sig-row">
-
-                <div class="cert-sig-block">
-                  <p class="cert-sig-name">{{ certData.supervisorName }}</p>
-                  <div class="cert-sig-underline"></div>
-                  <p class="cert-sig-pos">{{ certData.supervisorPos }}</p>
-                  <p class="cert-sig-school">Olongapo City Elementary School</p>
-                </div>
-
-                <!-- Gold seal with ribbon -->
-                <div class="cert-seal-wrap">
-                  <div class="cert-seal-ring">
-                    <div class="cert-seal-circle">
-                      <i class="fa-solid fa-award"></i>
-                    </div>
-                  </div>
-                  <div class="cert-ribbon">
-                    <div class="cert-ribbon-left"></div>
-                    <div class="cert-ribbon-right"></div>
-                  </div>
-                </div>
-
-                <div class="cert-sig-block">
-                  <p class="cert-sig-name">{{ certData.studentName }}</p>
-                  <div class="cert-sig-underline"></div>
-                  <p class="cert-sig-pos">OJT Intern</p>
-                  <p class="cert-sig-school">{{ certData.school }}</p>
-                </div>
-
-              </div>
-
-            </div><!-- /cert-content -->
-          </div><!-- /cert-frame-inner -->
-        </div><!-- /cert-frame-outer -->
+        <!-- Bottom accent bars -->
+        <div class="cert-bottom-bar-gold"></div>
+        <div class="cert-bottom-bar"></div>
 
       </div><!-- /certificate -->
     </div><!-- /cert-scroll-area -->

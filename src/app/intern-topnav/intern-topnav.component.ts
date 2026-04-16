@@ -31,11 +31,11 @@ export class InternTopnavComponent implements OnInit {
 
   certData = {
     studentName:    'Juan Dela Cruz',
-    school:         'Polytechnic University of the Philippines',
+    school:         'Olongapo City Elementary School',
     course:         'Bachelor of Science in Information Technology',
     company:        'Olongapo City Elementary School',
-    hoursCompleted: 486,
-    requiredHours:  486,
+    hoursCompleted: 500,
+    requiredHours:  500,
     startDate:      'January 6, 2025',
     endDate:        'May 16, 2025',
     supervisorName: 'Maria Santos',
