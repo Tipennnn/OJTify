@@ -57,8 +57,8 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   supervisorId   = '';
   supervisorName = '';
 
-  manualSearchResults : any[] = [];
-selectedManualStudent : any = null;
+  manualSearchResults  : any[] = [];
+  selectedManualStudent: any   = null;
 
   private stream    : MediaStream | null = null;
   private animFrame : number = 0;
@@ -116,26 +116,24 @@ selectedManualStudent : any = null;
     }
   }
 
-  // Add these properties
-currentPage  = 1;
-pageSize     = 10;
-totalPages   = 1;
-pageNumbers  : number[] = [];
+  currentPage  = 1;
+  pageSize     = 10;
+  totalPages   = 1;
+  pageNumbers  : number[] = [];
 
-// Add these methods
-updatePagination() {
-  this.totalPages  = Math.max(1, Math.ceil(this.filteredLogs.length / this.pageSize));
-  this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
-}
+  updatePagination() {
+    this.totalPages  = Math.max(1, Math.ceil(this.filteredLogs.length / this.pageSize));
+    this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
 
-goToPage(page: number) { this.currentPage = page; }
-prevPage() { if (this.currentPage > 1) this.currentPage--; }
-nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; }
+  goToPage(page: number) { this.currentPage = page; }
+  prevPage() { if (this.currentPage > 1) this.currentPage--; }
+  nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; }
 
-get pagedLogs() {
-  const start = (this.currentPage - 1) * this.pageSize;
-  return this.filteredLogs.slice(start, start + this.pageSize);
-}
+  get pagedLogs() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredLogs.slice(start, start + this.pageSize);
+  }
 
   async loadTodayAttendance() {
     this.loading = true;
@@ -193,57 +191,81 @@ get pagedLogs() {
   }
 
   openScanner() {
-    this.showScanner     = true;
-    this.scanResult      = '';
-    this.scanStatus      = '';
-    this.lastScanned     = '';
-    this.showManualEntry = false;
-    this.manualStudentId = '';
+    this.showScanner          = true;
+    this.showManualEntry      = false;
+    this.scanResult           = '';
+    this.scanStatus           = '';
+    this.lastScanned          = '';
+    this.manualStudentId      = '';
+    this.selectedManualStudent = null;
+    this.manualSearchResults  = [];
     setTimeout(() => { this.startCamera(); }, 500);
   }
 
   closeScanner() {
     this.stopCamera();
-    this.showScanner     = false;
-    this.scanResult      = '';
-    this.scanStatus      = '';
-    this.showManualEntry = false;
-    this.manualStudentId = '';
+    this.showScanner          = false;
+    this.showManualEntry      = false;
+    this.scanResult           = '';
+    this.scanStatus           = '';
+    this.manualStudentId      = '';
+    this.selectedManualStudent = null;
+    this.manualSearchResults  = [];
   }
 
+  /** Switch to camera tab — restart camera */
+  switchToCamera() {
+    if (!this.showManualEntry) return;
+    this.showManualEntry      = false;
+    this.manualStudentId      = '';
+    this.selectedManualStudent = null;
+    this.manualSearchResults  = [];
+    setTimeout(() => { this.startCamera(); }, 200);
+  }
+
+  /** Switch to manual tab — stop camera */
+  switchToManual() {
+    if (this.showManualEntry) return;
+    this.stopCamera();
+    this.showManualEntry = true;
+    this.scanResult      = '';
+    this.scanStatus      = '';
+  }
+
+  /** kept for backward compat — not used in new template */
   toggleManualEntry() {
-    this.showManualEntry = !this.showManualEntry;
-    if (!this.showManualEntry) {
-      this.manualStudentId = '';
+    if (this.showManualEntry) {
+      this.switchToCamera();
+    } else {
+      this.switchToManual();
     }
   }
 
   async submitManualId() {
-  const inputId = this.manualStudentId.trim();
-  if (!inputId) return;
+    const inputId = this.manualStudentId.trim();
+    if (!inputId && !this.selectedManualStudent) return;
 
-  const student = this.selectedManualStudent
-    ?? this.allStudents.find(
-      s => s.student_id?.toLowerCase() === inputId.toLowerCase()
-    );
+    const student = this.selectedManualStudent
+      ?? this.allStudents.find(
+        s => s.student_id?.toLowerCase() === inputId.toLowerCase()
+      );
 
-  if (!student) {
-    Swal.fire({
-      icon: 'error', title: 'Student Not Found',
-      text: `No intern found with ID "${inputId}".`,
-      toast: true, position: 'top-end',
-      showConfirmButton: false, timer: 3500
-    });
-    return;
+    if (!student) {
+      Swal.fire({
+        icon: 'error', title: 'Student Not Found',
+        text: `No intern found with ID "${inputId}".`,
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 3500
+      });
+      return;
+    }
+
+    const qrPayload            = `OJTIFY_ATTENDANCE:${student.$id}`;
+    this.manualStudentId       = '';
+    this.selectedManualStudent = null;
+    this.manualSearchResults   = [];
+    await this.processQR(qrPayload);
   }
-
-  const qrPayload           = `OJTIFY_ATTENDANCE:${student.$id}`;
-  this.manualStudentId      = '';
-  this.selectedManualStudent = null;
-  this.manualSearchResults  = [];
-  this.showManualEntry      = false;
-  await this.processQR(qrPayload);
-}
 
   async startCamera() {
     this.stopCamera();
@@ -388,7 +410,6 @@ get pagedLogs() {
       if (existing) {
         if (!existing.time_out || existing.time_out === '') {
 
-          // ── RECORD TIME OUT ───────────────────────────────
           await this.appwrite.databases.updateDocument(
             this.appwrite.DATABASE_ID,
             this.appwrite.ATTENDANCE_COL,
@@ -400,7 +421,6 @@ get pagedLogs() {
             }
           );
 
-          // ── CALCULATE HOURS ───────────────────────────────
           const parseTimeToMinutes = (t: string): number => {
             try {
               const parts   = t.trim().split(' ');
@@ -420,7 +440,6 @@ get pagedLogs() {
           if (diffMinutes < 0) diffMinutes += 24 * 60;
           const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
-          // ── UPDATE HOURS — only for active (non-archived) students ──
           const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
 
           if (hoursWorked > 0 && isActiveStudent) {
@@ -445,8 +464,6 @@ get pagedLogs() {
                 { completed_hours: newCompleted }
               );
 
-              // Keep local allStudents cache in sync so OJT page reflects
-              // the new value immediately when navigated to (same session)
               const idx = this.allStudents.findIndex(s => s.$id === studentId);
               if (idx !== -1) {
                 this.allStudents[idx] = {
@@ -458,7 +475,6 @@ get pagedLogs() {
               this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
               this.scanStatus = 'timeout';
 
-              // Update the attendance table row in place
               const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
               if (logIndex !== -1) {
                 this.todayLogs[logIndex].time_out = timeStr;
@@ -480,7 +496,6 @@ get pagedLogs() {
             }
 
           } else if (hoursWorked > 0 && !isActiveStudent) {
-            // Archived student — attendance recorded but no hours update needed
             this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
             this.scanStatus = 'timeout';
 
@@ -514,7 +529,6 @@ get pagedLogs() {
         }
 
       } else {
-        // ── RECORD TIME IN ────────────────────────────────────
         const doc = await this.appwrite.databases.createDocument(
           this.appwrite.DATABASE_ID,
           this.appwrite.ATTENDANCE_COL,
@@ -576,36 +590,35 @@ get pagedLogs() {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+
   onManualIdInput() {
-  const query = this.manualStudentId.trim().toLowerCase();
-  if (!query) {
-    this.manualSearchResults  = [];
-    this.selectedManualStudent = null;
-    return;
+    const query = this.manualStudentId.trim().toLowerCase();
+    if (!query) {
+      this.manualSearchResults   = [];
+      this.selectedManualStudent = null;
+      return;
+    }
+
+    this.manualSearchResults = this.allStudents
+      .filter(s =>
+        s.supervisor_id === this.supervisorId &&
+        (
+          s.student_id?.toLowerCase().includes(query) ||
+          `${s.first_name} ${s.last_name}`.toLowerCase().includes(query)
+        )
+      )
+      .slice(0, 5);
   }
 
-  // Filter only students assigned to this supervisor
-  this.manualSearchResults = this.allStudents
-    .filter(s =>
-      s.supervisor_id === this.supervisorId &&
-      (
-        s.student_id?.toLowerCase().includes(query) ||
-        `${s.first_name} ${s.last_name}`.toLowerCase().includes(query)
-      )
-    )
-    .slice(0, 5); // max 5 results
-}
+  selectManualStudent(student: any) {
+    this.selectedManualStudent = student;
+    this.manualStudentId       = student.student_id;
+    this.manualSearchResults   = [];
+  }
 
-selectManualStudent(student: any) {
-  this.selectedManualStudent = student;
-  this.manualStudentId       = student.student_id;
-  this.manualSearchResults   = [];
-}
-
-clearManualSelection() {
-  this.selectedManualStudent = null;
-  this.manualStudentId       = '';
-  this.manualSearchResults   = [];
-}
-
+  clearManualSelection() {
+    this.selectedManualStudent = null;
+    this.manualStudentId       = '';
+    this.manualSearchResults   = [];
+  }
 }
