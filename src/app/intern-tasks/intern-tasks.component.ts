@@ -37,6 +37,7 @@ interface Comment {
   role: string;
   message: string;
   created_at: string;
+  profile_photo_id?: string;
 }
 
 @Component({
@@ -65,6 +66,7 @@ export class InternTasksComponent implements OnInit {
   tasks      : Task[]       = [];
   comments   : Comment[]    = [];
   submissions: Submission[] = [];
+  internPhotoMap: { [userId: string]: string } = {};
 
 currentUserId   = '';
 currentUserName = '';
@@ -73,10 +75,11 @@ currentUserName = '';
 
   constructor(private appwrite: AppwriteService) {}
 
-  async ngOnInit() {
-    await this.getCurrentUser();
-    await this.loadTasks();
-  }
+async ngOnInit() {
+  await this.getCurrentUser();
+  await this.loadInternPhotos(); // ← add this
+  await this.loadTasks();
+}
 
   // ── Get current logged-in user ────────────────────────────
   async getCurrentUser() {
@@ -463,4 +466,31 @@ async deleteSubmission(submission: Submission) {
     this.submissions  = [];
     this.newComment   = '';
   }
+  getInitials(fullName: string): string {
+  if (!fullName) return '?';
+  const parts = fullName.trim().split(' ');
+  return ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase();
+}
+async loadInternPhotos() {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    (res.documents as any[]).forEach(s => {
+      if (s.profile_photo_id) {
+        this.internPhotoMap[s.$id] = s.profile_photo_id;
+      }
+    });
+  } catch (error: any) {
+    console.error('Failed to load intern photos:', error.message);
+  }
+}
+
+getCommentPhotoUrl(userId: string): string | null {
+  const photoId = this.internPhotoMap[userId];
+  if (!photoId) return null;
+  return `https://sgp.cloud.appwrite.io/v1/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=69ba8d9c0027d10c447f`;
+}
+
 }

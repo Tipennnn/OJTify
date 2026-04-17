@@ -13,6 +13,7 @@ interface Intern {
   last_name: string;
   course: string;
   supervisor_id?: string;
+  profile_photo_id?: string;
 }
 
 interface Task {
@@ -59,6 +60,7 @@ export class SupervisorTasksComponent implements OnInit {
 
   editingCommentId : string | null = null;
   editingMessage                   = '';
+  internPhotoMap: { [userId: string]: string } = {};
 
   tasks          : Task[]   = [];
   allInterns     : Intern[] = [];
@@ -66,6 +68,7 @@ export class SupervisorTasksComponent implements OnInit {
   selectedInterns: Intern[] = [];
   internSearchQuery = '';
   assignMode: 'all' | 'specific' = 'specific';
+  taskSubmissionCountMap: { [taskId: string]: number } = {};
 
   selectedTask       : Task        = this.emptyTask();
   selectedFile       : File | null = null;
@@ -118,6 +121,7 @@ export class SupervisorTasksComponent implements OnInit {
     await this.getCurrentSupervisor();
     await this.loadAssignedInterns();
     await this.loadTasks();
+    await this.loadInternPhotos();
   }
 
   // ── Get current supervisor ────────────────────────────────
@@ -157,13 +161,27 @@ export class SupervisorTasksComponent implements OnInit {
 // ── Load tasks created by THIS supervisor only ────────────
 async loadTasks() {
   try {
-    const res      = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.TASKS_COL
-    );
+    const [tasksRes, subsRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL
+      )
+    ]);
 
-    // Only show tasks created by this supervisor
-    this.tasks = (res.documents as any[])
+    const allSubs = subsRes.documents as any[];
+
+    // Build a count map: taskId → number of submissions
+    this.taskSubmissionCountMap = {};
+    allSubs.forEach(sub => {
+      if (!this.taskSubmissionCountMap[sub.task_id]) {
+        this.taskSubmissionCountMap[sub.task_id] = 0;
+      }
+      this.taskSubmissionCountMap[sub.task_id]++;
+    });
+
+    this.tasks = (tasksRes.documents as any[])
       .filter(task => task.supervisor_id === this.currentSupervisorId)
       .sort((a, b) =>
         new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
@@ -617,4 +635,31 @@ return ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCas
   getFileUrl(fileId: string, mode: 'view' | 'download' = 'view'): string {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
+  async loadInternPhotos() {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    (res.documents as any[]).forEach(s => {
+      if (s.profile_photo_id) {
+        this.internPhotoMap[s.$id] = s.profile_photo_id;
+      }
+    });
+  } catch (error: any) {
+    console.error('Failed to load intern photos:', error.message);
+  }
+}
+getCommentPhotoUrl(userId: string): string | null {
+  const photoId = this.internPhotoMap[userId];
+  if (!photoId) return null;
+  return `https://sgp.cloud.appwrite.io/v1/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=69ba8d9c0027d10c447f`;
+}
+getTaskAssignedCount(task: Task): number {
+  return this.getAssignedIds(task).length;
+}
+
+getTaskSubmittedCount(task: Task): number {
+  return this.taskSubmissionCountMap[task.$id ?? ''] ?? 0;
+}
 }

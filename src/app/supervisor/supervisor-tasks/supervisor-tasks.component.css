@@ -525,3 +525,35 @@ textarea { resize: none; }
   font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Poppins', sans-serif;
 }
 .subs-close-btn:hover { background: #060f7a; }
+.task-badge-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.submission-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.submission-badge.none-submitted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.submission-badge.partial {
+  background: #fff7ed;
+  color: #d97706;
+}
+
+.submission-badge.all-done {
+  background: #f0fdf4;
+  color: #16a34a;
+}

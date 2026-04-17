@@ -123,7 +123,7 @@
 
       <div class="task-author-meta">
         <div class="author-left">
-          <div class="author-avatar">{{ selectedTask?.title?.charAt(0) }}</div>
+          <div class="author-avatar">{{ getInitials(selectedTask?.supervisor_name || 'Supervisor') }}</div>
           <div class="author-info">
               <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
               <span class="author-role">Supervisor</span>
@@ -199,10 +199,19 @@
         </div>
 
        <div class="comment" *ngFor="let comment of comments">
-  <div class="avatar"
-       [style.background]="comment.role === 'supervisor' ? '#0818A8' : '#2563eb'">
-    {{ comment.user_name[0] }}
-  </div>
+<div class="avatar"
+     [style.background]="comment.role === 'supervisor' 
+       ? '#0818A8' 
+       : (getCommentPhotoUrl(comment.user_id) ? 'transparent' : '#2563eb')"
+     [style.background-image]="comment.role === 'intern' && getCommentPhotoUrl(comment.user_id) 
+       ? 'url(' + getCommentPhotoUrl(comment.user_id) + ')' 
+       : ''"
+     [style.background-size]="'cover'"
+     [style.background-position]="'center'">
+  <span *ngIf="comment.role === 'supervisor' || !getCommentPhotoUrl(comment.user_id)">
+    {{ getInitials(comment.user_name) }}
+  </span>
+</div>
 
   <div class="comment-body">
     <div class="comment-header">

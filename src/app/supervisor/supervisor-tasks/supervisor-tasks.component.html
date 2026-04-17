@@ -23,17 +23,26 @@
       <!-- TASK LIST -->
       <div class="tasks-list">
 
-        <div class="task-card"
-             *ngFor="let task of pagedTasks"
-             (click)="openCardModal(task)">
-          <div class="task-info">
-            <h3>{{ task.title }}</h3>
-            <div class="task-meta">
-              <span>Posted: {{ task.posted }}</span>
-              <span>Due: {{ task.due }}</span>
-            </div>
-          </div>
-        </div>
+       <div class="task-card"
+     *ngFor="let task of pagedTasks"
+     (click)="openCardModal(task)">
+  <div class="task-info">
+    <h3>{{ task.title }}</h3>
+    <div class="task-meta">
+      <span>Posted: {{ task.posted }}</span>
+      <span>Due: {{ task.due }}</span>
+    </div>
+  </div>
+  <div class="task-badge-wrap">
+    <span class="submission-badge"
+          [class.all-done]="getTaskSubmittedCount(task) >= getTaskAssignedCount(task) && getTaskAssignedCount(task) > 0"
+          [class.none-submitted]="getTaskSubmittedCount(task) === 0"
+          [class.partial]="getTaskSubmittedCount(task) > 0 && getTaskSubmittedCount(task) < getTaskAssignedCount(task)">
+      <i class="fa-solid fa-file-circle-check"></i>
+      {{ getTaskSubmittedCount(task) }}/{{ getTaskAssignedCount(task) }} submitted
+    </span>
+  </div>
+</div>
 
         <div *ngIf="tasks.length === 0"
              style="text-align:center; padding:40px; color:#9ca3af;">
@@ -129,9 +138,14 @@
                  [class.selected]="isSelected(intern)"
                  (click)="toggleIntern(intern)"
                  style="cursor:pointer;">
-              <div class="intern-avatar">
-                {{ intern.first_name[0] }}{{ intern.last_name[0] }}
-              </div>
+              <div class="intern-avatar" 
+     [style.backgroundImage]="intern.profile_photo_id ? 'url(' + getFileUrl(intern.profile_photo_id, 'view') + ')' : 'none'"
+     [style.backgroundSize]="'cover'"
+     [style.backgroundPosition]="'center'">
+  <span *ngIf="!intern.profile_photo_id">
+    {{ intern.first_name[0] }}{{ intern.last_name[0] }}
+  </span>
+</div>
               <span>{{ intern.first_name }} {{ intern.last_name }}</span>
               <i class="fas fa-check" *ngIf="isSelected(intern)"
                  style="margin-left:auto; color:#0818A8;"></i>
@@ -318,8 +332,8 @@
       <div class="task-author-meta">
         <div class="author-left">
           <div class="author-avatar">
-            {{ selectedTask.title?.charAt(0) }}
-          </div>
+             {{ getInitials(selectedTask.supervisor_name || 'Supervisor') }}
+        </div>
         <div class="author-info">
             <span class="author-name">{{ selectedTask.supervisor_name || 'Supervisor' }}</span>
             <span class="author-role">Supervisor</span>
@@ -360,9 +374,18 @@
 
         <div class="comment" *ngFor="let comment of taskComments">
           <div class="avatar"
-               [style.background]="comment.role === 'supervisor' ? '#0818A8' : '#2563eb'">
-            {{ comment.user_name[0] }}
-          </div>
+     [style.background]="comment.role === 'supervisor' 
+       ? '#0818A8' 
+       : (getCommentPhotoUrl(comment.user_id) ? 'transparent' : '#2563eb')"
+     [style.background-image]="comment.role === 'intern' && getCommentPhotoUrl(comment.user_id) 
+       ? 'url(' + getCommentPhotoUrl(comment.user_id) + ')' 
+       : ''"
+     [style.background-size]="'cover'"
+     [style.background-position]="'center'">
+  <span *ngIf="comment.role === 'supervisor' || !getCommentPhotoUrl(comment.user_id)">
+    {{ getInitials(comment.user_name) }}
+  </span>
+</div>
           <div class="comment-body">
             <div class="comment-header">
               <strong>

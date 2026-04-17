@@ -168,15 +168,11 @@
                 </tr>
                 <tr>
                   <td class="it-key">Position / Title</td>
-                  <td class="it-val">{{ supervisor?.position ?? '—' }}</td>
+                  <td class="it-val">Teacher</td>
                 </tr>
                 <tr>
                   <td class="it-key">Organization</td>
                   <td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Department</td>
-                  <td class="it-val">{{ supervisor?.department ?? '—' }}</td>
                 </tr>
                 <tr>
                   <td class="it-key">Email Address</td>
@@ -605,11 +601,14 @@
          <!-- Intern -->
 <div class="sig-block">
   <!-- If intern signature already saved, just show it -->
-  <ng-container *ngIf="evaluation?.intern_signature; else internDrawBlock">
-    <div class="sig-canvas">
-      <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
-    </div>
-  </ng-container>
+<ng-container *ngIf="evaluation?.intern_signature && !resigning; else internDrawBlock">
+  <div class="sig-canvas">
+    <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
+  </div>
+  <button class="clear-btn-sm" style="margin-top:8px;" (click)="startResign()">
+    <i class="fa-solid fa-rotate-left"></i> Re-sign
+  </button>
+</ng-container>
  
   <!-- No saved signature yet → show the signature pad -->
   <ng-template #internDrawBlock>
