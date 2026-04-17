@@ -8,7 +8,10 @@
     <div class="dashboard-content">
 
       <div class="dashboard-header header-flex">
-        <div><h2>Student Evaluation</h2></div>
+        <div>
+          <h2>Student Evaluation</h2>
+          <p class="header-sub">Interns who have completed their required OJT hours</p>
+        </div>
         <div class="search-box">
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" placeholder="Search student..." (input)="onSearch($event)">
@@ -17,6 +20,7 @@
 
       <div class="dashboard-divider"></div>
 
+      <!-- Tabs -->
       <div class="tab-bar">
         <button class="tab-btn" [class.active]="activeTab === 'pending'" (click)="setTab('pending')">
           <i class="fa-solid fa-hourglass-half"></i>
@@ -30,11 +34,13 @@
         </button>
       </div>
 
+      <!-- Loading -->
       <div *ngIf="loading" class="loading-state">
         <i class="fa fa-spinner fa-spin"></i>
         <p>Loading students...</p>
       </div>
 
+      <!-- PENDING TABLE -->
       <div class="center-wrapper" *ngIf="!loading && activeTab === 'pending'">
         <div class="table-container">
           <table class="applicants-table">
@@ -43,6 +49,7 @@
                 <th>Name</th>
                 <th>Student ID</th>
                 <th>Course</th>
+                <th>School</th>
                 <th>Hours Progress</th>
                 <th>Action</th>
               </tr>
@@ -55,6 +62,7 @@
                 </td>
                 <td class="plain-text">{{ student.student_id }}</td>
                 <td class="plain-text">{{ student.course }}</td>
+                <td class="plain-text">{{ student.school_name }}</td>
                 <td style="min-width: 180px;">
                   <div class="progress-bar">
                     <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
@@ -71,11 +79,14 @@
                 </td>
               </tr>
               <tr *ngIf="filteredStudents.length === 0">
-                <td colspan="5" class="empty-state">No pending students found.</td>
+                <td colspan="6" class="empty-state">
+                  <i class="fa-solid fa-clipboard-check" style="font-size:32px;margin-bottom:10px;display:block;opacity:.4;"></i>
+                  No pending students found.
+                </td>
               </tr>
             </tbody>
           </table>
-          <div class="pagination">
+          <div class="pagination" *ngIf="totalPages > 1">
             <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
@@ -89,6 +100,7 @@
         </div>
       </div>
 
+      <!-- EVALUATED TABLE -->
       <div class="center-wrapper" *ngIf="!loading && activeTab === 'evaluated'">
         <div class="table-container">
           <table class="applicants-table">
@@ -98,6 +110,8 @@
                 <th>Student ID</th>
                 <th>Course</th>
                 <th>Overall Rating</th>
+                <th>Evaluated By</th>
+                <th>Date</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -118,6 +132,10 @@
                     {{ getOverallLabel(getEvalAverage(student)) }}
                   </span>
                 </td>
+                <td class="plain-text">
+                  {{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}
+                </td>
+                <td class="plain-text">{{ getEvalDate(student) }}</td>
                 <td>
                   <button class="btn-view-action" (click)="viewEvaluation(student)">
                     <i class="fa-solid fa-eye"></i> View
@@ -125,11 +143,11 @@
                 </td>
               </tr>
               <tr *ngIf="filteredEvaluated.length === 0">
-                <td colspan="5" class="empty-state">No evaluated students yet.</td>
+                <td colspan="7" class="empty-state">No evaluated students yet.</td>
               </tr>
             </tbody>
           </table>
-          <div class="pagination">
+          <div class="pagination" *ngIf="totalPagesEval > 1">
             <button class="page-btn" (click)="prevPageEval()" [disabled]="currentPageEval === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
@@ -162,6 +180,7 @@
           <div class="modal-student-sub">
             {{ selectedStudent?.course }} &nbsp;·&nbsp; {{ selectedStudent?.student_id }}
           </div>
+          <div class="modal-student-sub">{{ selectedStudent?.school_name }}</div>
         </div>
       </div>
       <button class="modal-close-btn" (click)="closeModal()">
@@ -169,12 +188,22 @@
       </button>
     </div>
 
-    <!-- HOURS -->
+    <!-- Supervisor attribution banner (new evaluate only) -->
+    <div class="supervisor-eval-banner" *ngIf="!isViewMode() && currentSupervisor">
+      <i class="fa-solid fa-user-tie"></i>
+      <span>Submitting evaluation as <strong>{{ supervisorFullName }}</strong></span>
+    </div>
+
+    <!-- Who evaluated (view mode) -->
+    <div class="supervisor-eval-banner view-banner" *ngIf="isViewMode() && evaluation.supervisor_name">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>Evaluated by <strong>{{ evaluation.supervisor_name }}</strong> on {{ getEvalDate(selectedStudent!) }}</span>
+    </div>
+
+    <!-- HOURS PROGRESS -->
     <div class="modal-hours-section">
       <div class="hours-row">
-        <span class="hours-label">
-          <i class="fa-regular fa-clock"></i> OJT Hours Progress
-        </span>
+        <span class="hours-label"><i class="fa-regular fa-clock"></i> OJT Hours Progress</span>
         <span class="hours-value">
           {{ selectedStudent?.completed_hours || 0 }} /
           {{ selectedStudent?.required_hours  || 500 }} hrs
@@ -186,7 +215,22 @@
       </div>
     </div>
 
-    <!-- LEGEND -->
+    <!-- TRAINING PERIOD (edit mode only) -->
+    <div class="period-section" *ngIf="!isViewMode()">
+      <div class="period-label"><i class="fa-solid fa-calendar-range"></i> Training Period</div>
+      <div class="period-row">
+        <div class="period-field">
+          <label>From</label>
+          <input type="date" class="date-input" [(ngModel)]="evaluation.period_from">
+        </div>
+        <div class="period-field">
+          <label>To</label>
+          <input type="date" class="date-input" [(ngModel)]="evaluation.period_to">
+        </div>
+      </div>
+    </div>
+
+    <!-- RATING LEGEND -->
     <div class="rating-legend">
       <span *ngFor="let item of [{v:5,l:'Excellent'},{v:4,l:'Very Good'},{v:3,l:'Good'},{v:2,l:'Fair'},{v:1,l:'Poor'}]"
             class="legend-item" [style.color]="getRatingColor(item.v)">
@@ -195,17 +239,17 @@
       </span>
     </div>
 
-    <!-- CRITERIA -->
+    <!-- BODY -->
     <div class="modal-body">
       <div class="section-title">Performance Appraisal</div>
 
+      <!-- 9 criteria (including dependability) rendered by ngFor -->
       <div class="criterion-card" *ngFor="let c of CRITERIA; let i = index">
         <div class="criterion-top">
           <div class="criterion-number">{{ i + 1 }}</div>
           <div class="criterion-info">
             <div class="criterion-name">
-              <i class="fa-solid {{ c.icon }}"></i>
-              {{ c.label }}
+              <i class="fa-solid {{ c.icon }}"></i> {{ c.label }}
             </div>
             <div class="criterion-question">{{ c.question }}</div>
           </div>
@@ -231,11 +275,11 @@
         </div>
       </div>
 
-      <!-- OVERALL -->
+      <!-- OVERALL AVERAGE -->
       <div class="overall-summary" *ngIf="getOverallAverage() > 0">
         <div>
           <div class="overall-title">Overall Rating</div>
-          <div class="overall-sub">Average of all 8 criteria</div>
+          <div class="overall-sub">Average of all 9 criteria</div>
         </div>
         <div class="overall-score"
              [style.background]="getOverallColor(getOverallAverage()) + '15'"
@@ -245,23 +289,75 @@
         </div>
       </div>
 
-      <!-- REMARKS -->
-      <div class="section-title" style="margin-top: 22px;">Remarks / Comments</div>
+      <!-- ── STRENGTHS ── -->
+      <div class="section-title" style="margin-top: 20px;">
+        <span><i class="fa-solid fa-thumbs-up" style="color:#059669;margin-right:6px;"></i>Strengths</span>
+      </div>
       <textarea class="remarks-textarea"
-                placeholder="Write your overall remarks about this student's performance during OJT..."
+                placeholder="Describe the intern's notable strengths and accomplishments..."
+                [(ngModel)]="evaluation.strengths"
+                [readonly]="isViewMode()"
+                rows="3"></textarea>
+
+      <!-- ── AREAS FOR IMPROVEMENT ── -->
+      <div class="section-title" style="margin-top: 16px;">
+        <span><i class="fa-solid fa-arrow-trend-up" style="color:#d97706;margin-right:6px;"></i>Areas for Improvement</span>
+      </div>
+      <textarea class="remarks-textarea"
+                placeholder="What areas should the intern focus on improving?"
+                [(ngModel)]="evaluation.areas_for_improvement"
+                [readonly]="isViewMode()"
+                rows="3"></textarea>
+
+      <!-- ── REMARKS / COMMENTS ── -->
+      <div class="section-title" style="margin-top: 16px;">
+        <span>Overall Remarks / Comments</span>
+      </div>
+      <textarea class="remarks-textarea"
+                placeholder="Write your overall remarks about this student's OJT performance..."
                 [(ngModel)]="evaluation.remarks"
                 [readonly]="isViewMode()"
                 rows="3"></textarea>
 
-      <!-- SIGNATURE -->
-      <div class="section-title" style="margin-top: 22px;">
+      <!-- ── RECOMMENDATION ── -->
+      <div class="section-title" style="margin-top: 20px;">
+        <span><i class="fa-solid fa-award" style="color:#0818A8;margin-right:6px;"></i>Recommendation</span>
+        <span class="rec-required" *ngIf="!isViewMode() && !evaluation.recommendation">
+          <i class="fa-solid fa-circle-exclamation"></i> Required
+        </span>
+      </div>
+
+      <!-- Edit mode: clickable buttons -->
+      <div class="rec-options-row" *ngIf="!isViewMode()">
+        <button *ngFor="let r of RECOMMENDATIONS"
+                class="rec-btn"
+                [class.rec-selected]="evaluation.recommendation === r.value"
+                (click)="setRecommendation(r.value)">
+          <i class="fa-solid fa-check rec-check-icon" *ngIf="evaluation.recommendation === r.value"></i>
+          {{ r.label }}
+        </button>
+      </div>
+
+      <!-- View mode: highlight the stored recommendation -->
+      <div class="rec-options-row" *ngIf="isViewMode()">
+        <span *ngFor="let r of RECOMMENDATIONS"
+              class="rec-btn readonly"
+              [class.rec-selected]="evaluation.recommendation === r.value">
+          <i class="fa-solid fa-check rec-check-icon" *ngIf="evaluation.recommendation === r.value"></i>
+          {{ r.label }}
+        </span>
+      </div>
+
+      <!-- ── SIGNATURE SECTION ── -->
+      <div class="section-title sig-title-row" style="margin-top: 22px;">
         <span>Supervisor E-Signature</span>
-        <button *ngIf="!isViewMode() && signatureMode === 'draw' && hasSignature" class="clear-btn" (click)="clearCanvas()">
+        <button *ngIf="!isViewMode() && signatureMode === 'draw' && hasSignature"
+                class="clear-btn" (click)="clearCanvas()">
           <i class="fa-solid fa-eraser"></i> Clear
         </button>
       </div>
 
-      <!-- Signature Mode Tabs (hide in view mode) -->
+      <!-- Signature Mode Tabs -->
       <div class="sig-mode-tabs" *ngIf="!isViewMode()">
         <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
           <i class="fa-solid fa-pen-nib"></i> Draw
@@ -273,8 +369,7 @@
 
       <!-- Draw Mode -->
       <div class="sig-wrapper" [class.view-only]="isViewMode()" *ngIf="signatureMode === 'draw' || isViewMode()">
-        <canvas id="sigCanvas"
-                width="560" height="110"
+        <canvas id="sigCanvas" width="560" height="110"
                 (mousedown)="onMouseDown($event)"
                 (mousemove)="onMouseMove($event)"
                 (mouseup)="onMouseUp()"
@@ -295,7 +390,7 @@
         <div *ngIf="!hasSignature" class="sig-upload-placeholder" (click)="triggerFileInput()">
           <i class="fa-solid fa-cloud-arrow-up"></i>
           <p>Click to upload your signature image</p>
-          <span>PNG, JPG, GIF, or WebP · Will be fitted to the signature area</span>
+          <span>PNG, JPG, GIF, or WebP</span>
         </div>
         <div *ngIf="hasSignature" class="sig-upload-preview">
           <canvas id="sigCanvas" width="560" height="110" style="pointer-events:none"></canvas>
@@ -312,7 +407,8 @@
         <i class="fa-solid fa-triangle-exclamation"></i>
         Signature is required before submitting.
       </div>
-    </div>
+
+    </div><!-- /modal-body -->
 
     <!-- FOOTER -->
     <div class="modal-footer">

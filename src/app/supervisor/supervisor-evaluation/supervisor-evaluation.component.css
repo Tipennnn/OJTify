@@ -319,3 +319,57 @@ app-supervisor-topnav {
 }
 .btn-submit:hover:not(:disabled) { background: #0614cc; }
 .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.supervisor-eval-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 22px; font-size: 12.5px; font-weight: 500;
+  background: #eff6ff; color: #2563eb; border-bottom: 1px solid #dbeafe;
+}
+.supervisor-eval-banner.view-banner { background: #f0fdf4; color: #059669; border-bottom-color: #bbf7d0; }
+.supervisor-eval-banner i { font-size: 13px; }
+ 
+/* ── Header sub ──────────────────────────────────────── */
+.header-sub { font-size: 12.5px; color: #9ca3af; margin: 0 0 4px; }
+ 
+/* ── Training period section ─────────────────────────── */
+.period-section {
+  padding: 10px 22px 12px; background: #f9fafb; border-bottom: 1px solid #f1f5f9;
+}
+.period-label {
+  font-size: 11px; font-weight: 700; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+}
+.period-row   { display: flex; gap: 12px; }
+.period-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.period-field label {
+  font-size: 10.5px; font-weight: 600; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.date-input {
+  border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 10px;
+  font-size: 12.5px; font-family: 'Poppins', sans-serif; color: #374151;
+  outline: none; transition: border-color 0.15s; background: #fff; width: 100%; box-sizing: border-box;
+}
+.date-input:focus { border-color: #0818A8; }
+ 
+/* ── Recommendation ──────────────────────────────────── */
+.rec-options-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
+ 
+.rec-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  background: #fff; font-size: 12px; font-weight: 500; color: #374151;
+  cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.15s;
+}
+.rec-btn:hover:not(.readonly) { border-color: #0818A8; color: #0818A8; background: #f0f4ff; }
+.rec-btn.rec-selected {
+  border-color: #0818A8; background: #0818A8; color: #fff;
+}
+.rec-btn.readonly { cursor: default; }
+.rec-check-icon { font-size: 10px; }
+ 
+.rec-required {
+  font-size: 11px; font-weight: 600; color: #f59e0b;
+  display: flex; align-items: center; gap: 4px;
+}

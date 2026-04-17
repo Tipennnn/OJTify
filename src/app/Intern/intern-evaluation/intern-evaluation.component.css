@@ -518,6 +518,165 @@
   font-size: 10px; color: rgba(255,255,255,.55); letter-spacing: 0.2px;
 }
 
+/* ── INTERN SIGNATURE PAD (matches supervisor modal style) ── */
+.intern-sig-pad-wrap {
+  width: 100%;
+}
+
+/* Mode tabs */
+.sig-mode-tabs {
+  display: flex;
+  gap: 3px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 9px;
+  width: fit-content;
+  margin-bottom: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.sig-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.15s;
+}
+.sig-tab-btn.active {
+  background: #0818A8;
+  color: #fff;
+}
+.sig-tab-btn i { font-size: 11px; }
+
+/* Draw canvas wrapper */
+.sig-wrapper {
+  position: relative;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fdfdfd;
+  width: 100%;
+  height: 90px;
+}
+.sig-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: 90px;
+  cursor: crosshair;
+}
+.sig-wrapper .sig-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #c9cfe0;
+  pointer-events: none;
+}
+
+/* Upload area */
+.sig-upload-area { margin-top: 0; }
+
+.sig-upload-placeholder {
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.sig-upload-placeholder:hover {
+  border-color: #0818A8;
+  background: #f0f4ff;
+}
+.sig-upload-placeholder i    { font-size: 20px; color: #9ca3af; }
+.sig-upload-placeholder span { font-size: 12px; color: #374151; font-weight: 500; }
+
+.sig-upload-preview canvas {
+  display: block;
+  width: 100%;
+  height: 90px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fdfdfd;
+}
+
+/* Action buttons row */
+.intern-sig-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.clear-btn-sm {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-body);
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s;
+}
+.clear-btn-sm:hover { background: #f3f4f6; }
+
+.btn-save-sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #0818A8;
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-save-sig:hover:not(:disabled) { background: #060f7a; }
+.btn-save-sig:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Hint text */
+.sig-hint {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+/* Print: hide the pad entirely if no sig saved */
+@media print {
+  .intern-sig-pad-wrap { display: none !important; }
+}
+
 /* ── PRINT ── */
 @media print {
   @page { size: A4 portrait; margin: 0; }

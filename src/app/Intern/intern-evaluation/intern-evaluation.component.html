@@ -1,4 +1,4 @@
-<!-- WRAPPER (same structure as dashboard) -->
+<!-- WRAPPER -->
 <div class="dashboard-wrapper">
 
   <app-intern-sidenav></app-intern-sidenav>
@@ -147,7 +147,7 @@
                 </tr>
                 <tr>
                   <td class="it-key">Company / Dept.</td>
-                  <td class="it-val">{{ supervisor?.company_name ?? '—' }}</td>
+                  <td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td>
                 </tr>
               </tbody>
             </table>
@@ -172,7 +172,7 @@
                 </tr>
                 <tr>
                   <td class="it-key">Organization</td>
-                  <td class="it-val">{{ supervisor?.company_name ?? '—' }}</td>
+                  <td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td>
                 </tr>
                 <tr>
                   <td class="it-key">Department</td>
@@ -514,7 +514,7 @@
           <div class="remarks-grid">
             <div class="remarks-box">
               <div class="remarks-box-label"><i class="fa-solid fa-thumbs-up"></i> Strengths</div>
-              <p class="remarks-text">{{ evaluation?.strengths ?? evaluation?.remarks ?? 'No remarks provided.' }}</p>
+              <p class="remarks-text">{{ evaluation?.strengths ?? 'No strengths provided.' }}</p>
             </div>
             <div class="remarks-box remarks-box-improvement">
               <div class="remarks-box-label"><i class="fa-solid fa-arrow-trend-up"></i> Areas for Improvement</div>
@@ -539,19 +539,19 @@
           </div>
 
           <div class="recommendation-row">
-            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'highly_recommended' || getOverallAverage() >= 4.5">
+            <div class="rec-option" [class.rec-active]="isRecommendationActive('highly_recommended')">
               <span class="rec-check"><i class="fa-solid fa-check"></i></span>
               <span class="rec-label">Highly Recommended</span>
             </div>
-            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'recommended' || (getOverallAverage() >= 3.5 && getOverallAverage() < 4.5)">
+            <div class="rec-option" [class.rec-active]="isRecommendationActive('recommended')">
               <span class="rec-check"><i class="fa-solid fa-check"></i></span>
               <span class="rec-label">Recommended</span>
             </div>
-            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'recommended_with_reservations' || (getOverallAverage() >= 2.5 && getOverallAverage() < 3.5)">
+            <div class="rec-option" [class.rec-active]="isRecommendationActive('recommended_with_reservations')">
               <span class="rec-check"><i class="fa-solid fa-check"></i></span>
               <span class="rec-label">Recommended with Reservations</span>
             </div>
-            <div class="rec-option" [class.rec-active]="evaluation?.recommendation === 'not_recommended' || getOverallAverage() < 2.5">
+            <div class="rec-option" [class.rec-active]="isRecommendationActive('not_recommended')">
               <span class="rec-check"><i class="fa-solid fa-check"></i></span>
               <span class="rec-label">Not Recommended</span>
             </div>
@@ -574,7 +574,7 @@
               </div>
               <div class="cd-item">
                 <span class="cd-key">Training Period</span>
-                <span class="cd-val">{{ AY }}</span>
+                <span class="cd-val">{{ getEvaluationPeriod() }}</span>
               </div>
               <div class="cd-item">
                 <span class="cd-key">Date of Evaluation</span>
@@ -597,19 +597,90 @@
               <div class="sig-line"></div>
               <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
               <div class="sig-title">{{ supervisor?.position ?? 'Supervisor' }}</div>
-              <div class="sig-sub-title">{{ supervisor?.company_name ?? '—' }}</div>
+              <div class="sig-sub-title">{{ supervisor?.company_name ?? SCHOOL }}</div>
               <div class="sig-label">Evaluating Supervisor</div>
             </div>
 
             <!-- Intern -->
-            <div class="sig-block">
-              <div class="sig-canvas"></div>
-              <div class="sig-line"></div>
-              <div class="sig-fullname">{{ getFullName() }}</div>
-              <div class="sig-title">{{ student?.student_id }}</div>
-              <div class="sig-sub-title">{{ student?.course }}</div>
-              <div class="sig-label">OJT Intern</div>
-            </div>
+         <!-- Intern -->
+<div class="sig-block">
+  <!-- If intern signature already saved, just show it -->
+  <ng-container *ngIf="evaluation?.intern_signature; else internDrawBlock">
+    <div class="sig-canvas">
+      <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
+    </div>
+  </ng-container>
+ 
+  <!-- No saved signature yet → show the signature pad -->
+  <ng-template #internDrawBlock>
+    <div class="intern-sig-pad-wrap" id="internSigSection">
+      <!-- Mode tabs -->
+      <div class="sig-mode-tabs">
+        <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
+          <i class="fa-solid fa-pen-nib"></i> Draw
+        </button>
+        <button class="sig-tab-btn" [class.active]="signatureMode === 'upload'" (click)="setSignatureMode('upload')">
+          <i class="fa-solid fa-image"></i> Upload
+        </button>
+      </div>
+ 
+      <!-- Draw mode -->
+      <div class="sig-wrapper" *ngIf="signatureMode === 'draw'">
+        <canvas id="internSigCanvas" width="280" height="90"
+          (mousedown)="onMouseDown($event)"
+          (mousemove)="onMouseMove($event)"
+          (mouseup)="onMouseUp()"
+          (mouseleave)="onMouseLeave()"
+          (touchstart)="onTouchStart($event)"
+          (touchmove)="onTouchMove($event)"
+          (touchend)="onTouchEnd()">
+        </canvas>
+        <div class="sig-placeholder" *ngIf="!hasInternSig">
+          <i class="fa-solid fa-pen-nib"></i> Sign here
+        </div>
+      </div>
+ 
+      <!-- Upload mode -->
+      <div class="sig-upload-area" *ngIf="signatureMode === 'upload'">
+        <input type="file" id="internSigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+          style="display:none" (change)="onSignatureImageUpload($event)">
+        <div *ngIf="!hasInternSig" class="sig-upload-placeholder" (click)="triggerFileInput()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Upload signature image</span>
+        </div>
+        <div *ngIf="hasInternSig" class="sig-upload-preview">
+          <canvas id="internSigCanvas" width="280" height="90" style="pointer-events:none"></canvas>
+          <button class="clear-btn-sm" (click)="clearInternCanvas()">
+            <i class="fa-solid fa-eraser"></i> Remove
+          </button>
+        </div>
+      </div>
+ 
+      <!-- Action buttons -->
+      <div class="intern-sig-actions">
+        <button class="clear-btn-sm" *ngIf="hasInternSig && signatureMode === 'draw'" (click)="clearInternCanvas()">
+          <i class="fa-solid fa-eraser"></i> Clear
+        </button>
+        <button class="btn-save-sig" [disabled]="!hasInternSig || savingSig" (click)="saveInternSignature()">
+          <i class="fa-solid fa-floppy-disk" *ngIf="!savingSig"></i>
+          <i class="fa fa-spinner fa-spin" *ngIf="savingSig"></i>
+          {{ savingSig ? 'Saving…' : 'Save Signature' }}
+        </button>
+      </div>
+ 
+      <div class="sig-hint" *ngIf="!hasInternSig">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        Required before downloading
+      </div>
+    </div>
+  </ng-template>
+ 
+  <div class="sig-line"></div>
+  <div class="sig-fullname">{{ getFullName() }}</div>
+  <div class="sig-title">{{ student?.student_id }}</div>
+  <div class="sig-sub-title">{{ student?.course }}</div>
+  <div class="sig-label">OJT Intern</div>
+</div>
 
           </div>
 

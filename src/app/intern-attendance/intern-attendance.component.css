@@ -548,6 +548,189 @@
 
 .qr-note { font-size: 12px; color: #6b7280; text-align: center; }
 
+/* ── Intern Signature Pad ── */
+.intern-sig-pad-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+ 
+/* Reuse supervisor modal sig-mode-tabs style but compact */
+.sig-mode-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+ 
+.sig-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-row);
+  color: var(--text-soft);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+ 
+.sig-tab-btn.active {
+  background: var(--blue-light);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+ 
+.sig-tab-btn:hover:not(.active) {
+  background: #f0f3ff;
+  border-color: var(--blue-mid);
+}
+ 
+/* Canvas wrapper */
+.sig-wrapper {
+  position: relative;
+  border: 1.5px dashed var(--border);
+  border-radius: 6px;
+  background: #fafbfc;
+  overflow: hidden;
+  width: 100%;
+  height: 90px;
+}
+ 
+.sig-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+ 
+.sig-wrapper .sig-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-ghost);
+  pointer-events: none;
+}
+ 
+/* Upload area */
+.sig-upload-area {
+  border: 1.5px dashed var(--border);
+  border-radius: 6px;
+  background: #fafbfc;
+  overflow: hidden;
+  width: 100%;
+  height: 90px;
+}
+ 
+.sig-upload-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text-ghost);
+  font-size: 11px;
+  transition: background .15s;
+}
+ 
+.sig-upload-placeholder:hover {
+  background: #f0f3ff;
+  color: var(--blue);
+}
+ 
+.sig-upload-placeholder i { font-size: 18px; }
+ 
+.sig-upload-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+}
+ 
+.sig-upload-preview canvas { width: 100%; height: 70px; }
+ 
+/* Action buttons row */
+.intern-sig-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+ 
+.btn-save-sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+}
+ 
+.btn-save-sig:hover:not(:disabled) { background: var(--blue-dark); }
+ 
+.btn-save-sig:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+ 
+.clear-btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+}
+ 
+.clear-btn-sm:hover {
+  background: #fff1f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+ 
+/* Hint text */
+.sig-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--amber);
+  font-weight: 500;
+}
+ 
+/* ── Print: hide signature pad, show saved sig only ── */
+@media print {
+  .intern-sig-pad-wrap { display: none !important; }
+  .sig-mode-tabs       { display: none !important; }
+  .intern-sig-actions  { display: none !important; }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
