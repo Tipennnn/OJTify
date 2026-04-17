@@ -9,39 +9,226 @@
     <div class="dashboard-content">
 
       <div class="dashboard-header">
-        <h2>Tasks</h2>
+        <h2>{{ activeTab === 'tasks' ? 'Tasks' : 'Digital Logbook' }}</h2>
         <div class="dashboard-divider"></div>
       </div>
 
-      <div class="tasks-list">
+      <!-- ══ TAB SWITCHER ══ -->
+      <div class="tab-switcher">
+        <button class="tab-btn" [class.active]="activeTab === 'tasks'" (click)="switchTab('tasks')">
+          <i class="fas fa-list-check"></i> Tasks
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'logbook'" (click)="switchTab('logbook')">
+          <i class="fas fa-book-open"></i> Daily Logbook
+        </button>
+      </div>
 
-        <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
-          <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
-          <p style="margin-top:12px;">Loading tasks...</p>
+      <!-- ══════════════════════════════════════ -->
+      <!--  TASKS TAB                            -->
+      <!-- ══════════════════════════════════════ -->
+      <div *ngIf="activeTab === 'tasks'">
+        <div class="tasks-list">
+
+          <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
+            <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
+            <p style="margin-top:12px;">Loading tasks...</p>
+          </div>
+
+          <div *ngIf="!loading && tasks.length === 0"
+               style="text-align:center; padding:40px; color:#9ca3af;">
+            <i class="fas fa-list-check" style="font-size:40px; margin-bottom:12px;"></i>
+            <p>No tasks assigned to you yet.</p>
+          </div>
+
+          <div class="task-card"
+               *ngFor="let task of tasks"
+               (click)="openModal(task)">
+            <div class="task-info">
+              <h3>{{ task.title }}</h3>
+              <div class="task-meta">
+                <span>Posted: {{ task.posted }}</span>
+                <span>Due: {{ task.due }}</span>
+              </div>
+            </div>
+            <span class="status" [ngClass]="task.status">
+              {{ task.status | titlecase }}
+            </span>
+          </div>
+
         </div>
+      </div>
 
-        <div *ngIf="!loading && tasks.length === 0"
-             style="text-align:center; padding:40px; color:#9ca3af;">
-          <i class="fas fa-list-check" style="font-size:40px; margin-bottom:12px;"></i>
-          <p>No tasks assigned to you yet.</p>
-        </div>
+      <!-- ══════════════════════════════════════ -->
+      <!--  LOGBOOK TAB                          -->
+      <!-- ══════════════════════════════════════ -->
+      <div *ngIf="activeTab === 'logbook'">
 
-        <div class="task-card"
-             *ngFor="let task of tasks"
-             (click)="openModal(task)">
-          <div class="task-info">
-            <h3>{{ task.title }}</h3>
-            <div class="task-meta">
-              <span>Posted: {{ task.posted }}</span>
-              <span>Due: {{ task.due }}</span>
+        <!-- Weekly Report Card -->
+        <div class="report-card">
+          <div class="report-card-header">
+            <div class="report-icon-wrap">
+              <i class="fas fa-file-export"></i>
+            </div>
+            <div>
+              <h4>Generate Weekly Report</h4>
+              <p>Export your daily entries as a printable PDF accomplishment report.</p>
             </div>
           </div>
-          <span class="status" [ngClass]="task.status">
-            {{ task.status | titlecase }}
-          </span>
+          <div class="report-inputs">
+            <div class="report-field">
+              <label>Week Start</label>
+              <input type="date" [(ngModel)]="reportWeekStart">
+            </div>
+            <div class="report-field">
+              <label>Week End</label>
+              <input type="date" [(ngModel)]="reportWeekEnd">
+            </div>
+            <button class="export-btn" (click)="generateWeeklyReport()" [disabled]="reportGenerating">
+              <i class="fa fa-spinner fa-spin" *ngIf="reportGenerating"></i>
+              <i class="fas fa-print" *ngIf="!reportGenerating"></i>
+              {{ reportGenerating ? 'Generating...' : 'Export & Print' }}
+            </button>
+          </div>
         </div>
 
+        <!-- ── Stats Row ── -->
+        <div class="logbook-stats-row">
+          <div class="logbook-stat-card">
+            <div class="logbook-stat-label">Total entries</div>
+            <div class="logbook-stat-value">{{ logbookEntries.length }}</div>
+            <div class="logbook-stat-sub">
+              <span class="stat-dot" style="background:#2563eb;"></span> This month
+            </div>
+          </div>
+          <div class="logbook-stat-card">
+            <div class="logbook-stat-label">Photos uploaded</div>
+            <div class="logbook-stat-value">{{ getTotalPhotos() }}</div>
+            <div class="logbook-stat-sub">
+              <span class="stat-dot" style="background:#059669;"></span> Across all entries
+            </div>
+          </div>
+          <div class="logbook-stat-card">
+            <div class="logbook-stat-label">This week</div>
+            <div class="logbook-stat-value">{{ getThisWeekCount() }}</div>
+            <div class="logbook-stat-sub">
+              <span class="stat-dot" style="background:#f59e0b;"></span> Mon – Fri
+            </div>
+          </div>
+          <div class="logbook-stat-card">
+            <div class="logbook-stat-label">Streak</div>
+            <div class="logbook-stat-value">
+              {{ getCurrentStreak() }}<span> days</span>
+            </div>
+            <div class="logbook-stat-sub">
+              <span class="stat-dot" style="background:#dc2626;"></span> Keep it up!
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Entry Toolbar -->
+        <div class="logbook-toolbar">
+          <span class="entry-count">
+            {{ logbookEntries.length }} {{ logbookEntries.length === 1 ? 'Entry' : 'Entries' }}
+          </span>
+          <button class="add-entry-btn" (click)="openAddLogbook()">
+            <i class="fas fa-plus"></i> Add Daily Entry
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="logbookLoading" style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
+          <p style="margin-top:12px;">Loading logbook...</p>
+        </div>
+
+        <!-- Empty state -->
+        <div *ngIf="!logbookLoading && logbookEntries.length === 0" class="logbook-empty">
+          <i class="fas fa-book-open"></i>
+          <p>No entries yet. Start logging your daily accomplishments!</p>
+        </div>
+
+        <!-- ── Entry Cards with week grouping ── -->
+        <ng-container *ngFor="let group of getGroupedEntries()">
+
+          <!-- Week divider label -->
+          <div class="week-section-label">
+            {{ group.label }}
+            <span class="week-section-line"></span>
+            {{ group.range }}
+          </div>
+
+          <div class="logbook-list">
+            <div
+              class="logbook-card"
+              [class.is-today]="isToday(entry.entry_date)"
+              *ngFor="let entry of group.entries">
+
+              <!-- Date badge -->
+              <div class="logbook-date-badge">
+                <span class="lb-day">{{ entry.entry_date | date:'EEE' }}</span>
+                <span class="lb-num">{{ entry.entry_date | date:'d' }}</span>
+                <span class="lb-month">{{ entry.entry_date | date:'MMM' }}</span>
+              </div>
+
+              <!-- Body -->
+              <div class="logbook-card-body">
+
+                <!-- Headline + tags -->
+                <div class="lb-card-head">
+                  <span class="lb-headline">{{ getHeadline(entry.tasks_done) }}</span>
+                  <span *ngIf="isToday(entry.entry_date)" class="lb-tag today">Today</span>
+                  <span *ngIf="getEntryPhotoCount(entry.$id) > 0" class="lb-tag photos">
+                    <i class="fas fa-camera" style="font-size:9px;"></i>
+                    {{ getEntryPhotoCount(entry.$id) }} photo{{ getEntryPhotoCount(entry.$id) > 1 ? 's' : '' }}
+                  </span>
+                  <span *ngIf="getEntryPhotoCount(entry.$id) === 0" class="lb-tag nophoto">No photos</span>
+                </div>
+
+                <!-- Tasks text -->
+                <p class="lb-tasks">{{ entry.tasks_done }}</p>
+
+                <!-- Reflection -->
+                <p class="lb-reflection" *ngIf="entry.reflection">
+                  <i class="fas fa-quote-left" style="font-size:9px; color:#9ca3af; margin-right:4px;"></i>
+                  {{ entry.reflection }}
+                </p>
+
+                <!-- Footer: timestamp + detail bar -->
+                <div class="lb-card-footer">
+                  <span class="lb-timestamp">
+                    <i class="fas fa-clock" style="font-size:10px;"></i>
+                    Logged {{ entry.created_at }}
+                  </span>
+
+                  <div class="lb-detail-bar-wrap">
+                    <div class="lb-detail-bar">
+                      <div class="lb-detail-fill"
+                           [style.width]="getDetailPct(entry.tasks_done) + '%'">
+                      </div>
+                    </div>
+                    <span class="lb-detail-pct">{{ getDetailPct(entry.tasks_done) }}%</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Actions -->
+              <div class="logbook-card-actions">
+                <button class="lb-action-btn view" (click)="openViewLogbook(entry)" title="View / Add Photos">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="lb-action-btn delete" (click)="deleteLogbookEntry(entry)" title="Delete Entry">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </ng-container>
+
       </div>
+
     </div>
   </div>
 </div>
@@ -125,10 +312,10 @@
         <div class="author-left">
           <div class="author-avatar">{{ getInitials(selectedTask?.supervisor_name || 'Supervisor') }}</div>
           <div class="author-info">
-              <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
-              <span class="author-role">Supervisor</span>
-              <span class="posted-date">{{ selectedTask?.posted }}</span>
-            </div>
+            <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
+            <span class="author-role">Supervisor</span>
+            <span class="posted-date">{{ selectedTask?.posted }}</span>
+          </div>
         </div>
         <div class="due-right">
           <i class="fa-solid fa-clock"></i>
@@ -198,6 +385,7 @@
           No comments yet. Be the first to comment!
         </div>
 
+<<<<<<< HEAD
        <div class="comment" *ngFor="let comment of comments">
 <div class="avatar"
      [style.background]="comment.role === 'supervisor' 
@@ -212,16 +400,23 @@
     {{ getInitials(comment.user_name) }}
   </span>
 </div>
+=======
+        <div class="comment" *ngFor="let comment of comments">
+          <div class="avatar"
+               [style.background]="comment.role === 'supervisor' ? '#0818A8' : '#2563eb'">
+            {{ comment.user_name[0] }}
+          </div>
+>>>>>>> ab63c9b7b183a241ca8bae5a85b69300e4f7b95e
 
-  <div class="comment-body">
-    <div class="comment-header">
-      <strong>
-  {{ comment.user_name }}
-  <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
-  <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
-</strong>
-      <span class="comment-date">{{ comment.created_at }}</span>
-    </div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <strong>
+                {{ comment.user_name }}
+                <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
+                <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
+              </strong>
+              <span class="comment-date">{{ comment.created_at }}</span>
+            </div>
 
             <ng-container *ngIf="editingCommentId !== comment.$id">
               <p class="comment-text">{{ comment.message }}</p>
@@ -244,6 +439,135 @@
             </ng-container>
 
           </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  LOGBOOK ENTRY MODAL                 -->
+<!-- ══════════════════════════════════════ -->
+<div class="task-modal-overlay" [class.active]="isLogbookModalOpen">
+  <div class="logbook-modal">
+
+    <div class="modal-close" (click)="closeLogbookModal()"></div>
+
+    <!-- LEFT: Form / Entry Details -->
+    <div class="modal-left">
+      <div class="submit-card">
+
+        <h3>
+          <i class="fas fa-book-open" style="color:#2563eb; margin-right:8px;"></i>
+          {{ logbookModalMode === 'add' ? 'New Daily Entry' : 'Entry Details' }}
+        </h3>
+
+        <div class="lb-form-group">
+          <label>Date</label>
+          <input type="date"
+                 class="lb-input"
+                 [(ngModel)]="logbookForm.entry_date"
+                 [disabled]="logbookModalMode === 'view'">
+        </div>
+
+        <div class="lb-form-group">
+          <label>Tasks Done / Accomplishments</label>
+          <textarea class="lb-textarea"
+                    rows="5"
+                    placeholder="Describe what you did today..."
+                    [(ngModel)]="logbookForm.tasks_done"
+                    [disabled]="logbookModalMode === 'view'"></textarea>
+        </div>
+
+        <div class="lb-form-group">
+          <label>Reflections <span style="color:#9ca3af; font-weight:400;">(optional)</span></label>
+          <textarea class="lb-textarea"
+                    rows="3"
+                    placeholder="What did you learn? Any challenges?"
+                    [(ngModel)]="logbookForm.reflection"
+                    [disabled]="logbookModalMode === 'view'"></textarea>
+        </div>
+
+        <button *ngIf="logbookModalMode === 'add'"
+                class="submit-btn"
+                (click)="saveLogbookEntry()"
+                [disabled]="logbookSaving">
+          <i class="fa fa-spinner fa-spin" *ngIf="logbookSaving"></i>
+          {{ logbookSaving ? 'Saving...' : 'Save Entry' }}
+        </button>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Photo Evidence -->
+    <div class="modal-right">
+      <h2 class="task-title">
+        <i class="fas fa-camera" style="color:#2563eb; font-size:18px; margin-right:8px;"></i>
+        Photo Evidence
+      </h2>
+      <div class="right-divider"></div>
+
+      <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
+        Upload photos of your work, certificates, or any visual proof of your accomplishments for this entry.
+      </p>
+
+      <!-- Photo upload -->
+      <label class="upload-box">
+        <input type="file" accept="image/*" (change)="onPhotoSelected($event)">
+        <i class="fa-solid fa-image" style="color:#2563eb; font-size:28px;"></i>
+        <span class="upload-title">Upload Photo</span>
+        <span class="upload-sub">Click to select an image</span>
+      </label>
+
+      <div *ngIf="selectedPhoto" class="file-card" style="margin-top:12px;">
+        <div class="file-left">
+          <div class="file-icon">
+            <i class="fas fa-image" style="color:#2563eb;"></i>
+          </div>
+          <div class="file-info">
+            <span class="file-name">{{ selectedPhoto.name }}</span>
+            <span class="file-size">{{ getFileSize(selectedPhoto.size) }}</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button *ngIf="logbookModalMode === 'view'"
+                  class="submit-btn"
+                  style="padding:8px 14px; font-size:12px;"
+                  (click)="addPhotoToExistingEntry()"
+                  [disabled]="photoUploading">
+            <i class="fa fa-spinner fa-spin" *ngIf="photoUploading"></i>
+            {{ photoUploading ? 'Uploading...' : 'Upload' }}
+          </button>
+          <span class="file-remove" (click)="selectedPhoto = null">×</span>
+        </div>
+      </div>
+
+      <!-- Uploaded photos grid -->
+      <div class="right-divider" style="margin-top:20px;"></div>
+
+      <div *ngIf="logbookPhotos.length === 0 && logbookModalMode === 'view'"
+           class="empty-sub" style="margin-top:12px;">
+        No photos uploaded for this entry yet.
+      </div>
+
+      <div *ngIf="logbookModalMode === 'add' && !selectedPhoto"
+           class="empty-sub" style="margin-top:12px;">
+        You can add more photos after saving the entry.
+      </div>
+
+      <div class="photo-grid">
+        <div class="photo-item" *ngFor="let photo of logbookPhotos">
+          <img [src]="getPhotoUrl(photo.file_id)" [alt]="photo.file_name">
+          <div class="photo-overlay">
+            <a [href]="getPhotoUrl(photo.file_id)" target="_blank" title="View">
+              <i class="fas fa-expand"></i>
+            </a>
+            <span (click)="deleteLogbookPhoto(photo)" title="Delete">
+              <i class="fas fa-trash"></i>
+            </span>
+          </div>
+          <span class="photo-name">{{ photo.file_name }}</span>
         </div>
       </div>
 
