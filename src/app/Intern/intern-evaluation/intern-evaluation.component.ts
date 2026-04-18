@@ -86,6 +86,14 @@ export class InternEvaluationComponent implements OnInit {
   private canvas   : HTMLCanvasElement | null = null;
   private ctx      : CanvasRenderingContext2D | null = null;
 
+  depedLogoB64  = '';
+  ocesLogoB64   = '';
+  ojtifyLogoB64 = '';
+
+  private readonly DEPED_LOGO_ID  = '69e3617400102e6fd08e';
+private readonly OCES_LOGO_ID   = '69e3617e00298107dd82';
+private readonly OJTIFY_LOGO_ID = '69e35cb600237a0da105';
+
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
@@ -101,7 +109,10 @@ export class InternEvaluationComponent implements OnInit {
 
   constructor(private appwrite: AppwriteService) {}
 
-  async ngOnInit() { await this.loadData(); }
+ async ngOnInit() { 
+  await this.loadData(); 
+  await this.loadLogos();
+}
 
   async loadData() {
     this.loading = true;
@@ -180,6 +191,24 @@ export class InternEvaluationComponent implements OnInit {
       this.loading = false;
     }
   }
+
+  async loadLogos() {
+  const toBase64 = (fileId: string): Promise<string> =>
+    fetch(`${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`)
+      .then(r => r.blob())
+      .then(blob => new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload  = () => res(reader.result as string);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      }));
+
+  [this.depedLogoB64, this.ocesLogoB64, this.ojtifyLogoB64] = await Promise.all([
+    toBase64(this.DEPED_LOGO_ID).catch(() => ''),
+    toBase64(this.OCES_LOGO_ID).catch(() => ''),
+    toBase64(this.OJTIFY_LOGO_ID).catch(() => '')
+  ]);
+}
 
   private buildSupervisorFromName(ev: any) {
     const parts = (ev.supervisor_name ?? '').split(' ');

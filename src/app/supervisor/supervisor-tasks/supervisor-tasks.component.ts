@@ -173,14 +173,18 @@ async loadTasks() {
     const allSubs = subsRes.documents as any[];
 
     // Build a count map: taskId → number of submissions
-    this.taskSubmissionCountMap = {};
-    allSubs.forEach(sub => {
-      if (!this.taskSubmissionCountMap[sub.task_id]) {
-        this.taskSubmissionCountMap[sub.task_id] = 0;
-      }
-      this.taskSubmissionCountMap[sub.task_id]++;
-    });
-
+  // AFTER — counts unique interns who submitted
+this.taskSubmissionCountMap = {};
+const taskSubMap: { [taskId: string]: Set<string> } = {};
+allSubs.forEach(sub => {
+  if (!taskSubMap[sub.task_id]) {
+    taskSubMap[sub.task_id] = new Set();
+  }
+  taskSubMap[sub.task_id].add(sub.student_id);
+});
+Object.keys(taskSubMap).forEach(taskId => {
+  this.taskSubmissionCountMap[taskId] = taskSubMap[taskId].size;
+});
     this.tasks = (tasksRes.documents as any[])
       .filter(task => task.supervisor_id === this.currentSupervisorId)
       .sort((a, b) =>

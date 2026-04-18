@@ -162,38 +162,55 @@
 .doc-header { background: var(--blue); }
 
 .header-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 26px 36px 22px;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 20px 36px 18px;
+  gap: 20px;
 }
+
 
 .header-brand { display: flex; align-items: center; gap: 16px; }
 
+.header-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
 .brand-icon {
-  width: 50px; height: 50px; flex-shrink: 0;
+  width: 46px; height: 46px;
+  flex-shrink: 0;
   background: rgba(255,255,255,.15);
   border: 1px solid rgba(255,255,255,.25);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: rgba(255,255,255,.9);
+  font-size: 20px; color: rgba(255,255,255,.9);
+}
+
+.brand-text {
+  text-align: left;
 }
 
 .brand-school {
   font-family: var(--font-head);
-  font-size: 19px; font-weight: 600;
-  color: #fff; line-height: 1.25; margin-bottom: 4px;
+  font-size: 16px; font-weight: 600;
+  color: #fff; line-height: 1.25;
+  margin-bottom: 4px;
+  white-space: nowrap;
 }
 
 .brand-tagline {
-  font-size: 11px; color: rgba(255,255,255,.55);
+  font-size: 10px; color: rgba(255,255,255,.55);
   text-transform: uppercase; letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .header-meta {
   display: flex; flex-direction: column; gap: 5px;
-  flex-shrink: 0; text-align: right;
+  text-align: right;
 }
 
 .hm-row { display: flex; gap: 10px; justify-content: flex-end; align-items: baseline; }
@@ -672,9 +689,51 @@
   font-weight: 500;
 }
 
+.header-logos-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.header-logo {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+}
+
+.ojtify-logo {
+  height: 48px;
+}
+
+.header-logo-divider {
+  width: 1px;
+  height: 42px;
+  background: rgba(255,255,255,0.3);
+}
+
+.header-right-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+
 /* Print: hide the pad entirely if no sig saved */
 @media print {
   .intern-sig-pad-wrap { display: none !important; }
+  .header-inner {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    padding: 16px 24px 12px !important;
+    gap: 16px !important;
+  }
+  .brand-school { font-size: 14px !important; }
+  .header-logo  { height: 44px !important; }
+  .ojtify-logo  { height: 40px !important; }
+
 }
 
 /* ── PRINT ── */

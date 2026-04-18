@@ -59,32 +59,45 @@
         <!-- HEADER -->
         <div class="doc-header">
           <div class="header-inner">
-            <div class="header-brand">
-              <div class="brand-icon"><i class="fa-solid fa-school"></i></div>
-              <div class="brand-text">
-                <div class="brand-school">{{ SCHOOL }}</div>
-                <div class="brand-tagline">On-the-Job Training Program</div>
-              </div>
-            </div>
-            <div class="header-meta">
-              <div class="hm-row">
-                <span class="hm-key">Document Type</span>
-                <span class="hm-val">Performance Appraisal Report</span>
-              </div>
-              <div class="hm-row">
-                <span class="hm-key">Reference No.</span>
-                <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
-              </div>
-              <div class="hm-row">
-                <span class="hm-key">Date Issued</span>
-                <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
-              </div>
-              <div class="hm-row">
-                <span class="hm-key">Academic Year</span>
-                <span class="hm-val">{{ AY }}</span>
-              </div>
-            </div>
-          </div>
+  <!-- LEFT: DepEd + OCES logos -->
+  <div class="header-logos-left">
+    <img *ngIf="depedLogoB64"  [src]="depedLogoB64"  alt="DepEd"  class="header-logo">
+    <div class="header-logo-divider" *ngIf="depedLogoB64 && ocesLogoB64"></div>
+    <img *ngIf="ocesLogoB64"   [src]="ocesLogoB64"   alt="OCES"   class="header-logo">
+  </div>
+
+  <!-- CENTER: title text -->
+  <div class="header-brand">
+    <div class="brand-icon"><i class="fa-solid fa-school"></i></div>
+    <div class="brand-text">
+      <div class="brand-school">{{ SCHOOL }}</div>
+      <div class="brand-tagline">On-the-Job Training Program</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: OJTify logo + meta -->
+  <div class="header-right-wrap">
+    <img *ngIf="ojtifyLogoB64" [src]="ojtifyLogoB64" alt="OJTify" class="header-logo ojtify-logo">
+    <div class="header-meta">
+      <div class="hm-row">
+        <span class="hm-key">Document Type</span>
+        <span class="hm-val">Performance Appraisal Report</span>
+      </div>
+      <div class="hm-row">
+        <span class="hm-key">Reference No.</span>
+        <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
+      </div>
+      <div class="hm-row">
+        <span class="hm-key">Date Issued</span>
+        <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
+      </div>
+      <div class="hm-row">
+        <span class="hm-key">Academic Year</span>
+        <span class="hm-val">{{ AY }}</span>
+      </div>
+    </div>
+  </div>
+</div>
           <div class="header-accent-bar"></div>
         </div>
 
