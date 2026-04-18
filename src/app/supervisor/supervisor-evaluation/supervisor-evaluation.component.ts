@@ -268,15 +268,48 @@ export class SupervisorEvaluationComponent implements OnInit {
 
   // ── Modal open / close ─────────────────────────────────────────────────────
 
-  openEvaluate(student: Student) {
-    this.selectedStudent  = student;
-    this.evaluation       = { ...this.freshEval(), student_id_ref: student.$id };
-    this.hasSignature     = false;
-    this.signatureMode    = 'draw';
-    this.uploadedFileName = '';
-    this.showModal        = true;
-    setTimeout(() => this.initCanvas(), 150);
+async openEvaluate(student: Student) {
+  this.selectedStudent  = student;
+  this.evaluation       = { ...this.freshEval(), student_id_ref: student.$id };
+  this.hasSignature     = false;
+  this.signatureMode    = 'draw';
+  this.uploadedFileName = '';
+  this.showModal        = true;
+
+  // Auto-fill training period from attendance records
+  await this.autoFillTrainingPeriod(student.$id);
+
+  setTimeout(() => this.initCanvas(), 150);
+}
+
+private async autoFillTrainingPeriod(studentId: string) {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      'attendance',
+      [Query.equal('student_id', studentId)]
+    );
+
+    const dates = (res.documents as any[])
+      .map(a => a.date)
+      .filter(Boolean)
+      .sort(); // ascending sort gives first and last
+
+    if (dates.length > 0) {
+      // Convert 'YYYY-MM-DD' or whatever format to date input format
+      const toInputDate = (d: string): string => {
+        const parsed = new Date(d);
+        if (isNaN(parsed.getTime())) return d; // already correct format
+        return parsed.toISOString().split('T')[0];
+      };
+
+      this.evaluation.period_from = toInputDate(dates[0]);
+      this.evaluation.period_to   = toInputDate(dates[dates.length - 1]);
+    }
+  } catch (err: any) {
+    console.warn('Could not auto-fill training period:', err.message);
   }
+}
 
   viewEvaluation(student: Student) {
     const ev = this.evaluationMap.get(student.$id);

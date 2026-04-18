@@ -59,6 +59,7 @@ export class InternAttendanceComponent implements OnInit {
 
   currentUserId = '';
   qrData        = '';
+  realStudentId = '';
 
   // ── Hours tracking ────────────────────────────────────────
   requiredHours  = 500;
@@ -105,6 +106,7 @@ async ngOnInit() {
     );
     this.requiredHours  = (doc as any).required_hours  || 500;
     this.completedHours = (doc as any).completed_hours || 0;
+    this.realStudentId  = (doc as any).student_id      || this.currentUserId; // ← ADD THIS
   } catch (error: any) {
     console.error('Failed to load hours:', error.message);
   }
