@@ -116,6 +116,11 @@
 
         <div class="cert-body">
 
+          <!-- OCES Watermark Background -->
+          <div class="cert-watermark">
+            <img src="assets/images/OCES_logo.png" alt="OCES Watermark" />
+          </div>
+
           <!-- Double inner border -->
           <div class="cert-inner-border"></div>
 
@@ -139,13 +144,22 @@
 
           <div class="cert-content">
 
-            <!-- Header (no logo) -->
+            <!-- Header: DepEd far left, text center, OCES far right -->
             <div class="cert-header">
-              <div>
+              <div class="cert-header-logo cert-header-logo--left">
+                <img src="assets/images/Deped_logo.png" alt="DepEd Logo" />
+              </div>
+
+              <div class="cert-header-text">
                 <p class="cert-republic">Republic of the Philippines</p>
-                <p class="cert-dept">Schools Division of Olongapo City</p>
+                <p class="cert-dept">Department of Education</p>
+                <p class="cert-division">Schools Division of Olongapo City</p>
                 <p class="cert-school-name">Olongapo City Elementary School</p>
                 <p class="cert-address">Olongapo City, Zambales</p>
+              </div>
+
+              <div class="cert-header-logo cert-header-logo--right">
+                <img src="assets/images/OCES_logo.png" alt="OCES Logo" />
               </div>
             </div>
 
@@ -175,7 +189,7 @@
               Given this {{ certData.endDate }}, Olongapo City, Zambales.
             </p>
 
-            <!-- Signatures (no seal) -->
+            <!-- Signatures -->
             <div class="cert-sig-row">
 
               <div class="cert-sig-block">
@@ -188,7 +202,7 @@
               <div class="cert-sig-block">
                 <p class="cert-sig-name">{{ certData.supervisorName | uppercase }}</p>
                 <div class="cert-sig-underline"></div>
-                <p class="cert-sig-pos">Supervisor</p>
+                <p class="cert-sig-pos">OJT Supervisor</p>
                 <p class="cert-sig-school">Olongapo City Elementary School</p>
               </div>
 

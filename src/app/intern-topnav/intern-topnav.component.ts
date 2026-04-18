@@ -154,6 +154,8 @@ export class InternTopnavComponent implements OnInit {
           <title>Certificate_${this.certData.studentName.replace(/\s+/g, '_')}</title>
           <link rel="stylesheet"
                 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+          <link rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap">
           <style>
             ${styles}
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
