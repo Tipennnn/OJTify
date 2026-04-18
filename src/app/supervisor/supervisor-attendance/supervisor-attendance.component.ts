@@ -396,6 +396,26 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
         return;
       }
 
+      const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
+if (isActiveStudent) {
+  const studentDoc = this.allStudents.find(s => s.$id === studentId);
+  const completed  = Number(studentDoc?.completed_hours) || 0;
+  const required   = Number(studentDoc?.required_hours)  || 500;
+
+  if (completed >= required) {
+    Swal.fire({
+      icon: 'info',
+      title: 'OJT Completed! 🎉',
+      html: `<b>${student.first_name} ${student.last_name}</b> has already completed their required <b>${required} hours</b>.<br><br>
+             <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
+      confirmButtonColor: '#0818A8'
+    });
+    this.scanLoading = false;
+    setTimeout(() => { this.lastScanned = ''; }, 3000);
+    return;
+  }
+}
+
       const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 

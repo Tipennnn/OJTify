@@ -80,6 +80,7 @@ export class InternEvaluationComponent implements OnInit {
   lastY            = 0;
   hasInternSig     = false;
   signatureMode    : 'draw' | 'upload' = 'draw';
+  resigning = false;
   uploadedFileName = '';
   savingSig        = false;
   private canvas   : HTMLCanvasElement | null = null;
@@ -372,38 +373,35 @@ export class InternEvaluationComponent implements OnInit {
   }
 
   /** Save intern signature to the evaluation document in Appwrite */
-  async saveInternSignature() {
-    if (!this.hasInternSig || !this.canvas || !this.evaluation?.$id) return;
-    this.savingSig = true;
-    try {
-      const sigData = this.canvas.toDataURL('image/png');
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.EVAL_COL,
-        this.evaluation.$id,
-        { intern_signature: sigData }
-      );
-      // Persist locally
-      (this.evaluation as any).intern_signature = sigData;
-      await Swal.fire({
-        icon : 'success',
-        title: 'Signature Saved!',
-        text : 'Your e-signature has been saved successfully.',
-        confirmButtonColor: '#0818A8',
-        timer: 2000,
-        showConfirmButton: false
-      });
-    } catch (err: any) {
-      await Swal.fire({
-        icon : 'error',
-        title: 'Save Failed',
-        text : err.message ?? 'Could not save your signature. Please try again.',
-        confirmButtonColor: '#0818A8'
-      });
-    } finally {
-      this.savingSig = false;
-    }
+async saveInternSignature() {
+  if (!this.hasInternSig || !this.canvas || !this.evaluation?.$id) return;
+  this.savingSig = true;
+  try {
+    const sigData = this.canvas.toDataURL('image/png');
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.EVAL_COL,
+      this.evaluation.$id,
+      { intern_signature: sigData }
+    );
+    (this.evaluation as any).intern_signature = sigData;
+    this.resigning = false; // ← add this
+    await Swal.fire({
+      icon: 'success', title: 'Signature Saved!',
+      text: 'Your e-signature has been updated successfully.',
+      confirmButtonColor: '#0818A8',
+      timer: 2000, showConfirmButton: false
+    });
+  } catch (err: any) {
+    await Swal.fire({
+      icon: 'error', title: 'Save Failed',
+      text: err.message ?? 'Could not save your signature. Please try again.',
+      confirmButtonColor: '#0818A8'
+    });
+  } finally {
+    this.savingSig = false;
   }
+}
 
   // ── Print / Download ──────────────────────────────────────────────────────
 
@@ -464,48 +462,192 @@ async downloadAsPDF() {
   const element = document.getElementById('printArea');
   if (!element) return;
 
-  // Show loading
   Swal.fire({
-    title             : 'Generating PDF...',
-    html              : '<p style="font-size:13px;color:#6b7280;">Please wait while your evaluation is being prepared.</p>',
-    allowOutsideClick : false,
-    showConfirmButton : false,
-    didOpen           : () => Swal.showLoading()
+    title: 'Generating PDF…',
+    html: '<p style="font-size:13px;color:#6b7280;">Please wait while your evaluation is being prepared.</p>',
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading()
   });
 
+  // ── Hide UI-only elements before capture ────────────────────────────────
+  const hiddenEls: { el: HTMLElement; prev: string }[] = [];
+  const hide = (selector: string) => {
+    document.querySelectorAll<HTMLElement>(selector).forEach(el => {
+      hiddenEls.push({ el, prev: el.style.display });
+      el.style.display = 'none';
+    });
+  };
+  hide('app-intern-sidenav');
+  hide('app-intern-topnav');
+  hide('.dashboard-header');
+  hide('.no-print');
+  hide('.intern-sig-pad-wrap');
+  hide('#internSigSection');
+  hide('.clear-btn-sm');
+
+  // ── Save original styles ─────────────────────────────────────────────────
+  const origBoxShadow    = element.style.boxShadow;
+  const origBorderRadius = element.style.borderRadius;
+  const origWidth        = element.style.width;
+  const origMaxWidth     = element.style.maxWidth;
+  const origMargin       = element.style.margin;
+  const origPadding      = element.style.padding;
+
+  // ── Apply print-friendly overrides ──────────────────────────────────────
+  const printStyleEl = document.createElement('style');
+  printStyleEl.id = '__pdf-print-overrides';
+  printStyleEl.textContent = `
+    #printArea {
+      width: 794px !important;
+      max-width: 794px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      background: #fff !important;
+      font-size: 11px !important;
+    }
+    #printArea .doc-header {
+      background: #0818A8 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printArea .part-header {
+      background: #f0f4ff !important;
+      border-left: 4px solid #0818A8 !important;
+      page-break-inside: avoid !important;
+    }
+    #printArea table { page-break-inside: auto !important; }
+    #printArea tr    { page-break-inside: avoid !important; page-break-after: auto !important; }
+    #printArea .ct-group-header, #printArea .ct-sub-row {
+      page-break-inside: avoid !important;
+    }
+    #printArea .remarks-grid     { page-break-inside: avoid !important; }
+    #printArea .sig-row          { page-break-inside: avoid !important; }
+    #printArea .recommendation-row { page-break-inside: avoid !important; }
+    #printArea .scale-legend-full  { page-break-inside: avoid !important; }
+    #printArea .score-circle {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printArea .bar-fill {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printArea .rating-tag {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printArea .rec-active {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  `;
+  document.head.appendChild(printStyleEl);
+
+  element.style.boxShadow    = 'none';
+  element.style.borderRadius = '0';
+  element.style.width        = '794px';
+  element.style.maxWidth     = '794px';
+  element.style.margin       = '0';
+
+  // Wait for styles to apply
+  await new Promise(r => setTimeout(r, 200));
+
   try {
+    const A4_WIDTH_MM  = 210;
+    const A4_HEIGHT_MM = 297;
+    const DPI          = 150;   // readable quality, smaller file
+    const MM_TO_PX     = DPI / 25.4;
+    const pageWidthPx  = Math.round(A4_WIDTH_MM  * MM_TO_PX); // ~1240px at 150dpi
+    const pageHeightPx = Math.round(A4_HEIGHT_MM * MM_TO_PX); // ~1754px at 150dpi
+
+    // Render the full element
     const canvas = await html2canvas(element, {
-      scale          : 2,           // high resolution
+      scale          : pageWidthPx / 794,  // scale to exactly A4 width
       useCORS        : true,
       allowTaint     : true,
       backgroundColor: '#ffffff',
       logging        : false,
-      windowWidth    : element.scrollWidth,
-      windowHeight   : element.scrollHeight
+      width          : 794,
+      height         : element.scrollHeight,
+      windowWidth    : 794,
     });
 
-    const imgData  = canvas.toDataURL('image/png');
-    const pdf      = new jsPDF('p', 'mm', 'a4');
-    const pageW    = pdf.internal.pageSize.getWidth();
-    const pageH    = pdf.internal.pageSize.getHeight();
+    // ── Smart pagination: find safe row-break positions ────────────────────
+    const rows = element.querySelectorAll<HTMLElement>(
+      'tr.ct-group-header, tr.ct-sub-row, .part-header, .remarks-grid, .sig-row, .recommendation-row, .cert-section, .doc-footer, .scale-legend-full'
+    );
 
-    // Scale image to fit A4 width, then paginate if taller
-    const imgW     = pageW;
-    const imgH     = (canvas.height * pageW) / canvas.width;
+    const scaleRatio = canvas.width / 794;   // actual canvas px per CSS px
+    const pageHpx    = pageHeightPx;
+    const MARGIN_PX  = Math.round(20 * MM_TO_PX); // 20mm top/bottom margin
 
-    let heightLeft = imgH;
-    let position   = 0;
+    // Build list of "avoid-break" blocks (top/bottom in canvas px)
+    const blocks: { top: number; bottom: number }[] = [];
+    rows.forEach(row => {
+      const rect   = row.getBoundingClientRect();
+      const elRect = element.getBoundingClientRect();
+      const top    = (rect.top - elRect.top) * scaleRatio;
+      const bottom = top + rect.height * scaleRatio;
+      blocks.push({ top, bottom });
+    });
 
-    // First page
-    pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
-    heightLeft -= pageH;
+    // Calculate smart page break positions
+    const pageBreaks: number[] = [0];
+    let currentPageEnd = pageHpx - MARGIN_PX;
 
-    // Additional pages if content is long
-    while (heightLeft > 0) {
-      position   = heightLeft - imgH;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
-      heightLeft -= pageH;
+    while (currentPageEnd < canvas.height) {
+      // Find last block that ENDS before currentPageEnd
+      let safeCut = currentPageEnd;
+      for (const b of blocks) {
+        if (b.bottom <= currentPageEnd && b.bottom > currentPageEnd - pageHpx * 0.3) {
+          safeCut = b.bottom;
+        }
+      }
+      // Ensure we don't cut inside a block
+      for (const b of blocks) {
+        if (b.top < safeCut && b.bottom > safeCut) {
+          safeCut = b.top; // push cut before the block
+        }
+      }
+      pageBreaks.push(safeCut);
+      currentPageEnd = safeCut + pageHpx - MARGIN_PX;
+    }
+    pageBreaks.push(canvas.height);
+
+    // ── Build PDF ──────────────────────────────────────────────────────────
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit       : 'mm',
+      format     : 'a4',
+      compress   : true
+    });
+
+    for (let i = 0; i < pageBreaks.length - 1; i++) {
+      if (i > 0) pdf.addPage();
+
+      const srcY = pageBreaks[i];
+      const srcH = pageBreaks[i + 1] - srcY;
+      if (srcH <= 0) continue;
+
+      const slice   = document.createElement('canvas');
+      slice.width   = canvas.width;
+      slice.height  = srcH;
+      const ctx     = slice.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+      // Convert canvas px → mm for the PDF image
+      const sliceHmm = (srcH / canvas.width) * A4_WIDTH_MM;
+      pdf.addImage(
+        slice.toDataURL('image/jpeg', 0.82),
+        'JPEG', 0, 0,
+        A4_WIDTH_MM, sliceHmm,
+        undefined, 'FAST'
+      );
     }
 
     const fileName = `OJT-Evaluation-${this.student?.student_id ?? 'intern'}.pdf`;
@@ -514,7 +656,7 @@ async downloadAsPDF() {
     Swal.fire({
       icon              : 'success',
       title             : 'Downloaded!',
-      text              : `Your evaluation has been saved as ${fileName}`,
+      text              : `Saved as ${fileName}`,
       confirmButtonColor: '#0818A8',
       timer             : 2500,
       showConfirmButton : false
@@ -528,6 +670,25 @@ async downloadAsPDF() {
       text              : 'Could not generate PDF. Please try again.',
       confirmButtonColor: '#0818A8'
     });
+  } finally {
+    // Restore all styles
+    for (const { el, prev } of hiddenEls) { el.style.display = prev; }
+    element.style.boxShadow    = origBoxShadow;
+    element.style.borderRadius = origBorderRadius;
+    element.style.width        = origWidth;
+    element.style.maxWidth     = origMaxWidth;
+    element.style.margin       = origMargin;
+    element.style.padding      = origPadding;
+    document.getElementById('__pdf-print-overrides')?.remove();
   }
+}
+startResign() {
+  this.resigning    = true;
+  this.hasInternSig = false;
+  this.signatureMode = 'draw';
+  setTimeout(() => {
+    this.initCanvas();
+    this.clearInternCanvas();
+  }, 100);
 }
 }
