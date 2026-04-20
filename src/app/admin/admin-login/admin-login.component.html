@@ -54,9 +54,11 @@
           <div class="input-wrapper">
             <span class="icon"><i class="fa fa-lock"></i></span>
             <input [type]="showPassword ? 'text' : 'password'"
-                   [(ngModel)]="password" name="password"
-                   placeholder=" " required
-                   [class.input-error]="fieldErrors.password">
+       [(ngModel)]="password" name="password"
+       placeholder=" " required
+       [class.input-error]="fieldErrors.password"
+       (paste)="$event.preventDefault()"
+       (copy)="$event.preventDefault()">
             <label>Password</label>
             <span class="show-pass" (click)="togglePassword()">
               <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
@@ -177,9 +179,15 @@
         <i class="fa fa-circle-check"></i>
         Verify Code
       </button>
-      <button class="fp-btn-secondary" (click)="resendOtp()">
-        <i class="fa fa-rotate-right"></i> Resend Code
-      </button>
+      <button class="fp-btn-secondary" (click)="resendOtp()"
+        [disabled]="fpResendCooldown > 0">
+  <i class="fa fa-rotate-right"></i>
+  {{ fpResendCooldown > 0
+     ? 'Resend in ' + (fpResendCooldown >= 60
+         ? '1:' + (fpResendCooldown - 60 | number:'2.0-0')
+         : '0:' + (fpResendCooldown | number:'2.0-0'))
+     : 'Resend Code' }}
+</button>
     </div>
 
     <!-- STEP 3: NEW PASSWORD -->
@@ -189,8 +197,10 @@
         <div class="fp-pass-wrap">
           <i class="fa fa-lock fp-input-icon"></i>
           <input [type]="fpShowNew ? 'text' : 'password'"
-                 [(ngModel)]="fpNewPassword"
-                 placeholder="At least 8 characters">
+       [(ngModel)]="fpNewPassword"
+       placeholder="At least 8 characters"
+       (paste)="$event.preventDefault()"
+       (copy)="$event.preventDefault()">
           <span class="fp-eye" (click)="fpShowNew = !fpShowNew">
             <i [class]="fpShowNew ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
           </span>
@@ -201,8 +211,10 @@
         <div class="fp-pass-wrap">
           <i class="fa fa-lock fp-input-icon"></i>
           <input [type]="fpShowConfirm ? 'text' : 'password'"
-                 [(ngModel)]="fpConfirmPassword"
-                 placeholder="Repeat your password">
+       [(ngModel)]="fpConfirmPassword"
+       placeholder="Repeat your password"
+       (paste)="$event.preventDefault()"
+       (copy)="$event.preventDefault()">
           <span class="fp-eye" (click)="fpShowConfirm = !fpShowConfirm">
             <i [class]="fpShowConfirm ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
           </span>

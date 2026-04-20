@@ -349,7 +349,26 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const studentId = data.replace('OJTIFY_ATTENDANCE:', '');
+    // ── Timestamp validation ──────────────────────────────
+    const parts     = data.replace('OJTIFY_ATTENDANCE:', '').split(':');
+    const studentId = parts[0];
+    const timestamp = parseInt(parts[1] || '0', 10);
+    const ageMs     = Date.now() - timestamp;
+
+    if (!timestamp || ageMs > 15_000 || ageMs < -5_000) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'QR Code Expired',
+        text: 'This QR code has expired. Ask the intern to generate a new one.',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 4000
+      });
+      this.scanLoading = false;
+      setTimeout(() => { this.lastScanned = ''; }, 4000);
+      return;
+    }
+    // ─────────────────────────────────────────────────────
+
     this.scanLoading = true;
 
     try {
@@ -397,24 +416,24 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
       }
 
       const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
-if (isActiveStudent) {
-  const studentDoc = this.allStudents.find(s => s.$id === studentId);
-  const completed  = Number(studentDoc?.completed_hours) || 0;
-  const required   = Number(studentDoc?.required_hours)  || 500;
+      if (isActiveStudent) {
+        const studentDoc = this.allStudents.find(s => s.$id === studentId);
+        const completed  = Number(studentDoc?.completed_hours) || 0;
+        const required   = Number(studentDoc?.required_hours)  || 500;
 
-  if (completed >= required) {
-    Swal.fire({
-      icon: 'info',
-      title: 'OJT Completed! 🎉',
-      html: `<b>${student.first_name} ${student.last_name}</b> has already completed their required <b>${required} hours</b>.<br><br>
-             <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
-      confirmButtonColor: '#0818A8'
-    });
-    this.scanLoading = false;
-    setTimeout(() => { this.lastScanned = ''; }, 3000);
-    return;
-  }
-}
+        if (completed >= required) {
+          Swal.fire({
+            icon: 'info',
+            title: 'OJT Completed! 🎉',
+            html: `<b>${student.first_name} ${student.last_name}</b> has already completed their required <b>${required} hours</b>.<br><br>
+                   <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
+            confirmButtonColor: '#0818A8'
+          });
+          this.scanLoading = false;
+          setTimeout(() => { this.lastScanned = ''; }, 3000);
+          return;
+        }
+      }
 
       const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });

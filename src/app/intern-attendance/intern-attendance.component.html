@@ -255,23 +255,29 @@
     <div class="qr-divider"></div>
 
     <div class="qr-body">
-      <div class="qr-wrapper">
-        <qrcode
-          [qrdata]="qrData"
-          [width]="200"
-          [errorCorrectionLevel]="'M'"
-          *ngIf="qrData">
-        </qrcode>
-        <div *ngIf="!qrData"
-             style="width:200px; height:200px; display:flex;
-                    align-items:center; justify-content:center; color:#9ca3af;">
-          <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
-        </div>
-      </div>
-      <span class="qr-note">Present this QR code for attendance logging.</span>
-      <p style="font-size:11px; color:#9ca3af; margin-top:8px;">
-  Student ID: {{ realStudentId }}
-</p>
+     <div class="qr-body">
+  <div class="qr-wrapper">
+    <qrcode [qrdata]="qrData" [width]="200" [errorCorrectionLevel]="'M'" *ngIf="qrData"></qrcode>
+  </div>
+ <!-- Countdown bar -->
+  <div class="qr-countdown-wrap">
+    <div class="qr-countdown-bar" [style.width]="(qrExpiresIn / 10 * 100) + '%'"
+         [class.qr-bar-urgent]="qrExpiresIn <= 3"></div>
+  </div>
+  <span class="qr-note">
+  {{ qrExpiresIn > 0 ? 'Expires in ' + qrExpiresIn + 's' : 'QR Expired — generate a new one' }}
+</span>
+
+  <!-- Manual refresh button -->
+  <button class="qr-refresh-btn" (click)="refreshQRManually()">
+    <i class="fa fa-rotate-right"></i> Generate new QR
+  </button>
+
+  <p style="font-size:11px; color:#9ca3af; margin-top:4px;">
+    Student ID: {{ realStudentId }}
+  </p>
+</div>
+     
     </div>
   </div>
 </div>

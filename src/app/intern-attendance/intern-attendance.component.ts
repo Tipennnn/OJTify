@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.component';
@@ -29,7 +29,7 @@ interface AttendanceRecord {
   templateUrl: './intern-attendance.component.html',
   styleUrls: ['./intern-attendance.component.css']
 })
-export class InternAttendanceComponent implements OnInit {
+export class InternAttendanceComponent implements OnInit, OnDestroy {
 
   showAttendanceModal = false;
   showReportsModal    = false;
@@ -59,6 +59,9 @@ export class InternAttendanceComponent implements OnInit {
 
   currentUserId = '';
   qrData        = '';
+qrExpiresIn   = 10;   // countdown seconds
+qrLabel       = '';   // e.g. "Expires in 8s"
+private qrTimer: any;
   realStudentId = '';
 
   // ── Hours tracking ────────────────────────────────────────
@@ -86,15 +89,39 @@ async ngOnInit() {
   this.generateYears();
 }
 
+ngOnDestroy() {
+  clearInterval(this.qrTimer);
+}
+
   async getCurrentUser() {
-    try {
-      const user         = await this.appwrite.account.get();
-      this.currentUserId = user.$id;
-      this.qrData        = `OJTIFY_ATTENDANCE:${user.$id}`;
-    } catch (error: any) {
-      console.error('Failed to get user:', error.message);
-    }
+  try {
+    const user         = await this.appwrite.account.get();
+    this.currentUserId = user.$id;
+    this.generateFreshQR();        // ← replaces the single qrData assignment
+    this.startQRCountdown();
+  } catch (error: any) {
+    console.error('Failed to get user:', error.message);
   }
+}
+
+generateFreshQR() {
+  const ts      = Date.now();                                   // milliseconds
+  this.qrData   = `OJTIFY_ATTENDANCE:${this.currentUserId}:${ts}`;
+  this.qrExpiresIn = 10;
+}
+
+startQRCountdown() {
+  clearInterval(this.qrTimer);
+  this.qrTimer = setInterval(() => {
+    this.qrExpiresIn--;
+  }, 1000);
+}
+
+refreshQRManually() {
+  clearInterval(this.qrTimer);
+  this.generateFreshQR();
+  this.startQRCountdown();
+}
 
   // ── Load student hours from students table ────────────────
   async loadStudentHours() {

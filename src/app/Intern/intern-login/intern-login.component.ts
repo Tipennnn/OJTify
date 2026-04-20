@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +13,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './intern-login.component.html',
   styleUrls: ['./intern-login.component.css']
 })
-export class InternLoginComponent implements OnInit {
+export class InternLoginComponent implements OnInit, OnDestroy {
 
   email        = '';
   password     = '';
@@ -38,6 +38,8 @@ export class InternLoginComponent implements OnInit {
   fpOtpExpiry       = 0;
   fpUserName        = '';
   fpUserId          = '';
+  fpResendCooldown   = 0;
+private fpCooldownTimer: any;
 
   constructor(
     private appwrite: AppwriteService,
@@ -60,22 +62,25 @@ export class InternLoginComponent implements OnInit {
     }
   }
 
+    ngOnDestroy() {
+  clearInterval(this.fpCooldownTimer);
+}
   togglePassword() {
     this.showPassword = !this.showPassword;
   }
 
   // ── FORGOT PASSWORD ───────────────────────────────────────
 
-  openForgotPassword() {
-    this.forgotStep        = 1;
-    this.fpEmail           = '';
-    this.fpOtp             = '';
-    this.fpEnteredOtp      = '';
-    this.fpNewPassword     = '';
-    this.fpConfirmPassword = '';
-    this.fpError           = '';
-    this.fpLoading         = false;
-  }
+ openForgotPassword() {
+  this.forgotStep        = 1;
+  this.fpEmail           = this.email;  // ← pre-fills from login field
+  this.fpOtp             = '';
+  this.fpEnteredOtp      = '';
+  this.fpNewPassword     = '';
+  this.fpConfirmPassword = '';
+  this.fpError           = '';
+  this.fpLoading         = false;
+}
 
   closeForgotPassword() {
     this.forgotStep = 0;
@@ -145,7 +150,8 @@ export class InternLoginComponent implements OnInit {
         this.fpError = 'Failed to send OTP. Please try again.';
         return;
       }
-
+      
+      this.startResendCooldown();
       this.forgotStep = 2;
 
     } catch (error: any) {
@@ -195,11 +201,11 @@ verifyOtp() {
     return;
   }
 
- const passwordError = this.validateStrongPassword(this.fpNewPassword);
-if (passwordError) {
-  this.fpError = passwordError;
-  return;
-}
+  const passwordError = this.validateStrongPassword(this.fpNewPassword);
+  if (passwordError) {
+    this.fpError = passwordError;
+    return;
+  }
 
   if (this.fpNewPassword !== this.fpConfirmPassword) {
     this.fpError = 'Passwords do not match.';
@@ -209,7 +215,22 @@ if (passwordError) {
   this.fpLoading = true;
 
   try {
-    // ✅ Directly update password via Appwrite Users API (no email needed)
+
+    // ── Check if new password is same as current ──────────
+    try {
+      await this.appwrite.account.createEmailPasswordSession(
+        this.fpEmail,
+        this.fpNewPassword
+      );
+      await this.appwrite.account.deleteSession('current');
+      this.fpError   = 'You cannot reuse your current password. Please choose a different one.';
+      this.fpLoading = false;
+      return;
+    } catch {
+      // Passwords are different, safe to proceed
+    }
+    // ─────────────────────────────────────────────────────
+
     const response = await fetch(
       `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
       {
@@ -379,5 +400,15 @@ validateStrongPassword(password: string): string {
   }
 
   return ''; // no error
+}
+startResendCooldown() {
+  this.fpResendCooldown = 90; // 1 min 30 secs
+  clearInterval(this.fpCooldownTimer);
+  this.fpCooldownTimer = setInterval(() => {
+    this.fpResendCooldown--;
+    if (this.fpResendCooldown <= 0) {
+      clearInterval(this.fpCooldownTimer);
+    }
+  }, 1000);
 }
 }

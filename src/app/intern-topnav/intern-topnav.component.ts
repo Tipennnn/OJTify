@@ -216,12 +216,15 @@ closeModal() {
   if (!this.newPassword) {
     this.pwFieldErrors.newPw = 'New password is required.';
     hasError = true;
-  } else if (this.newPassword.length < 8) {
-    this.pwFieldErrors.newPw = 'Password must be at least 8 characters.';
-    hasError = true;
-  } else if (this.newPassword === this.currentPassword) {
-    this.pwFieldErrors.newPw = 'New password must be different from current.';
-    hasError = true;
+ } else {
+    const strengthError = this.validateStrongPassword(this.newPassword);
+    if (strengthError) {
+      this.pwFieldErrors.newPw = strengthError;
+      hasError = true;
+    } else if (this.newPassword === this.currentPassword) {
+      this.pwFieldErrors.newPw = 'New password must be different from current.';
+      hasError = true;
+    }
   }
 
   if (!this.confirmPassword) {
@@ -277,4 +280,15 @@ closeModal() {
     else if (hour < 18) return 'Good Afternoon, Intern!';
     else return 'Good Evening, Intern!';
   }
+  validateStrongPassword(password: string): string {
+  if (password.length < 8)
+    return 'Password must be at least 8 characters.';
+  if (!/[A-Z]/.test(password))
+    return 'Password must contain at least one uppercase letter.';
+  if (!/[0-9]/.test(password))
+    return 'Password must contain at least one number.';
+  if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password))
+    return 'Password must contain at least one special character.';
+  return '';
+}
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +14,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './admin-login.component.html',
   styleUrl: './admin-login.component.css'
 })
-export class AdminLoginComponent implements OnInit {
+export class AdminLoginComponent implements OnInit, OnDestroy {
 
   email        = '';
   password     = '';
@@ -38,6 +38,8 @@ export class AdminLoginComponent implements OnInit {
   fpOtpExpiry       = 0;
   fpUserName        = '';
   fpUserId          = '';
+  fpResendCooldown  = 0;
+  private fpCooldownTimer: any;
 
   constructor(
     private appwrite: AppwriteService,
@@ -60,6 +62,10 @@ export class AdminLoginComponent implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+    clearInterval(this.fpCooldownTimer);
+  }
+
   togglePassword() { this.showPassword = !this.showPassword; }
 
   // ── LOGIN ─────────────────────────────────────────────────
@@ -80,9 +86,12 @@ export class AdminLoginComponent implements OnInit {
     if (!this.password) {
       this.fieldErrors.password = 'Password is required.';
       hasError = true;
-    } else if (this.password.length < 6) {
-      this.fieldErrors.password = 'Password must be at least 6 characters.';
-      hasError = true;
+    } else {
+      const passwordError = this.validateStrongPassword(this.password);
+      if (passwordError) {
+        this.fieldErrors.password = passwordError;
+        hasError = true;
+      }
     }
 
     if (hasError) return;
@@ -131,7 +140,7 @@ export class AdminLoginComponent implements OnInit {
   // ── FORGOT PASSWORD ───────────────────────────────────────
   openForgotPassword() {
     this.forgotStep        = 1;
-    this.fpEmail           = '';
+    this.fpEmail           = this.email;  // pre-fills from login field
     this.fpOtp             = '';
     this.fpEnteredOtp      = '';
     this.fpNewPassword     = '';
@@ -151,79 +160,77 @@ export class AdminLoginComponent implements OnInit {
     }
   }
 
-async sendOtp() {
-  if (!this.fpEmail) {
-    this.fpError = 'Please enter your email address.';
-    return;
-  }
-  this.fpLoading = true;
-  this.fpError   = '';
+  async sendOtp() {
+    if (!this.fpEmail) {
+      this.fpError = 'Please enter your email address.';
+      return;
+    }
+    this.fpLoading = true;
+    this.fpError   = '';
 
-  try {
-    const url = `https://sgp.cloud.appwrite.io/v1/databases/${this.appwrite.DATABASE_ID}/collections/${this.appwrite.ADMINS_COL}/documents?limit=100`;
+    try {
+      const url = `https://sgp.cloud.appwrite.io/v1/databases/${this.appwrite.DATABASE_ID}/collections/${this.appwrite.ADMINS_COL}/documents?limit=100`;
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type':       'application/json',
-        'X-Appwrite-Project': '69ba8d9c0027d10c447f',
-        'X-Appwrite-Key':     environment.appwriteApiKey
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type':       'application/json',
+          'X-Appwrite-Project': '69ba8d9c0027d10c447f',
+          'X-Appwrite-Key':     environment.appwriteApiKey
+        }
+      });
+
+      if (!res.ok) {
+        this.fpError = 'Failed to verify email. Please try again.';
+        this.fpLoading = false;
+        return;
       }
-    });
 
-    if (!res.ok) {
-      this.fpError = 'Failed to verify email. Please try again.';
-      this.fpLoading = false;
-      return;
-    }
+      const data = await res.json();
+      const adminDoc = (data.documents as any[])
+        .find(d => d.email?.toLowerCase() === this.fpEmail.toLowerCase());
 
-    const data = await res.json();
-    const adminDoc = (data.documents as any[])
-      .find(d => d.email?.toLowerCase() === this.fpEmail.toLowerCase());
+      if (!adminDoc) {
+        this.fpError = 'No admin account found with this email.';
+        this.fpLoading = false;
+        return;
+      }
 
-    if (!adminDoc) {
-      this.fpError = 'No admin account found with this email.';
-      this.fpLoading = false;
-      return;
-    }
+      this.fpUserId   = adminDoc.auth_user_id;
+      this.fpUserName = 'Admin';
 
-    // Use auth_user_id field (the Appwrite Auth user ID)
-    this.fpUserId   = adminDoc.auth_user_id;
-    this.fpUserName = 'Admin';
+      this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
+      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
 
-    // Generate OTP
-    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+      const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': environment.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: { name: 'OJTify System', email: 'adminojtify@gmail.com' },
+          to: [{ email: this.fpEmail, name: this.fpUserName }],
+          templateId: environment.brevoOtpTid,
+          params: { user_name: this.fpUserName, otp_code: this.fpOtp }
+        })
+      });
 
-    // Send OTP via Brevo
-    const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': environment.brevoApiKey
-      },
-      body: JSON.stringify({
-        sender: { name: 'OJTify System', email: 'adminojtify@gmail.com' },
-        to: [{ email: this.fpEmail, name: this.fpUserName }],
-        templateId: environment.brevoOtpTid,
-        params: { user_name: this.fpUserName, otp_code: this.fpOtp }
-      })
-    });
+      if (!emailRes.ok) {
+        this.fpError = 'Failed to send OTP. Please try again.';
+        return;
+      }
 
-    if (!emailRes.ok) {
+      this.startResendCooldown();
+      this.forgotStep = 2;
+
+    } catch (err) {
+      console.error(err);
       this.fpError = 'Failed to send OTP. Please try again.';
-      return;
+    } finally {
+      this.fpLoading = false;
     }
-
-    this.forgotStep = 2;
-
-  } catch (err) {
-    console.error(err);
-    this.fpError = 'Failed to send OTP. Please try again.';
-  } finally {
-    this.fpLoading = false;
   }
-}
 
   verifyOtp() {
     this.fpError = '';
@@ -239,24 +246,58 @@ async sendOtp() {
   }
 
   resendOtp() {
+    if (this.fpResendCooldown > 0) return;
     this.fpEnteredOtp = '';
     this.fpError      = '';
     this.forgotStep   = 1;
   }
 
+  startResendCooldown() {
+    this.fpResendCooldown = 90;
+    clearInterval(this.fpCooldownTimer);
+    this.fpCooldownTimer = setInterval(() => {
+      this.fpResendCooldown--;
+      if (this.fpResendCooldown <= 0) {
+        clearInterval(this.fpCooldownTimer);
+      }
+    }, 1000);
+  }
+
   async resetPassword() {
     this.fpError = '';
+
     if (!this.fpNewPassword || !this.fpConfirmPassword) {
       this.fpError = 'Please fill in all fields.'; return;
     }
-    if (this.fpNewPassword.length < 8) {
-      this.fpError = 'Password must be at least 8 characters.'; return;
+
+    const passwordError = this.validateStrongPassword(this.fpNewPassword);
+    if (passwordError) {
+      this.fpError = passwordError; return;
     }
+
     if (this.fpNewPassword !== this.fpConfirmPassword) {
       this.fpError = 'Passwords do not match.'; return;
     }
+
     this.fpLoading = true;
+
     try {
+
+      // ── Check if new password is same as current ──────────
+      try {
+        await this.appwrite.account.createEmailPasswordSession(
+          this.fpEmail,
+          this.fpNewPassword
+        );
+        await this.appwrite.account.deleteSession('current');
+        this.fpError   = 'You cannot reuse your current password. Please choose a different one.';
+        this.fpLoading = false;
+        return;
+      } catch {
+        // Passwords are different, safe to proceed
+      }
+      // ─────────────────────────────────────────────────────
+
       const response = await fetch(
         `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
         {
@@ -283,10 +324,27 @@ async sendOtp() {
         toast: true, position: 'top-end',
         showConfirmButton: false, timer: 4000, timerProgressBar: true
       });
+
     } catch {
       this.fpError = 'Failed to reset password. Please try again.';
     } finally {
       this.fpLoading = false;
     }
+  }
+
+  validateStrongPassword(password: string): string {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter.';
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Password must contain at least one number.';
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password)) {
+      return 'Password must contain at least one special character.';
+    }
+    return '';
   }
 }

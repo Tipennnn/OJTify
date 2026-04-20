@@ -1,111 +1,111 @@
 <header class="topnav">
-
-    <!-- LEFT: GREETING -->
-    <div class="topnav-left">
-      <span class="greeting">{{ greeting }}</span>
-    </div>
-  
-    <!-- RIGHT -->
-    <div class="topnav-right">
-  
-      <div class="profile" (click)="toggleMenu()">
-        <img src="https://i.pravatar.cc/150?img=12" alt="Admin Profile">
-      </div>
-  
-      <!-- DROPDOWN -->
-      <div class="dropdown" *ngIf="menuOpen">
-  
-        <div class="dropdown-item" (click)="goProfile()">
-          <i class="fa-solid fa-user"></i>
-          Profile
-        </div>
-  
-        <div class="dropdown-item" (click)="openChangePassword()">
-          <i class="fa-solid fa-lock"></i>
-          Change Password
-        </div>
-  
-       <!-- <div class="dropdown-item" (click)="logout()">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          Logout
-        </div>
-        -->
-  
-      </div>
-  
-    </div>
-  
-  </header>
-  
-  
-  <!-- CHANGE PASSWORD MODAL -->
-  
-  <div class="modal-overlay" *ngIf="showPasswordModal">
-  
-    <div class="password-modal">
-  
-      <!-- HEADER -->
-      <div class="modal-header">
-        <h2><i class="fa-solid fa-lock"></i> Change Password</h2>
-        <i class="fa-solid fa-xmark close-icon" (click)="closeModal()"></i>
-      </div>
-  
-      <p class="note">Password must be at least 8 characters long.</p>
-  
-      <div class="modal-divider"></div>
-  
-      <!-- CURRENT PASSWORD -->
-      <div class="input-group">
-        <label>Current Password</label>
-  
-        <div class="password-field">
-          <input
-            [type]="showCurrent ? 'text' : 'password'"
-            placeholder="Enter current password">
-  
-          <i class="fa-solid"
-            [ngClass]="showCurrent ? 'fa-eye-slash' : 'fa-eye'"
-            (click)="showCurrent=!showCurrent"></i>
-        </div>
-      </div>
-  
-      <!-- NEW PASSWORD -->
-      <div class="input-group">
-        <label>New Password</label>
-  
-        <div class="password-field">
-          <input
-            [type]="showNew ? 'text' : 'password'"
-            placeholder="Create new password">
-  
-          <i class="fa-solid"
-            [ngClass]="showNew ? 'fa-eye-slash' : 'fa-eye'"
-            (click)="showNew=!showNew"></i>
-        </div>
-      </div>
-  
-      <!-- CONFIRM PASSWORD -->
-      <div class="input-group">
-        <label>Confirm New Password</label>
-  
-        <div class="password-field">
-          <input
-            [type]="showConfirm ? 'text' : 'password'"
-            placeholder="Confirm new password">
-  
-          <i class="fa-solid"
-            [ngClass]="showConfirm ? 'fa-eye-slash' : 'fa-eye'"
-            (click)="showConfirm=!showConfirm"></i>
-        </div>
-      </div>
-  
-      <!-- BUTTON -->
-      <div class="modal-actions">
-        <button class="save-btn" (click)="updatePassword()">
-          Update Password
-        </button>
-      </div>
-  
-    </div>
-  
+  <div class="topnav-left">
+    <span class="greeting">{{ greeting }}</span>
   </div>
+  <div class="topnav-right">
+    <div class="profile" (click)="toggleMenu()">
+      <img src="https://i.pravatar.cc/150?img=12" alt="Admin Profile">
+    </div>
+    <div class="dropdown" *ngIf="menuOpen">
+      <div class="dropdown-item" (click)="goProfile()">
+        <i class="fa-solid fa-user"></i> Profile
+      </div>
+      <div class="dropdown-item" (click)="openChangePassword()">
+        <i class="fa-solid fa-lock"></i> Change Password
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" *ngIf="showPasswordModal">
+  <div class="password-modal">
+
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div class="modal-header-text">
+        <h2>Change Password</h2>
+        <p>Must be 8+ chars with uppercase, number & special character.</p>
+      </div>
+      <i class="fa-solid fa-xmark close-icon" (click)="closeModal()"></i>
+    </div>
+
+    <div class="modal-divider"></div>
+
+    <div class="pw-error" *ngIf="pwError">
+      <i class="fa fa-circle-exclamation"></i> {{ pwError }}
+    </div>
+
+    <div class="pw-success" *ngIf="pwSuccess">
+      <i class="fa fa-circle-check"></i> {{ pwSuccess }}
+    </div>
+
+    <div class="input-group">
+      <label>Current Password</label>
+      <div class="password-field" [class.field-error-border]="pwFieldErrors.current">
+        <i class="fa-solid fa-lock field-icon"></i>
+        <input [type]="showCurrent ? 'text' : 'password'"
+               [(ngModel)]="currentPassword"
+               placeholder="Enter current password"
+               (paste)="$event.preventDefault()"
+               (copy)="$event.preventDefault()">
+        <i class="fa-solid"
+           [ngClass]="showCurrent ? 'fa-eye-slash' : 'fa-eye'"
+           (click)="showCurrent = !showCurrent"></i>
+      </div>
+      <div class="field-error-msg" *ngIf="pwFieldErrors.current">
+        <i class="fa fa-circle-exclamation"></i> {{ pwFieldErrors.current }}
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>New Password</label>
+      <div class="password-field" [class.field-error-border]="pwFieldErrors.newPw">
+        <i class="fa-solid fa-key field-icon"></i>
+        <input [type]="showNew ? 'text' : 'password'"
+               [(ngModel)]="newPassword"
+               placeholder="Create new password"
+               (paste)="$event.preventDefault()"
+               (copy)="$event.preventDefault()">
+        <i class="fa-solid"
+           [ngClass]="showNew ? 'fa-eye-slash' : 'fa-eye'"
+           (click)="showNew = !showNew"></i>
+      </div>
+      <div class="field-error-msg" *ngIf="pwFieldErrors.newPw">
+        <i class="fa fa-circle-exclamation"></i> {{ pwFieldErrors.newPw }}
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Confirm New Password</label>
+      <div class="password-field" [class.field-error-border]="pwFieldErrors.confirm">
+        <i class="fa-solid fa-key field-icon"></i>
+        <input [type]="showConfirm ? 'text' : 'password'"
+               [(ngModel)]="confirmPassword"
+               placeholder="Confirm new password"
+               (paste)="$event.preventDefault()"
+               (copy)="$event.preventDefault()">
+        <i class="fa-solid"
+           [ngClass]="showConfirm ? 'fa-eye-slash' : 'fa-eye'"
+           (click)="showConfirm = !showConfirm"></i>
+      </div>
+      <div class="field-error-msg" *ngIf="pwFieldErrors.confirm">
+        <i class="fa fa-circle-exclamation"></i> {{ pwFieldErrors.confirm }}
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="cancel-btn" (click)="closeModal()" [disabled]="passwordLoading">
+        Cancel
+      </button>
+      <button class="save-btn" (click)="updatePassword()" [disabled]="passwordLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="passwordLoading"></i>
+        <i class="fa-solid fa-floppy-disk" *ngIf="!passwordLoading"></i>
+        {{ passwordLoading ? 'Updating...' : 'Update Password' }}
+      </button>
+    </div>
+
+  </div>
+</div>

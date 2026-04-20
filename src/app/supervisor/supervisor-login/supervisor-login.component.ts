@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +13,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './supervisor-login.component.html',
   styleUrl: './supervisor-login.component.css'
 })
-export class SupervisorLoginComponent implements OnInit {
+export class SupervisorLoginComponent implements OnInit, OnDestroy {
 
   email        = '';
   password     = '';
@@ -37,6 +37,8 @@ export class SupervisorLoginComponent implements OnInit {
   fpOtpExpiry       = 0;
   fpUserName        = '';
   fpUserId          = '';
+  fpResendCooldown   = 0;
+private fpCooldownTimer: any;
 
   constructor(
     private appwrite: AppwriteService,
@@ -59,6 +61,10 @@ export class SupervisorLoginComponent implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+  clearInterval(this.fpCooldownTimer);
+}
+
   togglePassword() { this.showPassword = !this.showPassword; }
 
   // ── LOGIN ─────────────────────────────────────────────────
@@ -80,9 +86,12 @@ export class SupervisorLoginComponent implements OnInit {
   if (!this.password) {
     this.fieldErrors.password = 'Password is required.';
     hasError = true;
-  } else if (this.password.length < 6) {
-    this.fieldErrors.password = 'Password must be at least 6 characters.';
-    hasError = true;
+  } else {
+    const passwordError = this.validateStrongPassword(this.password);
+    if (passwordError) {
+      this.fieldErrors.password = passwordError;
+      hasError = true;
+    }
   }
 
   if (hasError) return;
@@ -140,16 +149,16 @@ export class SupervisorLoginComponent implements OnInit {
 }
 
   // ── FORGOT PASSWORD ───────────────────────────────────────
-  openForgotPassword() {
-    this.forgotStep        = 1;
-    this.fpEmail           = '';
-    this.fpOtp             = '';
-    this.fpEnteredOtp      = '';
-    this.fpNewPassword     = '';
-    this.fpConfirmPassword = '';
-    this.fpError           = '';
-    this.fpLoading         = false;
-  }
+openForgotPassword() {
+  this.forgotStep        = 1;
+  this.fpEmail           = this.email;  // ← pre-fills from login field
+  this.fpOtp             = '';
+  this.fpEnteredOtp      = '';
+  this.fpNewPassword     = '';
+  this.fpConfirmPassword = '';
+  this.fpError           = '';
+  this.fpLoading         = false;
+}
 
   closeForgotPassword() {
     this.forgotStep = 0;
@@ -203,6 +212,7 @@ export class SupervisorLoginComponent implements OnInit {
         return;
       }
 
+      this.startResendCooldown();
       this.forgotStep = 2;
 
     } catch (error: any) {
@@ -226,59 +236,118 @@ export class SupervisorLoginComponent implements OnInit {
   }
 
   resendOtp() {
-    this.fpEnteredOtp = '';
-    this.fpError      = '';
-    this.forgotStep   = 1;
-  }
+  if (this.fpResendCooldown > 0) return;
+  this.fpEnteredOtp = '';
+  this.fpError      = '';
+  this.forgotStep   = 1;
+}
 
   async resetPassword() {
-    this.fpError = '';
-    if (!this.fpNewPassword || !this.fpConfirmPassword) {
-      this.fpError = 'Please fill in all fields.'; return;
-    }
-    if (this.fpNewPassword.length < 8) {
-      this.fpError = 'Password must be at least 8 characters.'; return;
-    }
-    if (this.fpNewPassword !== this.fpConfirmPassword) {
-      this.fpError = 'Passwords do not match.'; return;
-    }
-    this.fpLoading = true;
-    try {
-      const response = await fetch(
-        `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type':       'application/json',
-            'X-Appwrite-Project': '69ba8d9c0027d10c447f',
-            'X-Appwrite-Key':     environment.appwriteApiKey
-          },
-          body: JSON.stringify({ password: this.fpNewPassword })
-        }
-      );
+  this.fpError = '';
 
-      if (!response.ok) {
-        const err = await response.json();
-        this.fpError = err.message || 'Failed to reset password.';
-        return;
-      }
-
-      this.closeForgotPassword();
-      Swal.fire({
-        icon: 'success', title: 'Password Reset!',
-        text: 'Your password has been changed. You can now log in.',
-        toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 4000, timerProgressBar: true
-      });
-    } catch (error: any) {
-      this.fpError = 'Failed to reset password. Please try again.';
-    } finally {
-      this.fpLoading = false;
-    }
+  if (!this.fpNewPassword || !this.fpConfirmPassword) {
+    this.fpError = 'Please fill in all fields.';
+    return;
   }
+
+  const passwordError = this.validateStrongPassword(this.fpNewPassword);
+  if (passwordError) {
+    this.fpError = passwordError;
+    return;
+  }
+
+  if (this.fpNewPassword !== this.fpConfirmPassword) {
+    this.fpError = 'Passwords do not match.';
+    return;
+  }
+
+  this.fpLoading = true;
+
+  try {
+
+    // ── Check if new password is same as current ──────────
+    try {
+      await this.appwrite.account.createEmailPasswordSession(
+        this.fpEmail,
+        this.fpNewPassword
+      );
+      await this.appwrite.account.deleteSession('current');
+      this.fpError   = 'You cannot reuse your current password. Please choose a different one.';
+      this.fpLoading = false;
+      return;
+    } catch {
+      // Passwords are different, safe to proceed
+    }
+    // ─────────────────────────────────────────────────────
+
+    const response = await fetch(
+      `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type':       'application/json',
+          'X-Appwrite-Project': '69ba8d9c0027d10c447f',
+          'X-Appwrite-Key':     environment.appwriteApiKey
+        },
+        body: JSON.stringify({ password: this.fpNewPassword })
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      this.fpError = err.message || 'Failed to reset password.';
+      return;
+    }
+
+    this.closeForgotPassword();
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Password Reset!',
+      text: 'Your password has been changed. You can now log in.',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 4000,
+      timerProgressBar: true
+    });
+
+  } catch (error: any) {
+    this.fpError = 'Failed to reset password. Please try again.';
+  } finally {
+    this.fpLoading = false;
+  }
+}
   onOverlayClick(event: MouseEvent) {
   if ((event.target as HTMLElement).classList.contains('fp-overlay')) {
     this.closeForgotPassword();
   }
 }
+validateStrongPassword(password: string): string {
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters.';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter.';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password)) {
+    return 'Password must contain at least one special character.';
+  }
+  return '';
+}
+
+startResendCooldown() {
+  this.fpResendCooldown = 90;
+  clearInterval(this.fpCooldownTimer);
+  this.fpCooldownTimer = setInterval(() => {
+    this.fpResendCooldown--;
+    if (this.fpResendCooldown <= 0) {
+      clearInterval(this.fpCooldownTimer);
+    }
+  }, 1000);
+}
+
 }
