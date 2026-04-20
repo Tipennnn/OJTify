@@ -42,13 +42,14 @@
         <div class="table-container">
           <table class="applicants-table">
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Status</th>
-              </tr>
+             <tr>
+  <th>Name</th>
+  <th>Student ID</th>
+  <th>Time In</th>
+  <th>Time Out</th>
+  <th>Status</th>
+  <th>Scanned By</th>
+</tr>
             </thead>
             <tbody>
 
@@ -69,10 +70,11 @@
                     {{ log.status }}
                   </span>
                 </td>
+                <td>{{ log.scanned_by_name || '—' }}</td>
               </tr>
 
               <tr *ngIf="filteredLogs.length === 0">
-                <td colspan="5"
+                <td colspan="6"
                     style="text-align:center; color:#9ca3af; padding:40px;">
                   <i class="fas fa-calendar-times"
                      style="font-size:32px; margin-bottom:10px; display:block;"></i>
@@ -112,67 +114,158 @@
 
     <!-- Header -->
     <div class="scanner-modal-header">
-      <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; align-items:center; gap:12px;">
         <div class="qr-icon-box">
           <i class="fas fa-qrcode"></i>
         </div>
         <div>
-          <h3 style="margin:0; font-size:16px;">QR Attendance Scanner</h3>
-          <p style="margin:0; font-size:12px; color:#6b7280;">
-            Point camera at intern's QR code
-          </p>
+          <h3 style="margin:0; font-size:15px; font-weight:600; color:#111827;">QR Attendance Scanner</h3>
+          <p style="margin:2px 0 0; font-size:12px; color:#9ca3af;">Scan QR or search manually</p>
         </div>
       </div>
-      <button class="close-scanner-btn" (click)="closeScanner()">×</button>
+      <button class="close-scanner-btn" (click)="closeScanner()">✕</button>
     </div>
 
-    <div class="scanner-divider"></div>
-
-    <!-- Camera -->
-    <div class="camera-container">
-      <video id="scanner-video"
-             playsinline autoplay muted
-             style="width:100%; border-radius:10px; display:block;">
-      </video>
-
-      <!-- Scan line animation -->
-      <div class="scan-line-wrapper" *ngIf="scanning">
-        <div class="scan-line"></div>
-      </div>
-
-      <!-- Corner borders -->
-      <div class="corner top-left"></div>
-      <div class="corner top-right"></div>
-      <div class="corner bottom-left"></div>
-      <div class="corner bottom-right"></div>
+    <!-- Mode Tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab"
+              [class.active]="!showManualEntry"
+              (click)="switchToCamera()">
+        <i class="fas fa-camera"></i> Scan QR
+      </button>
+      <button class="mode-tab"
+              [class.active]="showManualEntry"
+              (click)="switchToManual()">
+        <i class="fas fa-keyboard"></i> Manual Entry
+      </button>
     </div>
 
-    <!-- Status -->
-    <div class="scanner-status">
-      <div *ngIf="scanLoading" class="status-loading">
-        <i class="fa fa-spinner fa-spin"></i> Processing scan...
+    <!-- Panel Body -->
+    <div class="modal-body">
+
+      <!-- CAMERA PANEL -->
+      <div class="camera-panel" [class.hidden]="showManualEntry">
+        <div class="camera-container">
+          <video id="scanner-video"
+                 playsinline autoplay muted
+                 style="width:100%; height:100%; object-fit:cover; display:block;">
+          </video>
+
+          <div class="scan-line-wrapper" *ngIf="scanning">
+            <div class="scan-line"></div>
+          </div>
+
+          <div class="corner top-left"></div>
+          <div class="corner top-right"></div>
+          <div class="corner bottom-left"></div>
+          <div class="corner bottom-right"></div>
+
+          <div class="camera-hint">Point camera at QR code</div>
+        </div>
+
+        <!-- Scan status -->
+        <div class="scanner-status">
+          <div *ngIf="scanLoading" class="status-loading">
+            <i class="fa fa-spinner fa-spin"></i> Processing...
+          </div>
+          <div *ngIf="!scanLoading && scanResult"
+               class="status-result"
+               [class.result-timein]="scanStatus === 'timein'"
+               [class.result-timeout]="scanStatus === 'timeout'"
+               [class.result-already]="scanStatus === 'already'">
+            <i class="fas fa-check-circle"
+               *ngIf="scanStatus === 'timein' || scanStatus === 'timeout'"></i>
+            <i class="fas fa-info-circle" *ngIf="scanStatus === 'already'"></i>
+            {{ scanResult }}
+          </div>
+          <div *ngIf="!scanLoading && !scanResult" class="status-idle-indicator">
+            <div class="live-dot"></div>
+            Scanner active — waiting for QR code
+          </div>
+        </div>
       </div>
 
-      <div *ngIf="!scanLoading && scanResult"
-           class="status-result"
-           [class.result-timein]="scanStatus === 'timein'"
-           [class.result-timeout]="scanStatus === 'timeout'"
-           [class.result-already]="scanStatus === 'already'">
-        <i class="fas fa-check-circle"
-           *ngIf="scanStatus === 'timein' || scanStatus === 'timeout'"></i>
-        <i class="fas fa-info-circle" *ngIf="scanStatus === 'already'"></i>
-        {{ scanResult }}
-      </div>
+      <!-- MANUAL PANEL -->
+      <div class="manual-panel" [class.hidden]="!showManualEntry">
 
-      <div *ngIf="!scanLoading && !scanResult"
-           style="color:#9ca3af; font-size:13px; text-align:center;">
-        <i class="fas fa-search"></i> Scanning for QR code...
+        <span class="manual-panel-label">Search intern</span>
+
+        <!-- Selected student preview -->
+        <div class="selected-student-card" *ngIf="selectedManualStudent">
+          <img [src]="selectedManualStudent.profile_photo_id
+                      ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
+                        + selectedManualStudent.profile_photo_id + '/view?project=' + PROJECT_ID
+                      : 'https://ui-avatars.com/api/?name='
+                        + selectedManualStudent.first_name + '+'
+                        + selectedManualStudent.last_name
+                        + '&background=2563eb&color=fff&size=64'"
+               class="manual-profile-pic" alt="Profile">
+          <div class="manual-student-info">
+            <span class="manual-student-name">
+              {{ selectedManualStudent.first_name }} {{ selectedManualStudent.last_name }}
+            </span>
+            <span class="manual-student-id">{{ selectedManualStudent.student_id }}</span>
+            <span class="manual-student-course">{{ selectedManualStudent.course }}</span>
+          </div>
+          <button class="manual-clear-btn" (click)="clearManualSelection()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Search input -->
+        <div class="manual-input-wrapper" *ngIf="!selectedManualStudent">
+          <i class="fas fa-id-card manual-icon"></i>
+          <input
+            type="text"
+            class="manual-id-input"
+            placeholder="Type name or Student ID..."
+            [(ngModel)]="manualStudentId"
+            (input)="onManualIdInput()"
+            (keydown.enter)="submitManualId()"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Results area -->
+        <div class="manual-results-area">
+
+          <div class="manual-empty-state"
+               *ngIf="manualSearchResults.length === 0 && !selectedManualStudent">
+            <i class="fas fa-search"></i>
+            <span *ngIf="!manualStudentId.trim()">Start typing to search</span>
+            <span *ngIf="manualStudentId.trim()">No interns found</span>
+          </div>
+
+          <div class="manual-search-item"
+               *ngFor="let s of manualSearchResults"
+               (click)="selectManualStudent(s)">
+            <img [src]="s.profile_photo_id
+                        ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
+                          + s.profile_photo_id + '/view?project=' + PROJECT_ID
+                        : 'https://ui-avatars.com/api/?name=' + s.first_name + '+'
+                          + s.last_name + '&background=2563eb&color=fff&size=64'"
+                 class="manual-search-pic" alt="">
+            <div class="manual-search-info">
+              <span class="manual-search-name">{{ s.first_name }} {{ s.last_name }}</span>
+              <span class="manual-search-id">{{ s.student_id }}</span>
+            </div>
+            <span class="manual-tap-hint">tap to select</span>
+          </div>
+
+        </div>
       </div>
     </div>
 
-    <button class="stop-scan-btn" (click)="closeScanner()">
-      <i class="fas fa-times"></i> Close Scanner
-    </button>
+    <!-- Footer -->
+    <div class="scanner-modal-footer">
+      <button class="manual-submit-btn"
+              *ngIf="showManualEntry"
+              (click)="submitManualId()"
+              [disabled]="!selectedManualStudent && !manualStudentId.trim()">
+        <i class="fas fa-check-circle"></i>
+        Record Attendance
+      </button>
+    </div>
 
   </div>
 </div>
