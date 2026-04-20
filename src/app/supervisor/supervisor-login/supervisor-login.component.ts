@@ -21,6 +21,7 @@ export class SupervisorLoginComponent implements OnInit {
   showPassword = false;
   loading      = false;
   errorMessage = '';
+  fieldErrors = { email: '', password: '' };
 
   // ── Forgot password ───────────────────────────────────────
   forgotStep        = 0;
@@ -62,49 +63,81 @@ export class SupervisorLoginComponent implements OnInit {
 
   // ── LOGIN ─────────────────────────────────────────────────
   async onLogin() {
-    this.errorMessage = '';
-    this.loading      = true;
+  this.errorMessage = '';
+  this.fieldErrors  = { email: '', password: '' };
 
-    try {
-      // Clear any existing session
-      try { await this.appwrite.account.deleteSession('current'); } catch { }
+  // ── Client-side validation ─────────────────────────────
+  let hasError = false;
 
-      await this.appwrite.account.createEmailPasswordSession(
-        this.email, this.password
-      );
-
-      const user = await this.appwrite.account.get();
-
-      // Check if supervisor exists in supervisors collection
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
-
-      const supervisor = (res.documents as any[])
-        .find(s => s.$id === user.$id);
-
-      if (!supervisor) {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'No supervisor account found. Please contact the admin.';
-        return;
-      }
-
-      if ((supervisor.status || 'Active') === 'Inactive') {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'Your account has been deactivated. Please contact the admin.';
-        return;
-      }
-
-      sessionStorage.removeItem('supervisorWelcomeShown');
-      this.router.navigate(['/supervisor-dashboard']);
-
-    } catch (error: any) {
-      this.errorMessage = error.message ?? 'Invalid email or password. Please try again.';
-    } finally {
-      this.loading = false;
-    }
+  if (!this.email) {
+    this.fieldErrors.email = 'Email is required.';
+    hasError = true;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+    this.fieldErrors.email = 'Please enter a valid email address.';
+    hasError = true;
   }
+
+  if (!this.password) {
+    this.fieldErrors.password = 'Password is required.';
+    hasError = true;
+  } else if (this.password.length < 6) {
+    this.fieldErrors.password = 'Password must be at least 6 characters.';
+    hasError = true;
+  }
+
+  if (hasError) return;
+
+  // ── Proceed with login ────────────────────────────────
+  this.loading = true;
+
+  try {
+    try { await this.appwrite.account.deleteSession('current'); } catch { }
+
+    await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
+
+    const user = await this.appwrite.account.get();
+
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL
+    );
+
+    const supervisor = (res.documents as any[])
+      .find(s => s.$id === user.$id);
+
+    if (!supervisor) {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'No supervisor account found. Please contact the admin.';
+      return;
+    }
+
+    if ((supervisor.status || 'Active') === 'Inactive') {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'Your account has been deactivated. Please contact the admin.';
+      return;
+    }
+
+    sessionStorage.removeItem('supervisorWelcomeShown');
+    this.router.navigate(['/supervisor-dashboard']);
+
+  } catch (error: any) {
+    const msg: string = error.message ?? '';
+
+    if (msg.toLowerCase().includes('invalid credentials') ||
+        msg.toLowerCase().includes('password') ||
+        error.code === 401) {
+      this.fieldErrors.password = 'Incorrect email or password.';
+    } else if (msg.toLowerCase().includes('rate limit') || error.code === 429) {
+      this.errorMessage = 'Too many attempts. Please wait a moment and try again.';
+    } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+      this.errorMessage = 'Network error. Please check your connection.';
+    } else {
+      this.errorMessage = 'Something went wrong. Please try again.';
+    }
+  } finally {
+    this.loading = false;
+  }
+}
 
   // ── FORGOT PASSWORD ───────────────────────────────────────
   openForgotPassword() {
@@ -243,4 +276,9 @@ export class SupervisorLoginComponent implements OnInit {
       this.fpLoading = false;
     }
   }
+  onOverlayClick(event: MouseEvent) {
+  if ((event.target as HTMLElement).classList.contains('fp-overlay')) {
+    this.closeForgotPassword();
+  }
+}
 }

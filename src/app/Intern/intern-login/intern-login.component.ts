@@ -21,6 +21,8 @@ export class InternLoginComponent implements OnInit {
   showPassword = false;
   loading      = false;
   errorMessage = '';
+  fieldErrors = { email: '', password: '' };
+
 
   // ── Forgot password state ─────────────────────────────────
   forgotStep        = 0; // 0=hidden, 1=enter email, 2=enter OTP, 3=new password
@@ -193,10 +195,11 @@ verifyOtp() {
     return;
   }
 
-  if (this.fpNewPassword.length < 8) {
-    this.fpError = 'Password must be at least 8 characters.';
-    return;
-  }
+ const passwordError = this.validateStrongPassword(this.fpNewPassword);
+if (passwordError) {
+  this.fpError = passwordError;
+  return;
+}
 
   if (this.fpNewPassword !== this.fpConfirmPassword) {
     this.fpError = 'Passwords do not match.';
@@ -247,63 +250,134 @@ verifyOtp() {
 }
   // ── LOGIN ─────────────────────────────────────────────────
   async onLogin() {
-    this.errorMessage = '';
-    this.loading      = true;
+  this.errorMessage = '';
+  this.fieldErrors  = { email: '', password: '' };
 
-    try {
-      try {
+  let hasError = false;
+
+  if (!this.email) {
+    this.fieldErrors.email = 'Email is required.';
+    hasError = true;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+    this.fieldErrors.email = 'Please enter a valid email address.';
+    hasError = true;
+  }
+
+  if (!this.password) {
+    this.fieldErrors.password = 'Password is required.';
+    hasError = true;
+ } else {
+  const passwordError = this.validateStrongPassword(this.password);
+  if (passwordError) {
+    this.fieldErrors.password = passwordError;
+    hasError = true;
+  }
+}
+  if (hasError) return;
+
+  this.loading = true;
+
+  try {
+    try { await this.appwrite.account.deleteSession('current'); } catch { }
+
+    await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
+
+    const user = await this.appwrite.account.get();
+
+    // ── NEW: Block supervisors from logging in here ────────
+    const supervisorRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL
+    );
+
+    const isSupervisor = (supervisorRes.documents as any[])
+      .some(s => s.$id === user.$id || s.auth_user_id === user.$id);
+
+    if (isSupervisor) {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'This account is registered as a Supervisor. Please use the Supervisor portal to log in.';
+      return;
+    }
+    // ── END: supervisor check ──────────────────────────────
+
+    const applicantRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.APPLICANTS_COL
+    );
+
+    const applicant = (applicantRes.documents as any[])
+      .find(a => a.auth_user_id === user.$id);
+
+    if (applicant) {
+      if (applicant.status === 'pending') {
         await this.appwrite.account.deleteSession('current');
-      } catch { }
-
-      await this.appwrite.account.createEmailPasswordSession(
-        this.email,
-        this.password
-      );
-
-      const user = await this.appwrite.account.get();
-
-      const applicantRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL
-      );
-
-      const applicant = (applicantRes.documents as any[])
-        .find(a => a.auth_user_id === user.$id);
-
-      if (applicant) {
-        if (applicant.status === 'pending') {
-          await this.appwrite.account.deleteSession('current');
-          this.errorMessage = 'Your application is still pending admin approval.';
-          return;
-        }
-        if (applicant.status === 'declined') {
-          await this.appwrite.account.deleteSession('current');
-          this.errorMessage = 'Your application has been declined. Please contact the admin.';
-          return;
-        }
-      }
-
-      const studentsRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-
-      const student = (studentsRes.documents as any[])
-        .find(s => s.$id === user.$id);
-
-      if (!student) {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'Your account is not yet approved. Please wait for admin approval.';
+        this.errorMessage = 'Your application is still pending admin approval.';
         return;
       }
-
-      sessionStorage.removeItem('welcomeShown');
-      this.router.navigate(['/intern-dashboard']);
-
-    } catch (error: any) {
-      this.errorMessage = error.message ?? 'Invalid email or password. Please try again.';
-    } finally {
-      this.loading = false;
+      if (applicant.status === 'declined') {
+        await this.appwrite.account.deleteSession('current');
+        this.errorMessage = 'Your application has been declined. Please contact the admin.';
+        return;
+      }
     }
+
+    const studentsRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+
+    const student = (studentsRes.documents as any[])
+      .find(s => s.$id === user.$id);
+
+    if (!student) {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'Your account is not yet approved. Please wait for admin approval.';
+      return;
+    }
+
+    sessionStorage.removeItem('welcomeShown');
+    this.router.navigate(['/intern-dashboard']);
+
+  } catch (error: any) {
+    const msg: string = error.message ?? '';
+
+    if (msg.toLowerCase().includes('invalid credentials') ||
+        msg.toLowerCase().includes('password') ||
+        error.code === 401) {
+      this.fieldErrors.password = 'Incorrect email or password.';
+    } else if (msg.toLowerCase().includes('rate limit') || error.code === 429) {
+      this.errorMessage = 'Too many attempts. Please wait a moment and try again.';
+    } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+      this.errorMessage = 'Network error. Please check your connection.';
+    } else {
+      this.errorMessage = 'Something went wrong. Please try again.';
+    }
+  } finally {
+    this.loading = false;
   }
+}
+onOverlayClick(event: MouseEvent) {
+  if ((event.target as HTMLElement).classList.contains('fp-overlay')) {
+    this.closeForgotPassword();
+  }
+}
+validateStrongPassword(password: string): string {
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters.';
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter.';
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+
+  if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/ .test(password)) {
+    return 'Password must contain at least one special character.';
+  }
+
+  return ''; // no error
+}
 }

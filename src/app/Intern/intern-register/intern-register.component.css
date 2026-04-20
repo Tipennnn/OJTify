@@ -168,7 +168,8 @@ body {
   gap: 12px;
   margin-bottom: 16px;
 }
-.input-row .input-wrapper {
+.input-row .input-wrapper,
+.input-row .date-wrapper {
   margin-bottom: 0;
 }
 
@@ -205,6 +206,37 @@ body {
   border-color: #93c5fd;
 }
 
+/* ── ERROR STATE ── */
+.input-wrapper.has-error input,
+.input-wrapper.has-error select,
+.date-wrapper.has-error input[type="date"] {
+  border-color: #ef4444 !important;
+  background: #fff5f5;
+}
+
+.input-wrapper.has-error input:focus,
+.input-wrapper.has-error select:focus,
+.date-wrapper.has-error input[type="date"]:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 5px;
+  padding-left: 4px;
+  line-height: 1.4;
+  transition: none;
+}
+
+.field-error i {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
 /* ── FLOATING LABEL ── */
 .input-wrapper label {
   position: absolute;
@@ -219,6 +251,11 @@ body {
   transition: all 0.25s ease;
 }
 
+/* Adjust label top when there's a field-error below */
+.input-wrapper.has-error label {
+  background: #fff5f5;
+}
+
 .input-wrapper input:focus + label,
 .input-wrapper input:not(:placeholder-shown) + label,
 .input-wrapper select:focus + label,
@@ -229,9 +266,17 @@ body {
   background: #fff;
 }
 
+.input-wrapper.has-error input:focus + label,
+.input-wrapper.has-error input:not(:placeholder-shown) + label,
+.input-wrapper.has-error select:focus + label,
+.input-wrapper.has-error select:valid + label {
+  color: #dc2626;
+  background: #fff;
+}
+
 input::placeholder { color: transparent; }
 
-/* ── DATE WRAPPER — special handling ── */
+/* ── DATE WRAPPER ── */
 .date-wrapper {
   position: relative;
   width: 100%;
@@ -250,12 +295,10 @@ input::placeholder { color: transparent; }
   transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
 }
 
-/* When empty and not focused — hide browser date text, show placeholder feel */
 .date-wrapper input[type="date"]:not(:focus):not(.has-value) {
   color: transparent;
 }
 
-/* When focused or has value — show the date value */
 .date-wrapper input[type="date"]:focus,
 .date-wrapper input[type="date"].has-value {
   color: #374151;
@@ -275,7 +318,6 @@ input::placeholder { color: transparent; }
   border-color: #93c5fd;
 }
 
-/* The floating label inside date-wrapper */
 .date-wrapper .icon {
   position: absolute;
   left: 13px;
@@ -301,12 +343,21 @@ input::placeholder { color: transparent; }
   z-index: 2;
 }
 
-/* Float up when focused or has value */
 .date-wrapper input[type="date"]:focus ~ .date-label,
 .date-wrapper input[type="date"].has-value ~ .date-label {
   top: -8px;
   font-size: 11px;
   color: #1E40AF;
+  background: #fff;
+}
+
+.date-wrapper.has-error .date-label {
+  background: #fff5f5;
+}
+
+.date-wrapper.has-error input[type="date"]:focus ~ .date-label,
+.date-wrapper.has-error input[type="date"].has-value ~ .date-label {
+  color: #dc2626;
   background: #fff;
 }
 
@@ -320,6 +371,12 @@ input::placeholder { color: transparent; }
   font-size: 14px;
   opacity: 0.75;
   z-index: 1;
+}
+
+/* Shift icon up when there's a field-error message below the input */
+.input-wrapper.has-error .icon,
+.date-wrapper.has-error .icon {
+  top: calc(50% - 10px);
 }
 
 /* ── PASSWORD TOGGLE ── */
@@ -336,6 +393,24 @@ input::placeholder { color: transparent; }
   cursor: pointer;
   opacity: 0.75;
   z-index: 5;
+}
+.input-wrapper.has-error .password-icon {
+  top: calc(50% - 10px);
+}
+
+/* ── PASSWORD HINT ── */
+.password-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: -8px 0 16px 4px;
+  line-height: 1.4;
+}
+
+/* ── REQUIRED STAR ── */
+.req-star {
+  color: #dc2626;
+  margin-left: 2px;
+  font-size: 12px;
 }
 
 /* ── FILE UPLOAD CARDS ── */
@@ -357,6 +432,11 @@ input::placeholder { color: transparent; }
 .file-upload-card:hover {
   border-color: #2563EB;
   background: #dbeafe;
+}
+
+.file-upload-card.has-error {
+  border-color: #ef4444;
+  background: #fff5f5;
 }
 
 .file-upload-card input[type="file"] {
@@ -390,6 +470,11 @@ input::placeholder { color: transparent; }
   background: #bfdbfe;
 }
 
+.file-upload-card.has-error .file-icon-box {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .file-text-wrap {
   flex: 1;
   min-width: 0;
@@ -402,6 +487,10 @@ input::placeholder { color: transparent; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-upload-card.has-error .file-label-main {
+  color: #dc2626;
 }
 
 .file-label-sub {
@@ -418,6 +507,12 @@ input::placeholder { color: transparent; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-error {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 2px;
 }
 
 /* ── ALERTS ── */
@@ -593,7 +688,8 @@ input::placeholder { color: transparent; }
     gap: 0;
     margin-bottom: 0;
   }
-  .input-row .input-wrapper { margin-bottom: 16px; }
+  .input-row .input-wrapper,
+  .input-row .date-wrapper { margin-bottom: 16px; }
 
   .file-upload-card { padding: 12px 14px; }
   .file-icon-box { width: 34px; height: 34px; font-size: 14px; }

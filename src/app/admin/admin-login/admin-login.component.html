@@ -4,29 +4,22 @@
   <div class="login-left">
     <div class="bg-pattern"></div>
     <div class="login-left-content">
-
       <div class="logo-mobile">
         <img src="/assets/images/OJTify_logo.png">
       </div>
-
       <div class="brand hide-mobile">
         <img src="/assets/images/OJTify_logo.png">
         <span>OJTIFY</span>
       </div>
-
       <div class="welcome-text hide-mobile">
         <h1>Welcome back, Admin</h1>
-        <p>
-          Efficiently manage interns, track attendance, assign tasks,
-          and monitor system operations from a centralized admin dashboard.
-        </p>
+        <p>Efficiently manage interns, track attendance, assign tasks,
+           and monitor system operations from a centralized admin dashboard.</p>
       </div>
-
       <div class="system-info hide-mobile">
         <span>OJTIFY Admin System v1.0</span>
         <span>Management & Monitoring Dashboard</span>
       </div>
-
     </div>
   </div>
 
@@ -36,7 +29,6 @@
 
       <h2>Admin Portal</h2>
 
-      <!-- Error banner -->
       <div class="alert-error" *ngIf="errorMessage">
         <i class="fa fa-circle-exclamation"></i> {{ errorMessage }}
       </div>
@@ -44,24 +36,34 @@
       <form (ngSubmit)="onLogin()">
 
         <!-- EMAIL -->
-        <div class="input-group">
+        <div class="input-group" [class.has-error]="fieldErrors.email">
           <div class="input-wrapper">
             <span class="icon"><i class="fa fa-user-shield"></i></span>
-            <input type="email" [(ngModel)]="email" name="email" required>
+            <input type="email" [(ngModel)]="email" name="email"
+                   placeholder=" " required
+                   [class.input-error]="fieldErrors.email">
             <label>Admin Email</label>
+          </div>
+          <div class="field-error" *ngIf="fieldErrors.email">
+            <i class="fa fa-circle-exclamation"></i> {{ fieldErrors.email }}
           </div>
         </div>
 
         <!-- PASSWORD -->
-        <div class="input-group">
+        <div class="input-group" [class.has-error]="fieldErrors.password">
           <div class="input-wrapper">
             <span class="icon"><i class="fa fa-lock"></i></span>
             <input [type]="showPassword ? 'text' : 'password'"
-                   [(ngModel)]="password" name="password" required>
+                   [(ngModel)]="password" name="password"
+                   placeholder=" " required
+                   [class.input-error]="fieldErrors.password">
             <label>Password</label>
             <span class="show-pass" (click)="togglePassword()">
               <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
             </span>
+          </div>
+          <div class="field-error" *ngIf="fieldErrors.password">
+            <i class="fa fa-circle-exclamation"></i> {{ fieldErrors.password }}
           </div>
         </div>
 
@@ -70,7 +72,9 @@
             <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe">
             Remember me
           </label>
-          <a href="#">Forgot Password?</a>
+          <a href="javascript:void(0)" (click)="openForgotPassword()">
+            Forgot password?
+          </a>
         </div>
 
         <button class="login-btn" type="submit" [disabled]="loading">
@@ -81,8 +85,135 @@
         <p class="system-mobile">Admin Control System</p>
 
       </form>
-
     </div>
   </div>
+</div>
 
+<!-- FORGOT PASSWORD MODAL -->
+<div class="fp-overlay" *ngIf="forgotStep > 0" (click)="onOverlayClick($event)">
+  <div class="fp-modal">
+
+    <!-- PROGRESS STEPS -->
+    <div class="fp-steps">
+      <div class="fp-step" [class.active]="forgotStep >= 1" [class.done]="forgotStep > 1">
+        <div class="fp-step-dot">
+          <i class="fa fa-check" *ngIf="forgotStep > 1"></i>
+          <span *ngIf="forgotStep <= 1">1</span>
+        </div>
+        <span class="fp-step-label">Email</span>
+      </div>
+      <div class="fp-step-line" [class.done]="forgotStep > 1"></div>
+      <div class="fp-step" [class.active]="forgotStep >= 2" [class.done]="forgotStep > 2">
+        <div class="fp-step-dot">
+          <i class="fa fa-check" *ngIf="forgotStep > 2"></i>
+          <span *ngIf="forgotStep <= 2">2</span>
+        </div>
+        <span class="fp-step-label">Verify</span>
+      </div>
+      <div class="fp-step-line" [class.done]="forgotStep > 2"></div>
+      <div class="fp-step" [class.active]="forgotStep >= 3">
+        <div class="fp-step-dot"><span>3</span></div>
+        <span class="fp-step-label">Reset</span>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="fp-header">
+      <div class="fp-header-icon">
+        <i class="fa fa-envelope"      *ngIf="forgotStep === 1"></i>
+        <i class="fa fa-shield-halved" *ngIf="forgotStep === 2"></i>
+        <i class="fa fa-key"           *ngIf="forgotStep === 3"></i>
+      </div>
+      <div class="fp-header-text">
+        <h3>{{ forgotStep === 1 ? 'Forgot Password'
+               : forgotStep === 2 ? 'Verify Your Identity'
+               : 'Create New Password' }}</h3>
+        <p>{{ forgotStep === 1 ? 'Enter your admin email to receive a reset code.'
+               : forgotStep === 2 ? 'Check your inbox for the 6-digit code.'
+               : 'Choose a strong password for your account.' }}</p>
+      </div>
+      <button class="fp-close" (click)="closeForgotPassword()">
+        <i class="fa fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="fp-divider"></div>
+
+    <!-- ERROR -->
+    <div class="fp-error" *ngIf="fpError">
+      <i class="fa fa-circle-exclamation"></i> {{ fpError }}
+    </div>
+
+    <!-- STEP 1: EMAIL -->
+    <div class="fp-body" *ngIf="forgotStep === 1">
+      <div class="fp-input-group">
+        <label>Email Address</label>
+        <div class="fp-input-wrap">
+          <i class="fa fa-envelope fp-input-icon"></i>
+          <input type="email" [(ngModel)]="fpEmail"
+                 placeholder="admin@email.com"
+                 (keyup.enter)="sendOtp()">
+        </div>
+      </div>
+      <button class="fp-btn" (click)="sendOtp()" [disabled]="fpLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="fpLoading"></i>
+        <i class="fa fa-paper-plane"     *ngIf="!fpLoading"></i>
+        {{ fpLoading ? 'Sending code...' : 'Send Reset Code' }}
+      </button>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div class="fp-body" *ngIf="forgotStep === 2">
+      <p class="fp-sent-to">Code sent to <strong>{{ fpEmail }}</strong></p>
+      <div class="fp-input-group">
+        <label>6-Digit Code</label>
+        <input class="fp-otp-input" type="text"
+               [(ngModel)]="fpEnteredOtp"
+               placeholder="· · · · · ·"
+               maxlength="6"
+               (keyup.enter)="verifyOtp()">
+      </div>
+      <button class="fp-btn" (click)="verifyOtp()">
+        <i class="fa fa-circle-check"></i>
+        Verify Code
+      </button>
+      <button class="fp-btn-secondary" (click)="resendOtp()">
+        <i class="fa fa-rotate-right"></i> Resend Code
+      </button>
+    </div>
+
+    <!-- STEP 3: NEW PASSWORD -->
+    <div class="fp-body" *ngIf="forgotStep === 3">
+      <div class="fp-input-group">
+        <label>New Password</label>
+        <div class="fp-pass-wrap">
+          <i class="fa fa-lock fp-input-icon"></i>
+          <input [type]="fpShowNew ? 'text' : 'password'"
+                 [(ngModel)]="fpNewPassword"
+                 placeholder="At least 8 characters">
+          <span class="fp-eye" (click)="fpShowNew = !fpShowNew">
+            <i [class]="fpShowNew ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+          </span>
+        </div>
+      </div>
+      <div class="fp-input-group">
+        <label>Confirm New Password</label>
+        <div class="fp-pass-wrap">
+          <i class="fa fa-lock fp-input-icon"></i>
+          <input [type]="fpShowConfirm ? 'text' : 'password'"
+                 [(ngModel)]="fpConfirmPassword"
+                 placeholder="Repeat your password">
+          <span class="fp-eye" (click)="fpShowConfirm = !fpShowConfirm">
+            <i [class]="fpShowConfirm ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+          </span>
+        </div>
+      </div>
+      <button class="fp-btn" (click)="resetPassword()" [disabled]="fpLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="fpLoading"></i>
+        <i class="fa fa-shield-halved"   *ngIf="!fpLoading"></i>
+        {{ fpLoading ? 'Resetting...' : 'Reset Password' }}
+      </button>
+    </div>
+
+  </div>
 </div>

@@ -27,6 +27,10 @@ export class InternTopnavComponent implements OnInit {
   confirmPassword = '';
   passwordLoading = false;
 
+  pwError       = '';
+pwSuccess     = '';
+pwFieldErrors = { current: '', newPw: '', confirm: '' };
+
   profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
 
   certData = {
@@ -102,7 +106,15 @@ export class InternTopnavComponent implements OnInit {
     this.confirmPassword   = '';
   }
 
-  closeModal()     { this.showPasswordModal = false; }
+closeModal() {
+  this.showPasswordModal = false;
+  this.currentPassword   = '';
+  this.newPassword       = '';
+  this.confirmPassword   = '';
+  this.pwError           = '';
+  this.pwSuccess         = '';
+  this.pwFieldErrors     = { current: '', newPw: '', confirm: '' };
+}
   closeCertModal() { this.showCertModal     = false; }
 
   openCertificate() {
@@ -190,33 +202,74 @@ export class InternTopnavComponent implements OnInit {
   }
 
   async updatePassword() {
-    if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
-      Swal.fire({ icon: 'warning', title: 'Missing fields', text: 'Please fill in all password fields.', confirmButtonColor: '#3b82f6' });
-      return;
-    }
-    if (this.newPassword !== this.confirmPassword) {
-      Swal.fire({ icon: 'error', title: 'Passwords do not match', text: 'New password and confirm password must be the same.', confirmButtonColor: '#3b82f6' });
-      return;
-    }
-    if (this.newPassword.length < 8) {
-      Swal.fire({ icon: 'warning', title: 'Password too short', text: 'Password must be at least 8 characters.', confirmButtonColor: '#3b82f6' });
-      return;
-    }
+  this.pwError       = '';
+  this.pwSuccess     = '';
+  this.pwFieldErrors = { current: '', newPw: '', confirm: '' };
 
-    this.passwordLoading = true;
-    try {
-      await this.appwrite.account.updatePassword(this.newPassword, this.currentPassword);
-      Swal.fire({
-        icon: 'success', title: 'Password Updated!', text: 'Your password has been changed successfully.',
-        toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
-      });
-      this.closeModal();
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Update Failed', text: error.message });
-    } finally {
-      this.passwordLoading = false;
-    }
+  let hasError = false;
+
+  if (!this.currentPassword) {
+    this.pwFieldErrors.current = 'Current password is required.';
+    hasError = true;
   }
+
+  if (!this.newPassword) {
+    this.pwFieldErrors.newPw = 'New password is required.';
+    hasError = true;
+  } else if (this.newPassword.length < 8) {
+    this.pwFieldErrors.newPw = 'Password must be at least 8 characters.';
+    hasError = true;
+  } else if (this.newPassword === this.currentPassword) {
+    this.pwFieldErrors.newPw = 'New password must be different from current.';
+    hasError = true;
+  }
+
+  if (!this.confirmPassword) {
+    this.pwFieldErrors.confirm = 'Please confirm your new password.';
+    hasError = true;
+  } else if (this.newPassword && this.confirmPassword !== this.newPassword) {
+    this.pwFieldErrors.confirm = 'Passwords do not match.';
+    hasError = true;
+  }
+
+  if (hasError) return;
+
+  this.passwordLoading = true;
+  try {
+    await this.appwrite.account.updatePassword(this.newPassword, this.currentPassword);
+
+    this.pwSuccess = 'Password updated successfully!';
+    this.currentPassword = '';
+    this.newPassword     = '';
+    this.confirmPassword = '';
+
+    setTimeout(() => {
+      this.closeModal();
+      Swal.fire({
+        icon: 'success',
+        title: 'Password Updated!',
+        text: 'Your password has been changed successfully.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+    }, 1200);
+
+  } catch (error: any) {
+    const msg: string = error.message ?? '';
+    if (msg.toLowerCase().includes('invalid credentials') ||
+        msg.toLowerCase().includes('current') ||
+        error.code === 401) {
+      this.pwFieldErrors.current = 'Current password is incorrect.';
+    } else {
+      this.pwError = 'Failed to update password. Please try again.';
+    }
+  } finally {
+    this.passwordLoading = false;
+  }
+}
 
   get greeting(): string {
     const hour = new Date().getHours();

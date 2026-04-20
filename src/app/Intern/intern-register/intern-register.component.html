@@ -40,38 +40,59 @@
 
         <form (ngSubmit)="onRegister()">
 
-          <!-- Account Information -->
+          <!-- ── Account Information ── -->
           <div class="form-section-title">Account Information</div>
 
-          <div class="input-wrapper">
+          <div class="input-wrapper" [class.has-error]="fieldErrors['email']">
             <span class="icon"><i class="fa fa-envelope"></i></span>
-            <input type="email" [(ngModel)]="email" name="email" placeholder=" " required>
+            <input type="email" [(ngModel)]="email" name="email" placeholder=" " required
+                   (blur)="onBlur('email')">
             <label>Email</label>
+            <span class="field-error" *ngIf="fieldErrors['email']">
+              <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['email'] }}
+            </span>
           </div>
 
-          <div class="input-wrapper password-wrapper">
+          <div class="input-wrapper password-wrapper" [class.has-error]="fieldErrors['password']">
             <span class="icon"><i class="fa fa-lock"></i></span>
             <input [type]="showPassword ? 'text' : 'password'"
-                   [(ngModel)]="password" name="password" placeholder=" " required>
+                   [(ngModel)]="password" name="password" placeholder=" " required
+                   (blur)="onBlur('password')">
             <label>Password</label>
             <span class="password-icon" (click)="togglePassword()">
               <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
             </span>
+            <span class="field-error" *ngIf="fieldErrors['password']">
+              <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['password'] }}
+            </span>
           </div>
 
-          <!-- Personal Information -->
+          <!-- Password strength hint -->
+          <p class="password-hint">
+            Min. 8 characters with uppercase, number, and special character.
+          </p>
+
+          <!-- ── Personal Information ── -->
           <div class="form-section-title">Personal Information</div>
 
           <div class="input-row">
-            <div class="input-wrapper">
+            <div class="input-wrapper" [class.has-error]="fieldErrors['firstName']">
               <span class="icon"><i class="fa fa-user"></i></span>
-              <input type="text" [(ngModel)]="firstName" name="firstName" placeholder=" " required>
+              <input type="text" [(ngModel)]="firstName" name="firstName" placeholder=" " required
+                     (blur)="onBlur('firstName')">
               <label>First Name</label>
+              <span class="field-error" *ngIf="fieldErrors['firstName']">
+                <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['firstName'] }}
+              </span>
             </div>
-            <div class="input-wrapper">
+            <div class="input-wrapper" [class.has-error]="fieldErrors['lastName']">
               <span class="icon"><i class="fa fa-user"></i></span>
-              <input type="text" [(ngModel)]="lastName" name="lastName" placeholder=" " required>
+              <input type="text" [(ngModel)]="lastName" name="lastName" placeholder=" " required
+                     (blur)="onBlur('lastName')">
               <label>Last Name</label>
+              <span class="field-error" *ngIf="fieldErrors['lastName']">
+                <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['lastName'] }}
+              </span>
             </div>
           </div>
 
@@ -81,17 +102,21 @@
             <label>Middle Name (optional)</label>
           </div>
 
-          <div class="input-wrapper">
+          <div class="input-wrapper" [class.has-error]="fieldErrors['contactNumber']">
             <span class="icon"><i class="fa fa-phone"></i></span>
-            <input type="tel" [(ngModel)]="contactNumber" name="contactNumber" placeholder=" " required>
+            <input type="tel" [(ngModel)]="contactNumber" name="contactNumber" placeholder=" " required
+                   (blur)="onBlur('contactNumber')">
             <label>Contact Number</label>
+            <span class="field-error" *ngIf="fieldErrors['contactNumber']">
+              <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['contactNumber'] }}
+            </span>
           </div>
 
           <!-- Birthday & Gender -->
           <div class="input-row">
 
-            <!-- BIRTHDAY — special date-wrapper -->
-            <div class="date-wrapper">
+            <!-- BIRTHDAY -->
+            <div class="date-wrapper" [class.has-error]="fieldErrors['birthday']">
               <span class="icon"><i class="fa fa-calendar"></i></span>
               <input
                 type="date"
@@ -99,52 +124,77 @@
                 name="birthday"
                 required
                 [class.has-value]="birthday"
-                (change)="birthday = $any($event.target).value">
+                (change)="birthday = $any($event.target).value; onBlur('birthday')"
+                (blur)="onBlur('birthday')">
               <span class="date-label">Birthday</span>
+              <span class="field-error" *ngIf="fieldErrors['birthday']">
+                <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['birthday'] }}
+              </span>
             </div>
 
-            <div class="input-wrapper">
+            <div class="input-wrapper" [class.has-error]="fieldErrors['gender']">
               <span class="icon"><i class="fa fa-venus-mars"></i></span>
-              <select [(ngModel)]="gender" name="gender" required>
+              <select [(ngModel)]="gender" name="gender" required
+                      (blur)="onBlur('gender')" (change)="onBlur('gender')">
                 <option value="" disabled selected hidden></option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </select>
               <label>Gender</label>
+              <span class="field-error" *ngIf="fieldErrors['gender']">
+                <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['gender'] }}
+              </span>
             </div>
 
           </div>
 
-          <div class="input-wrapper">
+          <div class="input-wrapper" [class.has-error]="fieldErrors['homeAddress']">
             <span class="icon"><i class="fa fa-home"></i></span>
-            <input type="text" [(ngModel)]="homeAddress" name="homeAddress" placeholder=" " required>
+            <input type="text" [(ngModel)]="homeAddress" name="homeAddress" placeholder=" " required
+                   (blur)="onBlur('homeAddress')">
             <label>Home Address</label>
+            <span class="field-error" *ngIf="fieldErrors['homeAddress']">
+              <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['homeAddress'] }}
+            </span>
           </div>
 
-          <!-- Academic Background -->
+          <!-- ── Academic Background ── -->
           <div class="form-section-title">Academic Background</div>
 
-          <div class="input-wrapper">
+          <div class="input-wrapper" [class.has-error]="fieldErrors['studentId']">
             <span class="icon"><i class="fa fa-id-card"></i></span>
-            <input type="text" [(ngModel)]="studentId" name="studentId" placeholder=" " required>
+            <input type="text" [(ngModel)]="studentId" name="studentId" placeholder=" " required
+                   (blur)="onBlur('studentId')">
             <label>Student ID</label>
+            <span class="field-error" *ngIf="fieldErrors['studentId']">
+              <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['studentId'] }}
+            </span>
           </div>
 
-          <div class="input-wrapper">
+          <div class="input-wrapper" [class.has-error]="fieldErrors['schoolName']">
             <span class="icon"><i class="fa fa-building-columns"></i></span>
-            <input type="text" [(ngModel)]="schoolName" name="schoolName" placeholder=" " required>
+            <input type="text" [(ngModel)]="schoolName" name="schoolName" placeholder=" " required
+                   (blur)="onBlur('schoolName')">
             <label>School Name</label>
+            <span class="field-error" *ngIf="fieldErrors['schoolName']">
+              <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['schoolName'] }}
+            </span>
           </div>
 
           <div class="input-row">
-            <div class="input-wrapper">
+            <div class="input-wrapper" [class.has-error]="fieldErrors['course']">
               <span class="icon"><i class="fa fa-graduation-cap"></i></span>
-              <input type="text" [(ngModel)]="course" name="course" placeholder=" " required>
+              <input type="text" [(ngModel)]="course" name="course" placeholder=" " required
+                     (blur)="onBlur('course')">
               <label>Course</label>
+              <span class="field-error" *ngIf="fieldErrors['course']">
+                <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['course'] }}
+              </span>
             </div>
-            <div class="input-wrapper">
+            <div class="input-wrapper" [class.has-error]="fieldErrors['yearLevel']">
               <span class="icon"><i class="fa fa-layer-group"></i></span>
-              <select [(ngModel)]="yearLevel" name="yearLevel" required>
+              <select [(ngModel)]="yearLevel" name="yearLevel" required
+                      (blur)="onBlur('yearLevel')" (change)="onBlur('yearLevel')">
                 <option value="" disabled selected hidden></option>
                 <option value="1st">1st Year</option>
                 <option value="2nd">2nd Year</option>
@@ -152,38 +202,44 @@
                 <option value="4th">4th Year</option>
               </select>
               <label>Year Level</label>
+              <span class="field-error" *ngIf="fieldErrors['yearLevel']">
+                <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['yearLevel'] }}
+              </span>
             </div>
           </div>
 
-          <!-- Required Documents -->
+          <!-- ── Required Documents ── -->
           <div class="form-section-title">Required Documents</div>
 
-          <label class="file-upload-card">
+          <label class="file-upload-card" [class.has-error]="fieldErrors['resume']">
             <div class="file-icon-box"><i class="fa fa-file"></i></div>
             <div class="file-text-wrap">
-              <div class="file-label-main">Resume / CV</div>
-              <div class="file-label-sub" *ngIf="!resumeFileName">PDF, DOC, DOCX</div>
+              <div class="file-label-main">Resume / CV <span class="req-star">*</span></div>
+              <div class="file-label-sub" *ngIf="!resumeFileName">PDF, DOC, DOCX · Max 5MB</div>
               <div class="file-name-display" *ngIf="resumeFileName">{{ resumeFileName }}</div>
+              <div class="file-error" *ngIf="fieldErrors['resume']">{{ fieldErrors['resume'] }}</div>
             </div>
             <input type="file" accept=".pdf,.doc,.docx" (change)="onFileChange($event, 'resume')">
           </label>
 
-          <label class="file-upload-card">
+          <label class="file-upload-card" [class.has-error]="fieldErrors['endorsement']">
             <div class="file-icon-box"><i class="fa fa-file-signature"></i></div>
             <div class="file-text-wrap">
-              <div class="file-label-main">Endorsement Letter</div>
-              <div class="file-label-sub" *ngIf="!endorsementFileName">PDF, DOC, DOCX</div>
+              <div class="file-label-main">Endorsement Letter <span class="req-star">*</span></div>
+              <div class="file-label-sub" *ngIf="!endorsementFileName">PDF, DOC, DOCX · Max 5MB</div>
               <div class="file-name-display" *ngIf="endorsementFileName">{{ endorsementFileName }}</div>
+              <div class="file-error" *ngIf="fieldErrors['endorsement']">{{ fieldErrors['endorsement'] }}</div>
             </div>
             <input type="file" accept=".pdf,.doc,.docx" (change)="onFileChange($event, 'endorsement')">
           </label>
 
-          <label class="file-upload-card">
+          <label class="file-upload-card" [class.has-error]="fieldErrors['coe']">
             <div class="file-icon-box"><i class="fa fa-certificate"></i></div>
             <div class="file-text-wrap">
-              <div class="file-label-main">Certificate of Enrollment</div>
-              <div class="file-label-sub" *ngIf="!coeFileName">PDF, DOC, DOCX</div>
+              <div class="file-label-main">Certificate of Enrollment <span class="req-star">*</span></div>
+              <div class="file-label-sub" *ngIf="!coeFileName">PDF, DOC, DOCX · Max 5MB</div>
               <div class="file-name-display" *ngIf="coeFileName">{{ coeFileName }}</div>
+              <div class="file-error" *ngIf="fieldErrors['coe']">{{ fieldErrors['coe'] }}</div>
             </div>
             <input type="file" accept=".pdf,.doc,.docx" (change)="onFileChange($event, 'coe')">
           </label>

@@ -316,16 +316,60 @@ async loadAssignedInterns() {
     }
   }
 
-  async submitForm() {
-    this.formError = '';
-    if (!this.form.first_name.trim() || !this.form.last_name.trim() || !this.form.email.trim()) {
-      this.formError = 'First name, last name, and email are required.'; return;
+async submitForm() {
+  this.formError = '';
+
+  // --- Basic field validation ---
+  if (!this.form.first_name.trim() || !this.form.last_name.trim() || !this.form.email.trim()) {
+    this.formError = 'First name, last name, and email are required.'; return;
+  }
+
+  // --- Email format validation ---
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(this.form.email.trim())) {
+    this.formError = 'Please enter a valid email address.'; return;
+  }
+
+  if (!this.selectedSupervisor && !this.form.password.trim()) {
+    this.formError = 'Password is required when creating a new account.'; return;
+  }
+
+  // --- Password strength (only on create) ---
+  if (!this.selectedSupervisor && this.form.password.trim().length < 8) {
+    this.formError = 'Password must be at least 8 characters.'; return;
+  }
+
+  this.submitting = true;
+
+   try {
+    const emailToCheck = this.form.email.trim().toLowerCase();
+
+    // --- Check if email already exists in supervisors collection ---
+    if (!this.selectedSupervisor) {
+      const { Query } = await import('appwrite');
+
+      const existingSupRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.SUPERVISORS_COL,
+        [Query.equal('email', emailToCheck)]
+      );
+      if (existingSupRes.documents.length > 0) {
+        this.formError = 'A supervisor with this email is already registered.';
+        this.submitting = false; return;
+      }
+
+      // --- Check if email belongs to an intern/student ---
+      const existingInternRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        [Query.equal('email', emailToCheck)]
+      );
+      if (existingInternRes.documents.length > 0) {
+        this.formError = 'This email is already registered as an OJT student account. Supervisors and students cannot share the same email.';
+        this.submitting = false; return;
+      }
     }
-    if (!this.selectedSupervisor && !this.form.password.trim()) {
-      this.formError = 'Password is required when creating a new account.'; return;
-    }
-    this.submitting = true;
-    try {
+    
       const payload: any = {
         first_name  : this.form.first_name.trim(),
         last_name   : this.form.last_name.trim(),

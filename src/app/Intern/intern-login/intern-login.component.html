@@ -44,28 +44,36 @@
       <form (ngSubmit)="onLogin()">
 
         <!-- EMAIL -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-envelope"></i></span>
-            <input type="email" [(ngModel)]="email" name="email"
-                   placeholder=" " required>
-            <label>Email</label>
-          </div>
-        </div>
+        <div class="input-group" [class.has-error]="fieldErrors.email">
+  <div class="input-wrapper">
+    <span class="icon"><i class="fa fa-envelope"></i></span>
+    <input type="email" [(ngModel)]="email" name="email"
+           placeholder=" " required
+           [class.input-error]="fieldErrors.email">
+    <label>Email</label>
+  </div>
+  <div class="field-error" *ngIf="fieldErrors.email">
+    <i class="fa fa-circle-exclamation"></i> {{ fieldErrors.email }}
+  </div>
+</div>
 
         <!-- PASSWORD -->
-        <div class="input-group">
-          <div class="input-wrapper">
-            <span class="icon"><i class="fa fa-lock"></i></span>
-            <input [type]="showPassword ? 'text' : 'password'"
-                   [(ngModel)]="password" name="password"
-                   placeholder=" " required>
-            <label>Password</label>
-            <span class="show-pass" (click)="togglePassword()">
-              <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
-            </span>
-          </div>
-        </div>
+      <div class="input-group" [class.has-error]="fieldErrors.password">
+  <div class="input-wrapper">
+    <span class="icon"><i class="fa fa-lock"></i></span>
+    <input [type]="showPassword ? 'text' : 'password'"
+           [(ngModel)]="password" name="password"
+           placeholder=" " required
+           [class.input-error]="fieldErrors.password">
+    <label>Password</label>
+    <span class="show-pass" (click)="togglePassword()">
+      <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+    </span>
+  </div>
+  <div class="field-error" *ngIf="fieldErrors.password">
+    <i class="fa fa-circle-exclamation"></i> {{ fieldErrors.password }}
+  </div>
+</div>
 
         <div class="checkbox-group">
           <label>
@@ -96,20 +104,52 @@
 
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!--  FORGOT PASSWORD MODAL               -->
-<!-- ══════════════════════════════════════ -->
-<div class="fp-overlay" *ngIf="forgotStep > 0">
-  <div class="fp-modal">
+<!-- FORGOT PASSWORD MODAL -->
+<div class="fp-overlay" *ngIf="forgotStep > 0" (click)="onOverlayClick($event)">
+  <div class="fp-modal" id="fp-modal-box">
+
+    <!-- PROGRESS STEPS -->
+    <div class="fp-steps">
+      <div class="fp-step" [class.active]="forgotStep >= 1" [class.done]="forgotStep > 1">
+        <div class="fp-step-dot">
+          <i class="fa fa-check" *ngIf="forgotStep > 1"></i>
+          <span *ngIf="forgotStep <= 1">1</span>
+        </div>
+        <span class="fp-step-label">Email</span>
+      </div>
+      <div class="fp-step-line" [class.done]="forgotStep > 1"></div>
+      <div class="fp-step" [class.active]="forgotStep >= 2" [class.done]="forgotStep > 2">
+        <div class="fp-step-dot">
+          <i class="fa fa-check" *ngIf="forgotStep > 2"></i>
+          <span *ngIf="forgotStep <= 2">2</span>
+        </div>
+        <span class="fp-step-label">Verify</span>
+      </div>
+      <div class="fp-step-line" [class.done]="forgotStep > 2"></div>
+      <div class="fp-step" [class.active]="forgotStep >= 3">
+        <div class="fp-step-dot"><span>3</span></div>
+        <span class="fp-step-label">Reset</span>
+      </div>
+    </div>
 
     <!-- HEADER -->
     <div class="fp-header">
-      <h3>
-        {{ forgotStep === 1 ? 'Forgot Password'
-         : forgotStep === 2 ? 'Enter OTP Code'
-         : 'Set New Password' }}
-      </h3>
-      <button class="fp-close" (click)="closeForgotPassword()">×</button>
+      <div class="fp-header-icon">
+        <i class="fa fa-envelope"      *ngIf="forgotStep === 1"></i>
+        <i class="fa fa-shield-halved" *ngIf="forgotStep === 2"></i>
+        <i class="fa fa-key"           *ngIf="forgotStep === 3"></i>
+      </div>
+      <div class="fp-header-text">
+        <h3>{{ forgotStep === 1 ? 'Forgot Password'
+               : forgotStep === 2 ? 'Verify Your Identity'
+               : 'Create New Password' }}</h3>
+        <p>{{ forgotStep === 1 ? 'Enter your email to receive a reset code.'
+               : forgotStep === 2 ? 'Check your inbox for the 6-digit code.'
+               : 'Choose a strong password for your account.' }}</p>
+      </div>
+      <button class="fp-close" (click)="closeForgotPassword()">
+        <i class="fa fa-xmark"></i>
+      </button>
     </div>
 
     <div class="fp-divider"></div>
@@ -119,41 +159,37 @@
       <i class="fa fa-circle-exclamation"></i> {{ fpError }}
     </div>
 
-    <!-- STEP 1: ENTER EMAIL -->
-    <div *ngIf="forgotStep === 1">
-      <p class="fp-desc">
-        Enter your registered email and we'll send you a 6-digit reset code.
-      </p>
+    <!-- STEP 1: EMAIL -->
+    <div class="fp-body" *ngIf="forgotStep === 1">
       <div class="fp-input-group">
         <label>Email Address</label>
-        <input type="email"
-               [(ngModel)]="fpEmail"
-               placeholder="Enter your email"
-               (keyup.enter)="sendOtp()">
+        <div class="fp-input-wrap">
+          <i class="fa fa-envelope fp-input-icon"></i>
+          <input type="email" [(ngModel)]="fpEmail"
+                 placeholder="student@email.com"
+                 (keyup.enter)="sendOtp()">
+        </div>
       </div>
       <button class="fp-btn" (click)="sendOtp()" [disabled]="fpLoading">
         <i class="fa fa-spinner fa-spin" *ngIf="fpLoading"></i>
-        {{ fpLoading ? 'Sending...' : 'Send OTP Code' }}
+        <i class="fa fa-paper-plane"     *ngIf="!fpLoading"></i>
+        {{ fpLoading ? 'Sending code...' : 'Send Reset Code' }}
       </button>
     </div>
 
-    <!-- STEP 2: ENTER OTP -->
-    <div *ngIf="forgotStep === 2">
-      <p class="fp-desc">
-        We sent a 6-digit code to <strong>{{ fpEmail }}</strong>.
-        Check your inbox and enter it below.
-      </p>
+    <!-- STEP 2: OTP -->
+    <div class="fp-body" *ngIf="forgotStep === 2">
+      <p class="fp-sent-to">Code sent to <strong>{{ fpEmail }}</strong></p>
       <div class="fp-input-group">
-        <label>6-Digit OTP Code</label>
-        <input type="text"
+        <label>6-Digit Code</label>
+        <input class="fp-otp-input" type="text"
                [(ngModel)]="fpEnteredOtp"
-               placeholder="_ _ _ _ _ _"
+               placeholder="· · · · · ·"
                maxlength="6"
-               style="letter-spacing:8px; font-size:22px;
-                      font-weight:700; text-align:center;"
                (keyup.enter)="verifyOtp()">
       </div>
       <button class="fp-btn" (click)="verifyOtp()">
+        <i class="fa fa-circle-check"></i>
         Verify Code
       </button>
       <button class="fp-btn-secondary" (click)="resendOtp()">
@@ -162,38 +198,35 @@
     </div>
 
     <!-- STEP 3: NEW PASSWORD -->
-    <div *ngIf="forgotStep === 3">
-      <p class="fp-desc">
-        OTP verified! ✅ Enter your new password below.
-      </p>
-
+    <div class="fp-body" *ngIf="forgotStep === 3">
       <div class="fp-input-group">
         <label>New Password</label>
         <div class="fp-pass-wrap">
+          <i class="fa fa-lock fp-input-icon"></i>
           <input [type]="fpShowNew ? 'text' : 'password'"
                  [(ngModel)]="fpNewPassword"
                  placeholder="At least 8 characters">
-          <span (click)="fpShowNew = !fpShowNew">
+          <span class="fp-eye" (click)="fpShowNew = !fpShowNew">
             <i [class]="fpShowNew ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
           </span>
         </div>
       </div>
-
       <div class="fp-input-group">
         <label>Confirm New Password</label>
         <div class="fp-pass-wrap">
+          <i class="fa fa-lock fp-input-icon"></i>
           <input [type]="fpShowConfirm ? 'text' : 'password'"
                  [(ngModel)]="fpConfirmPassword"
                  placeholder="Repeat your password">
-          <span (click)="fpShowConfirm = !fpShowConfirm">
+          <span class="fp-eye" (click)="fpShowConfirm = !fpShowConfirm">
             <i [class]="fpShowConfirm ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
           </span>
         </div>
       </div>
-
       <button class="fp-btn" (click)="resetPassword()" [disabled]="fpLoading">
         <i class="fa fa-spinner fa-spin" *ngIf="fpLoading"></i>
-        {{ fpLoading ? 'Processing...' : 'Reset Password' }}
+        <i class="fa fa-shield-halved"   *ngIf="!fpLoading"></i>
+        {{ fpLoading ? 'Resetting...' : 'Reset Password' }}
       </button>
     </div>
 
