@@ -363,6 +363,37 @@ export class InternTasksComponent implements OnInit {
 
   getDetailPct(tasksDone: string): number { return Math.min(100, Math.round((tasksDone?.length || 0) / 3)); }
 
+  // ── Auto-bullet helpers ──────────────────────────────
+  onTasksInput(event: Event) {
+    const el = event.target as HTMLTextAreaElement;
+    this.logbookForm.tasks_done = el.value;
+  }
+
+  onTasksEnter(event: Event) {
+    event.preventDefault();
+    const el = event.target as HTMLTextAreaElement;
+    const val = el.value;
+    const pos = el.selectionStart ?? val.length;
+    const before = val.slice(0, pos);
+    const after = val.slice(pos);
+    const newVal = before + '\n• ' + after;
+    this.logbookForm.tasks_done = newVal;
+    setTimeout(() => {
+      el.value = newVal;
+      const newPos = pos + 3;
+      el.setSelectionRange(newPos, newPos);
+    });
+  }
+
+  // ── Parse bullet text into array for view mode ──
+  getBulletItems(text: string): string[] {
+    if (!text) return [];
+    return text
+      .split('\n')
+      .map(line => line.replace(/^•\s*/, '').trim())
+      .filter(line => line.length > 0);
+  }
+
   getGroupedEntries(): { label: string; range: string; entries: LogbookEntry[] }[] {
     if (this.logbookEntries.length === 0) return [];
     const groups: Record<string, { label: string; range: string; entries: LogbookEntry[] }> = {};
@@ -382,7 +413,7 @@ export class InternTasksComponent implements OnInit {
 
   openAddLogbook() {
     this.logbookModalMode = 'add'; this.selectedLogbookEntry = null; this.logbookPhotos = []; this.selectedPhoto = null;
-    this.logbookForm = { entry_date: new Date().toISOString().split('T')[0], tasks_done: '', reflection: '' };
+    this.logbookForm = { entry_date: new Date().toISOString().split('T')[0], tasks_done: '• ', reflection: '' };
     this.isLogbookModalOpen = true;
   }
 
