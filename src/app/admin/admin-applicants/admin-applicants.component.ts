@@ -63,11 +63,24 @@ export class AdminApplicantsComponent implements OnInit {
   itemsPerPage = 10;
   readonly Math = Math;
 
+  // ── APPROVE MODAL STATE ───────────────────────────────────
+  showApproveModal        = false;
+  pendingApproveApplicant : Applicant | null = null;
+  approveStartDate        = '';
+  approveRequiredHours    : number | null = null;
+  approveNote             = '';
+  approveFormErrors       : { startDate?: string; hours?: string } = {};
+
+  // ── DECLINE MODAL STATE ───────────────────────────────────
+  showDeclineModal        = false;
+  pendingDeclineApplicant : Applicant | null = null;
+  declineNote             = '';
+
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
-  // Course abbreviation map — add more entries as needed
+  // Course abbreviation map
   private readonly COURSE_MAP: { [key: string]: string } = {
     'bachelor of science in information technology':    'BSIT',
     'bachelor of science in computer science':          'BSCS',
@@ -208,84 +221,72 @@ export class AdminApplicantsComponent implements OnInit {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
 
-  // ── Send email via Brevo ──────────────────────────────────
-  async sendEmail(applicant: Applicant, type: 'approved' | 'declined') {
-    try {
-      const templateId = type === 'approved'
-          ? environment.brevoApprovedTid
-          : environment.brevoDeclinedTid;
-
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': environment.brevoApiKey
-        },
-        body: JSON.stringify({
-          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-          to: [{ email: applicant.email, name: `${applicant.first_name} ${applicant.last_name}` }],
-          templateId,
-          params: {
-            applicant_name: `${applicant.first_name} ${applicant.last_name}`,
-            first_name:     applicant.first_name
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        console.error('Brevo error:', err);
-      } else {
-        console.log(`Email sent to ${applicant.email}`);
-      }
-    } catch (error) {
-      console.error('Failed to send email:', error);
-    }
+  getTodayString(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
-  // ── Approve applicant ─────────────────────────────────────
-  async approveApplicant(applicant: Applicant, event: Event) {
+  // ══════════════════════════════════════════════════════════
+  //  APPROVE FLOW
+  // ══════════════════════════════════════════════════════════
+
+  openApproveModal(applicant: Applicant, event: Event) {
     event.stopPropagation();
+    this.pendingApproveApplicant = applicant;
+    this.approveStartDate        = '';
+    this.approveRequiredHours    = null;
+    this.approveNote             = '';
+    this.approveFormErrors       = {};
+    this.showApproveModal        = true;
+  }
 
-    const result = await Swal.fire({
-      title: 'Approve applicant?',
-      text: `${applicant.first_name} ${applicant.last_name} will be added as an intern.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, approve',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#16a34a',
-      cancelButtonColor: '#6b7280'
-    });
+  closeApproveModal() {
+    this.showApproveModal        = false;
+    this.pendingApproveApplicant = null;
+  }
 
-    if (!result.isConfirmed) return;
+  validateApproveForm(): boolean {
+    this.approveFormErrors = {};
+    if (!this.approveStartDate)
+      this.approveFormErrors['startDate'] = 'Start date is required.';
+    if (!this.approveRequiredHours || this.approveRequiredHours <= 0)
+      this.approveFormErrors['hours'] = 'Please enter a valid number of required hours.';
+    return Object.keys(this.approveFormErrors).length === 0;
+  }
 
+  async confirmApprove() {
+    if (!this.pendingApproveApplicant) return;
+    if (!this.validateApproveForm()) return;
+
+    const applicant = this.pendingApproveApplicant;
+    this.closeApproveModal();
     this.actionLoading = true;
 
     try {
-      await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        applicant.auth_user_id,
-        {
-          first_name:          applicant.first_name,
-          middle_name:         applicant.middle_name,
-          last_name:           applicant.last_name,
-          email:               applicant.email,
-          contact_number:      applicant.contact_number,
-          birthday:            applicant.birthday,
-          gender:              applicant.gender,
-          home_address:        applicant.home_address,
-          student_id:          applicant.student_id,
-          school_name:         applicant.school_name,
-          course:              applicant.course,
-          year_level:          applicant.year_level,
-          resume_file_id:      applicant.resume_file_id      || '',
-          endorsement_file_id: applicant.endorsement_file_id || '',
-          coe_file_id:         applicant.coe_file_id         || ''
-        }
-      );
-
+     // 1. Create student document
+await this.appwrite.databases.createDocument(
+  this.appwrite.DATABASE_ID,
+  this.appwrite.STUDENTS_COL,
+  applicant.auth_user_id,
+  {
+    first_name:          applicant.first_name,
+    middle_name:         applicant.middle_name,
+    last_name:           applicant.last_name,
+    email:               applicant.email,
+    contact_number:      applicant.contact_number,
+    birthday:            applicant.birthday,
+    gender:              applicant.gender,
+    home_address:        applicant.home_address,
+    student_id:          applicant.student_id,
+    school_name:         applicant.school_name,
+    course:              applicant.course,
+    year_level:          applicant.year_level,
+    resume_file_id:      applicant.resume_file_id      || '',
+    endorsement_file_id: applicant.endorsement_file_id || '',
+    coe_file_id:         applicant.coe_file_id         || '',
+    required_hours:      this.approveRequiredHours   // ← add this line
+  }
+);
+      // 2. Update applicant status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
@@ -293,12 +294,17 @@ export class AdminApplicantsComponent implements OnInit {
         { status: 'approved' }
       );
 
-      await this.sendEmail(applicant, 'approved');
+      // 3. Send approval email with start date, hours, and optional note
+      await this.sendEmail(applicant, 'approved', {
+        start_date:     this.formatDisplayDate(this.approveStartDate),
+        required_hours: String(this.approveRequiredHours),
+        admin_note:     this.approveNote.trim()
+      });
 
+      // 4. Update local state
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'approved';
       this.applyFilter();
-
       if (this.selectedApplicant?.$id === applicant.$id)
         this.selectedApplicant.status = 'approved';
 
@@ -323,26 +329,30 @@ export class AdminApplicantsComponent implements OnInit {
     }
   }
 
-  // ── Decline applicant ─────────────────────────────────────
-  async declineApplicant(applicant: Applicant, event: Event) {
+  // ══════════════════════════════════════════════════════════
+  //  DECLINE FLOW
+  // ══════════════════════════════════════════════════════════
+
+  openDeclineModal(applicant: Applicant, event: Event) {
     event.stopPropagation();
+    this.pendingDeclineApplicant = applicant;
+    this.declineNote             = '';
+    this.showDeclineModal        = true;
+  }
 
-    const result = await Swal.fire({
-      title: 'Decline applicant?',
-      text: `${applicant.first_name} ${applicant.last_name} will not be able to log in.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, decline',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280'
-    });
+  closeDeclineModal() {
+    this.showDeclineModal        = false;
+    this.pendingDeclineApplicant = null;
+  }
 
-    if (!result.isConfirmed) return;
-
+  async confirmDecline() {
+    if (!this.pendingDeclineApplicant) return;
+    const applicant = this.pendingDeclineApplicant;
+    this.closeDeclineModal();
     this.actionLoading = true;
 
     try {
+      // 1. Update applicant status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL,
@@ -350,18 +360,33 @@ export class AdminApplicantsComponent implements OnInit {
         { status: 'declined' }
       );
 
-      await this.sendEmail(applicant, 'declined');
+      // 2. Send decline email with optional note
+      await this.sendEmail(applicant, 'declined', {
+        admin_note: this.declineNote.trim()
+      });
 
+      // 3. Delete Appwrite auth user so the email can be re-used to register
+     try {
+  await this.appwrite.functions.createExecution(
+    this.appwrite.DELETE_USER_FN,
+    JSON.stringify({ userId: applicant.auth_user_id }),
+    false
+  );
+} catch (fnErr: any) {
+  console.warn('Could not delete auth user:', fnErr);
+  // Add this to surface it in the UI temporarily:
+  throw new Error('Delete user failed: ' + fnErr.message);
+}
+      // 4. Update local state
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'declined';
       this.applyFilter();
-
       if (this.selectedApplicant?.$id === applicant.$id)
         this.selectedApplicant.status = 'declined';
 
       Swal.fire({
         icon: 'success',
-        title: 'Declined!',
+        title: 'Declined',
         html: `<b>${applicant.first_name} ${applicant.last_name}</b>'s application has been declined.<br>
                <span style="font-size:13px; color:#6b7280;">
                  An email notification has been sent to ${applicant.email}
@@ -378,6 +403,62 @@ export class AdminApplicantsComponent implements OnInit {
     } finally {
       this.actionLoading = false;
     }
+  }
+
+  // ── Send email via Brevo ──────────────────────────────────
+  async sendEmail(
+    applicant: Applicant,
+    type: 'approved' | 'declined',
+    extraParams: Record<string, string> = {}
+  ) {
+    try {
+      const templateId = type === 'approved'
+        ? environment.brevoApprovedTid
+        : environment.brevoDeclinedTid;
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': environment.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+          to: [{ email: applicant.email, name: `${applicant.first_name} ${applicant.last_name}` }],
+          templateId,
+          params: {
+            applicant_name: `${applicant.first_name} ${applicant.last_name}`,
+            first_name:     applicant.first_name,
+            ...extraParams
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        console.error('Brevo error:', err);
+      } else {
+        console.log(`Email sent to ${applicant.email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send email:', error);
+    }
+  }
+
+  // ── Kept for template backward-compatibility ──────────────
+  approveApplicant(applicant: Applicant, event: Event) {
+    this.openApproveModal(applicant, event);
+  }
+
+  declineApplicant(applicant: Applicant, event: Event) {
+    this.openDeclineModal(applicant, event);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
+  private formatDisplayDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   openModal(applicant: Applicant)  { this.selectedApplicant = applicant; }

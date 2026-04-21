@@ -167,7 +167,15 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
         last30.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
       }
 
-      const recent = allDocs.filter(d => last30.includes(d.date));
+      const assignedStudentIds = new Set(
+  this.allStudents
+    .filter(s => s.supervisor_id === this.currentSupervisor?.$id)
+    .map(s => s.$id)
+);
+
+const recent = allDocs.filter(d =>
+  last30.includes(d.date) && assignedStudentIds.has(d.student_id)
+);
       this.datesWithRecords = new Set(recent.map(d => d.date));
 
       this.allLogs = recent.map(doc => this.mapDoc(doc));
@@ -290,10 +298,14 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
   searchStudents() {
     const q = this.studentSearch.toLowerCase().trim();
     if (!q) { this.studentResults = []; return; }
-    this.studentResults = [...this.allStudents, ...this.allArchived].filter(s =>
+    this.studentResults = this.allStudents
+  .filter(s =>
+    s.supervisor_id === this.currentSupervisor?.$id &&
+    (
       `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
       (s.student_id || '').toLowerCase().includes(q)
-    ).slice(0, 8);
+    )
+  ).slice(0, 8);
   }
 
   pickStudent(s: any) {

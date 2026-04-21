@@ -1,0 +1,33 @@
+{
+    "projectId": "69ba8d9c0027d10c447f",
+    "projectName": "OJTify",
+    "endpoint": "https://sgp.cloud.appwrite.io/v1",
+    "functions": [
+        {
+            "$id": "69e75aef0017bf366386",
+            "name": "delete-auth-user",
+            "runtime": "node-18.0",
+            "buildSpecification": "s-0.5vcpu-512mb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "execute": [
+                "any"
+            ],
+            "events": [],
+            "scopes": [
+                "users.read"
+            ],
+            "schedule": "",
+            "timeout": 15,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "ignore": [
+                "node_modules",
+                ".npm"
+            ],
+            "deploymentRetention": 0,
+            "path": "functions/delete-auth-user"
+        }
+    ]
+}

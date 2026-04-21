@@ -146,7 +146,15 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
         this.appwrite.ATTENDANCE_COL
       );
 
-      const todayDocs = (res.documents as any[]).filter(d => d.date === today);
+  const assignedStudentIds = new Set(
+  this.allStudents
+    .filter(s => s.supervisor_id === this.supervisorId)
+    .map(s => s.$id)
+);
+
+const todayDocs = (res.documents as any[]).filter(d =>
+  d.date === today && assignedStudentIds.has(d.student_id)
+);
 
       this.todayLogs = todayDocs.map(doc => {
         const student = this.allStudents.find(s => s.$id === doc.student_id)

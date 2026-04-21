@@ -260,18 +260,183 @@
       <!-- ACTIONS (modal only) -->
       <div class="modal-actions" *ngIf="selectedApplicant.status === 'pending'">
         <button class="accept-btn"
-                (click)="approveApplicant(selectedApplicant, $event)"
+                (click)="openApproveModal(selectedApplicant, $event)"
                 [disabled]="actionLoading">
           <i class="fa fa-spinner fa-spin" *ngIf="actionLoading"></i>
           Approve
         </button>
         <button class="decline-btn"
-                (click)="declineApplicant(selectedApplicant, $event)"
+                (click)="openDeclineModal(selectedApplicant, $event)"
                 [disabled]="actionLoading">
           Decline
         </button>
       </div>
 
     </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  APPROVE ACTION MODAL                                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay action-modal-overlay"
+     *ngIf="showApproveModal"
+     (click)="closeApproveModal()">
+  <div class="action-modal approve-modal" (click)="$event.stopPropagation()">
+
+    <div class="action-modal-header approve-header">
+      <div class="action-modal-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div>
+        <h3>Approve Application</h3>
+        <p *ngIf="pendingApproveApplicant">
+          {{ getFullName(pendingApproveApplicant) }}
+        </p>
+      </div>
+      <button class="action-modal-close" (click)="closeApproveModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="action-modal-body">
+
+      <div class="action-field-row">
+
+        <!-- START DATE -->
+        <div class="action-field" [class.field-error]="approveFormErrors['startDate']">
+          <label>
+            <i class="fa-solid fa-calendar-day"></i>
+            Start Date <span class="req-star">*</span>
+          </label>
+          <input type="date"
+                 [(ngModel)]="approveStartDate"
+                 [min]="getTodayString()"
+                 [class.has-value]="approveStartDate">
+          <span class="field-error-msg" *ngIf="approveFormErrors['startDate']">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ approveFormErrors['startDate'] }}
+          </span>
+        </div>
+
+        <!-- REQUIRED HOURS -->
+        <div class="action-field" [class.field-error]="approveFormErrors['hours']">
+          <label>
+            <i class="fa-solid fa-clock"></i>
+            Required Hours <span class="req-star">*</span>
+          </label>
+          <input type="number"
+                 [(ngModel)]="approveRequiredHours"
+                 placeholder="e.g. 400"
+                 min="1"
+                 max="9999">
+          <span class="field-error-msg" *ngIf="approveFormErrors['hours']">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ approveFormErrors['hours'] }}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- ADMIN NOTE -->
+      <div class="action-field">
+        <label>
+          <i class="fa-solid fa-note-sticky"></i>
+          Note to Intern
+          <span class="optional-tag">optional</span>
+        </label>
+        <textarea [(ngModel)]="approveNote"
+                  placeholder="e.g. Please report to the admin office on your first day. Bring a valid ID and 2x2 photo."
+                  rows="3"
+                  maxlength="500"></textarea>
+        <span class="char-count">{{ approveNote.length }}/500</span>
+      </div>
+
+      <div class="action-modal-info approve-info">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>
+          The intern will receive an email with their start date, required hours, and your note.
+          They will be able to log in immediately after approval.
+        </span>
+      </div>
+
+    </div>
+
+    <div class="action-modal-footer">
+      <button class="btn-cancel" (click)="closeApproveModal()" [disabled]="actionLoading">
+        Cancel
+      </button>
+      <button class="btn-approve" (click)="confirmApprove()" [disabled]="actionLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="actionLoading"></i>
+        <i class="fa-solid fa-check" *ngIf="!actionLoading"></i>
+        Approve &amp; Notify
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  DECLINE ACTION MODAL                                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay action-modal-overlay"
+     *ngIf="showDeclineModal"
+     (click)="closeDeclineModal()">
+  <div class="action-modal decline-modal" (click)="$event.stopPropagation()">
+
+    <div class="action-modal-header decline-header">
+      <div class="action-modal-icon decline-icon">
+        <i class="fa-solid fa-circle-xmark"></i>
+      </div>
+      <div>
+        <h3>Decline Application</h3>
+        <p *ngIf="pendingDeclineApplicant">
+          {{ getFullName(pendingDeclineApplicant) }}
+        </p>
+      </div>
+      <button class="action-modal-close" (click)="closeDeclineModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="action-modal-body">
+
+      <!-- REASON / NOTE -->
+      <div class="action-field">
+        <label>
+          <i class="fa-solid fa-note-sticky"></i>
+          Reason / Note to Intern
+          <span class="optional-tag">optional</span>
+        </label>
+        <textarea [(ngModel)]="declineNote"
+                  placeholder="e.g. Please re-register and ensure all submitted documents are clear and complete. Your resume appears to be corrupted."
+                  rows="4"
+                  maxlength="500"></textarea>
+        <span class="char-count">{{ declineNote.length }}/500</span>
+      </div>
+
+      <div class="action-modal-info decline-info">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span>
+          The intern's account will be <strong>deleted</strong> so they can re-register using
+          the same email address. They will receive a notification email with your note.
+        </span>
+      </div>
+
+    </div>
+
+    <div class="action-modal-footer">
+      <button class="btn-cancel" (click)="closeDeclineModal()" [disabled]="actionLoading">
+        Cancel
+      </button>
+      <button class="btn-decline" (click)="confirmDecline()" [disabled]="actionLoading">
+        <i class="fa fa-spinner fa-spin" *ngIf="actionLoading"></i>
+        <i class="fa-solid fa-xmark" *ngIf="!actionLoading"></i>
+        Decline &amp; Notify
+      </button>
+    </div>
+
   </div>
 </div>

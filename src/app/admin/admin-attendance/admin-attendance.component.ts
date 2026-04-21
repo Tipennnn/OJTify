@@ -7,6 +7,7 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import { ID } from 'appwrite';
 import Swal from 'sweetalert2';
+import { getDistanceMeters, getCurrentPosition } from '../../utils/geofence.util';
 
 interface AttendanceLog {
   $id?: string;
@@ -65,6 +66,11 @@ selectedManualStudent: any   = null;
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+
+  // ── Geofence ──────────────────────────────────────────────
+readonly OFFICE_LAT    = 14.844565;   // ← replace with your actual lat
+readonly OFFICE_LNG    = 120.289284;  // ← replace with your actual lng
+readonly OFFICE_RADIUS = 100;       // meters allowed
 
   // ── Pagination ────────────────────────────────────────────
   currentPage = 1;
@@ -325,6 +331,11 @@ async processManualAttendance(student: any) {
     }
   }
 
+  // ── Geofence check ────────────────────────────────────
+  const withinZone = await this.checkGeofence();
+  if (!withinZone) return;
+  // ─────────────────────────────────────────────────────
+
   this.scanLoading = true;
 
   try {
@@ -339,9 +350,8 @@ async processManualAttendance(student: any) {
     const existing = (attendRes.documents as any[])
       .find(a => a.student_id === studentId && a.date === today);
 
-    // ── Determine scanned-by name (admin or supervisor) ──
-    const scannedById   = (this as any).adminId   ?? (this as any).supervisorId;
-    const scannedByName = (this as any).adminName ?? (this as any).supervisorName;
+    const scannedById   = this.adminId;
+    const scannedByName = this.adminName;
 
     if (existing) {
       if (!existing.time_out || existing.time_out === '') {
@@ -558,189 +568,173 @@ async processManualAttendance(student: any) {
 
   // ── Process QR ────────────────────────────────────────────
  async processQR(data: string, skipTimestamp = false) {
-    if (!data.startsWith('OJTIFY_ATTENDANCE:')) {
+  if (!data.startsWith('OJTIFY_ATTENDANCE:')) {
+    Swal.fire({
+      icon: 'warning', title: 'Invalid QR Code',
+      text: 'This QR code is not from OJTify.',
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 3000
+    });
+    setTimeout(() => { this.lastScanned = ''; }, 3000);
+    return;
+  }
+
+  const parts     = data.replace('OJTIFY_ATTENDANCE:', '').split(':');
+  const studentId = parts[0];
+  const timestamp = parseInt(parts[1] || '0', 10);
+  const ageMs     = Date.now() - timestamp;
+
+  if (!skipTimestamp && (!timestamp || ageMs > 15_000 || ageMs < -5_000)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'QR Code Expired',
+      text: 'This QR code has expired. Ask the intern to generate a new one.',
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 4000
+    });
+    this.scanLoading = false;
+    setTimeout(() => { this.lastScanned = ''; }, 4000);
+    return;
+  }
+
+  // ── Geofence check ────────────────────────────────────────
+  const withinZone = await this.checkGeofence();
+  if (!withinZone) {
+    this.scanLoading = false;
+    setTimeout(() => { this.lastScanned = ''; }, 3000);
+    return;
+  }
+  // ─────────────────────────────────────────────────────────
+
+  this.scanLoading = true;
+
+  try {
+    const student = this.allStudents.find(s => s.$id === studentId)
+      ?? this.allArchived.find(s => s.student_doc_id === studentId);
+
+    if (!student) {
       Swal.fire({
-        icon: 'warning', title: 'Invalid QR Code',
-        text: 'This QR code is not from OJTify.',
+        icon: 'error', title: 'Student Not Found',
+        text: 'This QR code does not match any registered intern.',
         toast: true, position: 'top-end',
         showConfirmButton: false, timer: 3000
       });
+      this.scanLoading = false;
       setTimeout(() => { this.lastScanned = ''; }, 3000);
       return;
     }
 
-    const parts     = data.replace('OJTIFY_ATTENDANCE:', '').split(':');
-    const studentId = parts[0];
-    const timestamp = parseInt(parts[1] || '0', 10);
-    const ageMs     = Date.now() - timestamp;
+    const studentName = `${student.first_name} ${student.last_name}`;
+    const now         = new Date();
+    const dayOfWeek   = now.getDay();
 
-    if (!skipTimestamp && (!timestamp || ageMs > 15_000 || ageMs < -5_000)) {
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
       Swal.fire({
-        icon: 'warning',
-        title: 'QR Code Expired',
-        text: 'This QR code has expired. Ask the intern to generate a new one.',
+        icon: 'warning', title: 'Weekend!',
+        text: 'Attendance is not recorded on weekends.',
         toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 4000
+        showConfirmButton: false, timer: 3000
       });
       this.scanLoading = false;
-      setTimeout(() => { this.lastScanned = ''; }, 4000);
+      setTimeout(() => { this.lastScanned = ''; }, 3000);
       return;
     }
 
-    this.scanLoading = true;
-
-    try {
-      const student = this.allStudents.find(s => s.$id === studentId)
-        ?? this.allArchived.find(s => s.student_doc_id === studentId);
-
-      if (!student) {
+    const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
+    if (isActiveStudent) {
+      const studentDoc = this.allStudents.find(s => s.$id === studentId);
+      const completed  = Number(studentDoc?.completed_hours) || 0;
+      const required   = Number(studentDoc?.required_hours)  || 500;
+      if (completed >= required) {
         Swal.fire({
-          icon: 'error', title: 'Student Not Found',
-          text: 'This QR code does not match any registered intern.',
-          toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
+          icon: 'info',
+          title: 'OJT Completed! 🎉',
+          html: `<b>${student.first_name} ${student.last_name}</b> has already completed their required <b>${required} hours</b>.<br><br>
+                 <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
+          confirmButtonColor: '#111827'
         });
         this.scanLoading = false;
         setTimeout(() => { this.lastScanned = ''; }, 3000);
         return;
       }
+    }
 
-      const studentName = `${student.first_name} ${student.last_name}`;
-      const now         = new Date();
-      const dayOfWeek   = now.getDay();
+    const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        Swal.fire({
-          icon: 'warning', title: 'Weekend!',
-          text: 'Attendance is not recorded on weekends.',
-          toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
-        });
-        this.scanLoading = false;
-        setTimeout(() => { this.lastScanned = ''; }, 3000);
-        return;
-      }
+    const attendRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL
+    );
 
-      const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
-      if (isActiveStudent) {
-        const studentDoc = this.allStudents.find(s => s.$id === studentId);
-        const completed  = Number(studentDoc?.completed_hours) || 0;
-        const required   = Number(studentDoc?.required_hours)  || 500;
-        if (completed >= required) {
-          Swal.fire({
-            icon: 'info',
-            title: 'OJT Completed! 🎉',
-            html: `<b>${student.first_name} ${student.last_name}</b> has already completed their required <b>${required} hours</b>.<br><br>
-                   <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
-            confirmButtonColor: '#111827'
-          });
-          this.scanLoading = false;
-          setTimeout(() => { this.lastScanned = ''; }, 3000);
-          return;
-        }
-      }
+    const existing = (attendRes.documents as any[])
+      .find(a => a.student_id === studentId && a.date === today);
 
-      const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    if (existing) {
+      if (!existing.time_out || existing.time_out === '') {
 
-      const attendRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+        // ── TIME OUT ──────────────────────────────────────
+        await this.appwrite.databases.updateDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          existing.$id,
+          {
+            time_out:        timeStr,
+            scanned_by:      this.adminId,
+            scanned_by_name: this.adminName
+          }
+        );
 
-      const existing = (attendRes.documents as any[])
-        .find(a => a.student_id === studentId && a.date === today);
+        const parseTimeToMinutes = (t: string): number => {
+          try {
+            const parts   = t.trim().split(' ');
+            const period  = parts[1];
+            const tp      = parts[0].split(':');
+            let hours     = parseInt(tp[0]);
+            const minutes = parseInt(tp[1]);
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12)  hours  = 0;
+            return (hours * 60) + minutes;
+          } catch { return 0; }
+        };
 
-      if (existing) {
-        if (!existing.time_out || existing.time_out === '') {
+        const timeInMinutes  = parseTimeToMinutes(existing.time_in);
+        const timeOutMinutes = parseTimeToMinutes(timeStr);
+        let diffMinutes      = timeOutMinutes - timeInMinutes;
+        if (diffMinutes < 0) diffMinutes += 24 * 60;
+        const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
-          // ── TIME OUT ──────────────────────────────────────
-          await this.appwrite.databases.updateDocument(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.ATTENDANCE_COL,
-            existing.$id,
-            {
-              time_out:        timeStr,
-              scanned_by:      this.adminId,
-              scanned_by_name: this.adminName
-            }
-          );
+        if (hoursWorked > 0 && isActiveStudent) {
+          try {
+            const studentDoc = await this.appwrite.databases.getDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              studentId
+            );
 
-          const parseTimeToMinutes = (t: string): number => {
-            try {
-              const parts   = t.trim().split(' ');
-              const period  = parts[1];
-              const tp      = parts[0].split(':');
-              let hours     = parseInt(tp[0]);
-              const minutes = parseInt(tp[1]);
-              if (period === 'PM' && hours !== 12) hours += 12;
-              if (period === 'AM' && hours === 12)  hours  = 0;
-              return (hours * 60) + minutes;
-            } catch { return 0; }
-          };
+            const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
+            const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
+            const newCompleted     = Math.min(
+              parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+              requiredHours
+            );
 
-          const timeInMinutes  = parseTimeToMinutes(existing.time_in);
-          const timeOutMinutes = parseTimeToMinutes(timeStr);
-          let diffMinutes      = timeOutMinutes - timeInMinutes;
-          if (diffMinutes < 0) diffMinutes += 24 * 60;
-          const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
+            await this.appwrite.databases.updateDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              studentId,
+              { completed_hours: newCompleted }
+            );
 
-          if (hoursWorked > 0 && isActiveStudent) {
-            try {
-              const studentDoc = await this.appwrite.databases.getDocument(
-                this.appwrite.DATABASE_ID,
-                this.appwrite.STUDENTS_COL,
-                studentId
-              );
-
-              const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
-              const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
-              const newCompleted     = Math.min(
-                parseFloat((currentCompleted + hoursWorked).toFixed(2)),
-                requiredHours
-              );
-
-              await this.appwrite.databases.updateDocument(
-                this.appwrite.DATABASE_ID,
-                this.appwrite.STUDENTS_COL,
-                studentId,
-                { completed_hours: newCompleted }
-              );
-
-              const idx = this.allStudents.findIndex(s => s.$id === studentId);
-              if (idx !== -1) {
-                this.allStudents[idx] = {
-                  ...this.allStudents[idx],
-                  completed_hours: newCompleted
-                };
-              }
-
-              this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
-              this.scanStatus = 'timeout';
-
-              const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
-              if (logIndex !== -1) {
-                this.todayLogs[logIndex].time_out        = timeStr;
-                this.todayLogs[logIndex].scanned_by_name = this.adminName;
-                this.filteredLogs = [...this.todayLogs];
-              }
-
-              Swal.fire({
-                icon: 'success', title: '🕐 Time Out Recorded!',
-                html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
-                       <span style="color:#16a34a;font-size:13px;font-weight:600;">
-                         +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
-                       </span>`,
-                toast: true, position: 'top-end',
-                showConfirmButton: false, timer: 5000, timerProgressBar: true
-              });
-
-            } catch (updateErr: any) {
-              Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
+            const idx = this.allStudents.findIndex(s => s.$id === studentId);
+            if (idx !== -1) {
+              this.allStudents[idx] = {
+                ...this.allStudents[idx],
+                completed_hours: newCompleted
+              };
             }
 
-          } else {
-            this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
+            this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
             this.scanStatus = 'timeout';
 
             const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
@@ -752,86 +746,144 @@ async processManualAttendance(student: any) {
 
             Swal.fire({
               icon: 'success', title: '🕐 Time Out Recorded!',
-              html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
+              html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
+                     <span style="color:#16a34a;font-size:13px;font-weight:600;">
+                       +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
+                     </span>`,
               toast: true, position: 'top-end',
-              showConfirmButton: false, timer: 4000, timerProgressBar: true
+              showConfirmButton: false, timer: 5000, timerProgressBar: true
             });
+
+          } catch (updateErr: any) {
+            Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
           }
 
         } else {
-          this.scanResult = `${studentName} already completed attendance today.`;
-          this.scanStatus = 'already';
+          this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
+          this.scanStatus = 'timeout';
+
+          const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
+          if (logIndex !== -1) {
+            this.todayLogs[logIndex].time_out        = timeStr;
+            this.todayLogs[logIndex].scanned_by_name = this.adminName;
+            this.filteredLogs = [...this.todayLogs];
+          }
+
           Swal.fire({
-            icon: 'info', title: 'Already Completed',
-            html: `<b>${studentName}</b> already completed attendance today.`,
+            icon: 'success', title: '🕐 Time Out Recorded!',
+            html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
             toast: true, position: 'top-end',
-            showConfirmButton: false, timer: 3000
+            showConfirmButton: false, timer: 4000, timerProgressBar: true
           });
         }
 
       } else {
-        // ── TIME IN ───────────────────────────────────────
-        const doc = await this.appwrite.databases.createDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ATTENDANCE_COL,
-          ID.unique(),
-          {
-            student_id:      studentId,
-            date:            today,
-            time_in:         timeStr,
-            time_out:        '',
-            status:          'Present',
-            scanned_by:      this.adminId,
-            scanned_by_name: this.adminName
-          }
-        );
-
-        this.scanResult = `Time In: ${studentName} at ${timeStr}`;
-        this.scanStatus = 'timein';
-
-        const newLog: AttendanceLog = {
-          $id:               doc.$id,
-          student_id:        studentId,
-          student_name:      studentName,
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              today,
-          time_in:           timeStr,
-          time_out:          '—',
-          status:            'Present',
-          scanned_by_name:   this.adminName
-        };
-
-        this.todayLogs.unshift(newLog);
-        this.filteredLogs = [...this.todayLogs];
-        this.updatePagination();
-
+        this.scanResult = `${studentName} already completed attendance today.`;
+        this.scanStatus = 'already';
         Swal.fire({
-          icon: 'success', title: '✅ Time In Recorded!',
-          html: `<b>${studentName}</b><br>${timeStr}`,
+          icon: 'info', title: 'Already Completed',
+          html: `<b>${studentName}</b> already completed attendance today.`,
           toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 4000, timerProgressBar: true
+          showConfirmButton: false, timer: 3000
         });
       }
 
-      setTimeout(() => {
-        this.lastScanned = '';
-        this.scanResult  = '';
-        this.scanStatus  = '';
-      }, 5000);
+    } else {
+      // ── TIME IN ───────────────────────────────────────
+      const doc = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        ID.unique(),
+        {
+          student_id:      studentId,
+          date:            today,
+          time_in:         timeStr,
+          time_out:        '',
+          status:          'Present',
+          scanned_by:      this.adminId,
+          scanned_by_name: this.adminName
+        }
+      );
 
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: error.message });
-    } finally {
-      this.scanLoading = false;
+      this.scanResult = `Time In: ${studentName} at ${timeStr}`;
+      this.scanStatus = 'timein';
+
+      const newLog: AttendanceLog = {
+        $id:               doc.$id,
+        student_id:        studentId,
+        student_name:      studentName,
+        student_photo:     student?.profile_photo_id
+          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+          : null,
+        student_id_number: student?.student_id || '—',
+        date:              today,
+        time_in:           timeStr,
+        time_out:          '—',
+        status:            'Present',
+        scanned_by_name:   this.adminName
+      };
+
+      this.todayLogs.unshift(newLog);
+      this.filteredLogs = [...this.todayLogs];
+      this.updatePagination();
+
+      Swal.fire({
+        icon: 'success', title: '✅ Time In Recorded!',
+        html: `<b>${studentName}</b><br>${timeStr}`,
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 4000, timerProgressBar: true
+      });
     }
+
+    setTimeout(() => {
+      this.lastScanned = '';
+      this.scanResult  = '';
+      this.scanStatus  = '';
+    }, 5000);
+
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+  } finally {
+    this.scanLoading = false;
   }
+}
 
   getToday(): string {
     return new Date().toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+
+  async checkGeofence(): Promise<boolean> {
+  try {
+    const position = await getCurrentPosition();
+    const { latitude, longitude } = position.coords;
+    const distance = getDistanceMeters(
+      latitude, longitude,
+      this.OFFICE_LAT, this.OFFICE_LNG
+    );
+
+    if (distance > this.OFFICE_RADIUS) {
+      Swal.fire({
+        icon: 'error',
+        title: '📍 Outside Office Location',
+        html: `You are <b>${Math.round(distance)}m</b> away from the office.<br>
+               Must be within <b>${this.OFFICE_RADIUS}m</b> to record attendance.`,
+        confirmButtonColor: '#ef4444'
+      });
+      return false;
+    }
+    return true;
+
+  } catch (error: any) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Location Error',
+      text: `Could not get your location: ${error.message}`,
+      confirmButtonColor: '#f59e0b'
+    });
+    return false;
+  }
+}
+
 }

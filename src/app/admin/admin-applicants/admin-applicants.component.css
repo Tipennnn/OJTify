@@ -322,7 +322,7 @@ app-admin-topnav {
 }
 
 /* =========================
-   MODAL STYLES
+   MODAL OVERLAY
 ========================= */
 .modal-overlay {
   position: fixed;
@@ -337,6 +337,9 @@ app-admin-topnav {
   z-index: 1000;
 }
 
+/* =========================
+   DETAIL MODAL
+========================= */
 .modern-modal {
   width: 650px;
   max-height: 90vh;
@@ -499,4 +502,306 @@ app-admin-topnav {
   background: #ef4444;
   color: #fff;
   transform: scale(1.05);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   ACTION MODALS  (Approve / Decline)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Sits on top of the detail modal */
+.action-modal-overlay {
+  z-index: 1100;
+}
+
+/* Card */
+.action-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: modalSlideIn 0.22s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+/* ── Header ── */
+.action-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.action-modal-header h3 {
+  margin: 0 0 2px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.action-modal-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Coloured left accent strip */
+.approve-header { border-left: 4px solid #16a34a; }
+.decline-header  { border-left: 4px solid #dc2626; }
+
+/* Icon bubble */
+.action-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.action-modal-icon.decline-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Close button (top-right) */
+.action-modal-close {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.action-modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* ── Body ── */
+.action-modal-body {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Side-by-side fields row */
+.action-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Individual field */
+.action-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.action-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-field label i {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.action-field input[type="date"],
+.action-field input[type="number"],
+.action-field textarea {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #111827;
+  background: #f9fafb;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: 'Poppins', sans-serif;
+  resize: vertical;
+}
+
+.action-field input:focus,
+.action-field textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+}
+
+.action-field.field-error input,
+.action-field.field-error textarea {
+  border-color: #ef4444;
+  background: #fff7f7;
+}
+
+/* Optional tag */
+.optional-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+
+/* Required star */
+.req-star { color: #ef4444; }
+
+/* Field error message */
+.field-error-msg {
+  font-size: 12px;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Character counter */
+.char-count {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: right;
+  margin-top: -2px;
+}
+
+/* Info banners */
+.action-modal-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.action-modal-info i {
+  font-size: 15px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.approve-info {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.approve-info i { color: #16a34a; }
+
+.decline-info {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.decline-info i { color: #dc2626; }
+
+/* ── Footer ── */
+.action-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+}
+
+.btn-cancel {
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.btn-approve {
+  padding: 9px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-approve:hover:not(:disabled) { background: #15803d; }
+.btn-approve:disabled              { opacity: 0.65; cursor: not-allowed; }
+
+.btn-decline {
+  padding: 9px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-decline:hover:not(:disabled) { background: #b91c1c; }
+.btn-decline:disabled              { opacity: 0.65; cursor: not-allowed; }
+
+/* ── Responsive ── */
+@media (max-width: 540px) {
+  .action-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .action-modal {
+    border-radius: 12px 12px 0 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 100%;
+  }
 }
