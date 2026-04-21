@@ -41,16 +41,13 @@
             <p style="font-size:14px;">No tasks assigned to you yet.</p>
           </div>
 
-          <div class="task-card" [ngClass]="task.status" *ngFor="let task of tasks" (click)="openModal(task)">
+          <div class="task-card" *ngFor="let task of tasks" (click)="openModal(task)">
             <div class="task-card-inner">
-              <!-- Due Date Badge -->
               <div class="task-date-badge">
                 <span class="lb-day">{{ getDueDateParts(task.due).day }}</span>
                 <span class="lb-num">{{ getDueDateParts(task.due).num }}</span>
                 <span class="lb-month">{{ getDueDateParts(task.due).month }}</span>
               </div>
-
-              <!-- Task Body -->
               <div class="task-card-body">
                 <span class="task-card-title">{{ task.title }}</span>
                 <div class="task-card-meta">
@@ -58,14 +55,11 @@
                   Posted: {{ task.posted }}
                 </div>
               </div>
-
-              <!-- Status pill -->
               <span class="status" [ngClass]="task.status">
                 <i class="fas fa-check-circle" *ngIf="task.status === 'completed'" style="margin-right:4px;"></i>
                 <i class="fas fa-clock" *ngIf="task.status === 'pending'" style="margin-right:4px;"></i>
                 {{ task.status | titlecase }}
               </span>
-
               <i class="fas fa-chevron-right task-card-chevron"></i>
             </div>
           </div>
@@ -179,14 +173,12 @@
                  (click)="openViewLogbook(entry)">
 
               <div class="logbook-card-inner">
-                <!-- Date Badge -->
                 <div class="logbook-date-badge">
                   <span class="lb-day">{{ entry.entry_date | date:'EEE' }}</span>
                   <span class="lb-num">{{ entry.entry_date | date:'d' }}</span>
                   <span class="lb-month">{{ entry.entry_date | date:'MMM' }}</span>
                 </div>
 
-                <!-- Card Body -->
                 <div class="logbook-card-body">
                   <div class="lb-card-head">
                     <span class="lb-headline">{{ getHeadline(entry.tasks_done) }}</span>
@@ -198,18 +190,17 @@
                   </div>
                 </div>
 
-                <!-- Action buttons -->
-                <div class="lb-card-actions" (click)="$event.stopPropagation()">
-                  <button class="lb-edit-btn"
-                          (click)="openEditLogbook(entry)"
-                          title="Edit Entry">
+                <div class="lb-card-actions" (click)="$event.stopPropagation()" *ngIf="isEntryEditable(entry)">
+                  <button class="lb-edit-btn" (click)="openEditLogbook(entry)" title="Edit Entry">
                     <i class="fas fa-pen"></i>
                   </button>
-                  <button class="lb-delete-btn"
-                          (click)="deleteLogbookEntry(entry)"
-                          title="Delete Entry">
+                  <button class="lb-delete-btn" (click)="deleteLogbookEntry(entry)" title="Delete Entry">
                     <i class="fas fa-trash"></i>
                   </button>
+                </div>
+
+                <div class="lb-locked-badge" *ngIf="!isEntryEditable(entry)" title="Entry locked after 11:59 PM">
+                  <i class="fas fa-lock"></i>
                 </div>
 
                 <i class="fas fa-chevron-right lb-card-chevron"></i>
@@ -354,7 +345,7 @@
               <textarea [(ngModel)]="editingMessage" rows="2"></textarea>
               <div class="edit-actions">
                 <button (click)="saveEdit(comment)">Save</button>
-                <button (click)="cancelEdit()">Cancel</button>
+                <button (click)="cancelCommentEdit()">Cancel</button>
               </div>
             </ng-container>
           </div>
@@ -379,54 +370,58 @@
         <div class="lb-photo-icon-wrap"><i class="fas fa-camera"></i></div>
         <div>
           <div class="lb-photo-title">Photo Evidence</div>
-          <div class="lb-photo-sub">Upload visual proof of your work</div>
+          <div class="lb-photo-sub">Visual proof of your work</div>
         </div>
       </div>
 
-      <label class="upload-box lb-upload-box">
-        <input type="file" accept="image/*" (change)="onPhotoSelected($event)">
-        <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px; color:#2563eb;"></i>
-        <span class="upload-title">Click to upload photo</span>
-        <span class="upload-sub">JPG, PNG, GIF supported</span>
-      </label>
+      <!-- Upload box: shown in ADD and EDIT mode -->
+      <ng-container *ngIf="logbookModalMode === 'add' || logbookModalMode === 'edit'">
+        <label class="upload-box lb-upload-box">
+          <input type="file" accept="image/*" (change)="onPhotoSelected($event)">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px; color:#2563eb;"></i>
+          <span class="upload-title">Click to attach a photo</span>
+          <span class="upload-sub">
+            {{ logbookModalMode === 'add' ? 'Uploaded together when you Save' : 'Uploaded together when you Update' }}
+          </span>
+        </label>
 
-      <div *ngIf="selectedPhoto" class="lb-pending-photo">
-        <div class="lb-pending-thumb-icon"><i class="fas fa-image"></i></div>
-        <div class="lb-pending-info">
-          <span class="lb-pending-name">{{ selectedPhoto.name }}</span>
-          <span class="lb-pending-size">{{ getFileSize(selectedPhoto.size) }}</span>
+        <!-- Pending photo preview -->
+        <div *ngIf="selectedPhoto" class="lb-pending-photo">
+          <div class="lb-pending-thumb-icon"><i class="fas fa-image"></i></div>
+          <div class="lb-pending-info">
+            <span class="lb-pending-name">{{ selectedPhoto.name }}</span>
+            <span class="lb-pending-size">{{ getFileSize(selectedPhoto.size) }}</span>
+          </div>
+          <div class="lb-pending-actions">
+            <button class="lb-discard-btn" (click)="selectedPhoto = null" title="Discard">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
-        <div class="lb-pending-actions">
-          <button *ngIf="logbookModalMode === 'view' || logbookModalMode === 'edit'"
-                  class="lb-upload-confirm-btn"
-                  (click)="addPhotoToExistingEntry()"
-                  [disabled]="photoUploading"
-                  title="Upload">
-            <i class="fa fa-spinner fa-spin" *ngIf="photoUploading"></i>
-            <i class="fas fa-upload" *ngIf="!photoUploading"></i>
-          </button>
-          <button class="lb-discard-btn" (click)="selectedPhoto = null" title="Discard">
-            <i class="fas fa-times"></i>
-          </button>
+      </ng-container>
+
+      <ng-container *ngIf="logbookPhotos.length > 0">
+        <div class="lb-photos-section-label">
+          <span class="lb-photos-count">
+            {{ logbookPhotos.length }} photo{{ logbookPhotos.length > 1 ? 's' : '' }} uploaded
+          </span>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="logbookPhotos.length === 0 && !selectedPhoto">
+        <div class="lb-photos-section-label">
+          <span class="lb-photos-count">Gallery</span>
+        </div>
+      </ng-container>
+
+      <div *ngIf="logbookPhotos.length === 0 && !selectedPhoto" class="lb-photos-empty">
+        <div class="lb-photos-empty-row">
+          <i class="fas fa-images"></i>
+          <p>No photos yet for this entry</p>
         </div>
       </div>
 
-      <div class="lb-photos-section-label">
-        <span class="lb-photos-count" *ngIf="logbookPhotos.length > 0">
-          {{ logbookPhotos.length }} photo{{ logbookPhotos.length > 1 ? 's' : '' }} uploaded
-        </span>
-        <span class="lb-photos-count" *ngIf="logbookPhotos.length === 0">Gallery</span>
-      </div>
-
-      <div *ngIf="logbookPhotos.length === 0 && (logbookModalMode === 'view' || logbookModalMode === 'edit')" class="lb-photos-empty">
-        <i class="fas fa-images"></i>
-        <p>No photos yet for this entry</p>
-      </div>
-      <div *ngIf="logbookModalMode === 'add'" class="lb-photos-empty">
-        <i class="fas fa-images"></i>
-        <p>Save entry first, then add photos</p>
-      </div>
-
+      <!-- Uploaded photo grid -->
       <div class="lb-photo-grid" *ngIf="logbookPhotos.length > 0">
         <div class="lb-photo-thumb" *ngFor="let photo of logbookPhotos">
           <img [src]="getPhotoUrl(photo.file_id)" [alt]="photo.file_name" loading="lazy">
@@ -434,7 +429,7 @@
             <a [href]="getPhotoUrl(photo.file_id)" target="_blank" class="lb-thumb-action view">
               <i class="fas fa-expand"></i>
             </a>
-            <button class="lb-thumb-action delete" (click)="deleteLogbookPhoto(photo)">
+            <button *ngIf="logbookModalMode === 'edit'" class="lb-thumb-action delete" (click)="deleteLogbookPhoto(photo)">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -447,7 +442,7 @@
     <!-- RIGHT PANEL -->
     <div class="modal-right lb-entry-panel">
 
-      <!-- ── VIEW MODE: Organized Template ── -->
+      <!-- ── VIEW MODE ── -->
       <ng-container *ngIf="logbookModalMode === 'view'">
         <div class="lb-entry-panel-header">
           <div class="lb-entry-icon-wrap"><i class="fas fa-book-open"></i></div>
@@ -459,7 +454,6 @@
 
         <div class="right-divider"></div>
 
-        <!-- Meta chips -->
         <div class="lb-meta-row">
           <div class="lb-meta-chip">
             <i class="fas fa-calendar-alt"></i>
@@ -473,42 +467,48 @@
             <i class="fas fa-clock"></i>
             {{ getTimeOnly(selectedLogbookEntry?.created_at || '') }}
           </div>
-        </div>
-
-        <!-- Tasks / Accomplishments -->
-        <div class="lb-section-block">
-          <div class="lb-section-header">
-            <div class="lb-section-icon blue"><i class="fas fa-clipboard-check"></i></div>
-            <span class="lb-section-title">Tasks Done &amp; Accomplishments</span>
-          </div>
-          <div class="lb-section-body">
-            <ul class="lb-bullet-list">
-              <li class="lb-bullet-item" *ngFor="let item of getBulletItems(selectedLogbookEntry?.tasks_done || '')">
-                <span class="lb-bullet-dot"></span>
-                <span>{{ item }}</span>
-              </li>
-            </ul>
+          <div class="lb-meta-chip lb-meta-chip--locked" *ngIf="selectedLogbookEntry && !isEntryEditable(selectedLogbookEntry)">
+            <i class="fas fa-lock" style="color:#9ca3af;"></i>
+            Locked
           </div>
         </div>
 
-        <!-- Reflections -->
-        <div class="lb-section-block">
-          <div class="lb-section-header">
-            <div class="lb-section-icon amber"><i class="fas fa-lightbulb"></i></div>
-            <span class="lb-section-title">Reflections &amp; Learnings</span>
+        <div class="lb-view-scroll-area">
+          <div class="lb-section-block">
+            <div class="lb-section-header">
+              <div class="lb-section-icon blue"><i class="fas fa-clipboard-check"></i></div>
+              <span class="lb-section-title">Tasks Done &amp; Accomplishments</span>
+            </div>
+            <div class="lb-section-body-static">
+              <ul class="lb-bullet-list">
+                <li class="lb-bullet-item" *ngFor="let item of getBulletItems(selectedLogbookEntry?.tasks_done || '')">
+                  <span class="lb-bullet-dot"></span>
+                  <span>{{ item }}</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div class="lb-section-body">
-            <p class="lb-reflection-text" *ngIf="selectedLogbookEntry?.reflection">
-              {{ selectedLogbookEntry?.reflection }}
-            </p>
-            <p class="lb-reflection-empty" *ngIf="!selectedLogbookEntry?.reflection">
-              No reflection added for this entry.
-            </p>
+
+          <div class="lb-section-block" style="margin-top:12px;">
+            <div class="lb-section-header">
+              <div class="lb-section-icon amber"><i class="fas fa-lightbulb"></i></div>
+              <span class="lb-section-title">Reflections &amp; Learnings</span>
+            </div>
+            <div class="lb-section-body-static">
+              <ul class="lb-bullet-list" *ngIf="selectedLogbookEntry?.reflection">
+                <li class="lb-bullet-item">
+                  <span class="lb-bullet-dot" style="background:#d97706;"></span>
+                  <span>{{ selectedLogbookEntry?.reflection }}</span>
+                </li>
+              </ul>
+              <p class="lb-reflection-empty" *ngIf="!selectedLogbookEntry?.reflection">
+                No reflection added for this entry.
+              </p>
+            </div>
           </div>
         </div>
 
-        <!-- Action buttons — inline, bottom -->
-        <div class="lb-modal-action-bar">
+        <div class="lb-modal-action-bar" *ngIf="selectedLogbookEntry && isEntryEditable(selectedLogbookEntry)">
           <button class="lb-action-edit-btn" (click)="openEditLogbook(selectedLogbookEntry!)">
             <i class="fas fa-pen"></i> Edit Entry
           </button>
@@ -538,41 +538,57 @@
 
         <div class="right-divider"></div>
 
-        <div class="lb-form-group">
-          <label><i class="fas fa-calendar-alt" style="color:#2563eb; margin-right:6px;"></i>Date</label>
-          <input type="date" class="lb-input" [(ngModel)]="logbookForm.entry_date">
-        </div>
+        <div class="lb-form-scroll-area">
 
-        <div class="lb-form-group">
-          <label>
-            <i class="fas fa-clipboard-list" style="color:#2563eb; margin-right:6px;"></i>
-            Tasks Done / Accomplishments
-            <span style="color:#9ca3af; font-weight:400; font-size:11px; margin-left:6px;">Press Enter to add a new bullet</span>
-          </label>
-          <textarea class="lb-textarea" rows="9"
-                    [value]="logbookForm.tasks_done"
-                    (input)="onTasksInput($event)"
-                    (keydown.enter)="onTasksEnter($event)"
-                    placeholder="• What did you accomplish today?"></textarea>
-        </div>
+          <div class="lb-form-group">
+            <label><i class="fas fa-calendar-alt" style="color:#2563eb; margin-right:6px;"></i>Date</label>
+            <!-- ✅ max="getTodayString()" blocks future dates in the native date picker -->
+            <input type="date" class="lb-input"
+                   [(ngModel)]="logbookForm.entry_date"
+                   [max]="getTodayString()">
+          </div>
 
-        <div class="lb-form-group">
-          <label>
-            <i class="fas fa-lightbulb" style="color:#d97706; margin-right:6px;"></i>
-            Reflections
-            <span style="color:#9ca3af; font-weight:400; font-size:11px; margin-left:6px;">(optional)</span>
-          </label>
-          <textarea class="lb-textarea" rows="4"
-                    [(ngModel)]="logbookForm.reflection"
-                    placeholder="What did you learn? Any challenges faced?"></textarea>
+          <div class="lb-form-group">
+            <div class="lb-form-label-row">
+              <label>
+                <i class="fas fa-clipboard-list" style="color:#2563eb; margin-right:6px;"></i>
+                Tasks Done / Accomplishments
+                <span class="lb-hint">Press Enter for new bullet</span>
+              </label>
+              <span class="lb-word-counter" [class.lb-word-counter--warn]="tasksDoneWordCount >= TASKS_DONE_WORD_LIMIT">
+                {{ tasksDoneWordCount }} / {{ TASKS_DONE_WORD_LIMIT }} words
+              </span>
+            </div>
+            <textarea class="lb-textarea" rows="8"
+                      [value]="logbookForm.tasks_done"
+                      (input)="onTasksInput($event)"
+                      (keydown.enter)="onTasksEnter($event)"
+                      placeholder="• What did you accomplish today?"></textarea>
+          </div>
+
+          <div class="lb-form-group">
+            <div class="lb-form-label-row">
+              <label>
+                <i class="fas fa-lightbulb" style="color:#d97706; margin-right:6px;"></i>
+                Reflections
+                <span class="lb-hint">(optional)</span>
+              </label>
+              <span class="lb-word-counter" [class.lb-word-counter--warn]="reflectionWordCount >= REFLECTION_WORD_LIMIT">
+                {{ reflectionWordCount }} / {{ REFLECTION_WORD_LIMIT }} words
+              </span>
+            </div>
+            <textarea class="lb-textarea" rows="4"
+                      [value]="logbookForm.reflection"
+                      (input)="onReflectionInput($event)"
+                      placeholder="What did you learn? Any challenges faced?"></textarea>
+          </div>
+
         </div>
 
         <div class="lb-entry-actions">
-          <!-- Edit mode: show Delete + Update side by side -->
-          <div *ngIf="logbookModalMode === 'edit'" style="display:flex; gap:10px; margin-bottom:10px;">
-            <button class="lb-action-delete-btn" style="flex:0 0 auto; padding:10px 16px;"
-                    (click)="deleteCurrentLogbookEntry()">
-              <i class="fas fa-trash"></i> Delete
+          <div *ngIf="logbookModalMode === 'edit'" style="display:flex; gap:10px;">
+            <button class="lb-action-cancel-btn" (click)="cancelEdit()">
+              <i class="fas fa-times"></i> Cancel
             </button>
             <button class="submit-btn lb-save-btn" style="flex:1;"
                     (click)="updateLogbookEntry()"
@@ -583,7 +599,6 @@
             </button>
           </div>
 
-          <!-- Add mode: just Save button -->
           <button *ngIf="logbookModalMode === 'add'"
                   class="submit-btn lb-save-btn"
                   (click)="saveLogbookEntry()"

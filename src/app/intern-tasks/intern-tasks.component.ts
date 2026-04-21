@@ -89,6 +89,10 @@ export class InternTasksComponent implements OnInit {
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
+  // Word limits
+  readonly TASKS_DONE_WORD_LIMIT  = 150;
+  readonly REFLECTION_WORD_LIMIT  = 80;
+
   internPhotoMap    : Record<string, string> = {};
   supervisorPhotoMap: Record<string, string> = {};
 
@@ -117,6 +121,10 @@ export class InternTasksComponent implements OnInit {
 
   editingCommentId: string | null = null;
   editingMessage   = '';
+
+  // Word count tracking for live counters
+  tasksDoneWordCount  = 0;
+  reflectionWordCount = 0;
 
   constructor(private appwrite: AppwriteService) {}
 
@@ -204,8 +212,10 @@ export class InternTasksComponent implements OnInit {
     finally { this.commentLoading = false; }
   }
 
+  // ── Comment edit methods ──
   startEdit(comment: Comment) { this.editingCommentId = comment.$id!; this.editingMessage = comment.message; }
-  cancelEdit() { this.editingCommentId = null; this.editingMessage = ''; }
+
+  cancelCommentEdit() { this.editingCommentId = null; this.editingMessage = ''; }
 
   async saveEdit(comment: Comment) {
     if (!this.editingMessage.trim()) return;
@@ -213,7 +223,7 @@ export class InternTasksComponent implements OnInit {
       await this.appwrite.databases.updateDocument(this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id!, { message: this.editingMessage.trim() });
       const i = this.comments.findIndex(c => c.$id === comment.$id);
       if (i !== -1) this.comments[i] = { ...this.comments[i], message: this.editingMessage.trim() };
-      this.cancelEdit();
+      this.cancelCommentEdit();
       Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message }); }
   }
@@ -328,7 +338,88 @@ export class InternTasksComponent implements OnInit {
 
   isToday(dateStr: string): boolean { return new Date(dateStr).toDateString() === new Date().toDateString(); }
 
-  // ── Returns first 8–10 words of first line/sentence ──
+  isEntryEditable(entry: LogbookEntry): boolean {
+    const entryDate = new Date(entry.entry_date);
+    const now = new Date();
+    const sameDay =
+      entryDate.getFullYear() === now.getFullYear() &&
+      entryDate.getMonth()    === now.getMonth()    &&
+      entryDate.getDate()     === now.getDate();
+    const endOfDay = new Date(entryDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    return sameDay && now <= endOfDay;
+  }
+
+  dateHasEntry(dateStr: string): boolean {
+    return this.logbookEntries.some(e => e.entry_date === dateStr);
+  }
+
+  /**
+   * Returns today's date as YYYY-MM-DD string — used as [max] on the date input
+   * so the user cannot pick a future date.
+   */
+  getTodayString(): string {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm   = String(now.getMonth() + 1).padStart(2, '0');
+    const dd   = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  /**
+   * Returns true if the given date string is strictly in the future
+   * (i.e. after today's date, ignoring time).
+   */
+  isFutureDate(dateStr: string): boolean {
+    if (!dateStr) return false;
+    return dateStr > this.getTodayString();
+  }
+
+  // ── Word count helpers ──────────────────────────────────
+  countWords(text: string): number {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  }
+
+  wordCount(text: string): number { return this.countWords(text); }
+
+  enforceWordLimit(text: string, limit: number): string {
+    const tokens = text.split(/(\s+)/);
+    let wordCount = 0;
+    let result = '';
+    for (const token of tokens) {
+      if (/\S/.test(token)) {
+        if (wordCount >= limit) break;
+        wordCount++;
+      }
+      result += token;
+    }
+    return result;
+  }
+
+  // ✅ Validates word counts before save/update
+  private validateWordCounts(): boolean {
+    if (this.tasksDoneWordCount > this.TASKS_DONE_WORD_LIMIT) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Tasks Done too long',
+        text: `Your Tasks Done exceeds the ${this.TASKS_DONE_WORD_LIMIT}-word limit. Please shorten it before saving.`,
+        confirmButtonColor: '#2563eb'
+      });
+      return false;
+    }
+    if (this.reflectionWordCount > this.REFLECTION_WORD_LIMIT) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Reflection too long',
+        text: `Your Reflection exceeds the ${this.REFLECTION_WORD_LIMIT}-word limit. Please shorten it before saving.`,
+        confirmButtonColor: '#2563eb'
+      });
+      return false;
+    }
+    return true;
+  }
+
   getHeadline(text: string): string {
     if (!text) return '';
     const first = text.split('\n')[0].split('.')[0].trim();
@@ -337,7 +428,6 @@ export class InternTasksComponent implements OnInit {
     return words.length > 9 ? trimmed + '…' : trimmed;
   }
 
-  // ── Extract time portion from created_at string ──
   getTimeOnly(createdAt: string): string {
     if (!createdAt) return '';
     const d = new Date(createdAt);
@@ -348,12 +438,9 @@ export class InternTasksComponent implements OnInit {
     return match ? match[1] : createdAt;
   }
 
-  // ── Extract due date parts for badge ──
   getDueDateParts(due: string): { day: string; num: string; month: string } {
     const d = new Date(due);
-    if (isNaN(d.getTime())) {
-      return { day: '', num: due, month: '' };
-    }
+    if (isNaN(d.getTime())) return { day: '', num: due, month: '' };
     return {
       day:   d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
       num:   d.getDate().toString(),
@@ -363,21 +450,26 @@ export class InternTasksComponent implements OnInit {
 
   getDetailPct(tasksDone: string): number { return Math.min(100, Math.round((tasksDone?.length || 0) / 3)); }
 
-  // ── Auto-bullet helpers ──────────────────────────────
+  // ── Auto-bullet + word-limit on tasks_done ────────────
   onTasksInput(event: Event) {
     const el = event.target as HTMLTextAreaElement;
-    this.logbookForm.tasks_done = el.value;
+    const limited = this.enforceWordLimit(el.value, this.TASKS_DONE_WORD_LIMIT);
+    if (el.value !== limited) { el.value = limited; }
+    this.logbookForm.tasks_done = limited;
+    this.tasksDoneWordCount = this.countWords(limited);
   }
 
   onTasksEnter(event: Event) {
     event.preventDefault();
     const el = event.target as HTMLTextAreaElement;
+    if (this.tasksDoneWordCount >= this.TASKS_DONE_WORD_LIMIT) return;
     const val = el.value;
     const pos = el.selectionStart ?? val.length;
     const before = val.slice(0, pos);
     const after = val.slice(pos);
     const newVal = before + '\n• ' + after;
     this.logbookForm.tasks_done = newVal;
+    this.tasksDoneWordCount = this.countWords(newVal);
     setTimeout(() => {
       el.value = newVal;
       const newPos = pos + 3;
@@ -385,7 +477,15 @@ export class InternTasksComponent implements OnInit {
     });
   }
 
-  // ── Parse bullet text into array for view mode ──
+  // ── Word-limit on reflection ──────────────────────────
+  onReflectionInput(event: Event) {
+    const el = event.target as HTMLTextAreaElement;
+    const limited = this.enforceWordLimit(el.value, this.REFLECTION_WORD_LIMIT);
+    if (el.value !== limited) { el.value = limited; }
+    this.logbookForm.reflection = limited;
+    this.reflectionWordCount = this.countWords(limited);
+  }
+
   getBulletItems(text: string): string[] {
     if (!text) return [];
     return text
@@ -412,52 +512,164 @@ export class InternTasksComponent implements OnInit {
   }
 
   openAddLogbook() {
-    this.logbookModalMode = 'add'; this.selectedLogbookEntry = null; this.logbookPhotos = []; this.selectedPhoto = null;
+    this.logbookModalMode = 'add';
+    this.selectedLogbookEntry = null;
+    this.logbookPhotos = [];
+    this.selectedPhoto = null;
     this.logbookForm = { entry_date: new Date().toISOString().split('T')[0], tasks_done: '• ', reflection: '' };
+    this.tasksDoneWordCount = 0;
+    this.reflectionWordCount = 0;
     this.isLogbookModalOpen = true;
   }
 
   async openViewLogbook(entry: LogbookEntry) {
-    this.logbookModalMode = 'view'; this.selectedLogbookEntry = entry;
+    this.logbookModalMode = 'view';
+    this.selectedLogbookEntry = entry;
     this.logbookForm = { entry_date: entry.entry_date, tasks_done: entry.tasks_done, reflection: entry.reflection };
-    this.logbookPhotos = []; this.selectedPhoto = null; this.isLogbookModalOpen = true;
+    this.logbookPhotos = [];
+    this.selectedPhoto = null;
+    this.isLogbookModalOpen = true;
     if (entry.$id) await this.loadLogbookPhotos(entry.$id);
   }
 
   async openEditLogbook(entry: LogbookEntry) {
-    this.logbookModalMode = 'edit'; this.selectedLogbookEntry = entry;
+    if (!this.isEntryEditable(entry)) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Entry locked',
+        text: 'This entry can no longer be edited. Entries can only be modified until 11:59 PM on the day they were created.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+    this.logbookModalMode = 'edit';
+    this.selectedLogbookEntry = entry;
     this.logbookForm = { entry_date: entry.entry_date, tasks_done: entry.tasks_done, reflection: entry.reflection };
-    this.logbookPhotos = []; this.selectedPhoto = null; this.isLogbookModalOpen = true;
+    this.tasksDoneWordCount = this.countWords(entry.tasks_done);
+    this.reflectionWordCount = this.countWords(entry.reflection);
+    this.logbookPhotos = [];
+    this.selectedPhoto = null;
+    this.isLogbookModalOpen = true;
     if (entry.$id) await this.loadLogbookPhotos(entry.$id);
   }
 
-  closeLogbookModal() { this.isLogbookModalOpen = false; this.selectedLogbookEntry = null; this.logbookPhotos = []; this.selectedPhoto = null; }
+  closeLogbookModal() {
+    this.isLogbookModalOpen = false;
+    this.selectedLogbookEntry = null;
+    this.logbookPhotos = [];
+    this.selectedPhoto = null;
+    this.tasksDoneWordCount = 0;
+    this.reflectionWordCount = 0;
+  }
+
+  /** Cancel logbook edit — go back to view mode for the same entry */
+  cancelEdit() {
+    if (this.selectedLogbookEntry) {
+      this.openViewLogbook(this.selectedLogbookEntry);
+    } else {
+      this.closeLogbookModal();
+    }
+  }
 
   async saveLogbookEntry() {
     if (!this.logbookForm.entry_date || !this.logbookForm.tasks_done.trim()) {
       Swal.fire({ icon: 'warning', title: 'Incomplete Entry', text: 'Please fill in the date and tasks done.', confirmButtonColor: '#2563eb' }); return;
     }
+
+    // ✅ Block future dates
+    if (this.isFutureDate(this.logbookForm.entry_date)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Future date not allowed',
+        text: 'You cannot log an entry for a future date. Please select today or a past date.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    // ✅ Block save if over word limit
+    if (!this.validateWordCounts()) return;
+
+    if (this.dateHasEntry(this.logbookForm.entry_date)) {
+      Swal.fire({ icon: 'warning', title: 'Entry already exists', text: 'You already have a logbook entry for this date. Only one entry per day is allowed.', confirmButtonColor: '#2563eb' }); return;
+    }
     this.logbookSaving = true;
     try {
-      const doc = await this.appwrite.databases.createDocument(this.appwrite.DATABASE_ID, 'logbook_entries', ID.unique(),
-        { student_id: this.currentUserId, student_name: this.currentUserName, entry_date: this.logbookForm.entry_date, tasks_done: this.logbookForm.tasks_done.trim(), reflection: this.logbookForm.reflection.trim(), created_at: new Date().toLocaleString() });
+      const doc = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID, 'logbook_entries', ID.unique(),
+        {
+          student_id: this.currentUserId,
+          student_name: this.currentUserName,
+          entry_date: this.logbookForm.entry_date,
+          tasks_done: this.logbookForm.tasks_done.trim(),
+          reflection: this.logbookForm.reflection.trim(),
+          created_at: new Date().toISOString()
+        }
+      );
       this.logbookEntries.unshift(doc as any);
-      if (this.selectedPhoto && doc.$id) await this.uploadLogbookPhoto(doc.$id, this.selectedPhoto);
+
+      if (this.selectedPhoto) {
+        try {
+          await this.uploadLogbookPhotoSilent((doc as any).$id, this.selectedPhoto);
+        } catch (photoErr: any) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Entry saved, photo failed',
+            text: 'Your entry was saved but the photo could not be uploaded. You can add it in Edit mode.',
+            confirmButtonColor: '#2563eb'
+          });
+          this.closeLogbookModal();
+          return;
+        }
+      }
+
       this.closeLogbookModal();
-      Swal.fire({ icon: 'success', title: 'Entry Saved!', text: 'Your daily logbook entry has been recorded.', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to save entry', text: error.message }); }
-    finally { this.logbookSaving = false; }
+      Swal.fire({
+        icon: 'success',
+        title: 'Entry Saved!',
+        text: this.selectedPhoto ? 'Your entry and photo have been saved.' : 'Your daily logbook entry has been recorded.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to save entry', text: error.message });
+    } finally {
+      this.logbookSaving = false;
+    }
   }
 
   async updateLogbookEntry() {
     if (!this.logbookForm.entry_date || !this.logbookForm.tasks_done.trim()) {
       Swal.fire({ icon: 'warning', title: 'Incomplete Entry', text: 'Please fill in the date and tasks done.', confirmButtonColor: '#2563eb' }); return;
     }
+
+    // ✅ Block future dates on update too
+    if (this.isFutureDate(this.logbookForm.entry_date)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Future date not allowed',
+        text: 'You cannot set the entry date to a future date.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    // ✅ Block update if over word limit
+    if (!this.validateWordCounts()) return;
+
     if (!this.selectedLogbookEntry?.$id) return;
+    if (!this.isEntryEditable(this.selectedLogbookEntry)) {
+      Swal.fire({ icon: 'info', title: 'Entry locked', text: 'This entry can no longer be edited after 11:59 PM of the entry date.', confirmButtonColor: '#2563eb' }); return;
+    }
     this.logbookSaving = true;
     try {
-      await this.appwrite.databases.updateDocument(this.appwrite.DATABASE_ID, 'logbook_entries', this.selectedLogbookEntry.$id,
-        { entry_date: this.logbookForm.entry_date, tasks_done: this.logbookForm.tasks_done.trim(), reflection: this.logbookForm.reflection.trim() });
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, 'logbook_entries', this.selectedLogbookEntry.$id,
+        { entry_date: this.logbookForm.entry_date, tasks_done: this.logbookForm.tasks_done.trim(), reflection: this.logbookForm.reflection.trim() }
+      );
       const idx = this.logbookEntries.findIndex(e => e.$id === this.selectedLogbookEntry!.$id);
       if (idx !== -1) {
         this.logbookEntries[idx] = {
@@ -467,14 +679,20 @@ export class InternTasksComponent implements OnInit {
           reflection: this.logbookForm.reflection.trim()
         };
       }
-      if (this.selectedPhoto) await this.uploadLogbookPhoto(this.selectedLogbookEntry.$id, this.selectedPhoto);
+      if (this.selectedPhoto) {
+        await this.uploadLogbookPhotoSilent(this.selectedLogbookEntry.$id, this.selectedPhoto);
+      }
       this.closeLogbookModal();
       Swal.fire({ icon: 'success', title: 'Entry Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true });
-    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to update entry', text: error.message }); }
-    finally { this.logbookSaving = false; }
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to update entry', text: error.message });
+    } finally {
+      this.logbookSaving = false;
+    }
   }
 
   async deleteLogbookEntry(entry: LogbookEntry) {
+    if (!this.isEntryEditable(entry)) { return; }
     const result = await Swal.fire({ title: 'Delete this entry?', text: 'This will permanently delete the entry and ALL its photos.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
     if (!result.isConfirmed) return;
     await this._doDeleteEntry(entry);
@@ -482,6 +700,9 @@ export class InternTasksComponent implements OnInit {
 
   async deleteCurrentLogbookEntry() {
     if (!this.selectedLogbookEntry) return;
+    if (!this.isEntryEditable(this.selectedLogbookEntry)) {
+      Swal.fire({ icon: 'info', title: 'Entry locked', text: 'This entry can no longer be deleted after 11:59 PM of the entry date.', confirmButtonColor: '#2563eb' }); return;
+    }
     const result = await Swal.fire({ title: 'Delete this entry?', text: 'This will permanently delete the entry and ALL its photos.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
     if (!result.isConfirmed) return;
     this.closeLogbookModal();
@@ -505,23 +726,24 @@ export class InternTasksComponent implements OnInit {
 
   onPhotoSelected(event: any) { const file = event.target.files[0]; if (file) this.selectedPhoto = file; }
 
+  private async uploadLogbookPhotoSilent(entryId: string, file: File) {
+    const uploaded = await this.appwrite.storage.createFile(this.BUCKET_ID, ID.unique(), file);
+    const photoDoc = await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID, 'logbook_photos', ID.unique(),
+      { entry_id: entryId, student_id: this.currentUserId, file_id: uploaded.$id, file_name: file.name, uploaded_at: new Date().toLocaleString() }
+    );
+    this.logbookPhotos.push(photoDoc as any);
+    this.selectedPhoto = null;
+    this.entryPhotoCounts[entryId] = (this.entryPhotoCounts[entryId] || 0) + 1;
+  }
+
   async uploadLogbookPhoto(entryId: string, file: File) {
     this.photoUploading = true;
     try {
-      const uploaded = await this.appwrite.storage.createFile(this.BUCKET_ID, ID.unique(), file);
-      const photoDoc = await this.appwrite.databases.createDocument(this.appwrite.DATABASE_ID, 'logbook_photos', ID.unique(),
-        { entry_id: entryId, student_id: this.currentUserId, file_id: uploaded.$id, file_name: file.name, uploaded_at: new Date().toLocaleString() });
-      this.logbookPhotos.push(photoDoc as any);
-      this.selectedPhoto = null;
-      this.entryPhotoCounts[entryId] = (this.entryPhotoCounts[entryId] || 0) + 1;
+      await this.uploadLogbookPhotoSilent(entryId, file);
       Swal.fire({ icon: 'success', title: 'Photo uploaded!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Photo upload failed', text: error.message }); }
     finally { this.photoUploading = false; }
-  }
-
-  async addPhotoToExistingEntry() {
-    if (!this.selectedPhoto || !this.selectedLogbookEntry?.$id) return;
-    await this.uploadLogbookPhoto(this.selectedLogbookEntry.$id, this.selectedPhoto);
   }
 
   async loadLogbookPhotos(entryId: string) {
@@ -548,11 +770,6 @@ export class InternTasksComponent implements OnInit {
 
   // ════════════════════════════════════════════════════════
   //  WEEKLY REPORT PDF
-  //  Page 1:    Accomplishment table
-  //  Page 2+:   Photo Evidence (2-col grid)
-  //  Last page: Signatures + footer
-  //
-  //  Margins: top 15mm, bottom 5mm
   // ════════════════════════════════════════════════════════
   async generateWeeklyReport() {
     if (!this.reportWeekStart || !this.reportWeekEnd) {
@@ -572,7 +789,6 @@ export class InternTasksComponent implements OnInit {
 
       const sortedEntries = [...weekEntries].sort((a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime());
 
-      // Fetch photos
       const allPhotosRes = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_photos');
       const allPhotos    = allPhotosRes.documents as any[];
       const entryIds     = new Set(sortedEntries.map(e => e.$id));
@@ -609,7 +825,6 @@ export class InternTasksComponent implements OnInit {
         allPhotoItems.push(...(photoMap[entry.$id!] || []));
       }
 
-      // ── Table rows ──
       const rows = sortedEntries.map(e => {
         const photoCount = (photoMap[e.$id!] || []).length;
         return `
@@ -625,9 +840,6 @@ export class InternTasksComponent implements OnInit {
         `;
       }).join('');
 
-      // ══════════════════════════════════════════
-      //  PAGE 1 — Accomplishment Table
-      // ══════════════════════════════════════════
       const page1 = document.createElement('div');
       page1.id = '__pdf-page1';
       page1.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
@@ -638,7 +850,6 @@ export class InternTasksComponent implements OnInit {
           <div style="font-size:10px; color:#64748b; margin-top:3px;">On-the-Job Training Program &nbsp;·&nbsp; Digital Logbook Summary</div>
         </div>
         <div style="height:4px; background:linear-gradient(90deg,#2563eb 0%,#1d4ed8 50%,#60a5fa 100%); margin-bottom:14px; border-radius:0 0 4px 4px;"></div>
-
         <div style="display:flex; margin-bottom:14px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
           <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0; background:#2563eb;">
             <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#bfdbfe; margin-bottom:2px;">Intern Name</div>
@@ -657,9 +868,7 @@ export class InternTasksComponent implements OnInit {
             <div style="font-size:11px; font-weight:600; color:#1e293b;">${generatedDate}</div>
           </div>
         </div>
-
         <div style="font-size:11px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Daily Accomplishments</div>
-
         <table style="width:100%; border-collapse:collapse; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
           <thead>
             <tr style="background:#2563eb;">
@@ -692,36 +901,28 @@ export class InternTasksComponent implements OnInit {
         width: 794, height: page1.scrollHeight, windowWidth: 794
       });
 
-      // A4 dimensions
       const A4_W = 210; const A4_H = 297;
-      // Margins — top 15mm, bottom 5mm
       const MARGIN_TOP = 15; const MARGIN_BOT = 5;
-      const CONTENT_H  = A4_H - MARGIN_TOP - MARGIN_BOT; // 277mm usable
+      const CONTENT_H  = A4_H - MARGIN_TOP - MARGIN_BOT;
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
 
-      // ── Helper: slice canvas with top+bottom margins ──
       const addCanvasWithMargins = (canvas: HTMLCanvasElement, isFirstPage: boolean) => {
         const pxPerMm = canvas.width / A4_W;
         const slicePx = Math.round(CONTENT_H * pxPerMm);
         const mTopPx  = Math.round(MARGIN_TOP * pxPerMm);
-
         let srcY = 0; let first = isFirstPage;
-
         while (srcY < canvas.height) {
           if (!first) pdf.addPage();
           first = false;
-
           const pageCanvas = document.createElement('canvas');
           pageCanvas.width  = canvas.width;
           pageCanvas.height = Math.round(A4_H * pxPerMm);
           const ctx = pageCanvas.getContext('2d')!;
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
           const srcH = Math.min(slicePx, canvas.height - srcY);
           ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, mTopPx, canvas.width, srcH);
-
           pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, A4_W, A4_H);
           srcY += srcH;
         }
@@ -729,9 +930,6 @@ export class InternTasksComponent implements OnInit {
 
       addCanvasWithMargins(canvas1, true);
 
-      // ══════════════════════════════════════════════════════
-      //  PHOTO EVIDENCE PAGES
-      // ══════════════════════════════════════════════════════
       if (allPhotoItems.length > 0) {
         const photoRowsHtml = (() => {
           let html = '';
@@ -739,24 +937,9 @@ export class InternTasksComponent implements OnInit {
             const a = allPhotoItems[i];
             const b = allPhotoItems[i + 1];
             html += `<div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;">`;
-            html += `
-              <div style="flex:1;min-width:0;">
-                <img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;">
-                <div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${a.entryDate}</div>
-                <div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>
-                ${a.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>` : ''}
-              </div>`;
-            if (b) {
-              html += `
-                <div style="flex:1;min-width:0;">
-                  <img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;">
-                  <div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${b.entryDate}</div>
-                  <div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>
-                  ${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}
-                </div>`;
-            } else {
-              html += `<div style="flex:1;"></div>`;
-            }
+            html += `<div style="flex:1;min-width:0;"><img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${a.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>${a.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>` : ''}</div>`;
+            if (b) { html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}</div>`; }
+            else { html += `<div style="flex:1;"></div>`; }
             html += `</div>`;
           }
           return html;
@@ -765,28 +948,14 @@ export class InternTasksComponent implements OnInit {
         const page2 = document.createElement('div');
         page2.id = '__pdf-page2';
         page2.style.cssText = 'position:fixed;left:-9999px;top:0;width:714px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
-        page2.innerHTML = `
-          <div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:14px;">
-            <div style="font-size:13px; font-weight:700; color:#1e293b;">Photo Evidence</div>
-            <div style="font-size:10px; color:#64748b; margin-top:2px;">Visual documentation of daily OJT activities</div>
-          </div>
-          ${photoRowsHtml}
-        `;
+        page2.innerHTML = `<div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:14px;"><div style="font-size:13px; font-weight:700; color:#1e293b;">Photo Evidence</div><div style="font-size:10px; color:#64748b; margin-top:2px;">Visual documentation of daily OJT activities</div></div>${photoRowsHtml}`;
         document.body.appendChild(page2);
 
-        const canvas2 = await html2canvas(page2, {
-          scale: 2, useCORS: true, allowTaint: true,
-          backgroundColor: '#ffffff', logging: false,
-          width: 714, height: page2.scrollHeight, windowWidth: 714
-        });
-
+        const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 714, height: page2.scrollHeight, windowWidth: 714 });
         addCanvasWithMargins(canvas2, false);
         document.body.removeChild(page2);
       }
 
-      // ══════════════════════════════════════════════════════
-      //  LAST PAGE: Signatures — footer ONLY here
-      // ══════════════════════════════════════════════════════
       const pageSig = document.createElement('div');
       pageSig.id = '__pdf-pagesig';
       pageSig.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 60px 20px 60px;box-sizing:border-box;';
@@ -795,33 +964,17 @@ export class InternTasksComponent implements OnInit {
           <div style="font-size:13px; font-weight:700; color:#1e293b;">Certification &amp; Approval</div>
           <div style="font-size:10px; color:#64748b; margin-top:2px;">Authorized signatories for this accomplishment report</div>
         </div>
-
         <div style="display:flex; justify-content:space-between; gap:80px; margin-bottom:60px;">
-          <div style="flex:1; text-align:center;">
-            <div style="height:48px; border-bottom:1.5px solid #1e293b; margin-bottom:8px;"></div>
-            <div style="font-size:11px; font-weight:700; color:#1e293b;">OJT Supervisor</div>
-            <div style="font-size:9px; color:#64748b; margin-top:3px;">Immediate Supervisor</div>
-          </div>
-          <div style="flex:1; text-align:center;">
-            <div style="height:48px; border-bottom:1.5px solid #1e293b; margin-bottom:8px;"></div>
-            <div style="font-size:11px; font-weight:700; color:#1e293b;">OCES Admin</div>
-            <div style="font-size:9px; color:#64748b; margin-top:3px;">School OJT Coordinator</div>
-          </div>
+          <div style="flex:1; text-align:center;"><div style="height:48px; border-bottom:1.5px solid #1e293b; margin-bottom:8px;"></div><div style="font-size:11px; font-weight:700; color:#1e293b;">OJT Supervisor</div><div style="font-size:9px; color:#64748b; margin-top:3px;">Immediate Supervisor</div></div>
+          <div style="flex:1; text-align:center;"><div style="height:48px; border-bottom:1.5px solid #1e293b; margin-bottom:8px;"></div><div style="font-size:11px; font-weight:700; color:#1e293b;">OCES Admin</div><div style="font-size:9px; color:#64748b; margin-top:3px;">School OJT Coordinator</div></div>
         </div>
-
         <div style="margin-top:32px; padding-top:10px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
           <div style="font-size:9px; color:#94a3b8;">Generated on ${generatedDate} &nbsp;·&nbsp; Confidential – For Official Use Only</div>
           <div style="font-size:9px; color:#2563eb; font-weight:600;">OJTify · Olongapo City Elementary School</div>
-        </div>
-      `;
+        </div>`;
       document.body.appendChild(pageSig);
 
-      const canvasSig = await html2canvas(pageSig, {
-        scale: 2, useCORS: true, allowTaint: true,
-        backgroundColor: '#ffffff', logging: false,
-        width: 794, height: pageSig.scrollHeight, windowWidth: 794
-      });
-
+      const canvasSig = await html2canvas(pageSig, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 794, height: pageSig.scrollHeight, windowWidth: 794 });
       addCanvasWithMargins(canvasSig, false);
       document.body.removeChild(pageSig);
       document.body.removeChild(page1);
