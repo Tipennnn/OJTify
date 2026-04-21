@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,7 +13,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './admin-topnav.component.html',
   styleUrls: ['./admin-topnav.component.css']
 })
-export class AdminTopnavComponent {
+export class AdminTopnavComponent implements OnInit, OnDestroy {
 
   menuOpen          = false;
   showPasswordModal = false;
@@ -31,10 +31,47 @@ export class AdminTopnavComponent {
   pwSuccess     = '';
   pwFieldErrors = { current: '', newPw: '', confirm: '' };
 
+  // DateTime
+  currentDayDate = '';
+  currentTime    = '';
+  private clockInterval: any;
+
   constructor(
     private router: Router,
     private appwrite: AppwriteService
   ) {}
+
+  ngOnInit() {
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+  }
+
+  ngOnDestroy() {
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+    }
+  }
+
+  private updateClock(): void {
+    const now = new Date();
+
+    const shortDays   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const day   = shortDays[now.getDay()];
+    const month = shortMonths[now.getMonth()];
+    const date  = now.getDate();
+    const year  = now.getFullYear();
+
+    this.currentDayDate = `${day}, ${month} ${date}, ${year}`;
+
+    let hours  = now.getHours();
+    const mins = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours      = hours % 12 || 12;
+    this.currentTime = `${hours}:${mins} ${ampm}`;
+  }
 
   toggleMenu() { this.menuOpen = !this.menuOpen; }
 

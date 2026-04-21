@@ -43,23 +43,41 @@
 
           <div class="task-card" *ngFor="let task of tasks" (click)="openModal(task)">
             <div class="task-card-inner">
+              <!-- Date Badge -->
               <div class="task-date-badge">
                 <span class="lb-day">{{ getDueDateParts(task.due).day }}</span>
                 <span class="lb-num">{{ getDueDateParts(task.due).num }}</span>
                 <span class="lb-month">{{ getDueDateParts(task.due).month }}</span>
               </div>
+
+              <!-- Body -->
               <div class="task-card-body">
                 <span class="task-card-title">{{ task.title }}</span>
                 <div class="task-card-meta">
                   <i class="fas fa-calendar-plus"></i>
-                  Posted: {{ task.posted }}
+                  Posted: {{ formatLongDate(task.posted) }}
+                </div>
+                <!--<div class="task-card-meta" style="margin-top:2px;">
+                  <i class="fas fa-calendar-check"></i>
+                  Due: {{ formatLongDate(task.due) }}
+                </div>-->
+              </div>
+
+              <!-- Score Badge -->
+              <div class="task-score-wrap">
+                <div class="score-badge" [ngClass]="getScoreDisplay(task.score).cls">
+                  <i [class]="getScoreDisplay(task.score).icon"></i>
+                  <span>{{ getScoreDisplay(task.score).label }}</span>
                 </div>
               </div>
+
+              <!-- Status Pill -->
               <span class="status" [ngClass]="task.status">
                 <i class="fas fa-check-circle" *ngIf="task.status === 'completed'" style="margin-right:4px;"></i>
                 <i class="fas fa-clock" *ngIf="task.status === 'pending'" style="margin-right:4px;"></i>
                 {{ task.status | titlecase }}
               </span>
+
               <i class="fas fa-chevron-right task-card-chevron"></i>
             </div>
           </div>
@@ -190,6 +208,14 @@
                   </div>
                 </div>
 
+                <!-- Score badge on logbook card -->
+                <div class="lb-score-wrap">
+                  <div class="score-badge" [ngClass]="getScoreDisplay(entry.score).cls">
+                    <i [class]="getScoreDisplay(entry.score).icon"></i>
+                    <span>{{ getScoreDisplay(entry.score).label }}</span>
+                  </div>
+                </div>
+
                 <div class="lb-card-actions" (click)="$event.stopPropagation()" *ngIf="isEntryEditable(entry)">
                   <button class="lb-edit-btn" (click)="openEditLogbook(entry)" title="Edit Entry">
                     <i class="fas fa-pen"></i>
@@ -265,6 +291,21 @@
             </div>
           </div>
         </div>
+
+        <!-- Score display in task modal left panel -->
+        <div class="modal-score-section" *ngIf="selectedTask">
+          <div class="modal-score-label"><i class="fas fa-star-half-stroke"></i> Task Score</div>
+          <div class="modal-score-display" [ngClass]="getScoreDisplay(selectedTask.score).cls + '-bg'">
+            <div class="modal-score-number" *ngIf="selectedTask.score !== null && selectedTask.score !== undefined">
+              {{ selectedTask.score }}<span>/100</span>
+            </div>
+            <div class="modal-score-pending" *ngIf="selectedTask.score === null || selectedTask.score === undefined">
+              <i class="fas fa-hourglass-half"></i>
+              <span>Not yet scored</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -277,12 +318,12 @@
           <div class="author-info">
             <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
             <span class="author-role">Supervisor</span>
-            <span class="posted-date">{{ selectedTask?.posted }}</span>
+            <span class="posted-date">Posted: {{ formatLongDate(selectedTask?.posted || '') }}</span>
           </div>
         </div>
         <div class="due-right">
           <i class="fa-solid fa-clock"></i>
-          <span>Due: {{ selectedTask?.due }}</span>
+          <span>Due: {{ formatLongDate(selectedTask?.due || '') }}</span>
         </div>
       </div>
       <div class="description-card"><p>{{ selectedTask?.description }}</p></div>
@@ -437,6 +478,24 @@
         </div>
       </div>
 
+      <!-- Score section in logbook modal (view mode) -->
+      <ng-container *ngIf="logbookModalMode === 'view' && selectedLogbookEntry">
+        <div class="lb-photos-section-label" style="margin-top:12px;">
+          <span class="lb-photos-count">Score</span>
+        </div>
+        <div class="modal-score-section">
+          <div class="modal-score-display" [ngClass]="getScoreDisplay(selectedLogbookEntry.score).cls + '-bg'">
+            <div class="modal-score-number" *ngIf="selectedLogbookEntry.score !== null && selectedLogbookEntry.score !== undefined">
+              {{ selectedLogbookEntry.score }}<span>/100</span>
+            </div>
+            <div class="modal-score-pending" *ngIf="selectedLogbookEntry.score === null || selectedLogbookEntry.score === undefined">
+              <i class="fas fa-hourglass-half"></i>
+              <span>Not yet scored</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
     </div>
 
     <!-- RIGHT PANEL -->
@@ -542,7 +601,6 @@
 
           <div class="lb-form-group">
             <label><i class="fas fa-calendar-alt" style="color:#2563eb; margin-right:6px;"></i>Date</label>
-            <!-- ✅ max="getTodayString()" blocks future dates in the native date picker -->
             <input type="date" class="lb-input"
                    [(ngModel)]="logbookForm.entry_date"
                    [max]="getTodayString()">
@@ -555,7 +613,7 @@
                 Tasks Done / Accomplishments
                 <span class="lb-hint">Press Enter for new bullet</span>
               </label>
-              <span class="lb-word-counter" [class.lb-word-counter--warn]="tasksDoneWordCount >= TASKS_DONE_WORD_LIMIT">
+              <span class="lb-word-counter" [class.lb-word-counter--warn]="tasksDoneWordCount > TASKS_DONE_WORD_LIMIT">
                 {{ tasksDoneWordCount }} / {{ TASKS_DONE_WORD_LIMIT }} words
               </span>
             </div>
@@ -564,6 +622,11 @@
                       (input)="onTasksInput($event)"
                       (keydown.enter)="onTasksEnter($event)"
                       placeholder="• What did you accomplish today?"></textarea>
+            <!-- Over-limit warning -->
+            <div *ngIf="tasksDoneWordCount > TASKS_DONE_WORD_LIMIT" class="lb-overlimit-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              Over the {{ TASKS_DONE_WORD_LIMIT }}-word limit by {{ tasksDoneWordCount - TASKS_DONE_WORD_LIMIT }} word(s). Please shorten before saving.
+            </div>
           </div>
 
           <div class="lb-form-group">
@@ -573,7 +636,7 @@
                 Reflections
                 <span class="lb-hint">(optional)</span>
               </label>
-              <span class="lb-word-counter" [class.lb-word-counter--warn]="reflectionWordCount >= REFLECTION_WORD_LIMIT">
+              <span class="lb-word-counter" [class.lb-word-counter--warn]="reflectionWordCount > REFLECTION_WORD_LIMIT">
                 {{ reflectionWordCount }} / {{ REFLECTION_WORD_LIMIT }} words
               </span>
             </div>
@@ -581,6 +644,11 @@
                       [value]="logbookForm.reflection"
                       (input)="onReflectionInput($event)"
                       placeholder="What did you learn? Any challenges faced?"></textarea>
+            <!-- Over-limit warning -->
+            <div *ngIf="reflectionWordCount > REFLECTION_WORD_LIMIT" class="lb-overlimit-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              Over the {{ REFLECTION_WORD_LIMIT }}-word limit by {{ reflectionWordCount - REFLECTION_WORD_LIMIT }} word(s). Please shorten before saving.
+            </div>
           </div>
 
         </div>
@@ -592,7 +660,7 @@
             </button>
             <button class="submit-btn lb-save-btn" style="flex:1;"
                     (click)="updateLogbookEntry()"
-                    [disabled]="logbookSaving">
+                    [disabled]="logbookSaving || tasksDoneWordCount > TASKS_DONE_WORD_LIMIT || reflectionWordCount > REFLECTION_WORD_LIMIT">
               <i class="fa fa-spinner fa-spin" *ngIf="logbookSaving"></i>
               <i class="fas fa-floppy-disk" *ngIf="!logbookSaving"></i>
               {{ logbookSaving ? 'Updating...' : 'Update Entry' }}
@@ -602,7 +670,7 @@
           <button *ngIf="logbookModalMode === 'add'"
                   class="submit-btn lb-save-btn"
                   (click)="saveLogbookEntry()"
-                  [disabled]="logbookSaving">
+                  [disabled]="logbookSaving || tasksDoneWordCount > TASKS_DONE_WORD_LIMIT || reflectionWordCount > REFLECTION_WORD_LIMIT">
             <i class="fa fa-spinner fa-spin" *ngIf="logbookSaving"></i>
             <i class="fas fa-save" *ngIf="!logbookSaving"></i>
             {{ logbookSaving ? 'Saving...' : 'Save Entry' }}

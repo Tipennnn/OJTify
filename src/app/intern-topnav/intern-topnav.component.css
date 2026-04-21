@@ -21,6 +21,7 @@
 .topnav-right {
   display: flex;
   align-items: center;
+  gap: 14px;
   position: relative;
 }
 .profile { cursor: pointer; }
@@ -32,6 +33,53 @@
   transition: 0.2s;
 }
 .profile img:hover { transform: scale(1.05); }
+
+/* =============================
+   DATETIME DISPLAY
+============================= */
+.datetime-display {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.datetime-icon {
+  font-size: 14px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.datetime-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.datetime-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
+.datetime-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Divider between datetime and profile */
+.topnav-divider {
+  width: 1px;
+  height: 20px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
 
 /* =============================
    DROPDOWN
@@ -97,8 +145,8 @@
 }
 .modal-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 8px;
 }
 .password-modal h2 {
@@ -152,40 +200,11 @@
   transition: .2s;
   font-size: 16px;
 }
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 22px;
-}
-.save-btn {
-  background: #2563eb;
-  color: white;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: .25s;
-}
-.save-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(37,99,235,0.25);
-}
 .modal-divider {
   width: 100%;
   height: 1px;
   background: #e5e7eb;
   margin: 16px 0 18px;
-}
-
-/* UPDATED MODAL HEADER */
-.modal-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 8px;
 }
 
 .modal-header-icon {
@@ -218,7 +237,6 @@
   margin: 0;
 }
 
-/* FIELD ICON */
 .field-icon {
   color: #9ca3af;
   font-size: 13px;
@@ -226,7 +244,6 @@
   flex-shrink: 0;
 }
 
-/* ERROR / SUCCESS BANNERS */
 .pw-error {
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -256,7 +273,6 @@
   margin-bottom: 14px;
 }
 
-/* FIELD-LEVEL ERROR */
 .field-error-msg {
   display: flex;
   align-items: center;
@@ -273,7 +289,6 @@
   box-shadow: 0 0 0 2px rgba(220,38,38,0.1) !important;
 }
 
-/* CANCEL BUTTON */
 .cancel-btn {
   background: transparent;
   color: #6b7280;
@@ -290,7 +305,23 @@
   color: #374151;
 }
 
-/* UPDATE MODAL ACTIONS TO SPACE BUTTONS */
+.save-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: .25s;
+}
+.save-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37,99,235,0.25);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -303,7 +334,6 @@
   30%       { transform: translateX(-4px); }
   70%       { transform: translateX(4px); }
 }
-
 
 /* =============================
    CERTIFICATE MODAL WRAPPER
@@ -423,31 +453,11 @@
   flex-shrink: 0;
 }
 
-/* Top accent bars */
-.cert-top-bar {
-  height: 10px;
-  background: #1e3a8a;
-  flex-shrink: 0;
-}
-.cert-top-bar-gold {
-  height: 4px;
-  background: #c9a84c;
-  flex-shrink: 0;
-}
+.cert-top-bar { height: 10px; background: #1e3a8a; flex-shrink: 0; }
+.cert-top-bar-gold { height: 4px; background: #c9a84c; flex-shrink: 0; }
+.cert-bottom-bar-gold { height: 4px; background: #c9a84c; flex-shrink: 0; }
+.cert-bottom-bar { height: 10px; background: #1e3a8a; flex-shrink: 0; }
 
-/* Bottom accent bars */
-.cert-bottom-bar-gold {
-  height: 4px;
-  background: #c9a84c;
-  flex-shrink: 0;
-}
-.cert-bottom-bar {
-  height: 10px;
-  background: #1e3a8a;
-  flex-shrink: 0;
-}
-
-/* Side borders via body wrapper */
 .cert-body {
   flex: 1;
   position: relative;
@@ -458,9 +468,6 @@
   overflow: hidden;
 }
 
-/* =============================
-   OCES WATERMARK BACKGROUND
-============================= */
 .cert-watermark {
   position: absolute;
   inset: 0;
@@ -477,7 +484,6 @@
   opacity: 0.05;
 }
 
-/* Double inner border */
 .cert-inner-border {
   position: absolute;
   inset: 14px;
@@ -492,7 +498,6 @@
   border: 0.75px solid #c9a84c;
 }
 
-/* Corner ornaments */
 .cert-corner-ornament {
   position: absolute;
   width: 28px;
@@ -504,7 +509,6 @@
 .cert-corner-ornament.bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
 .cert-corner-ornament.br { bottom: 20px; right: 20px; transform: scale(-1); }
 
-/* Content — centered vertically */
 .cert-content {
   position: relative;
   z-index: 2;
@@ -517,9 +521,6 @@
   text-align: center;
 }
 
-/* =============================
-   HEADER — Left logo, center text, right logo
-============================= */
 .cert-header {
   display: flex;
   align-items: center;
@@ -536,169 +537,71 @@
   align-items: center;
   justify-content: center;
 }
-.cert-header-logo img {
-  width: 62px;
-  height: 62px;
-  object-fit: contain;
-}
-
-/* Logos sit close to the center text */
+.cert-header-logo img { width: 62px; height: 62px; object-fit: contain; }
 .cert-header-logo--left  { margin-right: 0; padding-left: 0; }
 .cert-header-logo--right { margin-left: 0;  padding-right: 0; }
 
-.cert-header-text {
-  text-align: center;
-  flex: 0 0 auto;
-}
+.cert-header-text { text-align: center; flex: 0 0 auto; }
 
 .cert-republic {
-  font-size: 10px;
-  color: #374151;
-  margin: 0 0 1px;
-  letter-spacing: 0.4px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px; color: #374151; margin: 0 0 1px;
+  letter-spacing: 0.4px; font-family: Arial, Helvetica, sans-serif;
 }
 .cert-dept {
-  font-size: 11px;
-  font-weight: 700;
-  color: #1e3a8a;
-  margin: 1px 0;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px; font-weight: 700; color: #1e3a8a; margin: 1px 0;
+  letter-spacing: 0.8px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif;
 }
 .cert-division {
-  font-size: 10px;
-  font-weight: 600;
-  color: #374151;
-  margin: 1px 0;
-  letter-spacing: 0.3px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px; font-weight: 600; color: #374151; margin: 1px 0;
+  letter-spacing: 0.3px; font-family: Arial, Helvetica, sans-serif;
 }
 .cert-school-name {
-  font-size: 14px;
-  font-weight: 800;
-  color: #1e3a8a;
-  margin: 2px 0 1px;
-  letter-spacing: 0.3px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px; font-weight: 800; color: #1e3a8a; margin: 2px 0 1px;
+  letter-spacing: 0.3px; font-family: Arial, Helvetica, sans-serif;
 }
 .cert-address {
-  font-size: 9.5px;
-  color: #6b7280;
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.5px; color: #6b7280; margin: 0; font-family: Arial, Helvetica, sans-serif;
 }
 
-
-
-/* Title */
 .cert-main-title {
-  font-size: 22px;
-  font-weight: 900;
-  color: #1e3a8a;
-  letter-spacing: 4px;
-  margin: 4px 0 2px;
-  text-transform: uppercase;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 22px; font-weight: 900; color: #1e3a8a; letter-spacing: 4px;
+  margin: 4px 0 2px; text-transform: uppercase; font-family: Arial, Helvetica, sans-serif;
 }
 .cert-subtitle-tag {
-  font-size: 10px;
-  color: #6b7280;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  margin: 0 0 8px;
-  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px; color: #6b7280; letter-spacing: 2.5px; text-transform: uppercase;
+  margin: 0 0 8px; font-family: Arial, Helvetica, sans-serif;
 }
+.cert-awarded-text { font-size: 13px; font-style: italic; color: #4b5563; margin: 18px 0 2px; }
 
-/* Awarded text */
-.cert-awarded-text {
-  font-size: 13px;
-  font-style: italic;
-  color: #4b5563;
-  margin: 18px 0 2px;
-}
-
-/* Cursive name */
 .cert-name-wrap { margin-bottom: 4px; }
 .cert-cursive-name {
-  font-family: 'Great Vibes', cursive;
-  font-size: 52px;
-  color: #1e3a8a;
-  margin: 0 0 2px;
-  line-height: 1.15;
-  font-weight: 400;
+  font-family: 'Great Vibes', cursive; font-size: 52px; color: #1e3a8a;
+  margin: 0 0 2px; line-height: 1.15; font-weight: 400;
 }
-.cert-name-line {
-  width: 380px;
-  height: 1px;
-  background: #1e3a8a;
-  margin: 0 auto 4px;
-}
+.cert-name-line { width: 380px; height: 1px; background: #1e3a8a; margin: 0 auto 4px; }
 
-/* Body paragraphs */
 .cert-body-para {
-  font-size: 11.5px;
-  color: #374151;
-  line-height: 1.8;
-  max-width: 620px;
-  margin: 2px 0;
+  font-size: 11.5px; color: #374151; line-height: 1.8; max-width: 620px; margin: 2px 0;
 }
 .cert-body-para strong { color: #1e3a8a; font-weight: 700; }
 
-.cert-given-text {
-  font-size: 11px;
-  font-style: italic;
-  color: #6b7280;
-  margin: 16px 0 0;
-}
+.cert-given-text { font-size: 11px; font-style: italic; color: #6b7280; margin: 16px 0 0; }
 
-/* =============================
-   SIGNATURE ROW
-============================= */
 .cert-sig-row {
-  display: flex;
-  justify-content: space-evenly;
-  align-items: flex-end;
-  width: 100%;
-  margin-top: 32px;
+  display: flex; justify-content: space-evenly;
+  align-items: flex-end; width: 100%; margin-top: 32px;
 }
-
 .cert-sig-block {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 200px;
+  display: flex; flex-direction: column; align-items: center; min-width: 200px;
 }
 .cert-sig-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e3a8a;
-  margin: 0 0 3px;
-  font-family: Arial, Helvetica, sans-serif;
-  letter-spacing: 0.5px;
+  font-size: 12px; font-weight: 700; color: #1e3a8a; margin: 0 0 3px;
+  font-family: Arial, Helvetica, sans-serif; letter-spacing: 0.5px;
 }
-.cert-sig-underline {
-  width: 180px;
-  height: 1px;
-  background: #374151;
-  margin-bottom: 3px;
-}
-.cert-sig-pos {
-  font-size: 11px;
-  font-style: italic;
-  color: #4b5563;
-  margin: 0;
-}
-.cert-sig-school {
-  font-size: 9.5px;
-  color: #6b7280;
-  margin: 1px 0 0;
-}
+.cert-sig-underline { width: 180px; height: 1px; background: #374151; margin-bottom: 3px; }
+.cert-sig-pos { font-size: 11px; font-style: italic; color: #4b5563; margin: 0; }
+.cert-sig-school { font-size: 9.5px; color: #6b7280; margin: 1px 0 0; }
 
-/* =============================
-   ANIMATION
-============================= */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(.96); }
   to   { opacity: 1; transform: scale(1); }

@@ -19,8 +19,50 @@
 .topnav-right {
   display: flex;
   align-items: center;
+  gap: 14px;
   position: relative;
 }
+
+/* DATETIME DISPLAY */
+.datetime-display {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.datetime-icon {
+  font-size: 14px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+.datetime-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.datetime-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+.datetime-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.topnav-divider {
+  width: 1px;
+  height: 20px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* PROFILE */
 .profile { cursor: pointer; }
 .profile img {
   width: 36px;

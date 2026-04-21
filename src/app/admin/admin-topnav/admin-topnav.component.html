@@ -3,6 +3,17 @@
     <span class="greeting">{{ greeting }}</span>
   </div>
   <div class="topnav-right">
+
+    <!-- DateTime Display -->
+    <div class="datetime-display">
+      <i class="fa-regular fa-calendar datetime-icon"></i>
+      <span class="datetime-date">{{ currentDayDate }}</span>
+      <div class="datetime-dot"></div>
+      <span class="datetime-time">{{ currentTime }}</span>
+    </div>
+
+    <div class="topnav-divider"></div>
+
     <div class="profile" (click)="toggleMenu()">
       <img src="https://i.pravatar.cc/150?img=12" alt="Admin Profile">
     </div>

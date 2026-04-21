@@ -11,6 +11,7 @@ import { environment } from '../../../environments/environment.example';
 
 interface Applicant {
   $id: string;
+  $createdAt: string;
   auth_user_id: string;
   first_name: string;
   middle_name: string;
@@ -45,7 +46,7 @@ interface Applicant {
 })
 export class AdminApplicantsComponent implements OnInit {
 
-  // 🔥 SIDENAV STATE
+  // SIDENAV STATE
   isCollapsed = false;
 
   // DATA
@@ -57,13 +58,59 @@ export class AdminApplicantsComponent implements OnInit {
   searchQuery       = '';
   statusFilter      = 'all';
 
+  // PAGINATION
+  currentPage  = 1;
+  itemsPerPage = 10;
+  readonly Math = Math;
+
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
+  // Course abbreviation map — add more entries as needed
+  private readonly COURSE_MAP: { [key: string]: string } = {
+    'bachelor of science in information technology':    'BSIT',
+    'bachelor of science in computer science':          'BSCS',
+    'bachelor of science in computer engineering':      'BSCpE',
+    'bachelor of science in information systems':       'BSIS',
+    'bachelor of science in electronics engineering':   'BSECE',
+    'bachelor of science in electrical engineering':    'BSEE',
+    'bachelor of science in civil engineering':         'BSCE',
+    'bachelor of science in mechanical engineering':    'BSME',
+    'bachelor of science in industrial engineering':    'BSIE',
+    'bachelor of science in accountancy':               'BSA',
+    'bachelor of science in business administration':   'BSBA',
+    'bachelor of science in nursing':                   'BSN',
+    'bachelor of science in psychology':                'BSPsych',
+    'bachelor of science in architecture':              'BSArch',
+    'bachelor of science in education':                 'BSEd',
+    'bachelor of science in mathematics':               'BSMath',
+    'bachelor of science in biology':                   'BSBio',
+    'bachelor of science in chemistry':                 'BSChem',
+    'bachelor of science in pharmacy':                  'BSPharm',
+    'bachelor of science in criminology':               'BSCrim',
+    'bachelor of science in tourism management':        'BSTM',
+    'bachelor of science in hospitality management':    'BSHM',
+    'bachelor of science in social work':               'BSSW',
+    'bachelor of science in agriculture':               'BSAgri',
+    'bachelor of science in environmental science':     'BSES',
+    'bachelor of arts in communication':                'BAComm',
+    'bachelor of arts in english':                      'BAEng',
+    'bachelor of arts in political science':            'BAPol',
+    'bachelor of arts in sociology':                    'BASoc',
+    'bachelor of arts in philosophy':                   'BAPhil',
+    'bachelor of arts in history':                      'BAHist',
+    'bachelor of secondary education':                  'BSEd',
+    'bachelor of elementary education':                 'BEEd',
+    'bachelor of physical education':                   'BPEd',
+    'bachelor of technology':                           'BTech',
+    'bachelor of fine arts':                            'BFA',
+    'bachelor of music':                                'BMus',
+    'diploma in information technology':                'DIT',
+  };
+
   constructor(private appwrite: AppwriteService) {}
 
-  // 🔥 RECEIVE SIDENAV TOGGLE
   onToggleSidebar(state: boolean) {
     this.isCollapsed = state;
   }
@@ -79,7 +126,12 @@ export class AdminApplicantsComponent implements OnInit {
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL
       );
-      this.applicants         = res.documents as any[];
+
+      // Sort newest first
+      this.applicants = (res.documents as any[]).sort((a, b) =>
+        new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
+      );
+
       this.filteredApplicants = [...this.applicants];
     } catch (error: any) {
       console.error('Failed to load applicants:', error.message);
@@ -88,13 +140,45 @@ export class AdminApplicantsComponent implements OnInit {
     }
   }
 
+  // ── Course abbreviation ───────────────────────────────────
+  abbreviateCourse(course: string): string {
+    if (!course) return '—';
+    const key = course.trim().toLowerCase();
+    return this.COURSE_MAP[key] ?? course;
+  }
+
+  // ── Pagination ────────────────────────────────────────────
+  get totalPages(): number {
+    return Math.ceil(this.filteredApplicants.length / this.itemsPerPage) || 1;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  get pagedApplicants(): Applicant[] {
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    return this.filteredApplicants.slice(start, start + this.itemsPerPage);
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  prevPage() { this.goToPage(this.currentPage - 1); }
+  nextPage() { this.goToPage(this.currentPage + 1); }
+
+  // ── Filter / Search ───────────────────────────────────────
   filterStatus(event: any) {
     this.statusFilter = event.target.value;
+    this.currentPage  = 1;
     this.applyFilter();
   }
 
   onSearch(event: any) {
     this.searchQuery = event.target.value.toLowerCase();
+    this.currentPage = 1;
     this.applyFilter();
   }
 
@@ -107,6 +191,16 @@ export class AdminApplicantsComponent implements OnInit {
         a.email.toLowerCase().includes(this.searchQuery) ||
         a.course.toLowerCase().includes(this.searchQuery);
       return matchStatus && matchSearch;
+    });
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '—';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     });
   }
 
@@ -128,15 +222,9 @@ export class AdminApplicantsComponent implements OnInit {
           'api-key': environment.brevoApiKey
         },
         body: JSON.stringify({
-          sender: {
-            name:  'OJTify Admin',
-            email: 'adminojtify@gmail.com'
-          },
-          to: [{
-            email: applicant.email,
-            name:  `${applicant.first_name} ${applicant.last_name}`
-          }],
-          templateId: templateId,
+          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+          to: [{ email: applicant.email, name: `${applicant.first_name} ${applicant.last_name}` }],
+          templateId,
           params: {
             applicant_name: `${applicant.first_name} ${applicant.last_name}`,
             first_name:     applicant.first_name
@@ -150,7 +238,6 @@ export class AdminApplicantsComponent implements OnInit {
       } else {
         console.log(`Email sent to ${applicant.email}`);
       }
-
     } catch (error) {
       console.error('Failed to send email:', error);
     }
@@ -212,9 +299,8 @@ export class AdminApplicantsComponent implements OnInit {
       if (index !== -1) this.applicants[index].status = 'approved';
       this.applyFilter();
 
-      if (this.selectedApplicant?.$id === applicant.$id) {
+      if (this.selectedApplicant?.$id === applicant.$id)
         this.selectedApplicant.status = 'approved';
-      }
 
       Swal.fire({
         icon: 'success',
@@ -270,9 +356,8 @@ export class AdminApplicantsComponent implements OnInit {
       if (index !== -1) this.applicants[index].status = 'declined';
       this.applyFilter();
 
-      if (this.selectedApplicant?.$id === applicant.$id) {
+      if (this.selectedApplicant?.$id === applicant.$id)
         this.selectedApplicant.status = 'declined';
-      }
 
       Swal.fire({
         icon: 'success',
@@ -295,13 +380,8 @@ export class AdminApplicantsComponent implements OnInit {
     }
   }
 
-  openModal(applicant: Applicant) {
-    this.selectedApplicant = applicant;
-  }
-
-  closeModal() {
-    this.selectedApplicant = null;
-  }
+  openModal(applicant: Applicant)  { this.selectedApplicant = applicant; }
+  closeModal()                     { this.selectedApplicant = null; }
 
   getFullName(a: Applicant): string {
     return `${a.first_name} ${a.middle_name ? a.middle_name + ' ' : ''}${a.last_name}`;

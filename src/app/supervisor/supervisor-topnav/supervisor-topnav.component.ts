@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,7 @@ import Swal from 'sweetalert2';
   templateUrl: './supervisor-topnav.component.html',
   styleUrls: ['./supervisor-topnav.component.css']
 })
-export class SupervisorTopnavComponent implements OnInit {
+export class SupervisorTopnavComponent implements OnInit, OnDestroy {
 
   menuOpen          = false;
   showPasswordModal = false;
@@ -32,6 +32,11 @@ export class SupervisorTopnavComponent implements OnInit {
 
   profilePhotoUrl = 'https://ui-avatars.com/api/?name=Supervisor&background=0818A8&color=fff&size=128';
 
+  // DateTime
+  currentDayDate = '';
+  currentTime    = '';
+  private clockInterval: any;
+
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
@@ -43,6 +48,35 @@ export class SupervisorTopnavComponent implements OnInit {
 
   async ngOnInit() {
     await this.loadProfilePhoto();
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+  }
+
+  ngOnDestroy() {
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+    }
+  }
+
+  private updateClock(): void {
+    const now = new Date();
+
+    const shortDays   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const day   = shortDays[now.getDay()];
+    const month = shortMonths[now.getMonth()];
+    const date  = now.getDate();
+    const year  = now.getFullYear();
+
+    this.currentDayDate = `${day}, ${month} ${date}, ${year}`;
+
+    let hours  = now.getHours();
+    const mins = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours      = hours % 12 || 12;
+    this.currentTime = `${hours}:${mins} ${ampm}`;
   }
 
   async loadProfilePhoto() {
@@ -107,16 +141,16 @@ export class SupervisorTopnavComponent implements OnInit {
     if (!this.newPassword) {
       this.pwFieldErrors.newPw = 'New password is required.';
       hasError = true;
-   } else {
-    const strengthError = this.validateStrongPassword(this.newPassword);
-    if (strengthError) {
-      this.pwFieldErrors.newPw = strengthError;
-      hasError = true;
-    } else if (this.newPassword === this.currentPassword) {
-      this.pwFieldErrors.newPw = 'New password must be different from current.';
-      hasError = true;
+    } else {
+      const strengthError = this.validateStrongPassword(this.newPassword);
+      if (strengthError) {
+        this.pwFieldErrors.newPw = strengthError;
+        hasError = true;
+      } else if (this.newPassword === this.currentPassword) {
+        this.pwFieldErrors.newPw = 'New password must be different from current.';
+        hasError = true;
+      }
     }
-  }
 
     if (!this.confirmPassword) {
       this.pwFieldErrors.confirm = 'Please confirm your new password.';
@@ -171,15 +205,16 @@ export class SupervisorTopnavComponent implements OnInit {
     else if (hour < 18) return 'Good Afternoon, Supervisor!';
     else return 'Good Evening, Supervisor!';
   }
+
   validateStrongPassword(password: string): string {
-  if (password.length < 8)
-    return 'Password must be at least 8 characters.';
-  if (!/[A-Z]/.test(password))
-    return 'Password must contain at least one uppercase letter.';
-  if (!/[0-9]/.test(password))
-    return 'Password must contain at least one number.';
-  if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password))
-    return 'Password must contain at least one special character.';
-  return '';
-}
+    if (password.length < 8)
+      return 'Password must be at least 8 characters.';
+    if (!/[A-Z]/.test(password))
+      return 'Password must contain at least one uppercase letter.';
+    if (!/[0-9]/.test(password))
+      return 'Password must contain at least one number.';
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password))
+      return 'Password must contain at least one special character.';
+    return '';
+  }
 }

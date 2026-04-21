@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,7 +12,7 @@ import Swal from 'sweetalert2';
   templateUrl: './intern-topnav.component.html',
   styleUrls: ['./intern-topnav.component.css']
 })
-export class InternTopnavComponent implements OnInit {
+export class InternTopnavComponent implements OnInit, OnDestroy {
 
   menuOpen          = false;
   showPasswordModal = false;
@@ -28,10 +28,15 @@ export class InternTopnavComponent implements OnInit {
   passwordLoading = false;
 
   pwError       = '';
-pwSuccess     = '';
-pwFieldErrors = { current: '', newPw: '', confirm: '' };
+  pwSuccess     = '';
+  pwFieldErrors = { current: '', newPw: '', confirm: '' };
 
   profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
+
+  // DateTime — Option D: muted date · bold time
+  currentDayDate = '';
+  currentTime    = '';
+  private clockInterval: any;
 
   certData = {
     studentName:    'Juan Dela Cruz',
@@ -65,6 +70,39 @@ pwFieldErrors = { current: '', newPw: '', confirm: '' };
       this.profilePhotoUrl = url;
     });
     await this.loadProfilePhoto();
+
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+  }
+
+  ngOnDestroy() {
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+    }
+  }
+
+  /** Option D format: "Tue, Apr 21, 2026" (muted) · "6:25 PM" (bold) */
+  private updateClock(): void {
+    const now = new Date();
+
+    const shortDays   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const day   = shortDays[now.getDay()];
+    const month = shortMonths[now.getMonth()];
+    const date  = now.getDate();
+    const year  = now.getFullYear();
+
+    // e.g. "Tue, Apr 21, 2026"
+    this.currentDayDate = `${day}, ${month} ${date}, ${year}`;
+
+    // 12-hour format — e.g. "6:25 PM"
+    let hours  = now.getHours();
+    const mins = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours      = hours % 12 || 12;
+    this.currentTime = `${hours}:${mins} ${ampm}`;
   }
 
   async loadProfilePhoto() {
@@ -106,16 +144,17 @@ pwFieldErrors = { current: '', newPw: '', confirm: '' };
     this.confirmPassword   = '';
   }
 
-closeModal() {
-  this.showPasswordModal = false;
-  this.currentPassword   = '';
-  this.newPassword       = '';
-  this.confirmPassword   = '';
-  this.pwError           = '';
-  this.pwSuccess         = '';
-  this.pwFieldErrors     = { current: '', newPw: '', confirm: '' };
-}
-  closeCertModal() { this.showCertModal     = false; }
+  closeModal() {
+    this.showPasswordModal = false;
+    this.currentPassword   = '';
+    this.newPassword       = '';
+    this.confirmPassword   = '';
+    this.pwError           = '';
+    this.pwSuccess         = '';
+    this.pwFieldErrors     = { current: '', newPw: '', confirm: '' };
+  }
+
+  closeCertModal() { this.showCertModal = false; }
 
   openCertificate() {
     if (!this.hoursReached) {
@@ -132,12 +171,10 @@ closeModal() {
     this.menuOpen      = false;
   }
 
-  /** Opens a hidden print window — no visible preview, goes straight to the system print/save dialog */
   downloadCertificate() {
     const certEl = document.getElementById('certificate-preview');
     if (!certEl) return;
 
-    // Collect all page styles so the certificate renders identically
     const styles = Array.from(document.styleSheets)
       .map(sheet => {
         try {
@@ -202,77 +239,77 @@ closeModal() {
   }
 
   async updatePassword() {
-  this.pwError       = '';
-  this.pwSuccess     = '';
-  this.pwFieldErrors = { current: '', newPw: '', confirm: '' };
+    this.pwError       = '';
+    this.pwSuccess     = '';
+    this.pwFieldErrors = { current: '', newPw: '', confirm: '' };
 
-  let hasError = false;
+    let hasError = false;
 
-  if (!this.currentPassword) {
-    this.pwFieldErrors.current = 'Current password is required.';
-    hasError = true;
-  }
-
-  if (!this.newPassword) {
-    this.pwFieldErrors.newPw = 'New password is required.';
-    hasError = true;
- } else {
-    const strengthError = this.validateStrongPassword(this.newPassword);
-    if (strengthError) {
-      this.pwFieldErrors.newPw = strengthError;
-      hasError = true;
-    } else if (this.newPassword === this.currentPassword) {
-      this.pwFieldErrors.newPw = 'New password must be different from current.';
+    if (!this.currentPassword) {
+      this.pwFieldErrors.current = 'Current password is required.';
       hasError = true;
     }
-  }
 
-  if (!this.confirmPassword) {
-    this.pwFieldErrors.confirm = 'Please confirm your new password.';
-    hasError = true;
-  } else if (this.newPassword && this.confirmPassword !== this.newPassword) {
-    this.pwFieldErrors.confirm = 'Passwords do not match.';
-    hasError = true;
-  }
-
-  if (hasError) return;
-
-  this.passwordLoading = true;
-  try {
-    await this.appwrite.account.updatePassword(this.newPassword, this.currentPassword);
-
-    this.pwSuccess = 'Password updated successfully!';
-    this.currentPassword = '';
-    this.newPassword     = '';
-    this.confirmPassword = '';
-
-    setTimeout(() => {
-      this.closeModal();
-      Swal.fire({
-        icon: 'success',
-        title: 'Password Updated!',
-        text: 'Your password has been changed successfully.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-      });
-    }, 1200);
-
-  } catch (error: any) {
-    const msg: string = error.message ?? '';
-    if (msg.toLowerCase().includes('invalid credentials') ||
-        msg.toLowerCase().includes('current') ||
-        error.code === 401) {
-      this.pwFieldErrors.current = 'Current password is incorrect.';
+    if (!this.newPassword) {
+      this.pwFieldErrors.newPw = 'New password is required.';
+      hasError = true;
     } else {
-      this.pwError = 'Failed to update password. Please try again.';
+      const strengthError = this.validateStrongPassword(this.newPassword);
+      if (strengthError) {
+        this.pwFieldErrors.newPw = strengthError;
+        hasError = true;
+      } else if (this.newPassword === this.currentPassword) {
+        this.pwFieldErrors.newPw = 'New password must be different from current.';
+        hasError = true;
+      }
     }
-  } finally {
-    this.passwordLoading = false;
+
+    if (!this.confirmPassword) {
+      this.pwFieldErrors.confirm = 'Please confirm your new password.';
+      hasError = true;
+    } else if (this.newPassword && this.confirmPassword !== this.newPassword) {
+      this.pwFieldErrors.confirm = 'Passwords do not match.';
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    this.passwordLoading = true;
+    try {
+      await this.appwrite.account.updatePassword(this.newPassword, this.currentPassword);
+
+      this.pwSuccess       = 'Password updated successfully!';
+      this.currentPassword = '';
+      this.newPassword     = '';
+      this.confirmPassword = '';
+
+      setTimeout(() => {
+        this.closeModal();
+        Swal.fire({
+          icon: 'success',
+          title: 'Password Updated!',
+          text: 'Your password has been changed successfully.',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        });
+      }, 1200);
+
+    } catch (error: any) {
+      const msg: string = error.message ?? '';
+      if (msg.toLowerCase().includes('invalid credentials') ||
+          msg.toLowerCase().includes('current') ||
+          error.code === 401) {
+        this.pwFieldErrors.current = 'Current password is incorrect.';
+      } else {
+        this.pwError = 'Failed to update password. Please try again.';
+      }
+    } finally {
+      this.passwordLoading = false;
+    }
   }
-}
 
   get greeting(): string {
     const hour = new Date().getHours();
@@ -280,15 +317,16 @@ closeModal() {
     else if (hour < 18) return 'Good Afternoon, Intern!';
     else return 'Good Evening, Intern!';
   }
+
   validateStrongPassword(password: string): string {
-  if (password.length < 8)
-    return 'Password must be at least 8 characters.';
-  if (!/[A-Z]/.test(password))
-    return 'Password must contain at least one uppercase letter.';
-  if (!/[0-9]/.test(password))
-    return 'Password must contain at least one number.';
-  if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password))
-    return 'Password must contain at least one special character.';
-  return '';
-}
+    if (password.length < 8)
+      return 'Password must be at least 8 characters.';
+    if (!/[A-Z]/.test(password))
+      return 'Password must contain at least one uppercase letter.';
+    if (!/[0-9]/.test(password))
+      return 'Password must contain at least one number.';
+    if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password))
+      return 'Password must contain at least one special character.';
+    return '';
+  }
 }

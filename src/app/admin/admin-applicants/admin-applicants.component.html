@@ -44,21 +44,22 @@
                 <th>Student ID</th>
                 <th>Course</th>
                 <th>Email</th>
+                <th>Applied Date</th>
                 <th>Status</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
 
-              <tr *ngFor="let applicant of filteredApplicants"
+              <tr *ngFor="let applicant of pagedApplicants"
                   (click)="openModal(applicant)"
                   style="cursor:pointer;">
                 <td class="profile-name">
                   <span>{{ getFullName(applicant) }}</span>
                 </td>
                 <td>{{ applicant.student_id }}</td>
-                <td>{{ applicant.course }}</td>
+                <td>{{ abbreviateCourse(applicant.course) }}</td>
                 <td>{{ applicant.email }}</td>
+                <td>{{ formatDate(applicant.$createdAt) }}</td>
                 <td>
                   <span class="status-badge"
                         [ngClass]="{
@@ -67,24 +68,6 @@
                           'badge-declined': applicant.status === 'declined'
                         }">
                     {{ applicant.status | titlecase }}
-                  </span>
-                </td>
-                <td class="actions" (click)="$event.stopPropagation()">
-                  <button class="accept-btn"
-                          *ngIf="applicant.status === 'pending'"
-                          (click)="approveApplicant(applicant, $event)"
-                          [disabled]="actionLoading">
-                    Approve
-                  </button>
-                  <button class="decline-btn"
-                          *ngIf="applicant.status === 'pending'"
-                          (click)="declineApplicant(applicant, $event)"
-                          [disabled]="actionLoading">
-                    Decline
-                  </button>
-                  <span *ngIf="applicant.status !== 'pending'"
-                        style="font-size:13px; color:#9ca3af;">
-                    —
                   </span>
                 </td>
               </tr>
@@ -97,19 +80,29 @@
             </tbody>
           </table>
 
+          <!-- PAGINATION -->
           <div class="pagination">
-            <button class="page-btn">
+            <span class="page-info">
+              Showing {{ (currentPage - 1) * itemsPerPage + 1 }}–{{ Math.min(currentPage * itemsPerPage, filteredApplicants.length) }}
+              of {{ filteredApplicants.length }}
+            </span>
+            <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="page-numbers">
-              <span class="page active">1</span>
-              <span class="page">2</span>
-              <span class="page">3</span>
+              <span
+                *ngFor="let p of pageNumbers"
+                class="page"
+                [class.active]="p === currentPage"
+                (click)="goToPage(p)">
+                {{ p }}
+              </span>
             </div>
-            <button class="page-btn">
+            <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+
         </div>
       </div>
 
@@ -199,11 +192,16 @@
       </div>
       <div class="info-item">
         <span class="info-label">Course</span>
+        <!-- Full course name shown in modal, not abbreviated -->
         <span class="info-value">{{ selectedApplicant.course || '—' }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">Year Level</span>
         <span class="info-value">{{ selectedApplicant.year_level || '—' }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Applied Date</span>
+        <span class="info-value">{{ formatDate(selectedApplicant.$createdAt) }}</span>
       </div>
     </div>
 
@@ -259,7 +257,7 @@
         <span *ngIf="!selectedApplicant.coe_file_id" class="no-file">No file uploaded</span>
       </div>
 
-      <!-- ACTIONS -->
+      <!-- ACTIONS (modal only) -->
       <div class="modal-actions" *ngIf="selectedApplicant.status === 'pending'">
         <button class="accept-btn"
                 (click)="approveApplicant(selectedApplicant, $event)"

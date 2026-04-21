@@ -231,47 +231,6 @@ app-admin-topnav {
 }
 
 /* =========================
-   ACTION BUTTONS (TABLE)
-========================= */
-.actions {
-  display: flex;
-  gap: 6px;
-}
-
-.actions button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  min-width: 80px;
-}
-
-.accept-btn {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.accept-btn:hover {
-  background: #22c55e;
-  color: #fff;
-  transform: scale(1.05);
-}
-
-.decline-btn {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.decline-btn:hover {
-  background: #ef4444;
-  color: #fff;
-  transform: scale(1.05);
-}
-
-/* =========================
    STATUS BADGES
 ========================= */
 .status-badge {
@@ -311,6 +270,12 @@ app-admin-topnav {
   margin-top: 15px;
 }
 
+.page-info {
+  font-size: 13px;
+  color: #6b7280;
+  margin-right: 6px;
+}
+
 .page-btn {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -318,10 +283,16 @@ app-admin-topnav {
   border-radius: 8px;
   cursor: pointer;
   transition: 0.2s ease;
+  color: #374151;
 }
 
-.page-btn:hover {
+.page-btn:hover:not(:disabled) {
   background: #f3f4f6;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .page-numbers {
@@ -336,6 +307,8 @@ app-admin-topnav {
   cursor: pointer;
   color: #374151;
   transition: 0.2s ease;
+  min-width: 32px;
+  text-align: center;
 }
 
 .page:hover {

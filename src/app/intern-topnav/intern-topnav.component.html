@@ -3,6 +3,17 @@
     <span class="greeting">{{ greeting }}</span>
   </div>
   <div class="topnav-right">
+
+    <!-- DateTime Display -->
+    <div class="datetime-display">
+      <i class="fa-regular fa-calendar datetime-icon"></i>
+      <span class="datetime-date">{{ currentDayDate }}</span>
+      <div class="datetime-dot"></div>
+      <span class="datetime-time">{{ currentTime }}</span>
+    </div>
+
+    <div class="topnav-divider"></div>
+
     <div class="profile" (click)="toggleMenu()">
       <img [src]="profilePhotoUrl" alt="Profile Picture"
            style="width:38px;height:38px;border-radius:50%;object-fit:cover;">
@@ -42,12 +53,10 @@
 
     <div class="modal-divider"></div>
 
-    <!-- Error banner -->
     <div class="pw-error" *ngIf="pwError">
       <i class="fa fa-circle-exclamation"></i> {{ pwError }}
     </div>
 
-    <!-- Success banner -->
     <div class="pw-success" *ngIf="pwSuccess">
       <i class="fa fa-circle-check"></i> {{ pwSuccess }}
     </div>
@@ -57,10 +66,10 @@
       <div class="password-field" [class.field-error-border]="pwFieldErrors.current">
         <i class="fa-solid fa-lock field-icon"></i>
         <input [type]="showCurrent ? 'text' : 'password'"
-       [(ngModel)]="currentPassword"
-       placeholder="Enter current password"
-       (paste)="$event.preventDefault()"
-       (copy)="$event.preventDefault()">
+               [(ngModel)]="currentPassword"
+               placeholder="Enter current password"
+               (paste)="$event.preventDefault()"
+               (copy)="$event.preventDefault()">
         <i class="fa-solid"
            [ngClass]="showCurrent ? 'fa-eye-slash' : 'fa-eye'"
            (click)="showCurrent = !showCurrent"></i>
@@ -75,10 +84,10 @@
       <div class="password-field" [class.field-error-border]="pwFieldErrors.newPw">
         <i class="fa-solid fa-key field-icon"></i>
         <input [type]="showNew ? 'text' : 'password'"
-       [(ngModel)]="newPassword"
-       placeholder="Create new password"
-       (paste)="$event.preventDefault()"
-       (copy)="$event.preventDefault()">
+               [(ngModel)]="newPassword"
+               placeholder="Create new password"
+               (paste)="$event.preventDefault()"
+               (copy)="$event.preventDefault()">
         <i class="fa-solid"
            [ngClass]="showNew ? 'fa-eye-slash' : 'fa-eye'"
            (click)="showNew = !showNew"></i>
@@ -93,10 +102,10 @@
       <div class="password-field" [class.field-error-border]="pwFieldErrors.confirm">
         <i class="fa-solid fa-key field-icon"></i>
         <input [type]="showConfirm ? 'text' : 'password'"
-       [(ngModel)]="confirmPassword"
-       placeholder="Confirm new password"
-       (paste)="$event.preventDefault()"
-       (copy)="$event.preventDefault()">
+               [(ngModel)]="confirmPassword"
+               placeholder="Confirm new password"
+               (paste)="$event.preventDefault()"
+               (copy)="$event.preventDefault()">
         <i class="fa-solid"
            [ngClass]="showConfirm ? 'fa-eye-slash' : 'fa-eye'"
            (click)="showConfirm = !showConfirm"></i>
@@ -127,7 +136,6 @@
 <div class="modal-overlay cert-overlay" *ngIf="showCertModal" (click)="closeCertModal()">
   <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
 
-    <!-- Modal Top Bar -->
     <div class="cert-modal-topbar">
       <div class="cert-modal-title-group">
         <div class="cert-modal-icon-wrap">
@@ -148,25 +156,20 @@
       </div>
     </div>
 
-    <!-- Certificate Preview -->
     <div class="cert-scroll-area">
       <div id="certificate-preview" class="certificate">
 
-        <!-- Top accent bars -->
         <div class="cert-top-bar"></div>
         <div class="cert-top-bar-gold"></div>
 
         <div class="cert-body">
 
-          <!-- OCES Watermark Background -->
           <div class="cert-watermark">
             <img src="assets/images/OCES_logo.png" alt="OCES Watermark" />
           </div>
 
-          <!-- Double inner border -->
           <div class="cert-inner-border"></div>
 
-          <!-- Corner ornaments -->
           <svg class="cert-corner-ornament tl" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
             <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
             <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
@@ -186,7 +189,6 @@
 
           <div class="cert-content">
 
-            <!-- Header: DepEd far left, text center, OCES far right -->
             <div class="cert-header">
               <div class="cert-header-logo cert-header-logo--left">
                 <img src="assets/images/Deped_logo.png" alt="DepEd Logo" />
@@ -205,20 +207,16 @@
               </div>
             </div>
 
-            <!-- Title -->
             <h1 class="cert-main-title">Certificate of Completion</h1>
             <p class="cert-subtitle-tag">On-the-Job Training Program</p>
 
-            <!-- Awarded to -->
             <p class="cert-awarded-text">This certificate is proudly awarded to</p>
 
-            <!-- Student name -->
             <div class="cert-name-wrap">
               <p class="cert-cursive-name">{{ certData.studentName }}</p>
               <div class="cert-name-line"></div>
             </div>
 
-            <!-- Body text -->
             <p class="cert-body-para">
               for successfully completing the
               <strong>{{ certData.hoursCompleted }}-hour On-the-Job Training (OJT)</strong>,
@@ -231,7 +229,6 @@
               Given this {{ certData.endDate }}, Olongapo City, Zambales.
             </p>
 
-            <!-- Signatures -->
             <div class="cert-sig-row">
 
               <div class="cert-sig-block">
@@ -250,15 +247,14 @@
 
             </div>
 
-          </div><!-- /cert-content -->
-        </div><!-- /cert-body -->
+          </div>
+        </div>
 
-        <!-- Bottom accent bars -->
         <div class="cert-bottom-bar-gold"></div>
         <div class="cert-bottom-bar"></div>
 
-      </div><!-- /certificate -->
-    </div><!-- /cert-scroll-area -->
+      </div>
+    </div>
 
   </div>
 </div>

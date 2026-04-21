@@ -21,6 +21,7 @@ interface Task {
   attachment_file_name?: string;
   supervisor_name?: string;
   supervisor_id?: string;
+  score?: number | null;
 }
 
 interface Submission {
@@ -50,6 +51,7 @@ interface LogbookEntry {
   tasks_done: string;
   reflection: string;
   created_at: string;
+  score?: number | null;
 }
 
 interface LogbookPhoto {
@@ -212,9 +214,7 @@ export class InternTasksComponent implements OnInit {
     finally { this.commentLoading = false; }
   }
 
-  // ── Comment edit methods ──
   startEdit(comment: Comment) { this.editingCommentId = comment.$id!; this.editingMessage = comment.message; }
-
   cancelCommentEdit() { this.editingCommentId = null; this.editingMessage = ''; }
 
   async saveEdit(comment: Comment) {
@@ -287,6 +287,44 @@ export class InternTasksComponent implements OnInit {
 
   closeModal() { this.isModalOpen = false; this.selectedTask = null; this.selectedFile = null; this.comments = []; this.submissions = []; this.newComment = ''; }
 
+  // ── Date formatting helpers ───────────────────────────
+  /**
+   * Format a date string as "April 19, 2026" (long month name)
+   */
+  formatLongDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  /**
+   * Returns date badge parts: day abbrev, day number, month abbrev
+   */
+  getDueDateParts(due: string): { day: string; num: string; month: string } {
+    const d = new Date(due);
+    if (isNaN(d.getTime())) return { day: '', num: due, month: '' };
+    return {
+      day:   d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+      num:   d.getDate().toString(),
+      month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+    };
+  }
+
+  // ── Score helpers ─────────────────────────────────────
+  /**
+   * Returns score display object for a task or logbook entry
+   */
+  getScoreDisplay(score: number | null | undefined): { label: string; cls: string; icon: string } {
+    if (score === null || score === undefined) {
+      return { label: 'Not yet scored', cls: 'score-pending', icon: 'fas fa-hourglass-half' };
+    }
+    if (score >= 90) return { label: `${score}/100`, cls: 'score-excellent', icon: 'fas fa-star' };
+    if (score >= 75) return { label: `${score}/100`, cls: 'score-good', icon: 'fas fa-check-circle' };
+    if (score >= 60) return { label: `${score}/100`, cls: 'score-average', icon: 'fas fa-minus-circle' };
+    return { label: `${score}/100`, cls: 'score-low', icon: 'fas fa-exclamation-circle' };
+  }
+
   // ════════════════════════════════════════════════════════
   //  LOGBOOK METHODS
   // ════════════════════════════════════════════════════════
@@ -354,10 +392,6 @@ export class InternTasksComponent implements OnInit {
     return this.logbookEntries.some(e => e.entry_date === dateStr);
   }
 
-  /**
-   * Returns today's date as YYYY-MM-DD string — used as [max] on the date input
-   * so the user cannot pick a future date.
-   */
   getTodayString(): string {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -366,10 +400,6 @@ export class InternTasksComponent implements OnInit {
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  /**
-   * Returns true if the given date string is strictly in the future
-   * (i.e. after today's date, ignoring time).
-   */
   isFutureDate(dateStr: string): boolean {
     if (!dateStr) return false;
     return dateStr > this.getTodayString();
@@ -383,27 +413,13 @@ export class InternTasksComponent implements OnInit {
 
   wordCount(text: string): number { return this.countWords(text); }
 
-  enforceWordLimit(text: string, limit: number): string {
-    const tokens = text.split(/(\s+)/);
-    let wordCount = 0;
-    let result = '';
-    for (const token of tokens) {
-      if (/\S/.test(token)) {
-        if (wordCount >= limit) break;
-        wordCount++;
-      }
-      result += token;
-    }
-    return result;
-  }
-
-  // ✅ Validates word counts before save/update
+  // ✅ Validates word counts before save/update — BLOCKS if over limit (no trimming)
   private validateWordCounts(): boolean {
     if (this.tasksDoneWordCount > this.TASKS_DONE_WORD_LIMIT) {
       Swal.fire({
         icon: 'warning',
         title: 'Tasks Done too long',
-        text: `Your Tasks Done exceeds the ${this.TASKS_DONE_WORD_LIMIT}-word limit. Please shorten it before saving.`,
+        text: `Your Tasks Done has ${this.tasksDoneWordCount} words, which exceeds the ${this.TASKS_DONE_WORD_LIMIT}-word limit. Please shorten it before saving.`,
         confirmButtonColor: '#2563eb'
       });
       return false;
@@ -412,7 +428,7 @@ export class InternTasksComponent implements OnInit {
       Swal.fire({
         icon: 'warning',
         title: 'Reflection too long',
-        text: `Your Reflection exceeds the ${this.REFLECTION_WORD_LIMIT}-word limit. Please shorten it before saving.`,
+        text: `Your Reflection has ${this.reflectionWordCount} words, which exceeds the ${this.REFLECTION_WORD_LIMIT}-word limit. Please shorten it before saving.`,
         confirmButtonColor: '#2563eb'
       });
       return false;
@@ -438,31 +454,18 @@ export class InternTasksComponent implements OnInit {
     return match ? match[1] : createdAt;
   }
 
-  getDueDateParts(due: string): { day: string; num: string; month: string } {
-    const d = new Date(due);
-    if (isNaN(d.getTime())) return { day: '', num: due, month: '' };
-    return {
-      day:   d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-      num:   d.getDate().toString(),
-      month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
-    };
-  }
-
   getDetailPct(tasksDone: string): number { return Math.min(100, Math.round((tasksDone?.length || 0) / 3)); }
 
-  // ── Auto-bullet + word-limit on tasks_done ────────────
+  // ── Auto-bullet + word count on tasks_done (NO hard trim) ────────────
   onTasksInput(event: Event) {
     const el = event.target as HTMLTextAreaElement;
-    const limited = this.enforceWordLimit(el.value, this.TASKS_DONE_WORD_LIMIT);
-    if (el.value !== limited) { el.value = limited; }
-    this.logbookForm.tasks_done = limited;
-    this.tasksDoneWordCount = this.countWords(limited);
+    this.logbookForm.tasks_done = el.value;
+    this.tasksDoneWordCount = this.countWords(el.value);
   }
 
   onTasksEnter(event: Event) {
     event.preventDefault();
     const el = event.target as HTMLTextAreaElement;
-    if (this.tasksDoneWordCount >= this.TASKS_DONE_WORD_LIMIT) return;
     const val = el.value;
     const pos = el.selectionStart ?? val.length;
     const before = val.slice(0, pos);
@@ -477,13 +480,11 @@ export class InternTasksComponent implements OnInit {
     });
   }
 
-  // ── Word-limit on reflection ──────────────────────────
+  // ── Word count on reflection (NO hard trim) ──────────────────────────
   onReflectionInput(event: Event) {
     const el = event.target as HTMLTextAreaElement;
-    const limited = this.enforceWordLimit(el.value, this.REFLECTION_WORD_LIMIT);
-    if (el.value !== limited) { el.value = limited; }
-    this.logbookForm.reflection = limited;
-    this.reflectionWordCount = this.countWords(limited);
+    this.logbookForm.reflection = el.value;
+    this.reflectionWordCount = this.countWords(el.value);
   }
 
   getBulletItems(text: string): string[] {
@@ -562,7 +563,6 @@ export class InternTasksComponent implements OnInit {
     this.reflectionWordCount = 0;
   }
 
-  /** Cancel logbook edit — go back to view mode for the same entry */
   cancelEdit() {
     if (this.selectedLogbookEntry) {
       this.openViewLogbook(this.selectedLogbookEntry);
@@ -576,7 +576,6 @@ export class InternTasksComponent implements OnInit {
       Swal.fire({ icon: 'warning', title: 'Incomplete Entry', text: 'Please fill in the date and tasks done.', confirmButtonColor: '#2563eb' }); return;
     }
 
-    // ✅ Block future dates
     if (this.isFutureDate(this.logbookForm.entry_date)) {
       Swal.fire({
         icon: 'warning',
@@ -587,7 +586,7 @@ export class InternTasksComponent implements OnInit {
       return;
     }
 
-    // ✅ Block save if over word limit
+    // ✅ Block save if over word limit — do NOT trim, just reject
     if (!this.validateWordCounts()) return;
 
     if (this.dateHasEntry(this.logbookForm.entry_date)) {
@@ -646,7 +645,6 @@ export class InternTasksComponent implements OnInit {
       Swal.fire({ icon: 'warning', title: 'Incomplete Entry', text: 'Please fill in the date and tasks done.', confirmButtonColor: '#2563eb' }); return;
     }
 
-    // ✅ Block future dates on update too
     if (this.isFutureDate(this.logbookForm.entry_date)) {
       Swal.fire({
         icon: 'warning',
@@ -657,7 +655,7 @@ export class InternTasksComponent implements OnInit {
       return;
     }
 
-    // ✅ Block update if over word limit
+    // ✅ Block update if over word limit — do NOT trim, just reject
     if (!this.validateWordCounts()) return;
 
     if (!this.selectedLogbookEntry?.$id) return;
