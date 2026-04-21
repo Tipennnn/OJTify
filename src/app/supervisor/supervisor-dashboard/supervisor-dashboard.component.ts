@@ -108,7 +108,6 @@ export class SupervisorDashboardComponent implements OnInit {
       const user = await this.appwrite.account.get();
       this.currentSupervisorId = user.$id;
 
-      // Get supervisor doc for name
       const doc = await this.appwrite.databases.getDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.SUPERVISORS_COL,
@@ -128,7 +127,6 @@ export class SupervisorDashboardComponent implements OnInit {
         this.appwrite.STUDENTS_COL
       );
 
-      // Filter by supervisor_id matching current user
       const assigned = (res.documents as any[]).filter(
         s => s.supervisor_id === this.currentSupervisorId
       );
@@ -177,7 +175,7 @@ export class SupervisorDashboardComponent implements OnInit {
     }
   }
 
-  // ── Recent attendance (last 5 days) ──────────────────────
+  // ── Recent attendance (5 rows max) ───────────────────────
   async loadRecentAttendance() {
     this.attendanceLoading = true;
     try {
@@ -187,22 +185,20 @@ export class SupervisorDashboardComponent implements OnInit {
       );
       const internIds = Array.from(this.studentMap.keys());
 
-      // Build last 5 days
-      const last5: AttendanceRecord[] = [];
+      const rows: AttendanceRecord[] = [];
       const allDocs = (res.documents as any[]).filter(d => internIds.includes(d.student_id));
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 5 && rows.length < 5; i++) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-        // Get all records for this day across assigned interns
         const dayRecords = allDocs.filter(doc => doc.date === dateStr);
 
-        if (dayRecords.length > 0) {
-          dayRecords.forEach(doc => {
+        dayRecords.forEach(doc => {
+          if (rows.length < 5) {
             const student = this.studentMap.get(doc.student_id);
-            last5.push({
+            rows.push({
               intern_name:      student ? this.getFullName(student) : 'Unknown',
               profile_photo_id: student?.profile_photo_id,
               student_id:       doc.student_id,
@@ -211,11 +207,11 @@ export class SupervisorDashboardComponent implements OnInit {
               time_out:         doc.time_out || '—',
               status:           doc.status   || 'Absent',
             });
-          });
-        }
+          }
+        });
       }
 
-      this.recentAttendance = last5.slice(0, 10);
+      this.recentAttendance = rows;
 
     } catch (error: any) {
       console.error('Failed to load attendance:', error.message);
@@ -224,7 +220,7 @@ export class SupervisorDashboardComponent implements OnInit {
     }
   }
 
-  // ── Recent tasks (last 3) ─────────────────────────────────
+  // ── Recent tasks (3 max) ──────────────────────────────────
   async loadRecentTasks() {
     this.tasksLoading = true;
     try {
@@ -234,7 +230,6 @@ export class SupervisorDashboardComponent implements OnInit {
       );
       const internIds = Array.from(this.studentMap.keys());
 
-      // Only tasks assigned to this supervisor's interns
       const myTasks = (res.documents as any[]).filter(task => {
         if (!task.assigned_intern_ids) return false;
         const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());

@@ -31,24 +31,24 @@ interface AttendanceRecord {
 })
 export class InternDashboardComponent implements OnInit {
 
-  recentTasks      : Task[] = [];
-  tasksLoading     = false;
-  currentUserId    = '';
+  recentTasks       : Task[] = [];
+  tasksLoading      = false;
+  currentUserId     = '';
   profileIncomplete = false;
 
   // ── Hours & attendance ────────────────────────────────────
-  requiredHours    = 500;
-  completedHours   = 0;
-  todayStatus      = 'Absent';
+  requiredHours  = 500;
+  completedHours = 0;
+  todayStatus    = 'Absent';
 
   // ── Recent attendance ─────────────────────────────────────
   recentAttendance : AttendanceRecord[] = [];
-  internStartDate: Date | null = null;
+  internStartDate  : Date | null = null;
 
   // ── Application info ──────────────────────────────────────
-  appliedOn    = '—';
-  acceptedOn   = '—';
-  appStatus    = '—';
+  appliedOn  = '—';
+  acceptedOn = '—';
+  appStatus  = '—';
 
   constructor(
     private appwrite: AppwriteService,
@@ -73,121 +73,106 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load student hours + today attendance ─────────────────
- async loadStudentData() {
-  try {
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      this.currentUserId
-    );
-    this.requiredHours  = (doc as any).required_hours  || 500;
-    this.completedHours = (doc as any).completed_hours || 0;
-
-    const start = new Date((doc as any).$createdAt);
-    start.setHours(0, 0, 0, 0);
-    this.internStartDate = start;
-
-    const now   = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL
-    );
-    const todayRecord = (res.documents as any[])
-      .find(d => d.student_id === this.currentUserId && d.date === today);
-
-    if (todayRecord) {
-      this.todayStatus = todayRecord.status;
-    } else {
-      // Only show Absent if they were accepted before today
-      const createdAt = (doc as any).$createdAt;
-      const startDate = new Date(createdAt);
-      startDate.setHours(0, 0, 0, 0);
-      now.setHours(0, 0, 0, 0);
-
-      this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
-    }
-
-  } catch (error: any) {
-    console.error('Failed to load student data:', error.message);
-  }
-}
-
-  // ── Load recent attendance (last 5) ──────────────────────
-  async loadRecentAttendance() {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL
-    );
-
-    const myRecords = (res.documents as any[])
-      .filter(d => d.student_id === this.currentUserId);
-
-    // Build last 5 days (today included)
-    const last5Days: AttendanceRecord[] = [];
-    for (let i = 0; i < 5; i++) {
-      const d    = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-      const record = myRecords.find(r => r.date === dateStr);
-      if (record) {
-        last5Days.push({
-          date: record.date,
-          time_in: record.time_in || '—',
-          time_out: record.time_out || '—',
-          status: record.status
-        });
-      }
-    }
-
-    this.recentAttendance = last5Days;
-
-  } catch (error: any) {
-    console.error('Failed to load attendance:', error.message);
-  }
-}
-
-  // ── Load application info ─────────────────────────────────
- async loadApplicationInfo() {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.APPLICANTS_COL
-    );
-
-    // Match by auth_user_id OR by $id
-    const applicant = (res.documents as any[])
-      .find(a => a.auth_user_id === this.currentUserId || a.$id === this.currentUserId);
-
-    if (applicant) {
-      this.appliedOn = this.formatDate(applicant.$createdAt.split('T')[0]);
-      this.appStatus = applicant.status === 'approved' ? 'Accepted'
-                     : applicant.status === 'declined' ? 'Declined'
-                     : 'Pending';
-    } else {
-      // Fallback: no applicant record found
-      this.appliedOn = '—';
-      this.appStatus = 'Accepted'; // they're already in students, so accepted
-    }
-
-    // Get accepted date from students table
+  async loadStudentData() {
     try {
-      const studentDoc = await this.appwrite.databases.getDocument(
+      const doc = await this.appwrite.databases.getDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL,
         this.currentUserId
       );
-      this.acceptedOn = this.formatDate((studentDoc as any).$createdAt.split('T')[0]);
-    } catch { }
+      this.requiredHours  = (doc as any).required_hours  || 500;
+      this.completedHours = (doc as any).completed_hours || 0;
 
-  } catch (error: any) {
-    console.error('Failed to load application info:', error.message);
+      const start = new Date((doc as any).$createdAt);
+      start.setHours(0, 0, 0, 0);
+      this.internStartDate = start;
+
+      const now   = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+      const todayRecord = (res.documents as any[])
+        .find(d => d.student_id === this.currentUserId && d.date === today);
+
+      if (todayRecord) {
+        this.todayStatus = todayRecord.status;
+      } else {
+        const createdAt = (doc as any).$createdAt;
+        const startDate = new Date(createdAt);
+        startDate.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0);
+        this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
+      }
+
+    } catch (error: any) {
+      console.error('Failed to load student data:', error.message);
+    }
   }
-}
-  // ── Format date helper ────────────────────────────────────
+
+  // ── Load recent attendance (last 3 records) ───────────────
+  async loadRecentAttendance() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL
+      );
+
+      const myRecords = (res.documents as any[])
+        .filter(d => d.student_id === this.currentUserId)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 3); // 3 most recent records only
+
+      this.recentAttendance = myRecords.map(record => ({
+        date    : this.formatDate(record.date),   // "April 21, 2026"
+        time_in : record.time_in  || '—',
+        time_out: record.time_out || '—',
+        status  : record.status
+      }));
+
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    }
+  }
+
+  // ── Load application info ─────────────────────────────────
+  async loadApplicationInfo() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL
+      );
+
+      const applicant = (res.documents as any[])
+        .find(a => a.auth_user_id === this.currentUserId || a.$id === this.currentUserId);
+
+      if (applicant) {
+        this.appliedOn = this.formatDate(applicant.$createdAt.split('T')[0]);
+        this.appStatus = applicant.status === 'approved' ? 'Accepted'
+                       : applicant.status === 'declined' ? 'Declined'
+                       : 'Pending';
+      } else {
+        this.appliedOn = '—';
+        this.appStatus = 'Accepted';
+      }
+
+      try {
+        const studentDoc = await this.appwrite.databases.getDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          this.currentUserId
+        );
+        this.acceptedOn = this.formatDate((studentDoc as any).$createdAt.split('T')[0]);
+      } catch { }
+
+    } catch (error: any) {
+      console.error('Failed to load application info:', error.message);
+    }
+  }
+
+  // ── Format date helper — "April 21, 2026" ────────────────
   formatDate(dateStr: string): string {
     if (!dateStr || dateStr === '—') return '—';
     try {
@@ -202,9 +187,10 @@ export class InternDashboardComponent implements OnInit {
   }
 
   get hoursProgress(): number {
-  if (this.requiredHours === 0) return 0;
-  return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
-}
+    if (this.requiredHours === 0) return 0;
+    return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
+  }
+
   get remainingHours(): number {
     return Math.max(this.requiredHours - this.completedHours, 0);
   }
@@ -265,37 +251,38 @@ export class InternDashboardComponent implements OnInit {
     } catch { }
   }
 
- async loadRecentTasks() {
-  this.tasksLoading = true;
-  try {
-    const res      = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.TASKS_COL
-    );
-    const allTasks = res.documents as any[];
-    const myTasks  = allTasks.filter(task => {
-      if (!task.assigned_intern_ids) return false;
-      return task.assigned_intern_ids
-        .split(',').map((id: string) => id.trim())
-        .includes(this.currentUserId);
-    });
+  // ── Load recent tasks (3 latest, columns: Task / Date Assigned / Due Date / Status) ──
+  async loadRecentTasks() {
+    this.tasksLoading = true;
+    try {
+      const res      = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.TASKS_COL
+      );
+      const allTasks = res.documents as any[];
+      const myTasks  = allTasks.filter(task => {
+        if (!task.assigned_intern_ids) return false;
+        return task.assigned_intern_ids
+          .split(',').map((id: string) => id.trim())
+          .includes(this.currentUserId);
+      });
 
-    this.recentTasks = myTasks
-      .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
-      .slice(0, 3)
-      .map(task => ({
-        $id:         task.$id,
-        title:       task.title       || '—',
-        description: task.description || '—',
-        posted:      this.formatDate(task.$createdAt.split('T')[0]),
-        due:         task.due_date ? this.formatDate(task.due_date) : '—',
-        status:      task.status      || 'pending'
-      }));
+      this.recentTasks = myTasks
+        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+        .slice(0, 3)  // 3 most recent tasks only
+        .map(task => ({
+          $id        : task.$id,
+          title      : task.title       || '—',
+          description: task.description || '—',
+          posted     : this.formatDate(task.$createdAt.split('T')[0]),
+          due        : task.due_date    ? this.formatDate(task.due_date.split('T')[0]) : '—',
+          status     : task.status      || 'pending'
+        }));
 
-  } catch (error: any) {
-    console.error('Failed to load tasks:', error.message);
-  } finally {
-    this.tasksLoading = false;
+    } catch (error: any) {
+      console.error('Failed to load tasks:', error.message);
+    } finally {
+      this.tasksLoading = false;
+    }
   }
-}
 }

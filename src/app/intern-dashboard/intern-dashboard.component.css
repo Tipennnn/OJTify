@@ -10,7 +10,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 0; /* important para hindi mag-overflow ang flex child */
+  min-width: 0;
 }
 
 .dashboard-content {
@@ -71,12 +71,12 @@
   flex-shrink: 0;
 }
 
-.circle span { font-size: 18px; }
+.circle span  { font-size: 18px; }
 .circle small { font-size: 11px; color: #666; }
 
-.progress-info { flex: 1; min-width: 0; }
-.progress-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.progress-info p  { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+.progress-info       { flex: 1; min-width: 0; }
+.progress-info h4    { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.progress-info p     { font-size: 13px; color: #6b7280; margin-bottom: 6px; }
 
 .progress-bar {
   width: 100%;
@@ -135,7 +135,7 @@
   color: #3b6fd8;
 }
 
-/* ─── TABLE WRAPPER (key para sa responsive) ─────── */
+/* ─── TABLE WRAPPER ──────────────────────────────── */
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -145,7 +145,7 @@
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 480px; /* pinipilit mag-scroll kapag maliit ang screen */
+  min-width: 480px;
 }
 
 th {
@@ -166,18 +166,44 @@ td {
 
 /* ─── STATUS BADGES ──────────────────────────────── */
 .status {
-  padding: 5px 12px;
-  border-radius: 20px;
   font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-block;
 }
 
-.present   { background: #d4f4dd; color: #16a34a; }
-.absent    { background: #fee2e2; color: #dc2626; }
-.completed { background: #d0e7ff; color: #0b61d8; }
-.pending   { background: #fef3c7; color: #d97706; }
+/* Present — green */
+.status.present {
+  background: #d4f4dd;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
 
-/* ─── RESPONSIVE BREAKPOINTS ─────────────────────── */
+/* Absent — red */
+.status.absent {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Pending — red (as requested) */
+.status.pending {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Completed — blue */
+.status.completed {
+  background: #d0e7ff;
+  color: #0b61d8;
+  border: 1px solid #93c5fd;
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────── */
 @media (max-width: 1024px) {
   .dashboard-content { padding: 20px; }
 }

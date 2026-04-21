@@ -81,7 +81,7 @@
         </div>
       </div>
 
-      <!-- RECENT ATTENDANCE -->
+      <!-- RECENT ATTENDANCE (3 records only) -->
       <div class="table-card">
         <div class="table-header">
           <h3>Recent Attendance</h3>
@@ -120,7 +120,7 @@
         </div>
       </div>
 
-      <!-- RECENT TASKS -->
+      <!-- RECENT TASKS (3 tasks only, columns: Task / Date Assigned / Due Date / Status) -->
       <div class="table-card">
         <div class="table-header">
           <h3>Tasks</h3>
@@ -137,7 +137,6 @@
             <thead>
               <tr>
                 <th>Task</th>
-                <th>Description</th>
                 <th>Date Assigned</th>
                 <th>Due Date</th>
                 <th>Status</th>
@@ -146,7 +145,6 @@
             <tbody>
               <tr *ngFor="let task of recentTasks">
                 <td>{{ task.title }}</td>
-                <td>{{ task.description || '—' }}</td>
                 <td>{{ task.posted }}</td>
                 <td>{{ task.due }}</td>
                 <td>
@@ -156,7 +154,7 @@
                 </td>
               </tr>
               <tr *ngIf="recentTasks.length === 0">
-                <td colspan="5"
+                <td colspan="4"
                     style="text-align:center; color:#9ca3af; padding:20px;">
                   No tasks assigned yet.
                 </td>

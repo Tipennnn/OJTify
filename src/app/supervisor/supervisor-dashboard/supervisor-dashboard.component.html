@@ -1,149 +1,147 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-    <!-- SIDENAV -->
-    <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
-  
-    <!-- MAIN SECTION -->
-    <div class="main-section">
-      <app-supervisor-topnav></app-supervisor-topnav>
-  
-      <div class="dashboard-content">
-  
-        <div class="dashboard-header">
-          <h2>Dashboard</h2>
-          <div class="dashboard-divider"></div>
-        </div>
-  
-        <!-- TOP STAT CARDS -->
-        <div class="top-cards">
-  
-          <!-- ASSIGNED INTERNS -->
-          <div class="card card-blue">
-            <div class="card-left">
-              <div class="card-icon">
-                <i class="fa-solid fa-users"></i>
-              </div>
-              <span class="card-label">Assigned Interns</span>
-            </div>
-            <span class="card-number">{{ totalInterns }}</span>
-          </div>
-  
-          <!-- TODAY PRESENT -->
-          <div class="card card-green">
-            <div class="card-left">
-              <div class="card-icon">
-                <i class="fa-solid fa-circle-check"></i>
-              </div>
-              <span class="card-label">Present Today</span>
-            </div>
-            <span class="card-number">{{ presentToday }}</span>
-          </div>
-  
-          <!-- TODAY ABSENT -->
-          <div class="card card-red">
-            <div class="card-left">
-              <div class="card-icon">
-                <i class="fa-solid fa-circle-xmark"></i>
-              </div>
-              <span class="card-label">Absent Today</span>
-            </div>
-            <span class="card-number">{{ absentToday }}</span>
-          </div>
-  
-        </div>
-  
-        <!-- RECENT ATTENDANCE -->
-        <div class="table-card">
-          <div class="table-header">
-            <h3>Recent Attendance</h3>
-            <a routerLink="/supervisor-attendance">View all →</a>
-          </div>
-  
-          <div *ngIf="attendanceLoading"
-               style="text-align:center; padding:20px; color:#9ca3af;">
-            <i class="fa fa-spinner fa-spin"></i> Loading attendance...
-          </div>
-  
-          <table *ngIf="!attendanceLoading">
-            <thead>
-              <tr>
-                <th>Intern Name</th>
-                <th>Date</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let record of recentAttendance">
-                <td class="profile-name-cell">
-                  <img [src]="getAvatarUrl(record)" class="profile-pic" alt="Profile">
-                  <span>{{ record.intern_name }}</span>
-                </td>
-                <td>{{ record.date }}</td>
-                <td>{{ record.time_in }}</td>
-                <td>{{ record.time_out }}</td>
-                <td>
-                  <span class="status"
-                        [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
-                    {{ record.status }}
-                  </span>
-                </td>
-              </tr>
-              <tr *ngIf="recentAttendance.length === 0">
-                <td colspan="5"
-                    style="text-align:center; color:#9ca3af; padding:20px;">
-                  No attendance records yet.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-  
-        <!-- RECENT TASKS -->
-        <div class="table-card">
-          <div class="table-header">
-            <h3>Tasks</h3>
-            <a routerLink="/supervisor-tasks">View all →</a>
-          </div>
-  
-          <div *ngIf="tasksLoading"
-               style="text-align:center; padding:20px; color:#9ca3af;">
-            <i class="fa fa-spinner fa-spin"></i> Loading tasks...
-          </div>
-  
-          <table *ngIf="!tasksLoading">
-            <thead>
-              <tr>
-                <th>Task</th>
-                <th>Description</th>
-                <th>Date Assigned</th>
-                <th>Due Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let task of recentTasks">
-                <td>{{ task.title }}</td>
-                <td>{{ task.description || '—' }}</td>
-                <td>{{ task.posted }}</td>
-                <td>{{ task.due }}</td>
-                <td>
-                  <span class="status" [ngClass]="task.status">
-                    {{ task.status | titlecase }}
-                  </span>
-                </td>
-              </tr>
-              <tr *ngIf="recentTasks.length === 0">
-                <td colspan="5"
-                    style="text-align:center; color:#9ca3af; padding:20px;">
-                  No tasks found.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-  
+  <!-- SIDENAV -->
+  <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+    <app-supervisor-topnav></app-supervisor-topnav>
+
+    <div class="dashboard-content">
+
+      <div class="dashboard-header">
+        <h2>Dashboard</h2>
+        <div class="dashboard-divider"></div>
       </div>
+
+      <!-- TOP STAT CARDS -->
+      <div class="top-cards">
+
+        <!-- ASSIGNED INTERNS -->
+        <div class="card card-blue">
+          <div class="card-left">
+            <div class="card-icon">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <span class="card-label">Assigned Interns</span>
+          </div>
+          <span class="card-number">{{ totalInterns }}</span>
+        </div>
+
+        <!-- TODAY PRESENT -->
+        <div class="card card-green">
+          <div class="card-left">
+            <div class="card-icon">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <span class="card-label">Present Today</span>
+          </div>
+          <span class="card-number">{{ presentToday }}</span>
+        </div>
+
+        <!-- TODAY ABSENT -->
+        <div class="card card-red">
+          <div class="card-left">
+            <div class="card-icon">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </div>
+            <span class="card-label">Absent Today</span>
+          </div>
+          <span class="card-number">{{ absentToday }}</span>
+        </div>
+
+      </div>
+
+      <!-- RECENT ATTENDANCE -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Recent Attendance</h3>
+          <a routerLink="/supervisor-attendance">View all →</a>
+        </div>
+
+        <div *ngIf="attendanceLoading"
+             style="text-align:center; padding:20px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin"></i> Loading attendance...
+        </div>
+
+        <table *ngIf="!attendanceLoading">
+          <thead>
+            <tr>
+              <th>Intern Name</th>
+              <th>Date</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let record of recentAttendance">
+              <td class="profile-name-cell">
+                <img [src]="getAvatarUrl(record)" class="profile-pic" alt="Profile">
+                <span>{{ record.intern_name }}</span>
+              </td>
+              <td>{{ record.date }}</td>
+              <td>{{ record.time_in }}</td>
+              <td>{{ record.time_out }}</td>
+              <td>
+                <span class="status"
+                      [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
+                  {{ record.status }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="recentAttendance.length === 0">
+              <td colspan="5"
+                  style="text-align:center; color:#9ca3af; padding:20px;">
+                No attendance records yet.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RECENT TASKS -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Tasks</h3>
+          <a routerLink="/supervisor-tasks">View all →</a>
+        </div>
+
+        <div *ngIf="tasksLoading"
+             style="text-align:center; padding:20px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin"></i> Loading tasks...
+        </div>
+
+        <table *ngIf="!tasksLoading">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Date Assigned</th>
+              <th>Due Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let task of recentTasks">
+              <td>{{ task.title }}</td>
+              <td>{{ task.posted }}</td>
+              <td>{{ task.due }}</td>
+              <td>
+                <span class="status" [ngClass]="task.status">
+                  {{ task.status | titlecase }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="recentTasks.length === 0">
+              <td colspan="4"
+                  style="text-align:center; color:#9ca3af; padding:20px;">
+                No tasks found.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </div>
   </div>
+</div>
