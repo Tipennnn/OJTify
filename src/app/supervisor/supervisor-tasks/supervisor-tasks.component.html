@@ -41,14 +41,12 @@
                (click)="openCardModal(task)">
             <div class="task-card-inner">
 
-              <!-- Date Badge -->
               <div class="task-date-badge">
                 <span class="tb-day">{{ getDueDateParts(task.due).day }}</span>
                 <span class="tb-num">{{ getDueDateParts(task.due).num }}</span>
                 <span class="tb-month">{{ getDueDateParts(task.due).month }}</span>
               </div>
 
-              <!-- Body -->
               <div class="task-card-body">
                 <span class="task-card-title">{{ task.title }}</span>
                 <div class="task-card-meta">
@@ -57,7 +55,6 @@
                 </div>
               </div>
 
-              <!-- Submission Badge -->
               <div class="task-badge-wrap">
                 <span class="submission-badge"
                       [class.all-done]="getTaskSubmittedCount(task) >= getTaskAssignedCount(task) && getTaskAssignedCount(task) > 0"
@@ -80,7 +77,6 @@
 
         </div>
 
-        <!-- Pagination -->
         <div class="pagination-wrapper" *ngIf="totalPages > 1">
           <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
             <i class="fas fa-chevron-left"></i>
@@ -97,10 +93,7 @@
       <!-- ══════════════ LOGBOOK TAB ══════════════ -->
       <div *ngIf="activeTab === 'logbook'">
 
-        <!-- If no intern selected: show intern table -->
         <ng-container *ngIf="!selectedInternId">
-
-          <!-- Search bar -->
           <div class="lb-search-wrap">
             <div class="lb-search-box">
               <i class="fas fa-search"></i>
@@ -111,7 +104,6 @@
             <span class="lb-search-count">{{ filteredLogbookInterns.length }} intern{{ filteredLogbookInterns.length !== 1 ? 's' : '' }}</span>
           </div>
 
-          <!-- Intern Table -->
           <div class="intern-table-container" *ngIf="filteredLogbookInterns.length > 0">
             <table class="intern-logbook-table">
               <thead>
@@ -167,18 +159,13 @@
             <i class="fas fa-users"></i>
             <p>No interns found.</p>
           </div>
-
         </ng-container>
 
-        <!-- If intern selected: show their logbook -->
         <ng-container *ngIf="selectedInternId && selectedInternObj">
-
-          <!-- Back + intern header -->
           <div class="intern-logbook-header">
             <button class="back-btn" (click)="closeInternLogbook()">
               <i class="fas fa-arrow-left"></i> Back to Interns
             </button>
-
             <div class="intern-logbook-profile">
               <div class="intern-lb-avatar-lg"
                    [style.backgroundImage]="getInternProfileUrl(selectedInternObj) ? 'url(' + getInternProfileUrl(selectedInternObj) + ')' : 'none'"
@@ -193,19 +180,16 @@
             </div>
           </div>
 
-          <!-- Loading -->
           <div *ngIf="logbookLoading" style="text-align:center; padding:40px; color:#9ca3af;">
             <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
             <p style="margin-top:10px; font-size:14px;">Loading entries...</p>
           </div>
 
-          <!-- Empty -->
           <div *ngIf="!logbookLoading && internLogbookEntries.length === 0" class="lb-empty">
             <i class="fas fa-book-open"></i>
             <p>{{ selectedInternObj.first_name }} hasn't added any logbook entries yet.</p>
           </div>
 
-          <!-- Logbook Entries Table -->
           <div class="lb-table-container" *ngIf="!logbookLoading && internLogbookEntries.length > 0">
             <table class="lb-entries-table">
               <thead>
@@ -243,7 +227,6 @@
               </tbody>
             </table>
           </div>
-
         </ng-container>
 
       </div>
@@ -291,34 +274,108 @@
         </div>
       </div>
 
+      <!-- RIGHT PANEL: Assign Interns -->
       <div class="modal-right">
         <h3>Assign Interns</h3>
-        <div class="assign-options">
-          <label><input type="radio" name="assign" value="all" [(ngModel)]="assignMode"> Assign to All Interns</label>
-          <label><input type="radio" name="assign" value="specific" [(ngModel)]="assignMode"> Assign to specific interns</label>
+
+        <!-- Assign Mode Selector (now 3 segmented buttons) -->
+        <div class="assign-mode-tabs">
+          <button class="assign-mode-btn"
+                  [class.active]="assignMode === 'all'"
+                  (click)="assignMode = 'all'; onAssignModeChange()">
+            <i class="fas fa-users"></i> All Interns
+          </button>
+          <button class="assign-mode-btn"
+                  [class.active]="assignMode === 'course'"
+                  (click)="assignMode = 'course'; onAssignModeChange()">
+            <i class="fas fa-graduation-cap"></i> By Course
+          </button>
+          <button class="assign-mode-btn"
+                  [class.active]="assignMode === 'specific'"
+                  (click)="assignMode = 'specific'; onAssignModeChange()">
+            <i class="fas fa-user-check"></i> Specific
+          </button>
         </div>
+
+        <!-- ALL MODE -->
+        <div *ngIf="assignMode === 'all'" class="assign-info-banner">
+          <i class="fas fa-circle-info"></i>
+          This task will be assigned to all <strong>{{ allInterns.length }}</strong> intern{{ allInterns.length !== 1 ? 's' : '' }}.
+        </div>
+
+        <!-- BY COURSE MODE -->
+        <div *ngIf="assignMode === 'course'" class="course-assign-wrap">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">Select Course</label>
+            <div class="course-select-wrap">
+              <select [(ngModel)]="selectedCourse" (change)="onCourseDropdownChange()" class="course-select">
+                <option value="" disabled>— Choose a course —</option>
+                <option *ngFor="let c of courseOptions" [value]="c.label">{{ c.label }} — {{ c.full }}</option>
+              </select>
+              <i class="fas fa-chevron-down course-select-arrow"></i>
+            </div>
+          </div>
+
+          <!-- Manual input if Other -->
+          <!--<div *ngIf="selectedCourse === 'Other'" class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">Type course name</label>
+            <input type="text"
+                   [(ngModel)]="customCourseInput"
+                   placeholder="e.g. BSIT, BSCS, HRS..."
+                   class="course-custom-input">
+          </div>-->
+
+          <!-- Matched interns preview -->
+          <div *ngIf="effectiveCourse" class="course-match-preview">
+            <div class="course-match-header">
+              <i class="fas fa-users" style="color:#0818A8; font-size:11px;"></i>
+              <span *ngIf="courseMatchedInterns.length > 0">
+                <strong>{{ courseMatchedInterns.length }}</strong> intern{{ courseMatchedInterns.length !== 1 ? 's' : '' }} matched
+              </span>
+              <span *ngIf="courseMatchedInterns.length === 0" style="color:#dc2626;">
+                No interns found for "{{ effectiveCourse }}"
+              </span>
+            </div>
+            <div class="course-match-list" *ngIf="courseMatchedInterns.length > 0">
+              <div class="course-match-chip" *ngFor="let i of courseMatchedInterns">
+                <div class="cmc-avatar">{{ i.first_name[0] }}{{ i.last_name[0] }}</div>
+                <span>{{ i.first_name }} {{ i.last_name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SPECIFIC MODE -->
         <ng-container *ngIf="assignMode === 'specific'">
           <div class="search-box">
             <input type="text" placeholder="Search intern name…" [(ngModel)]="internSearchQuery" (input)="onInternSearch()">
             <i class="fas fa-search"></i>
           </div>
           <div class="intern-list">
-            <div class="intern-item" *ngFor="let intern of filteredInterns" [class.selected]="isSelected(intern)" (click)="toggleIntern(intern)" style="cursor:pointer;">
+            <div class="intern-item"
+                 *ngFor="let intern of filteredInterns"
+                 [class.selected]="isSelected(intern)"
+                 (click)="toggleIntern(intern)"
+                 style="cursor:pointer;">
               <div class="intern-avatar"
                    [style.backgroundImage]="intern.profile_photo_id ? 'url(' + getFileUrl(intern.profile_photo_id, 'view') + ')' : 'none'"
-                   [style.backgroundSize]="'cover'" [style.backgroundPosition]="'center'">
+                   [style.backgroundSize]="'cover'"
+                   [style.backgroundPosition]="'center'">
                 <span *ngIf="!intern.profile_photo_id">{{ intern.first_name[0] }}{{ intern.last_name[0] }}</span>
               </div>
-              <span>{{ intern.first_name }} {{ intern.last_name }}</span>
+              <div style="display:flex; flex-direction:column; gap:1px; flex:1; min-width:0;">
+                <span style="font-size:13.5px; font-weight:500; color:#111827;">{{ intern.first_name }} {{ intern.last_name }}</span>
+                <span style="font-size:11px; color:#9ca3af;">{{ intern.course }}</span>
+              </div>
               <i class="fas fa-check" *ngIf="isSelected(intern)" style="margin-left:auto; color:#0818A8;"></i>
             </div>
-            <div *ngIf="filteredInterns.length === 0" style="text-align:center; color:#9ca3af; padding:16px;">No interns found.</div>
+            <div *ngIf="filteredInterns.length === 0" style="text-align:center; color:#9ca3af; padding:16px; font-size:13px;">No interns found.</div>
           </div>
-          <p style="font-size:13px; color:#6b7280; margin-top:8px;">{{ selectedInterns.length }} intern(s) selected</p>
+          <p style="font-size:12.5px; color:#6b7280; margin-top:8px;">
+            <i class="fas fa-circle-check" style="color:#0818A8; font-size:11px;"></i>
+            {{ selectedInterns.length }} intern{{ selectedInterns.length !== 1 ? 's' : '' }} selected
+          </p>
         </ng-container>
-        <p *ngIf="assignMode === 'all'" style="font-size:13px; color:#0818A8; margin-top:12px;">
-          This task will be assigned to all {{ allInterns.length }} interns.
-        </p>
       </div>
 
     </div>
@@ -451,8 +508,9 @@
         <div class="comment" *ngFor="let comment of taskComments">
           <div class="avatar"
                [style.background]="comment.role === 'supervisor' ? '#0818A8' : (getCommentPhotoUrl(comment.user_id) ? 'transparent' : '#2563eb')"
-               [style.background-image]="comment.role === 'intern' && getCommentPhotoUrl(comment.user_id) ? 'url(' + getCommentPhotoUrl(comment.user_id) + ')' : ''"
-               [style.background-size]="'cover'" [style.background-position]="'center'">
+               [style.backgroundImage]="comment.role === 'intern' && getCommentPhotoUrl(comment.user_id) ? 'url(' + getCommentPhotoUrl(comment.user_id) + ')' : ''"
+               [style.backgroundSize]="'cover'"
+               [style.backgroundPosition]="'center'">
             <span *ngIf="comment.role === 'supervisor' || !getCommentPhotoUrl(comment.user_id)">{{ getInitials(comment.user_name) }}</span>
           </div>
           <div class="comment-body">
@@ -532,17 +590,15 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════ -->
-<!--  LOGBOOK ENTRY DETAIL MODAL (Daily Entry + Weekly Report) -->
+<!--  LOGBOOK ENTRY DETAIL MODAL                       -->
 <!-- ══════════════════════════════════════════════════ -->
 <div class="task-modal-overlay" [class.active]="isLogbookEntryModalOpen" (click)="closeLogbookEntryModal()">
   <div class="task-modal-modern lb-detail-modal" (click)="$event.stopPropagation()">
     <div class="modal-close" (click)="closeLogbookEntryModal()"></div>
 
-    <!-- LEFT: Photos + Score -->
     <div class="modal-left lb-entry-left">
       <div class="lb-entry-left-inner">
 
-        <!-- Inner tab switcher -->
         <div class="lb-modal-tab-switcher">
           <button class="lb-modal-tab-btn"
                   [class.active]="logbookModalPanel === 'entry'"
@@ -556,7 +612,6 @@
           </button>
         </div>
 
-        <!-- Photos section (always visible in left panel) -->
         <div class="lb-detail-section-label">
           <i class="fas fa-camera"></i> Photo Evidence
         </div>
@@ -578,7 +633,6 @@
 
         <div class="divider" style="margin: 16px 0;"></div>
 
-        <!-- Score section -->
         <div class="lb-detail-section-label"><i class="fas fa-star"></i> Score</div>
 
         <div class="lb-modal-score-display" *ngIf="selectedLogbookEntry">
@@ -588,7 +642,6 @@
           </div>
         </div>
 
-        <!-- Score input in modal -->
         <div class="lb-modal-score-input" *ngIf="selectedLogbookEntry">
           <label>Set score (0–100)</label>
           <div class="score-input-row">
@@ -603,10 +656,8 @@
       </div>
     </div>
 
-    <!-- RIGHT: Entry details OR Weekly Report -->
     <div class="modal-right lb-entry-right">
 
-      <!-- ── DAILY ENTRY PANEL ── -->
       <ng-container *ngIf="logbookModalPanel === 'entry'">
         <div class="lb-entry-header-row" *ngIf="selectedLogbookEntry">
           <div class="lb-entry-icon-wrap"><i class="fas fa-book-open"></i></div>
@@ -633,7 +684,6 @@
         </div>
 
         <div class="lb-view-scroll-area" *ngIf="selectedLogbookEntry">
-
           <div class="lb-section-block">
             <div class="lb-section-header">
               <div class="lb-section-icon blue"><i class="fas fa-clipboard-check"></i></div>
@@ -663,11 +713,9 @@
               </p>
             </div>
           </div>
-
         </div>
       </ng-container>
 
-      <!-- ── WEEKLY REPORT PANEL ── -->
       <ng-container *ngIf="logbookModalPanel === 'report'">
         <div class="lb-entry-header-row">
           <div class="lb-entry-icon-wrap" style="background: linear-gradient(135deg, #0818A8, #060f7a);"><i class="fas fa-file-lines"></i></div>
@@ -696,7 +744,6 @@
             </div>
           </div>
 
-          <!-- Auto-generated weekly summary for selected intern -->
           <div class="lb-report-preview" *ngIf="internLogbookEntries.length > 0">
             <div class="lb-report-preview-header">
               <i class="fas fa-chart-bar"></i> Logbook Summary

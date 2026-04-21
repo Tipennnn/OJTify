@@ -93,7 +93,26 @@ export class SupervisorTasksComponent implements OnInit {
   filteredInterns: Intern[] = [];
   selectedInterns: Intern[] = [];
   internSearchQuery = '';
-  assignMode: 'all' | 'specific' = 'specific';
+
+  // ── Assign mode: 'all' | 'course' | 'specific' ───────────
+  assignMode: 'all' | 'course' | 'specific' = 'specific';
+
+  // ── Course filter ─────────────────────────────────────────
+  readonly courseOptions = [
+    { label: 'BEED',  full: 'Bachelor of Elementary Education' },
+    { label: 'BECED', full: 'Bachelor of Early Childhood Education' },
+    { label: 'BPEd',  full: 'Bachelor of Physical Education' },
+    { label: 'BCAE',  full: 'Bachelor of Culture and Arts Education' },
+    { label: 'BSED-English',      full: 'Bachelor of Secondary Education major in English' },
+    { label: 'BSED-Filipino',     full: 'Bachelor of Secondary Education major in Filipino' },
+    { label: 'BSED-Math',         full: 'Bachelor of Secondary Education major in Mathematics' },
+    { label: 'BSED-Social Studies', full: 'Bachelor of Secondary Education major in Social Studies' },
+    { label: 'BSED-Science',      full: 'Bachelor of Secondary Education major in Science' },
+    //{ label: 'Other',             full: 'Please specify' },
+  ];
+  selectedCourse     = '';   // chosen from dropdown
+  customCourseInput  = '';   // typed if 'Other'
+
   taskSubmissionCountMap: { [taskId: string]: number } = {};
 
   selectedTask       : Task        = this.emptyTask();
@@ -144,23 +163,19 @@ export class SupervisorTasksComponent implements OnInit {
   selectedLogbookEntry    : LogbookEntry | null = null;
   logbookEntryPhotos      : LogbookPhoto[] = [];
 
-  /** Which panel is active inside the logbook detail modal */
   logbookModalPanel: 'entry' | 'report' = 'entry';
 
   scoringEntryId   : string | null = null;
   scoreInput       : number | null = null;
   scoreSaving      = false;
 
-  // Weekly report
   reportWeekStart  = '';
   reportWeekEnd    = '';
   reportGenerating = false;
 
-  // Intern stats
   internEntryCountMap: { [internId: string]: number } = {};
   internAvgScoreMap  : { [internId: string]: number | null } = {};
 
-  // Search/filter logbook
   logbookSearchQuery = '';
   filteredLogbookInterns: Intern[] = [];
 
@@ -206,8 +221,8 @@ export class SupervisorTasksComponent implements OnInit {
       this.allInterns = (res.documents as any[]).filter(
         s => s.supervisor_id === this.currentSupervisorId
       );
-      this.filteredInterns = [...this.allInterns];
-      this.logbookInterns  = [...this.allInterns];
+      this.filteredInterns        = [...this.allInterns];
+      this.logbookInterns         = [...this.allInterns];
       this.filteredLogbookInterns = [...this.allInterns];
     } catch (error: any) {
       console.error('Failed to load interns:', error.message);
@@ -234,7 +249,6 @@ export class SupervisorTasksComponent implements OnInit {
         }
       });
 
-      // Compute avg scores
       this.internAvgScoreMap = {};
       this.allInterns.forEach(i => {
         const scores = internScoreMap[i.$id];
@@ -290,9 +304,35 @@ export class SupervisorTasksComponent implements OnInit {
     };
   }
 
-  // ══════════════════════════════════════════════════════════
-  //  LOGBOOK METHODS
-  // ══════════════════════════════════════════════════════════
+  // ── Course assign helpers ─────────────────────────────────
+
+  /** Returns the effective course string to match against */
+  get effectiveCourse(): string {
+    if (this.assignMode !== 'course') return '';
+    if (this.selectedCourse === 'Other') return this.customCourseInput.trim();
+    return this.selectedCourse;
+  }
+
+  /** Interns whose course contains the effectiveCourse string (case-insensitive) */
+  get courseMatchedInterns(): Intern[] {
+    const q = this.effectiveCourse.toLowerCase();
+    if (!q) return [];
+    return this.allInterns.filter(i => i.course?.toLowerCase().includes(q));
+  }
+
+  onAssignModeChange() {
+    this.selectedCourse    = '';
+    this.customCourseInput = '';
+    this.selectedInterns   = [];
+    this.internSearchQuery = '';
+    this.filteredInterns   = [...this.allInterns];
+  }
+
+  onCourseDropdownChange() {
+    this.customCourseInput = '';
+  }
+
+  // ── Logbook methods ───────────────────────────────────────
 
   async openInternLogbook(intern: Intern) {
     this.selectedInternId  = intern.$id;
@@ -313,18 +353,17 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   closeInternLogbook() {
-    this.selectedInternId   = '';
-    this.selectedInternObj  = null;
+    this.selectedInternId     = '';
+    this.selectedInternObj    = null;
     this.internLogbookEntries = [];
-    this.scoringEntryId     = null;
-    this.scoreInput         = null;
+    this.scoringEntryId       = null;
+    this.scoreInput           = null;
   }
 
-  /** Opens the detail modal for a logbook entry row click */
   async openLogbookEntryModal(entry: LogbookEntry) {
     this.selectedLogbookEntry    = entry;
     this.logbookEntryPhotos      = [];
-    this.logbookModalPanel       = 'entry';   // default to Daily Entry tab
+    this.logbookModalPanel       = 'entry';
     this.isLogbookEntryModalOpen = true;
     this.scoreInput = entry.score ?? null;
     if (entry.$id) {
@@ -344,7 +383,6 @@ export class SupervisorTasksComponent implements OnInit {
     this.scoreInput              = null;
   }
 
-  // Keep old openLogbookEntry for backwards compat (delegates)
   async openLogbookEntry(entry: LogbookEntry) {
     await this.openLogbookEntryModal(entry);
   }
@@ -372,22 +410,13 @@ export class SupervisorTasksComponent implements OnInit {
         this.appwrite.DATABASE_ID, 'logbook_entries', entry.$id!,
         { score: this.scoreInput }
       );
-
       const idx = this.internLogbookEntries.findIndex(e => e.$id === entry.$id);
       if (idx !== -1) {
-        this.internLogbookEntries[idx] = {
-          ...this.internLogbookEntries[idx],
-          score: this.scoreInput
-        } as LogbookEntry;
+        this.internLogbookEntries[idx] = { ...this.internLogbookEntries[idx], score: this.scoreInput } as LogbookEntry;
       }
-
       if (this.selectedLogbookEntry?.$id === entry.$id) {
-        this.selectedLogbookEntry = {
-          ...this.selectedLogbookEntry,
-          score: this.scoreInput
-        } as LogbookEntry;
+        this.selectedLogbookEntry = { ...this.selectedLogbookEntry, score: this.scoreInput } as LogbookEntry;
       }
-
       this.cancelScoring();
       Swal.fire({ icon: 'success', title: 'Score saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
     } catch (error: any) {
@@ -425,7 +454,9 @@ export class SupervisorTasksComponent implements OnInit {
 
   getThisWeekCount(entries: LogbookEntry[]): number {
     const now = new Date(); const day = now.getDay();
-    const start = new Date(now); start.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); start.setHours(0,0,0,0);
+    const start = new Date(now);
+    start.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    start.setHours(0, 0, 0, 0);
     return entries.filter(e => new Date(e.entry_date) >= start).length;
   }
 
@@ -521,16 +552,18 @@ export class SupervisorTasksComponent implements OnInit {
       for (const entry of sortedEntries) allPhotoItems.push(...(photoMap[entry.$id!] || []));
 
       const rows = sortedEntries.map(e => {
-        const scoreDisp = e.score !== null && e.score !== undefined ? `<span style="font-weight:700;color:${e.score>=75?'#15803d':e.score>=60?'#d97706':'#dc2626'}">${e.score}/100</span>` : '<span style="color:#aaa;">—</span>';
+        const scoreDisp = e.score !== null && e.score !== undefined
+          ? `<span style="font-weight:700;color:${e.score >= 75 ? '#15803d' : e.score >= 60 ? '#d97706' : '#dc2626'}">${e.score}/100</span>`
+          : '<span style="color:#aaa;">—</span>';
         const photoCount = (photoMap[e.$id!] || []).length;
         return `<tr>
           <td class="col-date">
-            <div class="date-day">${new Date(e.entry_date).toLocaleDateString('en-US',{weekday:'long'})}</div>
-            <div class="date-full">${new Date(e.entry_date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
-            ${photoCount > 0 ? `<div style="font-size:9px;color:#0818A8;margin-top:4px;">📷 ${photoCount} photo${photoCount>1?'s':''}</div>` : ''}
+            <div class="date-day">${new Date(e.entry_date).toLocaleDateString('en-US', { weekday: 'long' })}</div>
+            <div class="date-full">${new Date(e.entry_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+            ${photoCount > 0 ? `<div style="font-size:9px;color:#0818A8;margin-top:4px;">📷 ${photoCount} photo${photoCount > 1 ? 's' : ''}</div>` : ''}
           </td>
-          <td class="col-tasks">${e.tasks_done.replace(/\n/g,'<br>')}</td>
-          <td class="col-reflect">${e.reflection ? e.reflection.replace(/\n/g,'<br>') : '<span style="color:#aaa;">—</span>'}</td>
+          <td class="col-tasks">${e.tasks_done.replace(/\n/g, '<br>')}</td>
+          <td class="col-reflect">${e.reflection ? e.reflection.replace(/\n/g, '<br>') : '<span style="color:#aaa;">—</span>'}</td>
           <td class="col-score" style="text-align:center;">${scoreDisp}</td>
         </tr>`;
       }).join('');
@@ -566,7 +599,7 @@ export class SupervisorTasksComponent implements OnInit {
           </div>
           <div style="flex:1;padding:8px 14px;border-right:1px solid #e2e8f0;">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin-bottom:2px;">Total Days</div>
-            <div style="font-size:11px;font-weight:600;color:#1e293b;">${totalEntries} day${totalEntries!==1?'s':''}</div>
+            <div style="font-size:11px;font-weight:600;color:#1e293b;">${totalEntries} day${totalEntries !== 1 ? 's' : ''}</div>
           </div>
           <div style="flex:1;padding:8px 14px;">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#94a3b8;margin-bottom:2px;">Avg Score</div>
@@ -624,10 +657,10 @@ export class SupervisorTasksComponent implements OnInit {
         const photoRowsHtml = (() => {
           let html = '';
           for (let i = 0; i < allPhotoItems.length; i += 2) {
-            const a = allPhotoItems[i]; const b = allPhotoItems[i+1];
+            const a = allPhotoItems[i]; const b = allPhotoItems[i + 1];
             html += `<div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;">`;
-            html += `<div style="flex:1;min-width:0;"><img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#0818A8;font-weight:600;margin-top:4px;">${a.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>${a.uploadedAt?`<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>`:''}</div>`;
-            if (b) { html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#0818A8;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt?`<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>`:''}</div>`; }
+            html += `<div style="flex:1;min-width:0;"><img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#0818A8;font-weight:600;margin-top:4px;">${a.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>${a.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>` : ''}</div>`;
+            if (b) { html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#0818A8;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}</div>`; }
             else { html += `<div style="flex:1;"></div>`; }
             html += `</div>`;
           }
@@ -638,7 +671,7 @@ export class SupervisorTasksComponent implements OnInit {
         page2.style.cssText = 'position:fixed;left:-9999px;top:0;width:714px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px;box-sizing:border-box;';
         page2.innerHTML = `<div style="text-align:center;border-bottom:2px solid #0818A8;padding-bottom:10px;margin-bottom:14px;"><div style="font-size:13px;font-weight:700;color:#1e293b;">Photo Evidence</div><div style="font-size:10px;color:#64748b;margin-top:2px;">${internName} — Visual documentation of daily OJT activities</div></div>${photoRowsHtml}`;
         document.body.appendChild(page2);
-        const canvas2 = await html2canvas(page2, { scale:2, useCORS:true, allowTaint:true, backgroundColor:'#ffffff', logging:false, width:714, height:page2.scrollHeight, windowWidth:714 });
+        const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 714, height: page2.scrollHeight, windowWidth: 714 });
         addCanvasWithMargins(canvas2, false);
         document.body.removeChild(page2);
       }
@@ -660,25 +693,23 @@ export class SupervisorTasksComponent implements OnInit {
           <div style="font-size:9px;color:#0818A8;font-weight:600;">OJTify · Olongapo City Elementary School</div>
         </div>`;
       document.body.appendChild(pageSig);
-      const canvasSig = await html2canvas(pageSig, { scale:2, useCORS:true, allowTaint:true, backgroundColor:'#ffffff', logging:false, width:794, height:pageSig.scrollHeight, windowWidth:794 });
+      const canvasSig = await html2canvas(pageSig, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 794, height: pageSig.scrollHeight, windowWidth: 794 });
       addCanvasWithMargins(canvasSig, false);
       document.body.removeChild(pageSig);
       document.body.removeChild(page1);
 
-      const fileName = `OJT-Report-${internName.replace(/\s+/g,'-')}-${this.reportWeekStart}.pdf`;
+      const fileName = `OJT-Report-${internName.replace(/\s+/g, '-')}-${this.reportWeekStart}.pdf`;
       pdf.save(fileName);
-      Swal.fire({ icon:'success', title:'Downloaded!', text:`Saved as ${fileName}`, confirmButtonColor:'#0818A8', timer:2500, showConfirmButton:false });
+      Swal.fire({ icon: 'success', title: 'Downloaded!', text: `Saved as ${fileName}`, confirmButtonColor: '#0818A8', timer: 2500, showConfirmButton: false });
     } catch (error: any) {
-      Swal.fire({ icon:'error', title:'Report failed', text:error.message });
+      Swal.fire({ icon: 'error', title: 'Report failed', text: error.message });
     } finally {
       this.reportGenerating = false;
-      ['__sv-pdf-page1','__sv-pdf-page2','__sv-pdf-sig'].forEach(id => document.getElementById(id)?.remove());
+      ['__sv-pdf-page1', '__sv-pdf-page2', '__sv-pdf-sig'].forEach(id => document.getElementById(id)?.remove());
     }
   }
 
-  // ══════════════════════════════════════════════════════════
-  //  TASK METHODS
-  // ══════════════════════════════════════════════════════════
+  // ── Task methods ──────────────────────────────────────────
 
   onInternSearch() {
     const q = this.internSearchQuery.toLowerCase();
@@ -730,15 +761,15 @@ export class SupervisorTasksComponent implements OnInit {
       const index = this.tasks.findIndex(t => t.$id === this.selectedTask.$id);
       if (index !== -1) { this.tasks[index].attachment_file_id = uploaded.$id; this.tasks[index].attachment_file_name = this.editAttachmentFile.name; }
       this.editAttachmentFile = null; this.editAttachmentFileName = '';
-      Swal.fire({ icon:'success', title:'Attachment Updated!', toast:true, position:'top-end', showConfirmButton:false, timer:3000, timerProgressBar:true });
+      Swal.fire({ icon: 'success', title: 'Attachment Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
     } catch (error: any) {
-      Swal.fire({ icon:'error', title:'Upload Failed', text:error.message });
+      Swal.fire({ icon: 'error', title: 'Upload Failed', text: error.message });
     } finally { this.editAttachmentLoading = false; }
   }
 
   async removeAttachment() {
     if (!this.selectedTask.attachment_file_id || !this.selectedTask.$id) return;
-    const result = await Swal.fire({ title:'Remove attachment?', text:'This will permanently delete the attached file.', icon:'warning', showCancelButton:true, confirmButtonText:'Yes, remove it', cancelButtonText:'Cancel', confirmButtonColor:'#ef4444', cancelButtonColor:'#6b7280' });
+    const result = await Swal.fire({ title: 'Remove attachment?', text: 'This will permanently delete the attached file.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, remove it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
     if (!result.isConfirmed) return;
     try {
       await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.selectedTask.attachment_file_id);
@@ -747,14 +778,21 @@ export class SupervisorTasksComponent implements OnInit {
       const index = this.tasks.findIndex(t => t.$id === this.selectedTask.$id);
       if (index !== -1) { this.tasks[index].attachment_file_id = ''; this.tasks[index].attachment_file_name = ''; }
       this.editAttachmentFile = null; this.editAttachmentFileName = '';
-      Swal.fire({ icon:'success', title:'Attachment Removed!', toast:true, position:'top-end', showConfirmButton:false, timer:3000, timerProgressBar:true });
-    } catch (error: any) { Swal.fire({ icon:'error', title:'Failed to remove', text:error.message }); }
+      Swal.fire({ icon: 'success', title: 'Attachment Removed!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to remove', text: error.message }); }
   }
 
   openModal() {
-    this.selectedTask = this.emptyTask(); this.selectedFile = null; this.attachmentFileName = '';
-    this.selectedInterns = []; this.internSearchQuery = ''; this.filteredInterns = [...this.allInterns];
-    this.assignMode = 'specific'; this.isModalOpen = true;
+    this.selectedTask      = this.emptyTask();
+    this.selectedFile      = null;
+    this.attachmentFileName = '';
+    this.selectedInterns   = [];
+    this.internSearchQuery = '';
+    this.filteredInterns   = [...this.allInterns];
+    this.assignMode        = 'specific';
+    this.selectedCourse    = '';
+    this.customCourseInput = '';
+    this.isModalOpen       = true;
     document.body.style.overflow = 'hidden';
   }
 
@@ -780,13 +818,29 @@ export class SupervisorTasksComponent implements OnInit {
     this.editingCommentId = null; this.editingMessage = ''; document.body.style.overflow = '';
   }
 
-  openSubmissionsModal()  { this.isSubmissionsModalOpen = true;  }
+  openSubmissionsModal()  { this.isSubmissionsModalOpen = true; }
   closeSubmissionsModal() { this.isSubmissionsModalOpen = false; }
 
   async onCreateTask() {
     if (!this.selectedTask.title || !this.selectedTask.due) {
-      Swal.fire({ icon:'warning', title:'Missing fields', text:'Please fill in the title and due date.', confirmButtonColor:'#0818A8' }); return;
+      Swal.fire({ icon: 'warning', title: 'Missing fields', text: 'Please fill in the title and due date.', confirmButtonColor: '#0818A8' }); return;
     }
+
+    // Validate course mode
+    if (this.assignMode === 'course') {
+      const q = this.effectiveCourse;
+      if (!q) {
+        Swal.fire({ icon: 'warning', title: 'No course selected', text: 'Please select or type a course to assign to.', confirmButtonColor: '#0818A8' }); return;
+      }
+      if (this.courseMatchedInterns.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'No matching interns', text: `No interns found with course containing "${q}".`, confirmButtonColor: '#0818A8' }); return;
+      }
+    }
+
+    if (this.assignMode === 'specific' && this.selectedInterns.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'No interns selected', text: 'Please select at least one intern.', confirmButtonColor: '#0818A8' }); return;
+    }
+
     this.loading = true;
     try {
       let attachmentFileId = '', attachmentFileName = '';
@@ -794,22 +848,40 @@ export class SupervisorTasksComponent implements OnInit {
         const uploaded = await this.appwrite.storage.createFile(this.BUCKET_ID, ID.unique(), this.selectedFile);
         attachmentFileId = uploaded.$id; attachmentFileName = this.selectedFile.name;
       }
+
       let assignedIds = '';
-      if (this.assignMode === 'all') { assignedIds = this.allInterns.map(i => i.$id).join(','); }
-      else { assignedIds = this.selectedInterns.map(i => i.$id).join(','); }
+      if (this.assignMode === 'all') {
+        assignedIds = this.allInterns.map(i => i.$id).join(',');
+      } else if (this.assignMode === 'course') {
+        assignedIds = this.courseMatchedInterns.map(i => i.$id).join(',');
+      } else {
+        assignedIds = this.selectedInterns.map(i => i.$id).join(',');
+      }
+
       const doc = await this.appwrite.databases.createDocument(
         this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, ID.unique(),
-        { title: this.selectedTask.title, description: this.selectedTask.description, posted: new Date().toLocaleString(), due: this.selectedTask.due, status: 'pending', assigned_intern_ids: assignedIds, attachment_file_id: attachmentFileId, attachment_file_name: attachmentFileName, supervisor_id: this.currentSupervisorId, supervisor_name: this.supervisorName }
+        {
+          title: this.selectedTask.title,
+          description: this.selectedTask.description,
+          posted: new Date().toLocaleString(),
+          due: this.selectedTask.due,
+          status: 'pending',
+          assigned_intern_ids: assignedIds,
+          attachment_file_id: attachmentFileId,
+          attachment_file_name: attachmentFileName,
+          supervisor_id: this.currentSupervisorId,
+          supervisor_name: this.supervisorName
+        }
       );
       this.tasks.unshift(doc as any); this.currentPage = 1; this.closeModal();
-      Swal.fire({ icon:'success', title:'Task Created!', text:`"${doc['title']}" has been created successfully.`, toast:true, position:'top-end', showConfirmButton:false, timer:3000, timerProgressBar:true });
-    } catch (error: any) { Swal.fire({ icon:'error', title:'Failed', text:error.message }); }
+      Swal.fire({ icon: 'success', title: 'Task Created!', text: `"${doc['title']}" has been created successfully.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed', text: error.message }); }
     finally { this.loading = false; }
   }
 
   async deleteTask(task: Task, event: Event) {
     event.stopPropagation();
-    const result = await Swal.fire({ title:'Delete task?', text:`"${task.title}" will be permanently deleted.`, icon:'warning', showCancelButton:true, confirmButtonText:'Yes, delete it', cancelButtonText:'Cancel', confirmButtonColor:'#ef4444', cancelButtonColor:'#6b7280' });
+    const result = await Swal.fire({ title: 'Delete task?', text: `"${task.title}" will be permanently deleted.`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
     if (!result.isConfirmed) return;
     try {
       if (task.attachment_file_id) { try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, task.attachment_file_id); } catch { } }
@@ -817,8 +889,8 @@ export class SupervisorTasksComponent implements OnInit {
       this.tasks = this.tasks.filter(t => t.$id !== task.$id);
       if (this.isCardModalOpen) this.closeCardModal();
       if (this.currentPage > this.totalPages && this.totalPages > 0) this.currentPage = this.totalPages;
-      Swal.fire({ icon:'success', title:'Task Deleted!', toast:true, position:'top-end', showConfirmButton:false, timer:3000, timerProgressBar:true });
-    } catch (error: any) { Swal.fire({ icon:'error', title:'Failed to delete', text:error.message }); }
+      Swal.fire({ icon: 'success', title: 'Task Deleted!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
 
   async loadTaskComments(taskId: string) {
@@ -849,7 +921,7 @@ export class SupervisorTasksComponent implements OnInit {
         { task_id: this.selectedTask.$id, user_id: user.$id, user_name: this.supervisorName || user.name || user.email, role: 'supervisor', message: this.newSupervisorComment.trim(), created_at: new Date().toLocaleString() }
       );
       this.taskComments.push(doc as any); this.newSupervisorComment = '';
-    } catch (error: any) { Swal.fire({ icon:'error', title:'Failed to send', text:error.message }); }
+    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to send', text: error.message }); }
     finally { this.supervisorCommentLoading = false; }
   }
 
@@ -863,22 +935,22 @@ export class SupervisorTasksComponent implements OnInit {
       const index = this.taskComments.findIndex(c => c.$id === comment.$id);
       if (index !== -1) this.taskComments[index] = { ...this.taskComments[index], message: this.editingMessage.trim() };
       this.cancelEditComment();
-      Swal.fire({ icon:'success', title:'Comment updated!', toast:true, position:'top-end', showConfirmButton:false, timer:2000, timerProgressBar:true });
-    } catch (error: any) { Swal.fire({ icon:'error', title:'Failed to update', text:error.message }); }
+      Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message }); }
   }
 
   async deleteSupervisorComment(comment: any) {
-    const result = await Swal.fire({ title:'Delete comment?', text:'This action cannot be undone.', icon:'warning', showCancelButton:true, confirmButtonText:'Yes, delete it', cancelButtonText:'Cancel', confirmButtonColor:'#ef4444', cancelButtonColor:'#6b7280' });
+    const result = await Swal.fire({ title: 'Delete comment?', text: 'This action cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
     if (!result.isConfirmed) return;
     try {
       await this.appwrite.databases.deleteDocument(this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id);
       this.taskComments = this.taskComments.filter(c => c.$id !== comment.$id);
-      Swal.fire({ icon:'success', title:'Comment deleted!', toast:true, position:'top-end', showConfirmButton:false, timer:2000, timerProgressBar:true });
-    } catch (error: any) { Swal.fire({ icon:'error', title:'Failed to delete', text:error.message }); }
+      Swal.fire({ icon: 'success', title: 'Comment deleted!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
 
   emptyTask(): Task {
-    return { title:'', description:'', posted: new Date().toLocaleString(), due:'', status:'pending', assigned_intern_ids:'', attachment_file_id:'', attachment_file_name:'', assignedInterns:[], comments:[], submissions:[] };
+    return { title: '', description: '', posted: new Date().toLocaleString(), due: '', status: 'pending', assigned_intern_ids: '', attachment_file_id: '', attachment_file_name: '', assignedInterns: [], comments: [], submissions: [] };
   }
 
   getAssignedIds(task: Task): string[] {
