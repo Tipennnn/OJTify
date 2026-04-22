@@ -5,6 +5,7 @@ import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.compone
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
 import { AppwriteService } from '../services/appwrite.service';
 import { QRCodeComponent } from 'angularx-qrcode';
+import { Query } from 'appwrite';
 import * as XLSX from 'xlsx';
 
 interface AttendanceRecord {
@@ -39,7 +40,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   timeIn       = '—';
   timeOut      = '—';
   status       = 'No Attendance Record';
-  scannedBy = '—';
+  scannedBy    = '—';
   calendarReady = false;
 
   firstDayOfMonth = 0;
@@ -59,9 +60,9 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
 
   currentUserId = '';
   qrData        = '';
-qrExpiresIn   = 10;   // countdown seconds
-qrLabel       = '';   // e.g. "Expires in 8s"
-private qrTimer: any;
+  qrExpiresIn   = 10;
+  qrLabel       = '';
+  private qrTimer: any;
   realStudentId = '';
 
   // ── Hours tracking ────────────────────────────────────────
@@ -76,78 +77,81 @@ private qrTimer: any;
 
   constructor(private appwrite: AppwriteService) {}
 
-async ngOnInit() {
-  await this.getCurrentUser();
-  this.generateCalendar();
-  await Promise.all([
-    this.loadAttendance(),
-    this.loadStudentHours(),
-    this.loadTodayStatus(),
-    this.loadInternStartDate()
-  ]);
-  this.calendarReady = true;  // ← ADD THIS
-  this.generateYears();
-}
+  async ngOnInit() {
+    await this.getCurrentUser();
+    this.generateCalendar();
+    await Promise.all([
+      this.loadAttendance(),
+      this.loadStudentHours(),
+      this.loadTodayStatus(),
+      this.loadInternStartDate()
+    ]);
+    this.calendarReady = true;
+    this.generateYears();
+  }
 
-ngOnDestroy() {
-  clearInterval(this.qrTimer);
-}
+  ngOnDestroy() {
+    clearInterval(this.qrTimer);
+  }
 
   async getCurrentUser() {
-  try {
-    const user         = await this.appwrite.account.get();
-    this.currentUserId = user.$id;
-    this.generateFreshQR();        // ← replaces the single qrData assignment
+    try {
+      const user         = await this.appwrite.account.get();
+      this.currentUserId = user.$id;
+      this.generateFreshQR();
+      this.startQRCountdown();
+    } catch (error: any) {
+      console.error('Failed to get user:', error.message);
+    }
+  }
+
+  generateFreshQR() {
+    const ts         = Date.now();
+    this.qrData      = `OJTIFY_ATTENDANCE:${this.currentUserId}:${ts}`;
+    this.qrExpiresIn = 10;
+  }
+
+  startQRCountdown() {
+    clearInterval(this.qrTimer);
+    this.qrTimer = setInterval(() => {
+      this.qrExpiresIn--;
+    }, 1000);
+  }
+
+  refreshQRManually() {
+    clearInterval(this.qrTimer);
+    this.generateFreshQR();
     this.startQRCountdown();
-  } catch (error: any) {
-    console.error('Failed to get user:', error.message);
   }
-}
 
-generateFreshQR() {
-  const ts      = Date.now();                                   // milliseconds
-  this.qrData   = `OJTIFY_ATTENDANCE:${this.currentUserId}:${ts}`;
-  this.qrExpiresIn = 10;
-}
-
-startQRCountdown() {
-  clearInterval(this.qrTimer);
-  this.qrTimer = setInterval(() => {
-    this.qrExpiresIn--;
-  }, 1000);
-}
-
-refreshQRManually() {
-  clearInterval(this.qrTimer);
-  this.generateFreshQR();
-  this.startQRCountdown();
-}
-
-  // ── Load student hours from students table ────────────────
+  // ── Load student hours ────────────────────────────────────
   async loadStudentHours() {
-  try {
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      this.currentUserId
-    );
-    this.requiredHours  = (doc as any).required_hours  || 500;
-    this.completedHours = (doc as any).completed_hours || 0;
-    this.realStudentId  = (doc as any).student_id      || this.currentUserId; // ← ADD THIS
-  } catch (error: any) {
-    console.error('Failed to load hours:', error.message);
+    try {
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      this.requiredHours  = (doc as any).required_hours  || 500;
+      this.completedHours = (doc as any).completed_hours || 0;
+      this.realStudentId  = (doc as any).student_id      || this.currentUserId;
+    } catch (error: any) {
+      console.error('Failed to load hours:', error.message);
+    }
   }
-}
 
   // ── Load today's attendance status ────────────────────────
-async loadTodayStatus() {
-  try {
-    const now   = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const res    = await this.appwrite.databases.listDocuments(
+  async loadTodayStatus() {
+    try {
+      const now   = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
+        this.appwrite.ATTENDANCE_COL,
+        [Query.limit(500)]    // ← FIXED
       );
+
       const todayRecord = (res.documents as any[])
         .find(d => d.student_id === this.currentUserId && d.date === today);
 
@@ -158,22 +162,22 @@ async loadTodayStatus() {
   }
 
   async loadInternStartDate() {
-  try {
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      this.currentUserId
-    );
-    const createdAt = (doc as any).$createdAt;
-    if (createdAt) {
-      const d = new Date(createdAt);
-      d.setHours(0, 0, 0, 0);
-      this.internStartDate = d;
+    try {
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      const createdAt = (doc as any).$createdAt;
+      if (createdAt) {
+        const d = new Date(createdAt);
+        d.setHours(0, 0, 0, 0);
+        this.internStartDate = d;
+      }
+    } catch (error: any) {
+      console.error('Failed to load intern start date:', error.message);
     }
-  } catch (error: any) {
-    console.error('Failed to load intern start date:', error.message);
   }
-}
 
   // ── Computed helpers ──────────────────────────────────────
   get remainingHours(): number {
@@ -181,15 +185,16 @@ async loadTodayStatus() {
   }
 
   get hoursProgress(): number {
-  if (this.requiredHours === 0) return 0;
-  return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
-}
+    if (this.requiredHours === 0) return 0;
+    return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
+  }
 
   async loadAttendance() {
     try {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
+        this.appwrite.ATTENDANCE_COL,
+        [Query.limit(500)]    // ← FIXED
       );
 
       const docs      = res.documents as any[];
@@ -231,19 +236,17 @@ async loadTodayStatus() {
   get monthName() {
     return new Date(this.year, this.month).toLocaleString('default', { month: 'long' });
   }
-  
-  getEmptyCells(): number[] {
-  return Array.from({ length: this.firstDayOfMonth }, (_, i) => i);
-}
 
+  getEmptyCells(): number[] {
+    return Array.from({ length: this.firstDayOfMonth }, (_, i) => i);
+  }
 
   generateCalendar() {
-  const totalDays  = new Date(this.year, this.month + 1, 0).getDate();
-  const firstDay   = new Date(this.year, this.month, 1).getDay(); // 0=Sun, 6=Sat
-
-  this.days = Array.from({ length: totalDays }, (_, i) => i + 1);
-  this.firstDayOfMonth = firstDay;
-}
+    const totalDays = new Date(this.year, this.month + 1, 0).getDate();
+    const firstDay  = new Date(this.year, this.month, 1).getDay();
+    this.days = Array.from({ length: totalDays }, (_, i) => i + 1);
+    this.firstDayOfMonth = firstDay;
+  }
 
   isWeekend(day: number): boolean {
     const date = new Date(this.year, this.month, day);
@@ -265,26 +268,26 @@ async loadTodayStatus() {
   }
 
   openAttendance(day: number) {
-  const date        = new Date(this.year, this.month, day);
-  this.selectedDate = date.toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric'
-  });
+    const date        = new Date(this.year, this.month, day);
+    this.selectedDate = date.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
 
-  const record = this.attendanceRecords[day];
-  if (record) {
-    this.status    = record.status;
-    this.timeIn    = record.time_in  || '—';
-    this.timeOut   = record.time_out || '—';
-    this.scannedBy = record.scanned_by_name || '—'; // ADD THIS
-  } else {
-    this.status    = 'No Attendance Record';
-    this.timeIn    = '—';
-    this.timeOut   = '—';
-    this.scannedBy = '—'; // ADD THIS
+    const record = this.attendanceRecords[day];
+    if (record) {
+      this.status    = record.status;
+      this.timeIn    = record.time_in  || '—';
+      this.timeOut   = record.time_out || '—';
+      this.scannedBy = record.scanned_by_name || '—';
+    } else {
+      this.status    = 'No Attendance Record';
+      this.timeIn    = '—';
+      this.timeOut   = '—';
+      this.scannedBy = '—';
+    }
+
+    this.showAttendanceModal = true;
   }
-
-  this.showAttendanceModal = true;
-}
 
   closeAttendance() { this.showAttendanceModal = false; }
 
@@ -332,24 +335,19 @@ async loadTodayStatus() {
     }
   }
 
- isPastWeekdayWithNoRecord(day: number): boolean {
-  if (this.isWeekend(day)) return false;
+  isPastWeekdayWithNoRecord(day: number): boolean {
+    if (this.isWeekend(day)) return false;
 
-  const date = new Date(this.year, this.month, day);
-  const now  = new Date();
-  now.setHours(0, 0, 0, 0);
+    const date = new Date(this.year, this.month, day);
+    const now  = new Date();
+    now.setHours(0, 0, 0, 0);
 
-  // Don't mark absent for future dates
-  if (date >= now) return false;
+    if (date >= now) return false;
+    if (this.internStartDate && date < this.internStartDate) return false;
+    if (this.attendanceStatus[day]) return false;
 
-  // Don't mark absent for dates before the intern was accepted
-  if (this.internStartDate && date < this.internStartDate) return false;
-
-  // Skip if has a record
-  if (this.attendanceStatus[day]) return false;
-
-  return true;
-}
+    return true;
+  }
 
   openQRModal()  { this.showQRModal = true;  }
   closeQRModal() { this.showQRModal = false; }

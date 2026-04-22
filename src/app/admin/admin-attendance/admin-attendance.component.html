@@ -4,7 +4,6 @@
 
   <div class="main-section">
     <app-admin-topnav></app-admin-topnav>
-    <!-- ... rest stays the same ... -->
 
     <div class="dashboard-content">
 
@@ -42,31 +41,36 @@
         <div class="table-container">
           <table class="applicants-table">
             <thead>
-             <tr>
-  <th>Name</th>
-  <th>Student ID</th>
-  <th>Time In</th>
-  <th>Time Out</th>
-  <th>Status</th>
-  <th>Scanned By</th>
-</tr>
+              <tr>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Status</th>
+                <th>Scanned By</th>
+              </tr>
             </thead>
             <tbody>
 
-              <tr *ngFor="let log of filteredLogs">
+              <!-- ✅ FIXED: uses pagedLogs instead of filteredLogs -->
+              <tr *ngFor="let log of pagedLogs">
                 <td class="profile-name">
                   <img [src]="log.student_photo ||
                               'https://ui-avatars.com/api/?name=' + log.student_name +
                               '&background=2563eb&color=fff&size=64'"
-                       class="profile-pic"
-                       alt="Profile">
+                       class="profile-pic" alt="Profile">
                   <span>{{ log.student_name }}</span>
                 </td>
                 <td>{{ log.student_id_number }}</td>
                 <td>{{ log.time_in }}</td>
                 <td>{{ log.time_out }}</td>
                 <td>
-                  <span class="status-badge badge-approved">
+                  <span class="status-badge"
+                        [ngClass]="{
+                          'badge-approved': log.status === 'Present',
+                          'badge-pending':  log.status === 'Late',
+                          'badge-declined': log.status === 'Absent'
+                        }">
                     {{ log.status }}
                   </span>
                 </td>
@@ -84,21 +88,32 @@
 
             </tbody>
           </table>
-          <div class="pagination">
-            <button class="page-btn">
+
+          <!-- ✅ FIXED: dynamic pagination -->
+          <div class="pagination" *ngIf="filteredLogs.length > 0">
+            <button class="page-btn"
+                    (click)="prevPage()"
+                    [disabled]="currentPage === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
-          
+
             <div class="page-numbers">
-              <span class="page active">1</span>
-              <span class="page">2</span>
-              <span class="page">3</span>
+              <span
+                *ngFor="let p of pageNumbers"
+                class="page"
+                [class.active]="p === currentPage"
+                (click)="goToPage(p)">
+                {{ p }}
+              </span>
             </div>
-          
-            <button class="page-btn">
+
+            <button class="page-btn"
+                    (click)="nextPage()"
+                    [disabled]="currentPage === totalPages">
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+
         </div>
       </div>
 
@@ -106,13 +121,10 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!--  QR SCANNER MODAL                    -->
-<!-- ══════════════════════════════════════ -->
+<!-- QR SCANNER MODAL -->
 <div class="scanner-overlay-bg" *ngIf="showScanner">
   <div class="scanner-modal">
 
-    <!-- Header -->
     <div class="scanner-modal-header">
       <div style="display:flex; align-items:center; gap:12px;">
         <div class="qr-icon-box">
@@ -126,7 +138,6 @@
       <button class="close-scanner-btn" (click)="closeScanner()">✕</button>
     </div>
 
-    <!-- Mode Tabs -->
     <div class="mode-tabs">
       <button class="mode-tab"
               [class.active]="!showManualEntry"
@@ -140,7 +151,6 @@
       </button>
     </div>
 
-    <!-- Panel Body -->
     <div class="modal-body">
 
       <!-- CAMERA PANEL -->
@@ -163,7 +173,6 @@
           <div class="camera-hint">Point camera at QR code</div>
         </div>
 
-        <!-- Scan status -->
         <div class="scanner-status">
           <div *ngIf="scanLoading" class="status-loading">
             <i class="fa fa-spinner fa-spin"></i> Processing...
@@ -190,7 +199,6 @@
 
         <span class="manual-panel-label">Search intern</span>
 
-        <!-- Selected student preview -->
         <div class="selected-student-card" *ngIf="selectedManualStudent">
           <img [src]="selectedManualStudent.profile_photo_id
                       ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
@@ -212,7 +220,6 @@
           </button>
         </div>
 
-        <!-- Search input -->
         <div class="manual-input-wrapper" *ngIf="!selectedManualStudent">
           <i class="fas fa-id-card manual-icon"></i>
           <input
@@ -226,7 +233,6 @@
           />
         </div>
 
-        <!-- Results area -->
         <div class="manual-results-area">
 
           <div class="manual-empty-state"
@@ -256,7 +262,6 @@
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="scanner-modal-footer">
       <button class="manual-submit-btn"
               *ngIf="showManualEntry"
