@@ -6,6 +6,7 @@ import { AppwriteService } from '../../services/appwrite.service';
 import { SupervisorSidenavComponent } from '../supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from '../supervisor-topnav/supervisor-topnav.component';
 import { ID, Query } from 'appwrite';
+import Swal from 'sweetalert2';
 
 interface Student {
   $id: string;
@@ -128,6 +129,7 @@ export class SupervisorEvaluationComponent implements OnInit {
   editableRemarksSections : RemarksSection[] = [];
   newCriterionLabel       = '';
   newRemarksSectionLabel  = '';
+  criteriaDocId: string | null = null; // tracks existing doc $id
 
   setPrefixTypeNone(criterion: any) {
     criterion.prefixType = 'none';
@@ -147,6 +149,8 @@ export class SupervisorEvaluationComponent implements OnInit {
   readonly ENDPOINT       = 'https://sgp.cloud.appwrite.io/v1';
   readonly EVAL_COL       = 'evaluations';
   readonly REQUIRED_HOURS = 500;
+  readonly CRITERIA_COL = 'supervisor_criteria';
+
 
   /** answers keyed by "criterionKey::qkey" — stores the selected rating (number as string) */
   answers: Record<string, string> = {};
@@ -264,12 +268,11 @@ export class SupervisorEvaluationComponent implements OnInit {
 
   constructor(private appwrite: AppwriteService, private router: Router) {}
 
-  async ngOnInit() {
-    this.loadCriteriaFromStorage();
-    await this.loadCurrentSupervisor();
-    await this.loadData();
-  }
-
+ async ngOnInit() {
+  await this.loadCurrentSupervisor();      // 1. get supervisor first
+  await this.loadCriteriaFromStorage();    // 2. then load their criteria
+  await this.loadData();                   // 3. then load students
+}
   freshEvalMeta() {
     return {
       student_id_ref : '',
@@ -312,26 +315,78 @@ export class SupervisorEvaluationComponent implements OnInit {
   }
 
   // ── Storage ───────────────────────────────────────────────────────────────
-  loadCriteriaFromStorage() {
-    try {
-      const rawC = localStorage.getItem('ojtify_criteria_v4');
-      this.CRITERIA = rawC ? JSON.parse(rawC) : JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
-    } catch {
+  async loadCriteriaFromStorage() {
+  if (!this.currentSupervisor?.$id) {
+    this.CRITERIA = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+    this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
+    return;
+  }
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.CRITERIA_COL,
+      [Query.equal('supervisor_id', this.currentSupervisor.$id), Query.limit(1)]
+    );
+    if (res.documents.length > 0) {
+      const doc = res.documents[0] as any;
+      this.criteriaDocId = doc.$id;
+      try {
+        const parsed = JSON.parse(doc.criteria_json ?? '[]');
+        this.CRITERIA = parsed.length ? parsed : JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+      } catch {
+        this.CRITERIA = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+      }
+      try {
+        const parsed = JSON.parse(doc.remarks_sections_json ?? '[]');
+        this.REMARKS_SECTIONS = parsed.length ? parsed : JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
+      } catch {
+        this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
+      }
+    } else {
+      // First time — no saved criteria yet, use defaults
+      this.criteriaDocId = null;
       this.CRITERIA = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
-    }
-    try {
-      const rawR = localStorage.getItem('ojtify_remarks_sections_v1');
-      this.REMARKS_SECTIONS = rawR ? JSON.parse(rawR) : JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
-    } catch {
       this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
     }
+  } catch (err: any) {
+    console.error('Failed to load criteria:', err.message);
+    this.CRITERIA = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+    this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
   }
+}
 
-  saveCriteriaToStorage() {
-    localStorage.setItem('ojtify_criteria_v4', JSON.stringify(this.CRITERIA));
-    localStorage.setItem('ojtify_remarks_sections_v1', JSON.stringify(this.REMARKS_SECTIONS));
+
+ async saveCriteriaToStorage() {
+  if (!this.currentSupervisor?.$id) return;
+  const payload = {
+    supervisor_id: this.currentSupervisor.$id,
+    criteria_json: JSON.stringify(this.CRITERIA),
+    remarks_sections_json: JSON.stringify(this.REMARKS_SECTIONS)
+  };
+  try {
+    if (this.criteriaDocId) {
+      // Update existing doc
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.CRITERIA_COL,
+        this.criteriaDocId,
+        payload
+      );
+    } else {
+      // Create new doc
+      const doc = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.CRITERIA_COL,
+        ID.unique(),
+        payload
+      );
+      this.criteriaDocId = (doc as any).$id;
+    }
+  } catch (err: any) {
+    console.error('Failed to save criteria:', err.message);
+    Swal.fire({ icon: 'error', title: 'Save failed', text: err.message });
   }
-
+}
   // ── Criteria editor ───────────────────────────────────────────────────────
   openCriteriaEditor() {
     this.editableCriteria        = JSON.parse(JSON.stringify(this.CRITERIA));
@@ -343,13 +398,18 @@ export class SupervisorEvaluationComponent implements OnInit {
 
   closeCriteriaEditor() { this.showCriteriaEditor = false; }
 
-  saveCriteriaEdits() {
-    this.CRITERIA         = JSON.parse(JSON.stringify(this.editableCriteria));
-    this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.editableRemarksSections));
-    this.saveCriteriaToStorage();
-    this.showCriteriaEditor = false;
-  }
-
+  async saveCriteriaEdits() {
+  if (this.editableCriteria.length === 0) return;
+  this.CRITERIA = JSON.parse(JSON.stringify(this.editableCriteria));
+  this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.editableRemarksSections));
+  await this.saveCriteriaToStorage();
+  this.showCriteriaEditor = false;
+  Swal.fire({
+    icon: 'success', title: 'Questions saved!',
+    toast: true, position: 'top-end',
+    showConfirmButton: false, timer: 2000, timerProgressBar: true
+  });
+}
   resetCriteriaToDefault() {
     this.editableCriteria        = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
     this.editableRemarksSections = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
@@ -457,29 +517,44 @@ export class SupervisorEvaluationComponent implements OnInit {
 
   // ── Data loading ──────────────────────────────────────────────────────────
   async loadData() {
-    this.loading = true;
-    try {
-      const [studentsRes, evalsRes] = await Promise.all([
-        this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL),
-        this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.EVAL_COL)
-      ]);
-      (evalsRes.documents as any[]).forEach(e => this.evaluationMap.set(e.student_id_ref, e as Evaluation));
-      const all = (studentsRes.documents as any[]).filter(
-        s => (s.completed_hours || 0) >= (s.required_hours || this.REQUIRED_HOURS)
-      );
-      this.students          = all.filter(s => !this.evaluationMap.has(s.$id));
-      this.evaluatedStudents = all.filter(s =>  this.evaluationMap.has(s.$id));
-    } catch (err: any) {
-      console.error('Failed to load data:', err.message);
-    } finally {
-      this.filteredStudents  = [...this.students];
-      this.filteredEvaluated = [...this.evaluatedStudents];
-      this.updatePagination();
-      this.updatePaginationEval();
-      this.loading = false;
-    }
-  }
+     if (!this.currentSupervisor?.$id) return;
+  this.loading = true;
+  try {
+    const [studentsRes, evalsRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        [
+          Query.equal('supervisor_id', this.currentSupervisor.$id), // ← only this supervisor's interns
+          Query.limit(500)
+        ]
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.EVAL_COL,
+        [Query.limit(500)]
+      )
+    ]);
 
+    (evalsRes.documents as any[]).forEach(e => this.evaluationMap.set(e.student_id_ref, e as Evaluation));
+
+    const all = (studentsRes.documents as any[]).filter(
+      s => (s.completed_hours || 0) >= (s.required_hours || this.REQUIRED_HOURS)
+    );
+
+    this.students          = all.filter(s => !this.evaluationMap.has(s.$id));
+    this.evaluatedStudents = all.filter(s =>  this.evaluationMap.has(s.$id));
+
+  } catch (err: any) {
+    console.error('Failed to load data:', err.message);
+  } finally {
+    this.filteredStudents  = [...this.students];
+    this.filteredEvaluated = [...this.evaluatedStudents];
+    this.updatePagination();
+    this.updatePaginationEval();
+    this.loading = false;
+  }
+}
   // ── Tabs & Search ─────────────────────────────────────────────────────────
   setTab(tab: 'pending' | 'evaluated') {
     this.activeTab         = tab;
@@ -573,14 +648,13 @@ export class SupervisorEvaluationComponent implements OnInit {
     }, 150);
   }
 
-  closeModal() {
-    this.showModal       = false;
-    this.selectedStudent = null;
-    this.clearCanvas();
-    this.uploadedFileName = '';
-    this.loadCriteriaFromStorage();
-  }
-
+closeModal() {
+  this.showModal = false;
+  this.selectedStudent = null;
+  this.clearCanvas();
+  this.uploadedFileName = '';
+  this.loadCriteriaFromStorage(); // reloads this supervisor's own criteria from DB
+}
   isViewMode(): boolean {
     return !!this.selectedStudent && this.evaluationMap.has(this.selectedStudent.$id);
   }
