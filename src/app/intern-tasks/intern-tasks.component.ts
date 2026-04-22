@@ -181,9 +181,13 @@ export class InternTasksComponent implements OnInit {
       const allTasks = tasksRes.documents as any[];
       const allSubs  = subsRes.documents as any[];
       const mySubmittedTaskIds = new Set(allSubs.filter(s => s.student_id === this.currentUserId).map(s => s.task_id));
+
       this.tasks = allTasks
         .filter(task => task.assigned_intern_ids?.split(',').map((id: string) => id.trim()).includes(this.currentUserId))
-        .map(task => ({ ...task, status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending' }));
+        .map(task => ({ ...task, status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending' }))
+        // Sort by posted date: latest first (descending)
+        .sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime());
+
     } catch (error: any) { console.error('Failed to load tasks:', error.message); }
     finally { this.loading = false; }
   }
@@ -288,9 +292,6 @@ export class InternTasksComponent implements OnInit {
   closeModal() { this.isModalOpen = false; this.selectedTask = null; this.selectedFile = null; this.comments = []; this.submissions = []; this.newComment = ''; }
 
   // ── Date formatting helpers ───────────────────────────
-  /**
-   * Format a date string as "April 19, 2026" (long month name)
-   */
   formatLongDate(dateStr: string): string {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -298,9 +299,6 @@ export class InternTasksComponent implements OnInit {
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   }
 
-  /**
-   * Returns date badge parts: day abbrev, day number, month abbrev
-   */
   getDueDateParts(due: string): { day: string; num: string; month: string } {
     const d = new Date(due);
     if (isNaN(d.getTime())) return { day: '', num: due, month: '' };
@@ -312,9 +310,6 @@ export class InternTasksComponent implements OnInit {
   }
 
   // ── Score helpers ─────────────────────────────────────
-  /**
-   * Returns score display object for a task or logbook entry
-   */
   getScoreDisplay(score: number | null | undefined): { label: string; cls: string; icon: string } {
     if (score === null || score === undefined) {
       return { label: 'Not yet scored', cls: 'score-pending', icon: 'fas fa-hourglass-half' };
@@ -413,7 +408,6 @@ export class InternTasksComponent implements OnInit {
 
   wordCount(text: string): number { return this.countWords(text); }
 
-  // ✅ Validates word counts before save/update — BLOCKS if over limit (no trimming)
   private validateWordCounts(): boolean {
     if (this.tasksDoneWordCount > this.TASKS_DONE_WORD_LIMIT) {
       Swal.fire({
@@ -456,7 +450,6 @@ export class InternTasksComponent implements OnInit {
 
   getDetailPct(tasksDone: string): number { return Math.min(100, Math.round((tasksDone?.length || 0) / 3)); }
 
-  // ── Auto-bullet + word count on tasks_done (NO hard trim) ────────────
   onTasksInput(event: Event) {
     const el = event.target as HTMLTextAreaElement;
     this.logbookForm.tasks_done = el.value;
@@ -480,7 +473,6 @@ export class InternTasksComponent implements OnInit {
     });
   }
 
-  // ── Word count on reflection (NO hard trim) ──────────────────────────
   onReflectionInput(event: Event) {
     const el = event.target as HTMLTextAreaElement;
     this.logbookForm.reflection = el.value;
@@ -586,7 +578,6 @@ export class InternTasksComponent implements OnInit {
       return;
     }
 
-    // ✅ Block save if over word limit — do NOT trim, just reject
     if (!this.validateWordCounts()) return;
 
     if (this.dateHasEntry(this.logbookForm.entry_date)) {
@@ -655,7 +646,6 @@ export class InternTasksComponent implements OnInit {
       return;
     }
 
-    // ✅ Block update if over word limit — do NOT trim, just reject
     if (!this.validateWordCounts()) return;
 
     if (!this.selectedLogbookEntry?.$id) return;

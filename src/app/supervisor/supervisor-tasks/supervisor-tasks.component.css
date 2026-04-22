@@ -14,9 +14,46 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 .dashboard-content { margin-top: 60px; padding: 20px; }
 
 /* ── HEADER ── */
-.dashboard-header { display: flex; justify-content: space-between; align-items: center; padding: 0 10px; margin-bottom: 10px; margin-left: 13px; }
+.dashboard-header { padding: 0 10px; margin-bottom: 10px; margin-left: 13px; }
+.header-flex { display: flex; justify-content: space-between; align-items: center; padding-right: 10px; }
 .dashboard-header h2 { font-size: 22px; font-weight: 600; color: #1f2937; margin-top: 15px; margin-bottom: 14px; }
 .dashboard-divider { width: calc(100% - 20px); height: 1px; background: #e5e7eb; margin-left: 20px; margin-bottom: 20px; margin-top: 5px; }
+
+/* ── HEADER ACTIONS ── */
+.header-actions { display: flex; align-items: center; gap: 10px; }
+
+/* ── SEARCH BOX (matches admin style) ── */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  width: 250px;
+  height: 40px;
+  transition: all 0.2s ease;
+}
+
+.search-box i {
+  color: #9ca3af;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+}
+
+.search-box:hover { border-color: #9ca3af; }
+
+
+.lb-search-count { font-size: 12.5px; color: #9ca3af; white-space: nowrap; }
 
 /* ── TAB SWITCHER ── */
 .tab-header-row { margin-bottom: 22px; }
@@ -111,23 +148,72 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 .task-card-chevron { color: #d1d5db; font-size: 11px; flex-shrink: 0; transition: 0.2s; margin-left: 4px; }
 .task-card:hover .task-card-chevron { color: #0818A8; transform: translateX(2px); }
 
-/* ── PAGINATION ── */
-.pagination-wrapper { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 28px; padding-bottom: 20px; }
-.page-btn { min-width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e5e7eb; background: white; font-size: 13px; font-family: 'Poppins', sans-serif; font-weight: 500; color: #374151; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0 10px; transition: all 0.2s; }
-.page-btn:hover:not(:disabled) { background: #eef0fc; border-color: #0818A8; color: #0818A8; }
-.page-btn.active { background: #0818A8; color: white; border-color: #0818A8; }
+/* ══════════════════════════════════════════════
+   TABLE CONTAINER (logbook interns list)
+══════════════════════════════════════════════ */
+.table-container {
+  background: #fff;
+  padding: 15px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  width: 100%;
+  margin: 0 auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* ══════════════════════════════════════════════
+   PAGINATION  (matches admin applicants style)
+══════════════════════════════════════════════ */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.page-info {
+  font-size: 13px;
+  color: #6b7280;
+  margin-right: 6px;
+}
+
+.page-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  color: #374151;
+  font-family: 'Poppins', sans-serif;
+}
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.page-numbers { display: flex; gap: 6px; }
+
+.page {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: 0.2s ease;
+  min-width: 32px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif;
+}
+.page:hover { background: #e5e7eb; }
+.page.active { background: #0818A8; color: #ffffff; font-weight: 500; }
 
 /* ══════════════════════════════════════════════
    LOGBOOK: INTERN TABLE
 ══════════════════════════════════════════════ */
-.lb-search-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-.lb-search-box { flex: 1; max-width: 360px; position: relative; }
-.lb-search-box input { width: 100%; padding: 10px 40px 10px 14px; border-radius: 10px; border: 1px solid #e5e7eb; background: white; font-size: 13.5px; font-family: 'Poppins', sans-serif; outline: none; transition: 0.2s; }
-.lb-search-box input:focus { border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.1); }
-.lb-search-box i { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 13px; }
-.lb-search-count { font-size: 12.5px; color: #9ca3af; white-space: nowrap; }
-
 .intern-table-container {
   background: white;
   border-radius: 14px;
@@ -336,10 +422,6 @@ textarea { resize: none; }
 .assign-options { display: flex; flex-direction: column; gap: 8px; font-size: 14px; margin-bottom: 12px; }
 .assign-options label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .assign-options input[type="radio"] { accent-color: #0818A8; }
-.search-box { position: relative; margin-top: 12px; }
-.search-box input { width: 100%; padding: 12px 40px 12px 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: white; font-size: 14px; outline: none; }
-.search-box input:focus { border: 1px solid #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.12); }
-.search-box i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
 .intern-list { flex: 1; overflow-y: auto; margin-top: 10px; padding-right: 4px; }
 .intern-item { padding: 12px; border-radius: 12px; background: white; border: 1px solid transparent; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .intern-item:hover { background: #eef0fc; border: 1px solid #c7cdf5; }
@@ -704,7 +786,7 @@ textarea { resize: none; }
   justify-content: center;
   font-size: 12px;
   flex-shrink: 0;
-}/* ── (paste your entire original CSS here, then add below) ── */
+}
 
 /* ══════════════════════════════════════════════
    ASSIGN MODE TABS (replaces radio buttons)

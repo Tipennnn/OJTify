@@ -68,6 +68,9 @@ interface LogbookPhoto {
 })
 export class SupervisorTasksComponent implements OnInit {
 
+  // Expose Math for template
+  readonly Math = Math;
+
   // ── Tabs ──────────────────────────────────────────────────
   activeTab: 'tasks' | 'logbook' = 'tasks';
 
@@ -108,10 +111,9 @@ export class SupervisorTasksComponent implements OnInit {
     { label: 'BSED-Math',         full: 'Bachelor of Secondary Education major in Mathematics' },
     { label: 'BSED-Social Studies', full: 'Bachelor of Secondary Education major in Social Studies' },
     { label: 'BSED-Science',      full: 'Bachelor of Secondary Education major in Science' },
-    //{ label: 'Other',             full: 'Please specify' },
   ];
-  selectedCourse     = '';   // chosen from dropdown
-  customCourseInput  = '';   // typed if 'Other'
+  selectedCourse     = '';
+  customCourseInput  = '';
 
   taskSubmissionCountMap: { [taskId: string]: number } = {};
 
@@ -125,7 +127,7 @@ export class SupervisorTasksComponent implements OnInit {
   currentSupervisorId = '';
   supervisorName      = '';
 
-  // ── Pagination ────────────────────────────────────────────
+  // ── Tasks Pagination ──────────────────────────────────────
   currentPage = 1;
   pageSize    = 5;
 
@@ -178,6 +180,25 @@ export class SupervisorTasksComponent implements OnInit {
 
   logbookSearchQuery = '';
   filteredLogbookInterns: Intern[] = [];
+
+  // ── Logbook Interns Pagination ────────────────────────────
+  logbookCurrentPage = 1;
+  logbookPageSize    = 10;
+
+  get logbookTotalPages(): number {
+    return Math.ceil(this.filteredLogbookInterns.length / this.logbookPageSize) || 1;
+  }
+  get logbookPageNumbers(): number[] {
+    return Array.from({ length: this.logbookTotalPages }, (_, i) => i + 1);
+  }
+  get pagedLogbookInterns(): Intern[] {
+    const start = (this.logbookCurrentPage - 1) * this.logbookPageSize;
+    return this.filteredLogbookInterns.slice(start, start + this.logbookPageSize);
+  }
+  goToLogbookPage(page: number) {
+    if (page < 1 || page > this.logbookTotalPages) return;
+    this.logbookCurrentPage = page;
+  }
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
@@ -266,9 +287,10 @@ export class SupervisorTasksComponent implements OnInit {
     this.filteredLogbookInterns = this.logbookInterns.filter(i =>
       `${i.first_name} ${i.last_name}`.toLowerCase().includes(q)
     );
+    this.logbookCurrentPage = 1; // reset to first page on search
   }
 
-  // ── Load tasks ────────────────────────────────────────────
+  // ── Load tasks (sorted by latest $createdAt) ──────────────
   async loadTasks() {
     try {
       const [tasksRes, subsRes] = await Promise.all([
@@ -285,6 +307,7 @@ export class SupervisorTasksComponent implements OnInit {
       Object.keys(taskSubMap).forEach(taskId => {
         this.taskSubmissionCountMap[taskId] = taskSubMap[taskId].size;
       });
+      // Sort newest first by $createdAt
       this.tasks = (tasksRes.documents as any[])
         .filter(task => task.supervisor_id === this.currentSupervisorId)
         .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
@@ -305,15 +328,12 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   // ── Course assign helpers ─────────────────────────────────
-
-  /** Returns the effective course string to match against */
   get effectiveCourse(): string {
     if (this.assignMode !== 'course') return '';
     if (this.selectedCourse === 'Other') return this.customCourseInput.trim();
     return this.selectedCourse;
   }
 
-  /** Interns whose course contains the effectiveCourse string (case-insensitive) */
   get courseMatchedInterns(): Intern[] {
     const q = this.effectiveCourse.toLowerCase();
     if (!q) return [];
@@ -333,7 +353,6 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   // ── Logbook methods ───────────────────────────────────────
-
   async openInternLogbook(intern: Intern) {
     this.selectedInternId  = intern.$id;
     this.selectedInternObj = intern;
@@ -710,7 +729,6 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   // ── Task methods ──────────────────────────────────────────
-
   onInternSearch() {
     const q = this.internSearchQuery.toLowerCase();
     this.filteredInterns = this.allInterns.filter(i =>
@@ -825,8 +843,6 @@ export class SupervisorTasksComponent implements OnInit {
     if (!this.selectedTask.title || !this.selectedTask.due) {
       Swal.fire({ icon: 'warning', title: 'Missing fields', text: 'Please fill in the title and due date.', confirmButtonColor: '#0818A8' }); return;
     }
-
-    // Validate course mode
     if (this.assignMode === 'course') {
       const q = this.effectiveCourse;
       if (!q) {
@@ -836,7 +852,6 @@ export class SupervisorTasksComponent implements OnInit {
         Swal.fire({ icon: 'warning', title: 'No matching interns', text: `No interns found with course containing "${q}".`, confirmButtonColor: '#0818A8' }); return;
       }
     }
-
     if (this.assignMode === 'specific' && this.selectedInterns.length === 0) {
       Swal.fire({ icon: 'warning', title: 'No interns selected', text: 'Please select at least one intern.', confirmButtonColor: '#0818A8' }); return;
     }

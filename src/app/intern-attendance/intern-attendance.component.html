@@ -68,10 +68,12 @@
             <h3>{{ monthName }} {{ year }}</h3>
             <button (click)="nextMonth()"><i class="fa fa-chevron-right"></i></button>
           </div>
-          <button class="excel-btn" (click)="openReportsModal()">
-            <i class="fa fa-file-alt"></i>
-            <span class="btn-label">Attendance Reports</span>
-          </button>
+          <div class="calendar-actions">
+            <button class="qr-btn" (click)="openReportsModal()">
+              <i class="fa fa-file-alt"></i>
+              <span class="btn-label">Attendance Reports</span>
+            </button>
+          </div>
         </div>
 
         <div class="calendar-days">
@@ -79,23 +81,22 @@
           <div>Thu</div><div>Fri</div><div>Sat</div>
         </div>
 
-       <div class="calendar-grid" *ngIf="calendarReady">
-  <div class="day empty" *ngFor="let e of getEmptyCells()"></div>
-  <div class="day"
-       *ngFor="let day of days"
-       (click)="openAttendance(day)"
-       [class.present-day]="attendanceStatus[day] === 'Present'"
-       [class.absent-day]="isPastWeekdayWithNoRecord(day)"
-       [class.weekend]="isWeekend(day)">
-    {{ day }}
-  </div>
-</div>
+        <div class="calendar-grid" *ngIf="calendarReady">
+          <div class="day empty" *ngFor="let e of getEmptyCells()"></div>
+          <div class="day"
+               *ngFor="let day of days"
+               (click)="openAttendance(day)"
+               [class.present-day]="attendanceStatus[day] === 'Present'"
+               [class.absent-day]="isPastWeekdayWithNoRecord(day)"
+               [class.weekend]="isWeekend(day)">
+            {{ day }}
+          </div>
+        </div>
 
-<div *ngIf="!calendarReady"
-     style="text-align:center; padding:40px; color:#9ca3af;">
-  <i class="fa fa-spinner fa-spin" style="font-size:24px;"></i>
-</div>
-        
+        <div *ngIf="!calendarReady"
+             style="text-align:center; padding:40px; color:#9ca3af;">
+          <i class="fa fa-spinner fa-spin" style="font-size:24px;"></i>
+        </div>
 
         <div class="attendance-legend">
           <div class="legend-item">
@@ -140,12 +141,10 @@
         <span class="label">Time Out</span>
         <span class="value">{{ timeOut }}</span>
       </div>
-
       <div class="info-row">
-    <span class="label">Scanned By</span>
-    <span class="value">{{ scannedBy }}</span>
-  </div>
-
+        <span class="label">Recorded By</span>
+        <span class="value">{{ scannedBy }}</span>
+      </div>
       <div class="status">
         <span [class.present]="status === 'Present'"
               [class.absent]="status === 'Absent'"
@@ -194,8 +193,8 @@
           <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
         </select>
 
-        <button class="excel-btn" (click)="downloadExcel()">
-          <i class="fa fa-download"></i> Download
+        <button class="dl-pdf-btn" (click)="downloadDTRPdf()">
+          <i class="fa fa-file-pdf"></i> Download DTR
         </button>
       </div>
 
@@ -208,15 +207,17 @@
                 <th>Day</th>
                 <th>Time In</th>
                 <th>Time Out</th>
+                <th>Recorded By</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let r of filteredRecordsList">
-                <td>{{ r.date }}</td>
+                <td>{{ r.date | date: 'MMMM d, y' }}</td>
                 <td>{{ r.day }}</td>
                 <td>{{ r.timeIn }}</td>
                 <td>{{ r.timeOut }}</td>
+                <td>{{ r.scannedBy || '—' }}</td>
                 <td [class.present]="r.status === 'Present'"
                     [class.absent]="r.status === 'Absent'"
                     [class.no-record]="r.status === 'No Record'">
@@ -255,29 +256,28 @@
     <div class="qr-divider"></div>
 
     <div class="qr-body">
-     <div class="qr-body">
-  <div class="qr-wrapper">
-    <qrcode [qrdata]="qrData" [width]="200" [errorCorrectionLevel]="'M'" *ngIf="qrData"></qrcode>
-  </div>
- <!-- Countdown bar -->
-  <div class="qr-countdown-wrap">
-    <div class="qr-countdown-bar" [style.width]="(qrExpiresIn / 10 * 100) + '%'"
-         [class.qr-bar-urgent]="qrExpiresIn <= 3"></div>
-  </div>
-  <span class="qr-note">
-  {{ qrExpiresIn > 0 ? 'Expires in ' + qrExpiresIn + 's' : 'QR Expired — generate a new one' }}
-</span>
+      <div class="qr-wrapper">
+        <qrcode [qrdata]="qrData" [width]="200" [errorCorrectionLevel]="'M'" *ngIf="qrData"></qrcode>
+      </div>
 
-  <!-- Manual refresh button -->
-  <button class="qr-refresh-btn" (click)="refreshQRManually()">
-    <i class="fa fa-rotate-right"></i> Generate new QR
-  </button>
+      <div class="qr-countdown-wrap">
+        <div class="qr-countdown-bar"
+             [style.width]="(qrExpiresIn / 10 * 100) + '%'"
+             [class.qr-bar-urgent]="qrExpiresIn <= 3">
+        </div>
+      </div>
 
-  <p style="font-size:11px; color:#9ca3af; margin-top:4px;">
-    Student ID: {{ realStudentId }}
-  </p>
-</div>
-     
+      <span class="qr-note">
+        {{ qrExpiresIn > 0 ? 'Expires in ' + qrExpiresIn + 's' : 'QR Expired — generate a new one' }}
+      </span>
+
+      <button class="qr-refresh-btn" (click)="refreshQRManually()">
+        <i class="fa fa-rotate-right"></i> Generate new QR
+      </button>
+
+      <p style="font-size:11px; color:#9ca3af; margin-top:4px;">
+        Student ID: {{ realStudentId }}
+      </p>
     </div>
   </div>
 </div>

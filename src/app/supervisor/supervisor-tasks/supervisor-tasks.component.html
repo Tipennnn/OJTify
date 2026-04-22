@@ -8,13 +8,25 @@
     <div class="dashboard-content">
 
       <div class="dashboard-header">
-        <div class="header-left">
-          <h2>{{ activeTab === 'tasks' ? 'Tasks' : 'Daily Logbook' }}</h2>
-        </div>
-        <div class="header-right">
-          <button class="create-btn" *ngIf="activeTab === 'tasks'" (click)="openModal()">
-            <i class="fas fa-plus"></i> Create Task
-          </button>
+        <div class="header-flex">
+          <h2>{{ activeTab === 'tasks' ? 'Tasks' : 'Daily Log' }}</h2>
+          <div class="header-actions">
+            <!-- Tasks tab: Create Task button -->
+            <button class="create-btn" *ngIf="activeTab === 'tasks'" (click)="openModal()">
+              <i class="fas fa-plus"></i> Create Task
+            </button>
+
+            <!-- Daily Log tab: search + count -->
+            <ng-container *ngIf="activeTab === 'logbook' && !selectedInternId">
+              <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search intern…"
+                       [(ngModel)]="logbookSearchQuery"
+                       (input)="onLogbookSearch()">
+              </div>
+              <!--<span class="lb-search-count">{{ filteredLogbookInterns.length }} intern{{ filteredLogbookInterns.length !== 1 ? 's' : '' }}</span>-->
+            </ng-container>
+          </div>
         </div>
       </div>
 
@@ -27,7 +39,7 @@
             <i class="fas fa-list-check"></i> Tasks
           </button>
           <button class="tab-btn" [class.active]="activeTab === 'logbook'" (click)="switchTab('logbook')">
-            <i class="fas fa-book-open"></i> Daily Logbook
+            <i class="fas fa-book-open"></i> Daily Log
           </button>
         </div>
       </div>
@@ -77,34 +89,46 @@
 
         </div>
 
-        <div class="pagination-wrapper" *ngIf="totalPages > 1">
-          <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button class="page-btn" *ngFor="let p of pageNumbers" [class.active]="p === currentPage" (click)="goToPage(p)">
-            {{ p }}
-          </button>
-          <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
+       <!--
+<div class="pagination" *ngIf="totalPages > 1">
+
+  <span class="page-info">
+    Showing {{ (currentPage - 1) * pageSize + 1 }}
+    – {{ Math.min(currentPage * pageSize, tasks.length) }}
+    of {{ tasks.length }}
+  </span>
+
+  <button class="page-btn"
+          (click)="goToPage(currentPage - 1)"
+          [disabled]="currentPage === 1">
+    <i class="fas fa-chevron-left"></i>
+  </button>
+
+  <div class="page-numbers">
+    <span class="page"
+          *ngFor="let p of pageNumbers"
+          [class.active]="p === currentPage"
+          (click)="goToPage(p)">
+      {{ p }}
+    </span>
+  </div>
+
+  <button class="page-btn"
+          (click)="goToPage(currentPage + 1)"
+          [disabled]="currentPage === totalPages">
+    <i class="fas fa-chevron-right"></i>
+  </button>
+
+</div>
+-->
       </div>
 
       <!-- ══════════════ LOGBOOK TAB ══════════════ -->
       <div *ngIf="activeTab === 'logbook'">
 
         <ng-container *ngIf="!selectedInternId">
-          <div class="lb-search-wrap">
-            <div class="lb-search-box">
-              <i class="fas fa-search"></i>
-              <input type="text" placeholder="Search intern…"
-                     [(ngModel)]="logbookSearchQuery"
-                     (input)="onLogbookSearch()">
-            </div>
-            <span class="lb-search-count">{{ filteredLogbookInterns.length }} intern{{ filteredLogbookInterns.length !== 1 ? 's' : '' }}</span>
-          </div>
 
-          <div class="intern-table-container" *ngIf="filteredLogbookInterns.length > 0">
+          <div class="table-container" *ngIf="filteredLogbookInterns.length > 0">
             <table class="intern-logbook-table">
               <thead>
                 <tr>
@@ -116,7 +140,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let intern of filteredLogbookInterns"
+                <tr *ngFor="let intern of pagedLogbookInterns"
                     (click)="openInternLogbook(intern)"
                     class="intern-table-row">
                   <td>
@@ -153,6 +177,29 @@
                 </tr>
               </tbody>
             </table>
+
+            <!-- Logbook Interns Pagination -->
+            <div class="pagination">
+              <span class="page-info">
+                Showing {{ (logbookCurrentPage - 1) * logbookPageSize + 1 }}–{{ Math.min(logbookCurrentPage * logbookPageSize, filteredLogbookInterns.length) }}
+                of {{ filteredLogbookInterns.length }}
+              </span>
+              <button class="page-btn" (click)="goToLogbookPage(logbookCurrentPage - 1)" [disabled]="logbookCurrentPage === 1">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <div class="page-numbers">
+                <span class="page"
+                      *ngFor="let p of logbookPageNumbers"
+                      [class.active]="p === logbookCurrentPage"
+                      (click)="goToLogbookPage(p)">
+                  {{ p }}
+                </span>
+              </div>
+              <button class="page-btn" (click)="goToLogbookPage(logbookCurrentPage + 1)" [disabled]="logbookCurrentPage === logbookTotalPages">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+
           </div>
 
           <div *ngIf="filteredLogbookInterns.length === 0" class="lb-empty">
@@ -278,7 +325,6 @@
       <div class="modal-right">
         <h3>Assign Interns</h3>
 
-        <!-- Assign Mode Selector (now 3 segmented buttons) -->
         <div class="assign-mode-tabs">
           <button class="assign-mode-btn"
                   [class.active]="assignMode === 'all'"
@@ -316,16 +362,6 @@
             </div>
           </div>
 
-          <!-- Manual input if Other -->
-          <!--<div *ngIf="selectedCourse === 'Other'" class="form-group" style="margin-bottom:10px;">
-            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">Type course name</label>
-            <input type="text"
-                   [(ngModel)]="customCourseInput"
-                   placeholder="e.g. BSIT, BSCS, HRS..."
-                   class="course-custom-input">
-          </div>-->
-
-          <!-- Matched interns preview -->
           <div *ngIf="effectiveCourse" class="course-match-preview">
             <div class="course-match-header">
               <i class="fas fa-users" style="color:#0818A8; font-size:11px;"></i>
