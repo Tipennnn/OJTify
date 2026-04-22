@@ -64,12 +64,12 @@
               </div>
 
               <!-- Score Badge -->
-              <div class="task-score-wrap">
-                <div class="score-badge" [ngClass]="getScoreDisplay(task.score).cls">
-                  <i [class]="getScoreDisplay(task.score).icon"></i>
-                  <span>{{ getScoreDisplay(task.score).label }}</span>
-                </div>
-              </div>
+            <div class="task-score-wrap">
+  <div class="score-badge" [ngClass]="getScoreDisplay(task.submissionScore).cls">
+    <i [class]="getScoreDisplay(task.submissionScore).icon"></i>
+    <span>{{ getScoreDisplay(task.submissionScore).label }}</span>
+  </div>
+</div>
 
               <!-- Status Pill -->
               <span class="status" [ngClass]="task.status">
@@ -294,18 +294,23 @@
 
         <!-- Score display in task modal left panel -->
         <div class="modal-score-section" *ngIf="selectedTask">
-          <div class="modal-score-label"><i class="fas fa-star-half-stroke"></i> Task Score</div>
-          <div class="modal-score-display" [ngClass]="getScoreDisplay(selectedTask.score).cls + '-bg'">
-            <div class="modal-score-number" *ngIf="selectedTask.score !== null && selectedTask.score !== undefined">
-              {{ selectedTask.score }}<span>/100</span>
-            </div>
-            <div class="modal-score-pending" *ngIf="selectedTask.score === null || selectedTask.score === undefined">
-              <i class="fas fa-hourglass-half"></i>
-              <span>Not yet scored</span>
-            </div>
-          </div>
-        </div>
-
+  <div class="modal-score-label">
+    <i class="fas fa-star-half-stroke"></i>
+    Your Task Score
+  </div>
+  <div class="modal-score-display"
+       [ngClass]="getScoreDisplay((selectedTask)['submissionScore']).cls + '-bg'">
+    <div class="modal-score-number"
+         *ngIf="selectedTask?.submissionScore !== null && selectedTask?.submissionScore !== undefined">
+      {{ selectedTask?.submissionScore }}<span>/100</span>
+    </div>
+    <div class="modal-score-pending"
+         *ngIf="selectedTask?.submissionScore === null || selectedTask?.submissionScore === undefined">
+      <i class="fas fa-hourglass-half"></i>
+      <span>Not yet scored</span>
+    </div>
+  </div>
+</div>
       </div>
     </div>
 

@@ -963,3 +963,247 @@ textarea { resize: none; }
   justify-content: center;
   flex-shrink: 0;
 }
+ 
+/* Large score badge variant (used in task modal) */
+.score-badge.lg {
+  padding: 7px 16px;
+  font-size: 13.5px;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════
+   ADD TO supervisor-tasks.component.css
+   Submission scoring inside the All Submissions modal
+══════════════════════════════════════════════ */
+ 
+/* Redesign subs-file-card to accommodate score input */
+.subs-file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  flex-wrap: wrap;         /* allow wrap on narrow screens */
+}
+.subs-file-card:hover {
+  background: #f0f2fd;
+  border-color: #c7cdf5;
+  box-shadow: 0 4px 12px rgba(8,24,168,0.06);
+}
+ 
+/* Score badge area */
+.subs-score-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+ 
+/* Score input row inside each submission card */
+.subs-score-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+ 
+.subs-score-field {
+  width: 68px;
+  padding: 7px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  outline: none;
+  transition: 0.2s;
+  text-align: center;
+  color: #111827;
+  background: white;
+}
+.subs-score-field:focus {
+  border-color: #0818A8;
+  box-shadow: 0 0 0 3px rgba(8,24,168,0.1);
+}
+ 
+.subs-score-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #0818A8;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.subs-score-btn:hover:not(:disabled) {
+  background: #060f7a;
+  transform: scale(1.05);
+}
+.subs-score-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sub-card-with-score {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.sub-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sub-card-score-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+.lb-week-filter-section {
+  margin-bottom: 20px;
+}
+
+.lb-week-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.lb-week-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lb-week-select-icon {
+  position: absolute;
+  left: 11px;
+  pointer-events: none;
+  color: #0818A8;
+  font-size: 13px;
+  z-index: 1;
+}
+
+.lb-week-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 9px 34px 9px 32px;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  background: #eef0fc;
+  color: #0818A8;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  outline: none;
+  min-width: 200px;
+  transition: all 0.2s;
+}
+.lb-week-select:hover  { background: #e0e4fb; border-color: #a5b4fc; }
+.lb-week-select:focus  { box-shadow: 0 0 0 3px rgba(8,24,168,0.12); border-color: #0818A8; }
+
+.lb-week-select-arrow {
+  position: absolute;
+  right: 11px;
+  pointer-events: none;
+  color: #0818A8;
+  font-size: 11px;
+}
+
+.lb-week-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #c7d2fe;
+  background: #eef0fc;
+  color: #0818A8;
+}
+.lb-week-stat.amber { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.lb-week-stat.green { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+
+.lb-wstat-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.lb-week-days {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.lb-day-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-height: 100px;
+  transition: all 0.18s;
+}
+.lb-day-card.has-entry { border-color: #c7d2fe; background: #f5f7ff; cursor: pointer; }
+.lb-day-card.has-entry:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(8,24,168,0.1); }
+.lb-day-card.is-today  { border-color: #a7f3d0; background: #ecfdf5; cursor: pointer; }
+.lb-day-card.is-today:hover { transform: translateY(-2px); }
+.lb-day-card.is-missed { background: #fafafa; border-color: #f0f0f0; opacity: 0.7; }
+
+.lb-day-name {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+}
+.lb-day-card.has-entry .lb-day-name { color: #818cf8; }
+.lb-day-card.is-today .lb-day-name  { color: #34d399; }
+
+.lb-day-num {
+  font-size: 24px; font-weight: 700; line-height: 1; color: #111827;
+}
+.lb-day-card.has-entry .lb-day-num { color: #0818A8; }
+.lb-day-card.is-today .lb-day-num  { color: #047857; }
+.lb-day-card.is-missed .lb-day-num { color: #d1d5db; }
+
+.lb-day-tag {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; margin-top: 2px;
+}
+.lb-day-tag.logged { background: #eef0fc; color: #0818A8; }
+.lb-day-tag.today  { background: #d1fae5; color: #047857; }
+.lb-day-tag.missed { background: #f3f4f6; color: #9ca3af; }
+
+.lb-score-chip {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 9px; border-radius: 10px; margin-top: 1px;
+}
+.lb-score-chip.excellent, .lb-score-chip.good { background: #ecfdf5; color: #047857; }
+.lb-score-chip.average { background: #fffbeb; color: #b45309; }
+.lb-score-chip.low     { background: #fef2f2; color: #b91c1c; }
+.lb-score-chip.pending { background: #f3f4f6; color: #9ca3af; }

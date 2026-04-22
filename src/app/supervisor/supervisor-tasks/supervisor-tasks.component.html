@@ -11,12 +11,9 @@
         <div class="header-flex">
           <h2>{{ activeTab === 'tasks' ? 'Tasks' : 'Daily Log' }}</h2>
           <div class="header-actions">
-            <!-- Tasks tab: Create Task button -->
             <button class="create-btn" *ngIf="activeTab === 'tasks'" (click)="openModal()">
               <i class="fas fa-plus"></i> Create Task
             </button>
-
-            <!-- Daily Log tab: search + count -->
             <ng-container *ngIf="activeTab === 'logbook' && !selectedInternId">
               <div class="search-box">
                 <i class="fas fa-search"></i>
@@ -24,7 +21,6 @@
                        [(ngModel)]="logbookSearchQuery"
                        (input)="onLogbookSearch()">
               </div>
-              <!--<span class="lb-search-count">{{ filteredLogbookInterns.length }} intern{{ filteredLogbookInterns.length !== 1 ? 's' : '' }}</span>-->
             </ng-container>
           </div>
         </div>
@@ -52,13 +48,11 @@
                *ngFor="let task of pagedTasks"
                (click)="openCardModal(task)">
             <div class="task-card-inner">
-
               <div class="task-date-badge">
                 <span class="tb-day">{{ getDueDateParts(task.due).day }}</span>
                 <span class="tb-num">{{ getDueDateParts(task.due).num }}</span>
                 <span class="tb-month">{{ getDueDateParts(task.due).month }}</span>
               </div>
-
               <div class="task-card-body">
                 <span class="task-card-title">{{ task.title }}</span>
                 <div class="task-card-meta">
@@ -66,7 +60,6 @@
                   Posted: {{ task.posted }}
                 </div>
               </div>
-
               <div class="task-badge-wrap">
                 <span class="submission-badge"
                       [class.all-done]="getTaskSubmittedCount(task) >= getTaskAssignedCount(task) && getTaskAssignedCount(task) > 0"
@@ -76,51 +69,16 @@
                   {{ getTaskSubmittedCount(task) }}/{{ getTaskAssignedCount(task) }} submitted
                 </span>
               </div>
-
               <i class="fas fa-chevron-right task-card-chevron"></i>
             </div>
           </div>
 
-          <div *ngIf="tasks.length === 0"
-               style="text-align:center; padding:40px; color:#9ca3af;">
+          <div *ngIf="tasks.length === 0" style="text-align:center; padding:40px; color:#9ca3af;">
             <i class="fas fa-list-check" style="font-size:40px; margin-bottom:12px; display:block;"></i>
             <p>No tasks yet. Click "Create Task" to get started.</p>
           </div>
 
         </div>
-
-       <!--
-<div class="pagination" *ngIf="totalPages > 1">
-
-  <span class="page-info">
-    Showing {{ (currentPage - 1) * pageSize + 1 }}
-    – {{ Math.min(currentPage * pageSize, tasks.length) }}
-    of {{ tasks.length }}
-  </span>
-
-  <button class="page-btn"
-          (click)="goToPage(currentPage - 1)"
-          [disabled]="currentPage === 1">
-    <i class="fas fa-chevron-left"></i>
-  </button>
-
-  <div class="page-numbers">
-    <span class="page"
-          *ngFor="let p of pageNumbers"
-          [class.active]="p === currentPage"
-          (click)="goToPage(p)">
-      {{ p }}
-    </span>
-  </div>
-
-  <button class="page-btn"
-          (click)="goToPage(currentPage + 1)"
-          [disabled]="currentPage === totalPages">
-    <i class="fas fa-chevron-right"></i>
-  </button>
-
-</div>
--->
       </div>
 
       <!-- ══════════════ LOGBOOK TAB ══════════════ -->
@@ -178,7 +136,6 @@
               </tbody>
             </table>
 
-            <!-- Logbook Interns Pagination -->
             <div class="pagination">
               <span class="page-info">
                 Showing {{ (logbookCurrentPage - 1) * logbookPageSize + 1 }}–{{ Math.min(logbookCurrentPage * logbookPageSize, filteredLogbookInterns.length) }}
@@ -210,6 +167,56 @@
 
         <ng-container *ngIf="selectedInternId && selectedInternObj">
           <div class="intern-logbook-header">
+<div class="lb-week-filter-section" *ngIf="!logbookLoading && internLogbookEntries.length > 0">
+
+  <div class="lb-week-filter-row">
+    <div class="lb-week-select-wrap">
+      <span class="lb-week-select-icon"><i class="fas fa-calendar-week"></i></span>
+      <select class="lb-week-select" [(ngModel)]="selectedWeekMonday" (change)="onWeekFilterChange()">
+        <option [ngValue]="null">All weeks</option>
+        <option *ngFor="let w of getWeekRanges(internLogbookEntries)" [ngValue]="w.monday">
+          {{ w.label }}&nbsp;&nbsp;({{ w.count }}/5)
+        </option>
+      </select>
+      <span class="lb-week-select-arrow"><i class="fas fa-chevron-down"></i></span>
+    </div>
+
+    <ng-container *ngIf="selectedWeekMonday">
+      <span class="lb-week-stat">
+        <span class="lb-wstat-dot"></span>{{ getWeekLogged(selectedWeekMonday) }} of 5 logged
+      </span>
+      <span class="lb-week-stat amber" *ngIf="getWeekMissed(selectedWeekMonday) > 0">
+        <span class="lb-wstat-dot"></span>{{ getWeekMissed(selectedWeekMonday) }} missed
+      </span>
+      <span class="lb-week-stat green" *ngIf="getWeekAvgScore(selectedWeekMonday) !== null">
+        <span class="lb-wstat-dot"></span>avg {{ getWeekAvgScore(selectedWeekMonday) }}/100
+      </span>
+    </ng-container>
+  </div>
+  <!-- 5-day grid (only when a week is selected) -->
+  <div class="lb-week-days" *ngIf="selectedWeekMonday">
+    <div *ngFor="let day of getWeekDays(selectedWeekMonday)"
+         class="lb-day-card"
+         [class.has-entry]="day.entry && !day.isToday"
+         [class.is-today]="day.isToday"
+         [class.is-missed]="!day.entry"
+         (click)="day.entry && openLogbookEntryModal(day.entry)">
+      <span class="lb-day-name">{{ day.dayName }}</span>
+      <span class="lb-day-num">{{ day.dayNum }}</span>
+      <span class="lb-day-tag"
+            [class.logged]="day.entry && !day.isToday"
+            [class.today]="day.isToday"
+            [class.missed]="!day.entry">
+        {{ day.isToday ? 'today' : (day.entry ? 'logged' : 'missed') }}
+      </span>
+      <span *ngIf="day.entry" class="lb-score-chip"
+            [ngClass]="getScoreDisplay(day.entry.score).cls">
+        {{ getScoreDisplay(day.entry.score).label }}
+      </span>
+    </div>
+  </div>
+
+</div>
             <button class="back-btn" (click)="closeInternLogbook()">
               <i class="fas fa-arrow-left"></i> Back to Interns
             </button>
@@ -238,42 +245,45 @@
           </div>
 
           <div class="lb-table-container" *ngIf="!logbookLoading && internLogbookEntries.length > 0">
-            <table class="lb-entries-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Tasks / Accomplishments</th>
-                  <th>Reflections</th>
-                  <th>Score</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let entry of internLogbookEntries"
-                    (click)="openLogbookEntryModal(entry)"
-                    class="lb-entry-row">
-                  <td>
-                    <div class="lb-table-date-badge" [class.today]="isToday(entry.entry_date)">
-                      <span class="tb-day">{{ entry.entry_date | date:'EEE' }}</span>
-                      <span class="tb-num">{{ entry.entry_date | date:'d' }}</span>
-                      <span class="tb-month">{{ entry.entry_date | date:'MMM' }}</span>
-                    </div>
-                  </td>
-                  <td class="lb-table-headline">{{ getHeadline(entry.tasks_done) }}</td>
-                  <td class="lb-table-reflection">{{ entry.reflection ? getHeadline(entry.reflection) : '—' }}</td>
-                  <td>
-                    <div class="score-badge" [ngClass]="getScoreDisplay(entry.score).cls">
-                      <i [class]="getScoreDisplay(entry.score).icon"></i>
-                      {{ getScoreDisplay(entry.score).label }}
-                    </div>
-                  </td>
-                  <td class="lb-table-chevron-cell">
-                    <i class="fas fa-chevron-right lb-table-chevron"></i>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+  <table class="lb-entries-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Tasks / Accomplishments</th>
+        <th>Reflections</th>
+        <th>Score</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let entry of filteredWeekEntries"
+          (click)="openLogbookEntryModal(entry)"
+          class="lb-entry-row">
+        <td>
+          <div class="lb-table-date-badge" [class.today]="isToday(entry.entry_date)">
+            <span class="tb-day">{{ entry.entry_date | date:'EEE' }}</span>
+            <span class="tb-num">{{ entry.entry_date | date:'d' }}</span>
+            <span class="tb-month">{{ entry.entry_date | date:'MMM' }}</span>
           </div>
+        </td>
+        <td class="lb-table-headline">{{ getHeadline(entry.tasks_done) }}</td>
+        <td class="lb-table-reflection">{{ entry.reflection ? getHeadline(entry.reflection) : '—' }}</td>
+        <td>
+          <div class="score-badge" [ngClass]="getScoreDisplay(entry.score).cls">
+            <i [class]="getScoreDisplay(entry.score).icon"></i>
+            {{ getScoreDisplay(entry.score).label }}
+          </div>
+        </td>
+        <td class="lb-table-chevron-cell"><i class="fas fa-chevron-right lb-table-chevron"></i></td>
+      </tr>
+      <tr *ngIf="filteredWeekEntries.length === 0">
+        <td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;font-size:13px;">
+          No entries for this week.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
         </ng-container>
 
       </div>
@@ -326,30 +336,22 @@
         <h3>Assign Interns</h3>
 
         <div class="assign-mode-tabs">
-          <button class="assign-mode-btn"
-                  [class.active]="assignMode === 'all'"
-                  (click)="assignMode = 'all'; onAssignModeChange()">
+          <button class="assign-mode-btn" [class.active]="assignMode === 'all'" (click)="assignMode = 'all'; onAssignModeChange()">
             <i class="fas fa-users"></i> All Interns
           </button>
-          <button class="assign-mode-btn"
-                  [class.active]="assignMode === 'course'"
-                  (click)="assignMode = 'course'; onAssignModeChange()">
+          <button class="assign-mode-btn" [class.active]="assignMode === 'course'" (click)="assignMode = 'course'; onAssignModeChange()">
             <i class="fas fa-graduation-cap"></i> By Course
           </button>
-          <button class="assign-mode-btn"
-                  [class.active]="assignMode === 'specific'"
-                  (click)="assignMode = 'specific'; onAssignModeChange()">
+          <button class="assign-mode-btn" [class.active]="assignMode === 'specific'" (click)="assignMode = 'specific'; onAssignModeChange()">
             <i class="fas fa-user-check"></i> Specific
           </button>
         </div>
 
-        <!-- ALL MODE -->
         <div *ngIf="assignMode === 'all'" class="assign-info-banner">
           <i class="fas fa-circle-info"></i>
           This task will be assigned to all <strong>{{ allInterns.length }}</strong> intern{{ allInterns.length !== 1 ? 's' : '' }}.
         </div>
 
-        <!-- BY COURSE MODE -->
         <div *ngIf="assignMode === 'course'" class="course-assign-wrap">
           <div class="form-group" style="margin-bottom:10px;">
             <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">Select Course</label>
@@ -361,7 +363,6 @@
               <i class="fas fa-chevron-down course-select-arrow"></i>
             </div>
           </div>
-
           <div *ngIf="effectiveCourse" class="course-match-preview">
             <div class="course-match-header">
               <i class="fas fa-users" style="color:#0818A8; font-size:11px;"></i>
@@ -381,7 +382,6 @@
           </div>
         </div>
 
-        <!-- SPECIFIC MODE -->
         <ng-container *ngIf="assignMode === 'specific'">
           <div class="search-box">
             <input type="text" placeholder="Search intern name…" [(ngModel)]="internSearchQuery" (input)="onInternSearch()">
@@ -490,23 +490,46 @@
         <div *ngIf="taskSubmissions.length === 0" class="empty-sub">No submissions yet.</div>
 
         <div class="submission-list">
-          <div class="file-card" *ngFor="let sub of taskSubmissions | slice:0:1">
-            <div class="file-left">
-              <div class="file-icon"><i class="fa-solid fa-file"></i></div>
-              <div class="file-info">
-                <span class="file-name">{{ sub.file_name }}</span>
-                <span class="file-size">{{ sub.student_name }} &bull; {{ sub.submitted_at }}</span>
+          <ng-container *ngFor="let sub of taskSubmissions | slice:0:1">
+            <div class="file-card sub-card-with-score">
+              <div class="sub-card-top">
+                <div class="file-left">
+                  <div class="file-icon"><i class="fa-solid fa-file"></i></div>
+                  <div class="file-info">
+                    <span class="file-name">{{ sub.file_name }}</span>
+                    <span class="file-size">{{ sub.student_name }} &bull; {{ sub.submitted_at }}</span>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <a [href]="getFileUrl(sub.file_id, 'view')" target="_blank" title="View file">
+                    <div class="file-action-btn grey"><i class="fa-solid fa-magnifying-glass"></i></div>
+                  </a>
+                  <a [href]="getFileUrl(sub.file_id, 'download')" target="_blank" title="Download file">
+                    <div class="file-action-btn grey"><i class="fas fa-download"></i></div>
+                  </a>
+                </div>
+              </div>
+              <div class="sub-card-score-row">
+                <div class="score-badge" [ngClass]="getScoreDisplay(sub.score).cls">
+                  <i [class]="getScoreDisplay(sub.score).icon"></i>
+                  {{ getScoreDisplay(sub.score).label }}
+                </div>
+                <div class="subs-score-input-row">
+                  <input type="number" min="0" max="100"
+                         [(ngModel)]="sub._scoreInput"
+                         placeholder="0–100"
+                         class="subs-score-field"
+                         (click)="$event.stopPropagation()">
+                  <button class="subs-score-btn"
+                          (click)="saveSubmissionScore(sub); $event.stopPropagation()"
+                          [disabled]="sub._scoreSaving || sub._scoreInput === null || sub._scoreInput === undefined">
+                    <i class="fa fa-spinner fa-spin" *ngIf="sub._scoreSaving"></i>
+                    <i class="fas fa-check" *ngIf="!sub._scoreSaving"></i>
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="file-actions">
-              <a [href]="getFileUrl(sub.file_id, 'view')" target="_blank" title="View file">
-                <div class="file-action-btn grey"><i class="fa-solid fa-magnifying-glass"></i></div>
-              </a>
-              <a [href]="getFileUrl(sub.file_id, 'download')" target="_blank" title="Download file">
-                <div class="file-action-btn grey"><i class="fas fa-download"></i></div>
-              </a>
-            </div>
-          </div>
+          </ng-container>
         </div>
 
         <button type="button" class="view-all-btn" *ngIf="taskSubmissions.length > 1" (click)="openSubmissionsModal()">
@@ -575,18 +598,24 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
+
+  </div><!-- ← closes .task-modal-modern -->
+</div><!-- ← closes .task-modal-overlay [isCardModalOpen] -->
 
 <!-- ══════════════════════════════════════════════ -->
 <!--  VIEW ALL SUBMISSIONS MODAL                   -->
 <!-- ══════════════════════════════════════════════ -->
 <div class="subs-modal-overlay" [class.active]="isSubmissionsModalOpen" (click)="closeSubmissionsModal()">
   <div class="subs-modal" (click)="$event.stopPropagation()">
+
     <div class="subs-modal-header">
-      <div class="subs-modal-title"><i class="fa-solid fa-file-lines"></i><h3>All Submissions</h3></div>
+      <div class="subs-modal-title">
+        <i class="fa-solid fa-file-lines"></i>
+        <h3>All Submissions</h3>
+      </div>
       <button class="subs-modal-close" (click)="closeSubmissionsModal()"></button>
     </div>
+
     <div class="subs-stat-bar">
       <span class="subs-stat-item"><i class="fa-solid fa-users" style="color:#0818A8;"></i><strong>{{ assignedCount }}</strong> assigned</span>
       <span class="subs-stat-sep">·</span>
@@ -594,19 +623,53 @@
       <span class="subs-stat-sep">·</span>
       <span class="subs-stat-item"><i class="fa-solid fa-hourglass-half" style="color:#d97706;"></i><strong>{{ pendingCount }}</strong> pending</span>
     </div>
+
     <div class="subs-modal-body">
       <div *ngIf="taskSubmissions.length === 0" style="text-align:center; padding:40px; color:#9ca3af;">
         <i class="fas fa-inbox" style="font-size:36px; margin-bottom:12px; display:block;"></i>
         No submissions yet.
       </div>
+
       <div class="subs-list">
         <div class="subs-file-card" *ngFor="let sub of taskSubmissions">
-          <div class="subs-avatar">{{ getInitials(sub.student_name) }}</div>
+
+          <div class="subs-avatar"
+               [style.backgroundImage]="sub.profile_photo_id ? 'url(' + getPhotoUrl(sub.profile_photo_id) + ')' : 'none'"
+               [style.backgroundSize]="'cover'"
+               [style.backgroundPosition]="'center'">
+            <span *ngIf="!sub.profile_photo_id">{{ getInitials(sub.student_name) }}</span>
+          </div>
+
           <div class="subs-info">
             <span class="subs-student-name">{{ sub.student_name }}</span>
-            <span class="subs-file-name"><i class="fa-solid fa-file" style="font-size:11px; color:#9ca3af;"></i> {{ sub.file_name }}</span>
+            <span class="subs-file-name">
+              <i class="fa-solid fa-file" style="font-size:11px; color:#9ca3af;"></i>
+              {{ sub.file_name }}
+            </span>
             <span class="subs-date">{{ sub.submitted_at }}</span>
           </div>
+
+          <div class="subs-score-wrap">
+            <div class="score-badge" [ngClass]="getScoreDisplay(sub.score).cls">
+              <i [class]="getScoreDisplay(sub.score).icon"></i>
+              {{ getScoreDisplay(sub.score).label }}
+            </div>
+          </div>
+
+          <div class="subs-score-input-row">
+            <input type="number" min="0" max="100"
+                   [(ngModel)]="sub._scoreInput"
+                   placeholder="0–100"
+                   class="subs-score-field"
+                   (click)="$event.stopPropagation()">
+            <button class="subs-score-btn"
+                    (click)="saveSubmissionScore(sub); $event.stopPropagation()"
+                    [disabled]="sub._scoreSaving || sub._scoreInput === null || sub._scoreInput === undefined">
+              <i class="fa fa-spinner fa-spin" *ngIf="sub._scoreSaving"></i>
+              <i class="fas fa-check" *ngIf="!sub._scoreSaving"></i>
+            </button>
+          </div>
+
           <div class="file-actions">
             <a [href]="getFileUrl(sub.file_id, 'view')" target="_blank" title="View file">
               <div class="file-action-btn grey"><i class="fa-solid fa-magnifying-glass"></i></div>
@@ -615,11 +678,15 @@
               <div class="file-action-btn grey"><i class="fas fa-download"></i></div>
             </a>
           </div>
+
         </div>
       </div>
     </div>
+
     <div class="subs-modal-footer">
-      <span style="font-size:13px; color:#9ca3af;">{{ taskSubmissions.length }} of {{ assignedCount }} intern{{ assignedCount !== 1 ? 's' : '' }} submitted</span>
+      <span style="font-size:13px; color:#9ca3af;">
+        {{ taskSubmissions.length }} of {{ assignedCount }} intern{{ assignedCount !== 1 ? 's' : '' }} submitted
+      </span>
       <button class="subs-close-btn" (click)="closeSubmissionsModal()">Close</button>
     </div>
   </div>
@@ -817,5 +884,5 @@
       </ng-container>
 
     </div>
-  </div>
-</div>
+  </div><!-- ← closes .task-modal-modern (logbook entry modal) -->
+</div><!-- ← closes .task-modal-overlay [isLogbookEntryModalOpen] -->

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.component';
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
 import { AppwriteService } from '../services/appwrite.service';
-import { ID } from 'appwrite';
+import { ID, Query } from 'appwrite';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -22,6 +22,7 @@ interface Task {
   supervisor_name?: string;
   supervisor_id?: string;
   score?: number | null;
+   submissionScore?: number | null;
 }
 
 interface Submission {
@@ -31,6 +32,7 @@ interface Submission {
   file_id: string;
   file_name: string;
   submitted_at: string;
+  score?: number | null;
 }
 
 interface Comment {
@@ -172,39 +174,73 @@ export class InternTasksComponent implements OnInit {
   }
 
   async loadTasks() {
-    this.loading = true;
-    try {
-      const [tasksRes, subsRes] = await Promise.all([
-        this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL),
-        this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL)
-      ]);
-      const allTasks = tasksRes.documents as any[];
-      const allSubs  = subsRes.documents as any[];
-      const mySubmittedTaskIds = new Set(allSubs.filter(s => s.student_id === this.currentUserId).map(s => s.task_id));
-
-      this.tasks = allTasks
-        .filter(task => task.assigned_intern_ids?.split(',').map((id: string) => id.trim()).includes(this.currentUserId))
-        .map(task => ({ ...task, status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending' }))
-        // Sort by posted date: latest first (descending)
-        .sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime());
-
-    } catch (error: any) { console.error('Failed to load tasks:', error.message); }
-    finally { this.loading = false; }
-  }
-
+  this.loading = true;
+  try {
+    const [tasksRes, subsRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL,
+        [Query.limit(500)]                          // ← FIX: was missing limit
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL,
+        [Query.limit(5000)]                         // ← FIX: was missing limit
+      )
+    ]);
+    const allTasks = tasksRes.documents as any[];
+    const allSubs  = subsRes.documents as any[];
+ 
+    // My submissions only
+    const mySubs           = allSubs.filter(s => s.student_id === this.currentUserId);
+    const mySubmittedTaskIds = new Set(mySubs.map(s => s.task_id));
+ 
+    // Build a map: taskId → submission score
+    const mySubScoreMap: { [taskId: string]: number | null } = {};
+    mySubs.forEach(s => {
+      mySubScoreMap[s.task_id] = s.score ?? null;
+    });
+ 
+    this.tasks = allTasks
+      .filter(task => task.assigned_intern_ids?.split(',').map((id: string) => id.trim()).includes(this.currentUserId))
+      .map(task => ({
+        ...task,
+        status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending',
+        submissionScore: mySubScoreMap[task.$id] ?? null    // ← score from their submission
+      }))
+      .sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime());
+ 
+  } catch (error: any) { console.error('Failed to load tasks:', error.message); }
+  finally { this.loading = false; }
+}
   async loadSubmissions(taskId: string) {
-    try {
-      const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL);
-      this.submissions = (res.documents as any[]).filter(s => s.task_id === taskId && s.student_id === this.currentUserId);
-    } catch (error: any) { console.error('Failed to load submissions:', error.message); }
-  }
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL,
+      [Query.limit(500)]                            // ← FIX: was missing limit
+    );
+    this.submissions = (res.documents as any[])
+      .filter(s => s.task_id === taskId && s.student_id === this.currentUserId);
+ 
+    // Also refresh the score on the selected task from the submission
+    if (this.selectedTask && this.submissions.length > 0) {
+      (this.selectedTask as any).submissionScore = this.submissions[0].score ?? null;
+    }
+  } catch (error: any) { console.error('Failed to load submissions:', error.message); }
+}
 
   async loadComments(taskId: string) {
-    try {
-      const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL);
-      this.comments = (res.documents as any[]).filter(c => c.task_id === taskId).sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
-    } catch (error: any) { console.error('Failed to load comments:', error.message); }
-  }
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL,
+      [Query.limit(500)]
+    );
+    this.comments = (res.documents as any[])
+      .filter(c =>
+        c.task_id === taskId &&
+        (c.user_id === this.currentUserId || c.role === 'supervisor' || c.role === 'admin')
+      )
+      .sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
+  } catch (error: any) { console.error('Failed to load comments:', error.message); }
+}
 
   async sendComment() {
     if (!this.newComment.trim() || !this.selectedTask?.$id) return;
@@ -332,26 +368,31 @@ export class InternTasksComponent implements OnInit {
   }
 
   async loadLogbookEntries() {
-    this.logbookLoading = true;
-    try {
-      const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_entries');
-      this.logbookEntries = (res.documents as any[])
-        .filter(e => e.student_id === this.currentUserId)
-        .sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime());
-    } catch (error: any) { console.error('Failed to load logbook:', error.message); }
-    finally { this.logbookLoading = false; }
-  }
+  this.logbookLoading = true;
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, 'logbook_entries',
+      [Query.limit(5000)]                           // ← FIX: was missing limit
+    );
+    this.logbookEntries = (res.documents as any[])
+      .filter(e => e.student_id === this.currentUserId)
+      .sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime());
+  } catch (error: any) { console.error('Failed to load logbook:', error.message); }
+  finally { this.logbookLoading = false; }
+}
 
   async loadAllPhotoCounts() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_photos');
-      const mine = (res.documents as any[]).filter(p => p.student_id === this.currentUserId);
-      this.entryPhotoCounts = mine.reduce((acc: Record<string, number>, p) => {
-        acc[p.entry_id] = (acc[p.entry_id] || 0) + 1; return acc;
-      }, {});
-    } catch { this.entryPhotoCounts = {}; }
-  }
-
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, 'logbook_photos',
+      [Query.limit(5000)]                           // ← FIX: was missing limit
+    );
+    const mine = (res.documents as any[]).filter(p => p.student_id === this.currentUserId);
+    this.entryPhotoCounts = mine.reduce((acc: Record<string, number>, p) => {
+      acc[p.entry_id] = (acc[p.entry_id] || 0) + 1; return acc;
+    }, {});
+  } catch { this.entryPhotoCounts = {}; }
+}
   getEntryPhotoCount(entryId: string | undefined): number { return entryId ? (this.entryPhotoCounts[entryId] || 0) : 0; }
   getTotalPhotos(): number { return Object.values(this.entryPhotoCounts).reduce((a, b) => a + b, 0); }
 
@@ -734,13 +775,16 @@ export class InternTasksComponent implements OnInit {
     finally { this.photoUploading = false; }
   }
 
-  async loadLogbookPhotos(entryId: string) {
-    try {
-      const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_photos');
-      this.logbookPhotos = (res.documents as any[]).filter(p => p.entry_id === entryId);
-    } catch (error: any) { console.error('Failed to load photos:', error.message); }
-  }
-
+ async loadLogbookPhotos(entryId: string) {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, 'logbook_photos',
+      [Query.limit(500)]                            // ← FIX: was missing limit
+    );
+    this.logbookPhotos = (res.documents as any[]).filter(p => p.entry_id === entryId);
+  } catch (error: any) { console.error('Failed to load photos:', error.message); }
+}
+ 
   async deleteLogbookPhoto(photo: LogbookPhoto) {
     const result = await Swal.fire({ title: 'Delete this photo?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
     if (!result.isConfirmed) return;
@@ -983,4 +1027,7 @@ export class InternTasksComponent implements OnInit {
   formatEntryDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
   }
+  get selectedTaskSubmissionScore(): number | null {
+  return (this.selectedTask as any)?.submissionScore ?? null;
+}
 }

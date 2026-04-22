@@ -1015,6 +1015,27 @@
 /* Remove old absolute buttons */
 .lb-modal-edit-btn, .lb-modal-delete-btn { display:none !important; }
 
+/* Intern sees read-only score on their submission */
+.intern-sub-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  margin-top: 4px;
+}
+.intern-sub-score-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.intern-sub-score-label i { color: #2563eb; }
+
 /* ─── RESPONSIVE ─────────────────────────────── */
 @media (max-width: 1024px) {
   .dashboard-content { padding:20px; }
