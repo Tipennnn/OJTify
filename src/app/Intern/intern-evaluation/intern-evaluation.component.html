@@ -12,17 +12,11 @@
       <div class="dashboard-header no-print" *ngIf="!loading">
         <div class="eval-header-row">
           <h2>Evaluation</h2>
-          <button
-            class="btn-download"
-            *ngIf="hasEvaluation"
-            (click)="printEvaluation()">
-            <i class="fa-solid fa-file-arrow-down"></i>
-            Download PDF
+          <button class="btn-download" *ngIf="hasEvaluation" (click)="printEvaluation()">
+            <i class="fa-solid fa-file-arrow-down"></i> Download PDF
           </button>
         </div>
         <div class="dashboard-divider"></div>
-
-        <!-- Status badge below the divider -->
         <div class="eval-status-row" *ngIf="hasEvaluation">
           <span class="status-badge">
             <span class="status-dot"></span>
@@ -59,45 +53,28 @@
         <!-- HEADER -->
         <div class="doc-header">
           <div class="header-inner">
-  <!-- LEFT: DepEd + OCES logos -->
-  <div class="header-logos-left">
-    <img *ngIf="depedLogoB64"  [src]="depedLogoB64"  alt="DepEd"  class="header-logo">
-    <div class="header-logo-divider" *ngIf="depedLogoB64 && ocesLogoB64"></div>
-    <img *ngIf="ocesLogoB64"   [src]="ocesLogoB64"   alt="OCES"   class="header-logo">
-  </div>
-
-  <!-- CENTER: title text -->
-  <div class="header-brand">
-    <div class="brand-icon"><i class="fa-solid fa-school"></i></div>
-    <div class="brand-text">
-      <div class="brand-school">{{ SCHOOL }}</div>
-      <div class="brand-tagline">On-the-Job Training Program</div>
-    </div>
-  </div>
-
-  <!-- RIGHT: OJTify logo + meta -->
-  <div class="header-right-wrap">
-    <img *ngIf="ojtifyLogoB64" [src]="ojtifyLogoB64" alt="OJTify" class="header-logo ojtify-logo">
-    <div class="header-meta">
-      <div class="hm-row">
-        <span class="hm-key">Document Type</span>
-        <span class="hm-val">Performance Appraisal Report</span>
-      </div>
-      <div class="hm-row">
-        <span class="hm-key">Reference No.</span>
-        <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
-      </div>
-      <div class="hm-row">
-        <span class="hm-key">Date Issued</span>
-        <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
-      </div>
-      <div class="hm-row">
-        <span class="hm-key">Academic Year</span>
-        <span class="hm-val">{{ AY }}</span>
-      </div>
-    </div>
-  </div>
-</div>
+            <div class="header-logos-left">
+              <img *ngIf="depedLogoB64"  [src]="depedLogoB64"  alt="DepEd"  class="header-logo">
+              <div class="header-logo-divider" *ngIf="depedLogoB64 && ocesLogoB64"></div>
+              <img *ngIf="ocesLogoB64"   [src]="ocesLogoB64"   alt="OCES"   class="header-logo">
+            </div>
+            <div class="header-brand">
+              <div class="brand-icon"><i class="fa-solid fa-school"></i></div>
+              <div class="brand-text">
+                <div class="brand-school">{{ SCHOOL }}</div>
+                <div class="brand-tagline">On-the-Job Training Program</div>
+              </div>
+            </div>
+            <div class="header-right-wrap">
+              <img *ngIf="ojtifyLogoB64" [src]="ojtifyLogoB64" alt="OJTify" class="header-logo ojtify-logo">
+              <div class="header-meta">
+                <div class="hm-row"><span class="hm-key">Document Type</span><span class="hm-val">Performance Appraisal Report</span></div>
+                <div class="hm-row"><span class="hm-key">Reference No.</span><span class="hm-val">OJT-PA-{{ student?.student_id }}</span></div>
+                <div class="hm-row"><span class="hm-key">Date Issued</span><span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span></div>
+                <div class="hm-row"><span class="hm-key">Academic Year</span><span class="hm-val">{{ AY }}</span></div>
+              </div>
+            </div>
+          </div>
           <div class="header-accent-bar"></div>
         </div>
 
@@ -111,57 +88,27 @@
             <span class="part-num">PART I</span>
             <span class="part-label">Intern Information</span>
           </div>
-
           <div class="info-table-wrap">
             <table class="info-table">
               <tbody>
-                <tr>
-                  <td class="it-key">Full Name</td>
-                  <td class="it-val it-name">{{ getFullName() }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Student ID No.</td>
-                  <td class="it-val">{{ student?.student_id }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Course / Program</td>
-                  <td class="it-val">{{ student?.course }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Institution</td>
-                  <td class="it-val">{{ SCHOOL }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Email Address</td>
-                  <td class="it-val">{{ student?.email }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Required Hours</td>
-                  <td class="it-val">{{ student?.required_hours ?? 500 }} hours</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Hours Rendered</td>
-                  <td class="it-val"><strong>{{ student?.completed_hours ?? 0 }} hours</strong></td>
-                </tr>
+                <tr><td class="it-key">Full Name</td><td class="it-val it-name">{{ getFullName() }}</td></tr>
+                <tr><td class="it-key">Student ID No.</td><td class="it-val">{{ student?.student_id }}</td></tr>
+                <tr><td class="it-key">Course / Program</td><td class="it-val">{{ student?.course }}</td></tr>
+                <tr><td class="it-key">Institution</td><td class="it-val">{{ SCHOOL }}</td></tr>
+                <tr><td class="it-key">Email Address</td><td class="it-val">{{ student?.email }}</td></tr>
+                <tr><td class="it-key">Required Hours</td><td class="it-val">{{ student?.required_hours ?? 500 }} hours</td></tr>
+                <tr><td class="it-key">Hours Rendered</td><td class="it-val"><strong>{{ student?.completed_hours ?? 0 }} hours</strong></td></tr>
                 <tr>
                   <td class="it-key">Completion Rate</td>
                   <td class="it-val">
                     <div class="it-progress">
-                      <div class="itp-track">
-                        <div class="itp-fill" [style.width]="getProgress() + '%'"></div>
-                      </div>
+                      <div class="itp-track"><div class="itp-fill" [style.width]="getProgress() + '%'"></div></div>
                       <span>{{ getProgress() }}%</span>
                     </div>
                   </td>
                 </tr>
-                <tr>
-                  <td class="it-key">Evaluation Period</td>
-                  <td class="it-val">{{ getEvaluationPeriod() }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Company / Dept.</td>
-                  <td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td>
-                </tr>
+                <tr><td class="it-key">Evaluation Period</td><td class="it-val">{{ getEvaluationPeriod() }}</td></tr>
+                <tr><td class="it-key">Company / Dept.</td><td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td></tr>
               </tbody>
             </table>
           </div>
@@ -171,60 +118,37 @@
             <span class="part-num">PART II</span>
             <span class="part-label">Evaluating Supervisor</span>
           </div>
-
           <div class="info-table-wrap">
             <table class="info-table">
               <tbody>
-                <tr>
-                  <td class="it-key">Supervisor Name</td>
-                  <td class="it-val it-name">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Position / Title</td>
-                  <td class="it-val">Teacher</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Organization</td>
-                  <td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Email Address</td>
-                  <td class="it-val">{{ supervisor?.email ?? '—' }}</td>
-                </tr>
-                <tr>
-                  <td class="it-key">Evaluation Date</td>
-                  <td class="it-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</td>
-                </tr>
+                <tr><td class="it-key">Supervisor Name</td><td class="it-val it-name">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</td></tr>
+                <tr><td class="it-key">Position / Title</td><td class="it-val">Teacher</td></tr>
+                <tr><td class="it-key">Organization</td><td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td></tr>
+                <tr><td class="it-key">Email Address</td><td class="it-val">{{ supervisor?.email ?? '—' }}</td></tr>
+                <tr><td class="it-key">Evaluation Date</td><td class="it-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</td></tr>
               </tbody>
             </table>
           </div>
 
-          <!-- PART III: RATING SCALE -->
+          <!-- PART III: RATING SCALE (uses saved criteria's choice labels) -->
           <div class="part-header">
             <span class="part-num">PART III</span>
             <span class="part-label">Rating Scale</span>
           </div>
-
           <div class="scale-legend-full">
-            <div *ngFor="let item of [
-              {v:5,l:'Excellent',d:'Outstanding performance exceeding expectations'},
-              {v:4,l:'Very Good',d:'Above average, consistently meets high standards'},
-              {v:3,l:'Good',d:'Meets expectations and requirements'},
-              {v:2,l:'Fair',d:'Below expectations, needs improvement'},
-              {v:1,l:'Poor',d:'Fails to meet minimum requirements'}
-            ]" class="sl-card">
-              <span class="sl-score-lg" [attr.data-v]="item.v">{{ item.v }}</span>
+            <div *ngFor="let item of ratingLegendItems" class="sl-card">
+              <span class="sl-score-lg" [style.background]="getRatingColor(item.v, ratingLegendItems.length)" [style.color]="'#fff'">{{ item.v }}</span>
               <div class="sl-card-text">
                 <span class="sl-card-label">{{ item.l }}</span>
-                <span class="sl-card-desc">{{ item.d }}</span>
+                <span class="sl-card-desc">Rating level {{ item.v }} of {{ ratingLegendItems.length }}</span>
               </div>
             </div>
           </div>
 
-          <!-- PART IV: PERFORMANCE RATINGS -->
+          <!-- PART IV: PERFORMANCE RATINGS — driven by displayCriteria -->
           <div class="part-header">
             <span class="part-num">PART IV</span>
-            <span class="part-label">Performance Ratings</span>
+            <span class="part-label">Performance Ratings ({{ displayCriteria.length }} criteria)</span>
           </div>
 
           <table class="criteria-table">
@@ -232,282 +156,66 @@
               <tr>
                 <th class="ct-no">#</th>
                 <th class="ct-crit">Category</th>
-                <th class="ct-sub">Sub-Criteria / Indicators</th>
+                <th class="ct-sub">Question / Criterion</th>
                 <th class="ct-score">Score</th>
                 <th class="ct-rating">Rating</th>
                 <th class="ct-bar">Performance</th>
               </tr>
             </thead>
             <tbody>
-
-              <!-- 1. Attendance & Punctuality -->
-              <tr class="ct-group-header">
-                <td class="ct-no">1</td>
-                <td colspan="5" class="ct-crit-val"><strong>Attendance &amp; Punctuality</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Punctuality</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Reports on time regularly</li>
-                    <li>Observes working hours properly</li>
-                    <li>Rarely absent without valid reason</li>
-                  </ul>
+              <tr class="ct-sub-row" *ngFor="let c of displayCriteria; let i = index">
+                <td class="ct-no" style="text-align:center;font-weight:700;color:#0818A8;">{{ i + 1 }}</td>
+                <td class="ct-crit-val">
+                  <strong><i class="fa-solid {{ c.icon }}" style="color:#0818A8;margin-right:5px;font-size:10px;"></i>{{ c.label }}</strong>
                 </td>
+                <td class="ct-sub-val">{{ c.question }}</td>
                 <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('punctuality')">{{ getRating('punctuality') }}</span>
+                  <span class="score-circle"
+                        [style.background]="getRatingColor(getRating(c.key), c.numChoices)"
+                        [style.color]="'#fff'">
+                    {{ getRating(c.key) }}
+                  </span>
                 </td>
                 <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('punctuality')">{{ getRatingLabel(getRating('punctuality')) }}</span>
+                  <span class="rating-tag"
+                        [style.background]="getRatingColor(getRating(c.key), c.numChoices) + '18'"
+                        [style.color]="getRatingColor(getRating(c.key), c.numChoices)">
+                    {{ getChoiceLabel(c, getRating(c.key)) }}
+                  </span>
                 </td>
                 <td class="ct-bar-val">
                   <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('punctuality') / 5 * 100) + '%'" [attr.data-v]="getRating('punctuality')"></div>
+                    <div class="bar-fill"
+                         [style.width]="(getRating(c.key) / c.numChoices * 100) + '%'"
+                         [style.background]="getRatingColor(getRating(c.key), c.numChoices)"></div>
                   </div>
                 </td>
               </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Attendance</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Maintains regular presence</li>
-                    <li>Avoids unnecessary absences</li>
-                    <li>Informs ahead for planned leaves</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('attendance')">{{ getRating('attendance') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('attendance')">{{ getRatingLabel(getRating('attendance')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('attendance') / 5 * 100) + '%'" [attr.data-v]="getRating('attendance')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 2. Work Attitude & Professionalism -->
-              <tr class="ct-group-header">
-                <td class="ct-no">2</td>
-                <td colspan="5" class="ct-crit-val"><strong>Work Attitude &amp; Professionalism</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Professionalism</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Shows respect to supervisors and staff</li>
-                    <li>Follows company rules and policies</li>
-                    <li>Demonstrates proper behavior in the workplace</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('professionalism')">{{ getRating('professionalism') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('professionalism')">{{ getRatingLabel(getRating('professionalism')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('professionalism') / 5 * 100) + '%'" [attr.data-v]="getRating('professionalism')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 3. Communication Skills -->
-              <tr class="ct-group-header">
-                <td class="ct-no">3</td>
-                <td colspan="5" class="ct-crit-val"><strong>Communication Skills</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Communication</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Communicates clearly (oral &amp; written)</li>
-                    <li>Listens and understands instructions</li>
-                    <li>Asks appropriate questions when needed</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('communication')">{{ getRating('communication') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('communication')">{{ getRatingLabel(getRating('communication')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('communication') / 5 * 100) + '%'" [attr.data-v]="getRating('communication')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 4. Job Knowledge & Learning Ability -->
-              <tr class="ct-group-header">
-                <td class="ct-no">4</td>
-                <td colspan="5" class="ct-crit-val"><strong>Job Knowledge &amp; Learning Ability</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Quality of Work</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Understands assigned tasks well</li>
-                    <li>Learns quickly and applies knowledge effectively</li>
-                    <li>Delivers accurate, thorough, and detail-oriented outputs</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('quality_of_work')">{{ getRating('quality_of_work') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('quality_of_work')">{{ getRatingLabel(getRating('quality_of_work')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('quality_of_work') / 5 * 100) + '%'" [attr.data-v]="getRating('quality_of_work')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 5. Productivity & Efficiency -->
-              <tr class="ct-group-header">
-                <td class="ct-no">5</td>
-                <td colspan="5" class="ct-crit-val"><strong>Productivity &amp; Efficiency</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Productivity</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Completes assigned tasks efficiently and within timelines</li>
-                    <li>Works with minimal supervision</li>
-                    <li>Manages time well and delivers consistent output</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('productivity')">{{ getRating('productivity') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('productivity')">{{ getRatingLabel(getRating('productivity')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('productivity') / 5 * 100) + '%'" [attr.data-v]="getRating('productivity')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 6. Initiative & Problem Solving -->
-              <tr class="ct-group-header">
-                <td class="ct-no">6</td>
-                <td colspan="5" class="ct-crit-val"><strong>Initiative &amp; Problem Solving</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Initiative</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Proactively takes on responsibilities without waiting to be directed</li>
-                    <li>Can solve simple problems independently</li>
-                    <li>Shows willingness to improve</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('initiative')">{{ getRating('initiative') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('initiative')">{{ getRatingLabel(getRating('initiative')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('initiative') / 5 * 100) + '%'" [attr.data-v]="getRating('initiative')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 7. Teamwork & Cooperation -->
-              <tr class="ct-group-header">
-                <td class="ct-no">7</td>
-                <td colspan="5" class="ct-crit-val"><strong>Teamwork &amp; Cooperation</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Cooperation</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Works collaboratively and maintains positive relationships</li>
-                    <li>Cooperates with team members</li>
-                    <li>Contributes positively to group tasks</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('cooperation')">{{ getRating('cooperation') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('cooperation')">{{ getRatingLabel(getRating('cooperation')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('cooperation') / 5 * 100) + '%'" [attr.data-v]="getRating('cooperation')"></div>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- 8. Dependability & Responsibility -->
-              <tr class="ct-group-header">
-                <td class="ct-no">8</td>
-                <td colspan="5" class="ct-crit-val"><strong>Dependability &amp; Responsibility</strong></td>
-              </tr>
-              <tr class="ct-sub-row">
-                <td class="ct-no"></td>
-                <td class="ct-crit-val"><strong>Dependability</strong></td>
-                <td class="ct-sub-val">
-                  <ul class="indicator-list">
-                    <li>Can be trusted with assigned tasks</li>
-                    <li>Follows through on commitments</li>
-                    <li>Takes responsibility for mistakes and learns from them</li>
-                  </ul>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle" [attr.data-v]="getRating('dependability')">{{ getRating('dependability') }}</span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag" [attr.data-v]="getRating('dependability')">{{ getRatingLabel(getRating('dependability')) }}</span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill" [style.width]="(getRating('dependability') / 5 * 100) + '%'" [attr.data-v]="getRating('dependability')"></div>
-                  </div>
-                </td>
-              </tr>
-
             </tbody>
             <tfoot>
               <tr class="ct-overall">
                 <td colspan="3" class="ct-overall-label">
-                  <i class="fa-solid fa-star"></i>&nbsp; OVERALL AVERAGE RATING
+                  <i class="fa-solid fa-star"></i>&nbsp; OVERALL AVERAGE RATING (normalized to 5-point scale)
                 </td>
                 <td class="ct-score-val">
                   <span class="score-circle overall-circle"
-                    [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : getOverallAverage() >= 2.5 ? 3 : getOverallAverage() >= 1.5 ? 2 : 1">
+                        [style.background]="getRatingColor(getOverallAverage(), 5)"
+                        [style.color]="'#fff'">
                     {{ getOverallAverage() }}
                   </span>
                 </td>
                 <td class="ct-rating-val">
                   <span class="rating-tag overall-tag"
-                    [attr.data-v]="getOverallAverage() >= 4.5 ? 5 : getOverallAverage() >= 3.5 ? 4 : getOverallAverage() >= 2.5 ? 3 : getOverallAverage() >= 1.5 ? 2 : 1">
+                        [style.background]="getRatingColor(getOverallAverage(), 5) + '18'"
+                        [style.color]="getRatingColor(getOverallAverage(), 5)">
                     {{ getOverallLabel(getOverallAverage()) }}
                   </span>
                 </td>
                 <td class="ct-bar-val">
                   <div class="bar-track">
-                    <div class="bar-fill overall-bar" [style.width]="(getOverallAverage() / 5 * 100) + '%'"
-                      style="background: var(--blue)"></div>
+                    <div class="bar-fill"
+                         [style.width]="(getOverallAverage() / 5 * 100) + '%'"
+                         [style.background]="getRatingColor(getOverallAverage(), 5)"></div>
                   </div>
                 </td>
               </tr>
@@ -519,7 +227,6 @@
             <span class="part-num">PART V</span>
             <span class="part-label">Overall Evaluation &amp; Remarks</span>
           </div>
-
           <div class="remarks-grid">
             <div class="remarks-box">
               <div class="remarks-box-label"><i class="fa-solid fa-thumbs-up"></i> Strengths</div>
@@ -536,7 +243,6 @@
             <span class="part-num">PART VI</span>
             <span class="part-label">Supervisor's Comments</span>
           </div>
-
           <div class="remarks-section">
             <p class="remarks-text">{{ evaluation?.remarks ?? 'No additional comments provided.' }}</p>
           </div>
@@ -546,7 +252,6 @@
             <span class="part-num">PART VII</span>
             <span class="part-label">Recommendation</span>
           </div>
-
           <div class="recommendation-row">
             <div class="rec-option" [class.rec-active]="isRecommendationActive('highly_recommended')">
               <span class="rec-check"><i class="fa-solid fa-check"></i></span>
@@ -571,7 +276,6 @@
             <span class="part-num">PART VIII</span>
             <span class="part-label">Certification &amp; Signature</span>
           </div>
-
           <div class="cert-section">
             <p class="cert-statement">
               I hereby certify that the above ratings and remarks represent an honest, objective, and fair assessment of the intern's performance during the official On-the-Job Training period. This document has been prepared in good faith and in accordance with the OJT program guidelines of <strong>{{ SCHOOL }}</strong>.
@@ -599,9 +303,7 @@
             <div class="sig-block">
               <div class="sig-canvas">
                 <img *ngIf="evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
-                <div *ngIf="!evaluation?.signature_data" class="sig-placeholder">
-                  <i class="fa-solid fa-pen-nib"></i>
-                </div>
+                <div *ngIf="!evaluation?.signature_data" class="sig-placeholder"><i class="fa-solid fa-pen-nib"></i></div>
               </div>
               <div class="sig-line"></div>
               <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
@@ -611,88 +313,81 @@
             </div>
 
             <!-- Intern -->
-         <!-- Intern -->
-<div class="sig-block">
-  <!-- If intern signature already saved, just show it -->
-<ng-container *ngIf="evaluation?.intern_signature && !resigning; else internDrawBlock">
-  <div class="sig-canvas">
-    <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
-  </div>
-  <button class="clear-btn-sm" style="margin-top:8px;" (click)="startResign()">
-    <i class="fa-solid fa-rotate-left"></i> Re-sign
-  </button>
-</ng-container>
- 
-  <!-- No saved signature yet → show the signature pad -->
-  <ng-template #internDrawBlock>
-    <div class="intern-sig-pad-wrap" id="internSigSection">
-      <!-- Mode tabs -->
-      <div class="sig-mode-tabs">
-        <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
-          <i class="fa-solid fa-pen-nib"></i> Draw
-        </button>
-        <button class="sig-tab-btn" [class.active]="signatureMode === 'upload'" (click)="setSignatureMode('upload')">
-          <i class="fa-solid fa-image"></i> Upload
-        </button>
-      </div>
- 
-      <!-- Draw mode -->
-      <div class="sig-wrapper" *ngIf="signatureMode === 'draw'">
-        <canvas id="internSigCanvas" width="280" height="90"
-          (mousedown)="onMouseDown($event)"
-          (mousemove)="onMouseMove($event)"
-          (mouseup)="onMouseUp()"
-          (mouseleave)="onMouseLeave()"
-          (touchstart)="onTouchStart($event)"
-          (touchmove)="onTouchMove($event)"
-          (touchend)="onTouchEnd()">
-        </canvas>
-        <div class="sig-placeholder" *ngIf="!hasInternSig">
-          <i class="fa-solid fa-pen-nib"></i> Sign here
-        </div>
-      </div>
- 
-      <!-- Upload mode -->
-      <div class="sig-upload-area" *ngIf="signatureMode === 'upload'">
-        <input type="file" id="internSigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-          style="display:none" (change)="onSignatureImageUpload($event)">
-        <div *ngIf="!hasInternSig" class="sig-upload-placeholder" (click)="triggerFileInput()">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Upload signature image</span>
-        </div>
-        <div *ngIf="hasInternSig" class="sig-upload-preview">
-          <canvas id="internSigCanvas" width="280" height="90" style="pointer-events:none"></canvas>
-          <button class="clear-btn-sm" (click)="clearInternCanvas()">
-            <i class="fa-solid fa-eraser"></i> Remove
-          </button>
-        </div>
-      </div>
- 
-      <!-- Action buttons -->
-      <div class="intern-sig-actions">
-        <button class="clear-btn-sm" *ngIf="hasInternSig && signatureMode === 'draw'" (click)="clearInternCanvas()">
-          <i class="fa-solid fa-eraser"></i> Clear
-        </button>
-        <button class="btn-save-sig" [disabled]="!hasInternSig || savingSig" (click)="saveInternSignature()">
-          <i class="fa-solid fa-floppy-disk" *ngIf="!savingSig"></i>
-          <i class="fa fa-spinner fa-spin" *ngIf="savingSig"></i>
-          {{ savingSig ? 'Saving…' : 'Save Signature' }}
-        </button>
-      </div>
- 
-      <div class="sig-hint" *ngIf="!hasInternSig">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        Required before downloading
-      </div>
-    </div>
-  </ng-template>
- 
-  <div class="sig-line"></div>
-  <div class="sig-fullname">{{ getFullName() }}</div>
-  <div class="sig-title">{{ student?.student_id }}</div>
-  <div class="sig-sub-title">{{ student?.course }}</div>
-  <div class="sig-label">OJT Intern</div>
-</div>
+            <div class="sig-block">
+              <ng-container *ngIf="evaluation?.intern_signature && !resigning; else internDrawBlock">
+                <div class="sig-canvas">
+                  <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
+                </div>
+                <button class="clear-btn-sm" style="margin-top:8px;" (click)="startResign()">
+                  <i class="fa-solid fa-rotate-left"></i> Re-sign
+                </button>
+              </ng-container>
+
+              <ng-template #internDrawBlock>
+                <div class="intern-sig-pad-wrap" id="internSigSection">
+                  <div class="sig-mode-tabs">
+                    <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
+                      <i class="fa-solid fa-pen-nib"></i> Draw
+                    </button>
+                    <button class="sig-tab-btn" [class.active]="signatureMode === 'upload'" (click)="setSignatureMode('upload')">
+                      <i class="fa-solid fa-image"></i> Upload
+                    </button>
+                  </div>
+
+                  <div class="sig-wrapper" *ngIf="signatureMode === 'draw'">
+                    <canvas id="internSigCanvas" width="280" height="90"
+                      (mousedown)="onMouseDown($event)"
+                      (mousemove)="onMouseMove($event)"
+                      (mouseup)="onMouseUp()"
+                      (mouseleave)="onMouseLeave()"
+                      (touchstart)="onTouchStart($event)"
+                      (touchmove)="onTouchMove($event)"
+                      (touchend)="onTouchEnd()">
+                    </canvas>
+                    <div class="sig-placeholder" *ngIf="!hasInternSig">
+                      <i class="fa-solid fa-pen-nib"></i> Sign here
+                    </div>
+                  </div>
+
+                  <div class="sig-upload-area" *ngIf="signatureMode === 'upload'">
+                    <input type="file" id="internSigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      style="display:none" (change)="onSignatureImageUpload($event)">
+                    <div *ngIf="!hasInternSig" class="sig-upload-placeholder" (click)="triggerFileInput()">
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      <span>Upload signature image</span>
+                    </div>
+                    <div *ngIf="hasInternSig" class="sig-upload-preview">
+                      <canvas id="internSigCanvas" width="280" height="90" style="pointer-events:none"></canvas>
+                      <button class="clear-btn-sm" (click)="clearInternCanvas()">
+                        <i class="fa-solid fa-eraser"></i> Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="intern-sig-actions">
+                    <button class="clear-btn-sm" *ngIf="hasInternSig && signatureMode === 'draw'" (click)="clearInternCanvas()">
+                      <i class="fa-solid fa-eraser"></i> Clear
+                    </button>
+                    <button class="btn-save-sig" [disabled]="!hasInternSig || savingSig" (click)="saveInternSignature()">
+                      <i class="fa-solid fa-floppy-disk" *ngIf="!savingSig"></i>
+                      <i class="fa fa-spinner fa-spin" *ngIf="savingSig"></i>
+                      {{ savingSig ? 'Saving…' : 'Save Signature' }}
+                    </button>
+                  </div>
+
+                  <div class="sig-hint" *ngIf="!hasInternSig">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Required before downloading
+                  </div>
+                </div>
+              </ng-template>
+
+              <div class="sig-line"></div>
+              <div class="sig-fullname">{{ getFullName() }}</div>
+              <div class="sig-title">{{ student?.student_id }}</div>
+              <div class="sig-sub-title">{{ student?.course }}</div>
+              <div class="sig-label">OJT Intern</div>
+            </div>
 
           </div>
 

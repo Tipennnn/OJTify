@@ -27,23 +27,49 @@ interface Evaluation {
   student_id_ref: string;
   supervisor_id?: string;
   supervisor_name?: string;
-  punctuality: number;
-  attendance: number;
-  quality_of_work: number;
-  productivity: number;
-  initiative: number;
-  cooperation: number;
-  communication: number;
-  professionalism: number;
-  dependability: number;           // ← added
-  remarks: string;
-  strengths?: string;              // ← added
-  areas_for_improvement?: string;  // ← added
-  recommendation?: 'highly_recommended' | 'recommended' | 'recommended_with_reservations' | 'not_recommended'; // ← added
+  answers_json: string;
+  remarks_sections_json: string;
+  recommendation?: 'highly_recommended' | 'recommended' | 'recommended_with_reservations' | 'not_recommended';
   signature_data: string;
   evaluated_at: string;
-  period_from?: string;            // ← added
-  period_to?: string;              // ← added
+  period_from?: string;
+  period_to?: string;
+  criteria_snapshot: string;
+  remarks_sections_snapshot: string;
+}
+
+/** A single question under a criterion */
+export interface CriterionQuestion {
+  qkey: string;
+  text: string;
+  /** Number of rating choices (2–10) */
+  numChoices: number;
+  /** Labels for each choice value */
+  choiceLabels: Record<number, string>;
+  /** Answer: chosen numeric rating (0 = not yet rated) */
+  rating?: number;
+}
+
+/** Runtime shape of one editable criterion */
+export interface EditableCriterion {
+  key: string;
+  /** Display prefix: 'icon' | 'text' */
+  prefixType: 'icon' | 'text';
+  /** Used when prefixType === 'icon' */
+  icon: string;
+  /** Used when prefixType === 'text' — bold prefix label e.g. "Part 1" */
+  prefixText: string;
+  label: string;
+  questions: CriterionQuestion[];
+}
+
+/** A free-text remarks section (e.g. Strengths, Areas for Improvement) */
+export interface RemarksSection {
+  key: string;
+  label: string;
+  icon: string;
+  iconColor: string;
+  placeholder: string;
 }
 
 @Component({
@@ -96,31 +122,136 @@ export class SupervisorEvaluationComponent implements OnInit {
   totalPagesEval       = 1;
   pageNumbersEval      : number[] = [];
 
-  readonly BUCKET_ID   = '69baaf64002ceb2490df';
-  readonly PROJECT_ID  = '69ba8d9c0027d10c447f';
-  readonly ENDPOINT    = 'https://sgp.cloud.appwrite.io/v1';
-  readonly EVAL_COL    = 'evaluations';
+  // ── Criteria editor ───────────────────────────────────────────────────────
+  showCriteriaEditor      = false;
+  editableCriteria        : EditableCriterion[] = [];
+  editableRemarksSections : RemarksSection[] = [];
+  newCriterionLabel       = '';
+  newRemarksSectionLabel  = '';
+
+  setPrefixTypeNone(criterion: any) {
+    criterion.prefixType = 'none';
+  }
+
+  availableIcons = [
+    'fa-clock', 'fa-calendar-check', 'fa-medal', 'fa-chart-line', 'fa-bolt',
+    'fa-handshake', 'fa-comments', 'fa-user-tie', 'fa-shield-halved',
+    'fa-star', 'fa-lightbulb', 'fa-brain', 'fa-rocket', 'fa-thumbs-up',
+    'fa-check-circle', 'fa-award', 'fa-flag', 'fa-fire', 'fa-leaf', 'fa-gem',
+    'fa-arrow-trend-up', 'fa-pen', 'fa-clipboard', 'fa-file-alt', 'fa-list',
+    'fa-bullseye', 'fa-puzzle-piece', 'fa-graduation-cap', 'fa-code', 'fa-wrench'
+  ];
+
+  readonly BUCKET_ID      = '69baaf64002ceb2490df';
+  readonly PROJECT_ID     = '69ba8d9c0027d10c447f';
+  readonly ENDPOINT       = 'https://sgp.cloud.appwrite.io/v1';
+  readonly EVAL_COL       = 'evaluations';
   readonly REQUIRED_HOURS = 500;
 
-  evaluation: Evaluation = this.freshEval();
+  /** answers keyed by "criterionKey::qkey" — stores the selected rating (number as string) */
+  answers: Record<string, string> = {};
+  /** remarks keyed by remarksSection key */
+  remarkAnswers: Record<string, string> = {};
 
-  // ── All 9 criteria keys (used in validation, averages, etc.) ────────────────
-  private readonly EVAL_KEYS = [
-    'punctuality', 'attendance', 'quality_of_work', 'productivity',
-    'initiative', 'cooperation', 'communication', 'professionalism', 'dependability'
+  // ── Default 5-choice labels ───────────────────────────────────────────────
+  private readonly DEFAULT_CHOICE_LABELS_5: Record<number, string> = {
+    1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent'
+  };
+
+  // ── Default criteria ──────────────────────────────────────────────────────
+  private readonly DEFAULT_CRITERIA: EditableCriterion[] = [
+    {
+      key: 'punctuality', prefixType: 'icon', icon: 'fa-clock', prefixText: '',
+      label: 'Punctuality',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee arrive on time and follow the assigned schedule?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'attendance', prefixType: 'icon', icon: 'fa-calendar-check', prefixText: '',
+      label: 'Attendance',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee maintain consistent attendance and avoid unnecessary absences?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'quality_of_work', prefixType: 'icon', icon: 'fa-medal', prefixText: '',
+      label: 'Quality of Work',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee complete tasks accurately and with attention to detail?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'productivity', prefixType: 'icon', icon: 'fa-chart-line', prefixText: '',
+      label: 'Productivity',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee complete assigned tasks efficiently and on time?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'initiative', prefixType: 'icon', icon: 'fa-bolt', prefixText: '',
+      label: 'Initiative',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee show willingness to take responsibility and perform tasks without being told?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'cooperation', prefixType: 'icon', icon: 'fa-handshake', prefixText: '',
+      label: 'Cooperation / Teamwork',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee work well with others and maintain good relationships?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'communication', prefixType: 'icon', icon: 'fa-comments', prefixText: '',
+      label: 'Communication Skills',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee communicate clearly and professionally with staff and supervisors?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'professionalism', prefixType: 'icon', icon: 'fa-user-tie', prefixText: '',
+      label: 'Professionalism',
+      questions: [
+        { qkey: 'q1', text: 'Does the trainee demonstrate proper behavior, attitude, and respect in the workplace?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    },
+    {
+      key: 'dependability', prefixType: 'icon', icon: 'fa-shield-halved', prefixText: '',
+      label: 'Dependability',
+      questions: [
+        { qkey: 'q1', text: 'Can the trainee be trusted with tasks and does the trainee follow through on commitments?', numChoices: 5, choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V.Good', 5: 'Excellent' } }
+      ]
+    }
   ];
 
-  readonly CRITERIA = [
-    { key: 'punctuality',     label: 'Punctuality',            icon: 'fa-clock',           question: 'Does the trainee arrive on time and follow the assigned schedule?' },
-    { key: 'attendance',      label: 'Attendance',             icon: 'fa-calendar-check',  question: 'Does the trainee maintain consistent attendance and avoid unnecessary absences?' },
-    { key: 'quality_of_work', label: 'Quality of Work',        icon: 'fa-medal',           question: 'Does the trainee complete tasks accurately and with attention to detail?' },
-    { key: 'productivity',    label: 'Productivity',           icon: 'fa-chart-line',      question: 'Does the trainee complete assigned tasks efficiently and on time?' },
-    { key: 'initiative',      label: 'Initiative',             icon: 'fa-bolt',            question: 'Does the trainee show willingness to take responsibility and perform tasks without being told?' },
-    { key: 'cooperation',     label: 'Cooperation / Teamwork', icon: 'fa-handshake',       question: 'Does the trainee work well with others and maintain good relationships?' },
-    { key: 'communication',   label: 'Communication Skills',   icon: 'fa-comments',        question: 'Does the trainee communicate clearly and professionally with staff and supervisors?' },
-    { key: 'professionalism', label: 'Professionalism',        icon: 'fa-user-tie',        question: 'Does the trainee demonstrate proper behavior, attitude, and respect in the workplace?' },
-    { key: 'dependability',   label: 'Dependability',          icon: 'fa-shield-halved',   question: 'Can the trainee be trusted with tasks and does the trainee follow through on commitments and take responsibility for mistakes?' }
+  // ── Default remarks sections ──────────────────────────────────────────────
+  private readonly DEFAULT_REMARKS_SECTIONS: RemarksSection[] = [
+    {
+      key: 'strengths',
+      label: 'Strengths',
+      icon: 'fa-thumbs-up',
+      iconColor: '#059669',
+      placeholder: "Describe the intern's notable strengths and accomplishments..."
+    },
+    {
+      key: 'areas_for_improvement',
+      label: 'Areas for Improvement',
+      icon: 'fa-arrow-trend-up',
+      iconColor: '#d97706',
+      placeholder: 'What areas should the intern focus on improving?'
+    },
+    {
+      key: 'overall_remarks',
+      label: 'Overall Remarks / Comments',
+      icon: 'fa-clipboard',
+      iconColor: '#6b7280',
+      placeholder: "Write your overall remarks about this student's OJT performance..."
+    }
   ];
+
+  CRITERIA        : EditableCriterion[] = [];
+  REMARKS_SECTIONS: RemarksSection[]    = [];
 
   readonly RECOMMENDATIONS = [
     { value: 'highly_recommended',            label: 'Highly Recommended' },
@@ -129,19 +260,176 @@ export class SupervisorEvaluationComponent implements OnInit {
     { value: 'not_recommended',               label: 'Not Recommended' }
   ];
 
-  readonly RATING_LABELS: Record<number, string> = {
-    1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V. Good', 5: 'Excellent'
-  };
+  evaluation = this.freshEvalMeta();
 
   constructor(private appwrite: AppwriteService, private router: Router) {}
 
   async ngOnInit() {
+    this.loadCriteriaFromStorage();
     await this.loadCurrentSupervisor();
     await this.loadData();
   }
 
-  // ── Load logged-in supervisor ──────────────────────────────────────────────
+  freshEvalMeta() {
+    return {
+      student_id_ref : '',
+      recommendation : undefined as any,
+      period_from    : '',
+      period_to      : '',
+      supervisor_name: ''
+    };
+  }
 
+  // ── Choice helpers ────────────────────────────────────────────────────────
+  buildDefaultChoiceLabels(n: number): Record<number, string> {
+    if (n === 2) return { 1: 'Unsatisfactory', 2: 'Satisfactory' };
+    if (n === 3) return { 1: 'Poor', 2: 'Average', 3: 'Excellent' };
+    if (n === 4) return { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Excellent' };
+    if (n === 5) return { ...this.DEFAULT_CHOICE_LABELS_5 };
+    const out: Record<number, string> = {};
+    for (let i = 1; i <= n; i++) out[i] = `Level ${i}`;
+    return out;
+  }
+
+  choiceRange(q: CriterionQuestion): number[] {
+    const n = typeof q.numChoices === 'number' && q.numChoices >= 2 ? q.numChoices : 5;
+    return Array.from({ length: n }, (_, i) => i + 1);
+  }
+
+  onNumChoicesChange(q: CriterionQuestion) {
+    const n        = q.numChoices;
+    const existing = { ...q.choiceLabels };
+    const fresh    = this.buildDefaultChoiceLabels(n);
+    const newLabels: Record<number, string> = {};
+    for (let i = 1; i <= n; i++) {
+      newLabels[i] = existing[i] ?? fresh[i] ?? `Level ${i}`;
+    }
+    q.choiceLabels = newLabels;
+  }
+
+  getChoiceLabel(q: CriterionQuestion, v: number): string {
+    return q.choiceLabels?.[v] ?? `Level ${v}`;
+  }
+
+  // ── Storage ───────────────────────────────────────────────────────────────
+  loadCriteriaFromStorage() {
+    try {
+      const rawC = localStorage.getItem('ojtify_criteria_v4');
+      this.CRITERIA = rawC ? JSON.parse(rawC) : JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+    } catch {
+      this.CRITERIA = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+    }
+    try {
+      const rawR = localStorage.getItem('ojtify_remarks_sections_v1');
+      this.REMARKS_SECTIONS = rawR ? JSON.parse(rawR) : JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
+    } catch {
+      this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
+    }
+  }
+
+  saveCriteriaToStorage() {
+    localStorage.setItem('ojtify_criteria_v4', JSON.stringify(this.CRITERIA));
+    localStorage.setItem('ojtify_remarks_sections_v1', JSON.stringify(this.REMARKS_SECTIONS));
+  }
+
+  // ── Criteria editor ───────────────────────────────────────────────────────
+  openCriteriaEditor() {
+    this.editableCriteria        = JSON.parse(JSON.stringify(this.CRITERIA));
+    this.editableRemarksSections = JSON.parse(JSON.stringify(this.REMARKS_SECTIONS));
+    this.newCriterionLabel       = '';
+    this.newRemarksSectionLabel  = '';
+    this.showCriteriaEditor      = true;
+  }
+
+  closeCriteriaEditor() { this.showCriteriaEditor = false; }
+
+  saveCriteriaEdits() {
+    this.CRITERIA         = JSON.parse(JSON.stringify(this.editableCriteria));
+    this.REMARKS_SECTIONS = JSON.parse(JSON.stringify(this.editableRemarksSections));
+    this.saveCriteriaToStorage();
+    this.showCriteriaEditor = false;
+  }
+
+  resetCriteriaToDefault() {
+    this.editableCriteria        = JSON.parse(JSON.stringify(this.DEFAULT_CRITERIA));
+    this.editableRemarksSections = JSON.parse(JSON.stringify(this.DEFAULT_REMARKS_SECTIONS));
+  }
+
+  // Criterion CRUD
+  addCriterion() {
+    if (!this.newCriterionLabel.trim()) return;
+    this.editableCriteria.push({
+      key        : 'custom_' + Date.now(),
+      prefixType : 'icon',
+      icon       : 'fa-star',
+      prefixText : '',
+      label      : this.newCriterionLabel.trim(),
+      questions  : [{
+        qkey        : 'q1',
+        text        : `How did the trainee perform in ${this.newCriterionLabel.trim()}?`,
+        numChoices  : 5,
+        choiceLabels: { ...this.DEFAULT_CHOICE_LABELS_5 }
+      }]
+    });
+    this.newCriterionLabel = '';
+  }
+
+  removeCriterion(i: number) { this.editableCriteria.splice(i, 1); }
+  moveCriterionUp(i: number) {
+    if (i > 0) {
+      const t = this.editableCriteria[i];
+      this.editableCriteria[i]   = this.editableCriteria[i - 1];
+      this.editableCriteria[i - 1] = t;
+    }
+  }
+  moveCriterionDown(i: number) {
+    if (i < this.editableCriteria.length - 1) {
+      const t = this.editableCriteria[i];
+      this.editableCriteria[i]     = this.editableCriteria[i + 1];
+      this.editableCriteria[i + 1] = t;
+    }
+  }
+
+  // Question CRUD
+  addQuestion(c: EditableCriterion) {
+    c.questions.push({
+      qkey        : 'q' + Date.now(),
+      text        : '',
+      numChoices  : 5,
+      choiceLabels: { ...this.DEFAULT_CHOICE_LABELS_5 }
+    });
+  }
+  removeQuestion(c: EditableCriterion, qi: number) { c.questions.splice(qi, 1); }
+
+  // Remarks section CRUD
+  addRemarksSection() {
+    if (!this.newRemarksSectionLabel.trim()) return;
+    this.editableRemarksSections.push({
+      key        : 'custom_remarks_' + Date.now(),
+      label      : this.newRemarksSectionLabel.trim(),
+      icon       : 'fa-pen',
+      iconColor  : '#6b7280',
+      placeholder: `Write your ${this.newRemarksSectionLabel.trim()} here...`
+    });
+    this.newRemarksSectionLabel = '';
+  }
+  removeRemarksSection(i: number) { this.editableRemarksSections.splice(i, 1); }
+  moveRemarksSectionUp(i: number) {
+    if (i > 0) {
+      const t = this.editableRemarksSections[i];
+      this.editableRemarksSections[i]     = this.editableRemarksSections[i - 1];
+      this.editableRemarksSections[i - 1] = t;
+    }
+  }
+  moveRemarksSectionDown(i: number) {
+    if (i < this.editableRemarksSections.length - 1) {
+      const t = this.editableRemarksSections[i];
+      this.editableRemarksSections[i]     = this.editableRemarksSections[i + 1];
+      this.editableRemarksSections[i + 1] = t;
+    }
+  }
+
+  // ── Supervisor ────────────────────────────────────────────────────────────
   async loadCurrentSupervisor() {
     try {
       const account = await this.appwrite.account.get();
@@ -167,35 +455,7 @@ export class SupervisorEvaluationComponent implements OnInit {
     return `${this.currentSupervisor.first_name ?? ''} ${this.currentSupervisor.last_name ?? ''}`.trim();
   }
 
-  // ── Fresh blank evaluation ─────────────────────────────────────────────────
-
-  freshEval(): Evaluation {
-    return {
-      student_id_ref        : '',
-      supervisor_id         : '',
-      supervisor_name       : '',
-      punctuality           : 0,
-      attendance            : 0,
-      quality_of_work       : 0,
-      productivity          : 0,
-      initiative            : 0,
-      cooperation           : 0,
-      communication         : 0,
-      professionalism       : 0,
-      dependability         : 0,
-      remarks               : '',
-      strengths             : '',
-      areas_for_improvement : '',
-      recommendation        : undefined,
-      signature_data        : '',
-      evaluated_at          : '',
-      period_from           : '',
-      period_to             : ''
-    };
-  }
-
-  // ── Load students + existing evaluations ──────────────────────────────────
-
+  // ── Data loading ──────────────────────────────────────────────────────────
   async loadData() {
     this.loading = true;
     try {
@@ -203,17 +463,14 @@ export class SupervisorEvaluationComponent implements OnInit {
         this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL),
         this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.EVAL_COL)
       ]);
-
       (evalsRes.documents as any[]).forEach(e => this.evaluationMap.set(e.student_id_ref, e as Evaluation));
-
       const all = (studentsRes.documents as any[]).filter(
         s => (s.completed_hours || 0) >= (s.required_hours || this.REQUIRED_HOURS)
       );
       this.students          = all.filter(s => !this.evaluationMap.has(s.$id));
       this.evaluatedStudents = all.filter(s =>  this.evaluationMap.has(s.$id));
-
     } catch (err: any) {
-      console.error('Failed to load evaluation data:', err.message);
+      console.error('Failed to load data:', err.message);
     } finally {
       this.filteredStudents  = [...this.students];
       this.filteredEvaluated = [...this.evaluatedStudents];
@@ -223,25 +480,25 @@ export class SupervisorEvaluationComponent implements OnInit {
     }
   }
 
-  // ── Tabs & Search ──────────────────────────────────────────────────────────
-
+  // ── Tabs & Search ─────────────────────────────────────────────────────────
   setTab(tab: 'pending' | 'evaluated') {
-    this.activeTab    = tab;
-    this.searchQuery  = '';
+    this.activeTab         = tab;
+    this.searchQuery       = '';
     this.filteredStudents  = [...this.students];
     this.filteredEvaluated = [...this.evaluatedStudents];
-    this.currentPage = 1; this.currentPageEval = 1;
-    this.updatePagination(); this.updatePaginationEval();
+    this.currentPage       = 1;
+    this.currentPageEval   = 1;
+    this.updatePagination();
+    this.updatePaginationEval();
   }
 
   onSearch(event: any) {
-    const q = event.target.value.toLowerCase();
+    const q   = event.target.value.toLowerCase();
     this.searchQuery = q;
     const match = (s: Student) =>
       `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
       s.student_id.toLowerCase().includes(q) ||
       s.course.toLowerCase().includes(q);
-
     if (this.activeTab === 'pending') {
       this.filteredStudents = this.students.filter(match);
       this.currentPage = 1; this.updatePagination();
@@ -251,78 +508,65 @@ export class SupervisorEvaluationComponent implements OnInit {
     }
   }
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
-
+  // ── Pagination ────────────────────────────────────────────────────────────
   updatePagination()     { this.totalPages     = Math.max(1, Math.ceil(this.filteredStudents.length  / this.pageSize)); this.pageNumbers     = Array.from({ length: this.totalPages     }, (_, i) => i + 1); }
   updatePaginationEval() { this.totalPagesEval = Math.max(1, Math.ceil(this.filteredEvaluated.length / this.pageSize)); this.pageNumbersEval = Array.from({ length: this.totalPagesEval }, (_, i) => i + 1); }
-
   get pagedStudents()  { const s = (this.currentPage     - 1) * this.pageSize; return this.filteredStudents.slice(s, s  + this.pageSize); }
   get pagedEvaluated() { const s = (this.currentPageEval - 1) * this.pageSize; return this.filteredEvaluated.slice(s, s + this.pageSize); }
-
   goToPage(p: number)     { this.currentPage     = p; }
-  prevPage()              { if (this.currentPage > 1)                this.currentPage--; }
-  nextPage()              { if (this.currentPage < this.totalPages)  this.currentPage++; }
+  prevPage()              { if (this.currentPage > 1)                this.currentPage--;      }
+  nextPage()              { if (this.currentPage < this.totalPages)  this.currentPage++;      }
   goToPageEval(p: number) { this.currentPageEval = p; }
-  prevPageEval()          { if (this.currentPageEval > 1)                  this.currentPageEval--; }
+  prevPageEval()          { if (this.currentPageEval > 1)                   this.currentPageEval--; }
   nextPageEval()          { if (this.currentPageEval < this.totalPagesEval) this.currentPageEval++; }
 
-  // ── Modal open / close ─────────────────────────────────────────────────────
-
-async openEvaluate(student: Student) {
-  this.selectedStudent  = student;
-  this.evaluation       = { ...this.freshEval(), student_id_ref: student.$id };
-  this.hasSignature     = false;
-  this.signatureMode    = 'draw';
-  this.uploadedFileName = '';
-  this.showModal        = true;
-
-  // Auto-fill training period from attendance records
-  await this.autoFillTrainingPeriod(student.$id);
-
-  setTimeout(() => this.initCanvas(), 150);
-}
-
-private async autoFillTrainingPeriod(studentId: string) {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      'attendance',
-      [Query.equal('student_id', studentId)]
-    );
-
-    const dates = (res.documents as any[])
-      .map(a => a.date)
-      .filter(Boolean)
-      .sort(); // ascending sort gives first and last
-
-    if (dates.length > 0) {
-      // Convert 'YYYY-MM-DD' or whatever format to date input format
-      const toInputDate = (d: string): string => {
-        const parsed = new Date(d);
-        if (isNaN(parsed.getTime())) return d; // already correct format
-        return parsed.toISOString().split('T')[0];
-      };
-
-      this.evaluation.period_from = toInputDate(dates[0]);
-      this.evaluation.period_to   = toInputDate(dates[dates.length - 1]);
-    }
-  } catch (err: any) {
-    console.warn('Could not auto-fill training period:', err.message);
+  // ── Modal open / close ────────────────────────────────────────────────────
+  async openEvaluate(student: Student) {
+    this.selectedStudent  = student;
+    this.evaluation       = { ...this.freshEvalMeta(), student_id_ref: student.$id };
+    this.answers          = {};
+    this.remarkAnswers    = {};
+    this.hasSignature     = false;
+    this.signatureMode    = 'draw';
+    this.uploadedFileName = '';
+    this.showModal        = true;
+    await this.autoFillTrainingPeriod(student.$id);
+    setTimeout(() => this.initCanvas(), 150);
   }
-}
+
+  private async autoFillTrainingPeriod(studentId: string) {
+    try {
+      const res   = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, 'attendance', [Query.equal('student_id', studentId)]
+      );
+      const dates = (res.documents as any[]).map(a => a.date).filter(Boolean).sort();
+      if (dates.length > 0) {
+        const toInputDate = (d: string) => {
+          const p = new Date(d);
+          return isNaN(p.getTime()) ? d : p.toISOString().split('T')[0];
+        };
+        this.evaluation.period_from = toInputDate(dates[0]);
+        this.evaluation.period_to   = toInputDate(dates[dates.length - 1]);
+      }
+    } catch (err: any) { console.warn('Could not auto-fill training period:', err.message); }
+  }
 
   viewEvaluation(student: Student) {
     const ev = this.evaluationMap.get(student.$id);
     if (!ev) return;
     this.selectedStudent  = student;
-    this.evaluation       = { ...ev };
+    this.evaluation       = { ...this.freshEvalMeta(), ...ev } as any;
     this.hasSignature     = !!ev.signature_data;
     this.signatureMode    = 'draw';
     this.showModal        = true;
+    try { this.answers       = JSON.parse(ev.answers_json           ?? '{}'); } catch { this.answers       = {}; }
+    try { this.remarkAnswers = JSON.parse(ev.remarks_sections_json  ?? '{}'); } catch { this.remarkAnswers = {}; }
+    try { const snap = JSON.parse(ev.criteria_snapshot         ?? '[]'); if (snap.length) this.CRITERIA         = snap; } catch {}
+    try { const snap = JSON.parse(ev.remarks_sections_snapshot ?? '[]'); if (snap.length) this.REMARKS_SECTIONS = snap; } catch {}
     setTimeout(() => {
       this.initCanvas();
       if (ev.signature_data && this.ctx && this.canvas) {
-        const img = new Image();
+        const img  = new Image();
         img.onload = () => this.ctx!.drawImage(img, 0, 0);
         img.src    = ev.signature_data;
       }
@@ -330,87 +574,124 @@ private async autoFillTrainingPeriod(studentId: string) {
   }
 
   closeModal() {
-    this.showModal = false; this.selectedStudent = null;
-    this.clearCanvas(); this.uploadedFileName = '';
+    this.showModal       = false;
+    this.selectedStudent = null;
+    this.clearCanvas();
+    this.uploadedFileName = '';
+    this.loadCriteriaFromStorage();
   }
 
   isViewMode(): boolean {
     return !!this.selectedStudent && this.evaluationMap.has(this.selectedStudent.$id);
   }
 
-  // ── Ratings ────────────────────────────────────────────────────────────────
+  // ── Answers / Ratings ─────────────────────────────────────────────────────
+  getAnswerKey(criterionKey: string, qkey: string): string {
+    return `${criterionKey}::${qkey}`;
+  }
 
-  setRating(criterion: string, value: number) {
+  getRatingValue(criterionKey: string, qkey: string): number {
+    return parseInt(this.answers[this.getAnswerKey(criterionKey, qkey)] ?? '0', 10) || 0;
+  }
+
+  setRating(criterionKey: string, qkey: string, value: number) {
     if (this.isViewMode()) return;
-    (this.evaluation as any)[criterion] = value;
+    this.answers[this.getAnswerKey(criterionKey, qkey)] = String(value);
   }
 
-  getRating(criterion: string): number {
-    return (this.evaluation as any)[criterion] || 0;
+  // ── Overall average (normalized to 5-point scale) ─────────────────────────
+  getNormalizedAverage(): number {
+    const normalized: number[] = [];
+    for (const c of this.CRITERIA) {
+      for (const q of c.questions) {
+        const raw = this.getRatingValue(c.key, q.qkey);
+        if (raw > 0) {
+          normalized.push((raw / (q.numChoices || 5)) * 5);
+        }
+      }
+    }
+    if (!normalized.length) return 0;
+    return parseFloat((normalized.reduce((a, b) => a + b, 0) / normalized.length).toFixed(2));
   }
 
-  getRatingLabelForValue(value: number): string {
-    return this.RATING_LABELS[value] || '';
+  getAllRated(): boolean {
+    return this.CRITERIA.every(c =>
+      c.questions.every(q => this.getRatingValue(c.key, q.qkey) > 0)
+    );
   }
 
-  getRatingColor(value: number): string {
-    if (value === 5) return '#059669'; if (value === 4) return '#2563eb';
-    if (value === 3) return '#d97706'; if (value === 2) return '#ea580c';
-    if (value === 1) return '#dc2626'; return '#9ca3af';
+  getTotalQuestions(): number {
+    return this.CRITERIA.reduce((sum, c) => sum + c.questions.length, 0);
   }
 
-  // ── Recommendation ─────────────────────────────────────────────────────────
+  getRatedCount(): number {
+    return this.CRITERIA.reduce((sum, c) =>
+      sum + c.questions.filter(q => this.getRatingValue(c.key, q.qkey) > 0).length, 0
+    );
+  }
 
+  getOverallLabel(avg: number): string {
+    if (avg >= 4.5) return 'Excellent';
+    if (avg >= 3.5) return 'Very Good';
+    if (avg >= 2.5) return 'Good';
+    if (avg >= 1.5) return 'Fair';
+    if (avg  >  0)  return 'Poor';
+    return '';
+  }
+
+  getOverallColor(avg: number): string {
+    if (avg >= 4.5) return '#059669';
+    if (avg >= 3.5) return '#2563eb';
+    if (avg >= 2.5) return '#d97706';
+    if (avg >= 1.5) return '#ea580c';
+    return '#dc2626';
+  }
+
+  getRatingColor(value: number, max: number = 5): string {
+    const ratio = max > 1 ? (value - 1) / (max - 1) : 1;
+    if (ratio >= 0.9)  return '#059669';
+    if (ratio >= 0.65) return '#2563eb';
+    if (ratio >= 0.45) return '#d97706';
+    if (ratio >= 0.25) return '#ea580c';
+    return '#dc2626';
+  }
+
+  // ── Recommendation ────────────────────────────────────────────────────────
   setRecommendation(value: string) {
     if (this.isViewMode()) return;
     this.evaluation.recommendation = value as any;
   }
 
-  /** Auto-derive recommendation from average if supervisor didn't pick one */
-  private autoRecommendation(): void {
-    const avg = this.getOverallAverage();
-    if      (avg >= 4.5) this.evaluation.recommendation = 'highly_recommended';
-    else if (avg >= 3.5) this.evaluation.recommendation = 'recommended';
-    else if (avg >= 2.5) this.evaluation.recommendation = 'recommended_with_reservations';
-    else if (avg  >  0)  this.evaluation.recommendation = 'not_recommended';
+  // ── Overall rating for evaluated table ───────────────────────────────────
+  getEvalAverage(s: Student): number {
+    const ev = this.evaluationMap.get(s.$id);
+    if (!ev) return 0;
+    try {
+      const ans: Record<string, string>   = JSON.parse(ev.answers_json   ?? '{}');
+      const criteria: EditableCriterion[] = JSON.parse(ev.criteria_snapshot ?? '[]');
+      if (!criteria.length) return 0;
+      const normalized: number[] = [];
+      for (const c of criteria) {
+        for (const q of c.questions) {
+          const key = `${c.key}::${q.qkey}`;
+          const raw = parseInt(ans[key] ?? '0', 10) || 0;
+          if (raw > 0) normalized.push((raw / (q.numChoices || 5)) * 5);
+        }
+      }
+      if (!normalized.length) return 0;
+      return parseFloat((normalized.reduce((a, b) => a + b, 0) / normalized.length).toFixed(2));
+    } catch { return 0; }
   }
 
-  getRecommendationLabel(rec?: string): string {
-    return this.RECOMMENDATIONS.find(r => r.value === rec)?.label ?? '—';
-  }
-
-  // ── Averages & labels ──────────────────────────────────────────────────────
-
-  getOverallAverage(): number {
-    const filled = this.EVAL_KEYS
-      .map(k => (this.evaluation as any)[k])
-      .filter((v: number) => v > 0);
-    if (!filled.length) return 0;
-    return parseFloat((filled.reduce((a: number, b: number) => a + b, 0) / filled.length).toFixed(2));
-  }
-
-  getOverallLabel(avg: number): string {
-    if (avg >= 4.5) return 'Excellent'; if (avg >= 3.5) return 'Very Good';
-    if (avg >= 2.5) return 'Good';      if (avg >= 1.5) return 'Fair';
-    if (avg  >  0)  return 'Poor';      return '';
-  }
-
-  getOverallColor(avg: number): string {
-    if (avg >= 4.5) return '#059669'; if (avg >= 3.5) return '#2563eb';
-    if (avg >= 2.5) return '#d97706'; if (avg >= 1.5) return '#ea580c';
-    return '#dc2626';
-  }
-
-  // ── Form validation ────────────────────────────────────────────────────────
-
+  // ── Form validation ───────────────────────────────────────────────────────
   isFormValid(): boolean {
-    const allRated       = this.EVAL_KEYS.every(k => (this.evaluation as any)[k] > 0);
-    const hasRec         = !!this.evaluation.recommendation;
-    return allRated && hasRec && this.hasSignature;
+    const allRated = this.CRITERIA.every(c =>
+      c.questions.every(q => this.getRatingValue(c.key, q.qkey) > 0)
+    );
+    return allRated && !!this.evaluation.recommendation && this.hasSignature;
   }
 
-  // ── Signature canvas ───────────────────────────────────────────────────────
-
+  // ── Signature ─────────────────────────────────────────────────────────────
   setSignatureMode(mode: 'draw' | 'upload') {
     if (this.isViewMode()) return;
     this.signatureMode    = mode;
@@ -492,12 +773,12 @@ private async autoFillTrainingPeriod(studentId: string) {
         if (!this.canvas || !this.ctx) this.initCanvas();
         if (!this.canvas || !this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        const canvasRatio = this.canvas.width / this.canvas.height;
-        const imgRatio    = img.width / img.height;
-        let drawW = this.canvas.width, drawH = this.canvas.height, drawX = 0, drawY = 0;
-        if (imgRatio > canvasRatio) { drawH = this.canvas.width / imgRatio;  drawY = (this.canvas.height - drawH) / 2; }
-        else                        { drawW = this.canvas.height * imgRatio; drawX = (this.canvas.width  - drawW) / 2; }
-        this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        const cR = this.canvas.width / this.canvas.height;
+        const iR = img.width / img.height;
+        let dW = this.canvas.width, dH = this.canvas.height, dX = 0, dY = 0;
+        if (iR > cR) { dH = this.canvas.width / iR;  dY = (this.canvas.height - dH) / 2; }
+        else         { dW = this.canvas.height * iR;  dX = (this.canvas.width  - dW) / 2; }
+        this.ctx.drawImage(img, dX, dY, dW, dH);
         this.hasSignature = true;
       };
       img.src = dataUrl;
@@ -511,52 +792,30 @@ private async autoFillTrainingPeriod(studentId: string) {
     if (el) el.click();
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-
+  // ── Submit ────────────────────────────────────────────────────────────────
   async submitEvaluation() {
     if (!this.isFormValid() || !this.selectedStudent) return;
-
-    // Fallback: auto-derive recommendation if somehow still missing
-    if (!this.evaluation.recommendation) this.autoRecommendation();
-
     this.submitting = true;
     try {
       const sigData = this.canvas ? this.canvas.toDataURL('image/png') : '';
-
-      // Convert "YYYY-MM-DD" date-input values → ISO strings for Appwrite datetime columns
-      const toISO = (d?: string): string | null =>
-        d ? new Date(d).toISOString() : null;
-
-      const payload = {
-        student_id_ref        : this.selectedStudent.$id,
-        supervisor_id         : this.currentSupervisor?.$id ?? null,
-        supervisor_name       : this.supervisorFullName,
-        punctuality           : this.evaluation.punctuality,
-        attendance            : this.evaluation.attendance,
-        quality_of_work       : this.evaluation.quality_of_work,
-        productivity          : this.evaluation.productivity,
-        initiative            : this.evaluation.initiative,
-        cooperation           : this.evaluation.cooperation,
-        communication         : this.evaluation.communication,
-        professionalism       : this.evaluation.professionalism,
-        dependability         : this.evaluation.dependability,
-        remarks               : this.evaluation.remarks               || '',
-        strengths             : this.evaluation.strengths             || '',
-        areas_for_improvement : this.evaluation.areas_for_improvement || '',
-        recommendation        : this.evaluation.recommendation        ?? null,
-        signature_data        : sigData,
-        evaluated_at          : new Date().toISOString(),
-        period_from           : toISO(this.evaluation.period_from),
-        period_to             : toISO(this.evaluation.period_to)
+      const toISO   = (d?: string): string | null => d ? new Date(d).toISOString() : null;
+      const payload: Record<string, any> = {
+        student_id_ref           : this.selectedStudent.$id,
+        supervisor_id            : this.currentSupervisor?.$id ?? null,
+        supervisor_name          : this.supervisorFullName,
+        answers_json             : JSON.stringify(this.answers),
+        remarks_sections_json    : JSON.stringify(this.remarkAnswers),
+        criteria_snapshot        : JSON.stringify(this.CRITERIA),
+        remarks_sections_snapshot: JSON.stringify(this.REMARKS_SECTIONS),
+        recommendation           : this.evaluation.recommendation ?? null,
+        signature_data           : sigData,
+        evaluated_at             : new Date().toISOString(),
+        period_from              : toISO(this.evaluation.period_from),
+        period_to                : toISO(this.evaluation.period_to)
       };
-
       await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.EVAL_COL,
-        ID.unique(),
-        payload
+        this.appwrite.DATABASE_ID, this.EVAL_COL, ID.unique(), payload
       );
-
       this.evaluationMap.set(this.selectedStudent.$id, payload as any);
       this.students          = this.students.filter(s => s.$id !== this.selectedStudent!.$id);
       this.evaluatedStudents = [this.selectedStudent!, ...this.evaluatedStudents];
@@ -565,17 +824,13 @@ private async autoFillTrainingPeriod(studentId: string) {
       this.updatePagination();
       this.updatePaginationEval();
       this.closeModal();
-
     } catch (err: any) {
-      console.error('Submit evaluation error:', err.message);
+      console.error('Submit error:', err.message);
       alert('Failed to submit evaluation: ' + err.message);
-    } finally {
-      this.submitting = false;
-    }
+    } finally { this.submitting = false; }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
+  // ── Helpers ───────────────────────────────────────────────────────────────
   onToggleSidebar(c: boolean) { this.isCollapsed = c; }
 
   getFullName(s: Student): string {
@@ -596,15 +851,5 @@ private async autoFillTrainingPeriod(studentId: string) {
     const ev = this.evaluationMap.get(s.$id);
     if (!ev?.evaluated_at) return '—';
     return new Date(ev.evaluated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  }
-
-  getEvalAverage(s: Student): number {
-    const ev = this.evaluationMap.get(s.$id);
-    if (!ev) return 0;
-    const filled = this.EVAL_KEYS
-      .map(k => (ev as any)[k] || 0)
-      .filter((v: number) => v > 0);
-    if (!filled.length) return 0;
-    return parseFloat((filled.reduce((a: number, b: number) => a + b, 0) / filled.length).toFixed(2));
   }
 }

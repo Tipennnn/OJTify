@@ -20,17 +20,22 @@
 
       <div class="dashboard-divider"></div>
 
-      <!-- Tabs -->
-      <div class="tab-bar">
-        <button class="tab-btn" [class.active]="activeTab === 'pending'" (click)="setTab('pending')">
-          <i class="fa-solid fa-hourglass-half"></i>
-          Pending
-          <span class="tab-badge pending">{{ students.length }}</span>
-        </button>
-        <button class="tab-btn" [class.active]="activeTab === 'evaluated'" (click)="setTab('evaluated')">
-          <i class="fa-solid fa-circle-check"></i>
-          Evaluated
-          <span class="tab-badge done">{{ evaluatedStudents.length }}</span>
+      <!-- Tabs row -->
+      <div class="tab-row">
+        <div class="tab-bar">
+          <button class="tab-btn" [class.active]="activeTab === 'pending'" (click)="setTab('pending')">
+            <i class="fa-solid fa-hourglass-half"></i>
+            Pending
+            <span class="tab-badge pending">{{ students.length }}</span>
+          </button>
+          <button class="tab-btn" [class.active]="activeTab === 'evaluated'" (click)="setTab('evaluated')">
+            <i class="fa-solid fa-circle-check"></i>
+            Evaluated
+            <span class="tab-badge done">{{ evaluatedStudents.length }}</span>
+          </button>
+        </div>
+        <button class="btn-edit-criteria" (click)="openCriteriaEditor()">
+          <i class="fa-solid fa-pen-to-square"></i> Edit Questions
         </button>
       </div>
 
@@ -63,7 +68,7 @@
                 <td class="plain-text">{{ student.student_id }}</td>
                 <td class="plain-text">{{ student.course }}</td>
                 <td class="plain-text">{{ student.school_name }}</td>
-                <td style="min-width: 180px;">
+                <td style="min-width:180px;">
                   <div class="progress-bar">
                     <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
                   </div>
@@ -79,9 +84,11 @@
                 </td>
               </tr>
               <tr *ngIf="filteredStudents.length === 0">
-                <td colspan="6" class="empty-state">
-                  <i class="fa-solid fa-clipboard-check" style="font-size:32px;margin-bottom:10px;display:block;opacity:.4;"></i>
-                  No pending students found.
+                <td colspan="6">
+                  <div class="empty-state">
+                    <i class="fa-solid fa-clipboard-check" style="font-size:32px;margin-bottom:10px;display:block;opacity:.4;"></i>
+                    No pending students found.
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -132,9 +139,7 @@
                     {{ getOverallLabel(getEvalAverage(student)) }}
                   </span>
                 </td>
-                <td class="plain-text">
-                  {{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}
-                </td>
+                <td class="plain-text">{{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}</td>
                 <td class="plain-text">{{ getEvalDate(student) }}</td>
                 <td>
                   <button class="btn-view-action" (click)="viewEvaluation(student)">
@@ -143,7 +148,12 @@
                 </td>
               </tr>
               <tr *ngIf="filteredEvaluated.length === 0">
-                <td colspan="7" class="empty-state">No evaluated students yet.</td>
+                <td colspan="7" style="padding:0;">
+                  <div class="empty-state-center">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <p>No evaluated students yet.</p>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -165,9 +175,243 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
+<!-- ══════════════════════════════════════════════════
+     EDIT QUESTIONS MODAL
+══════════════════════════════════════════════════ -->
+<div class="editor-backdrop" *ngIf="showCriteriaEditor" (click)="closeCriteriaEditor()">
+  <div class="editor-box" (click)="$event.stopPropagation()">
+
+    <div class="editor-header">
+      <div>
+        <div class="editor-title">
+          <i class="fa-solid fa-pen-to-square" style="color:#0818A8;margin-right:7px;"></i>
+          Edit Evaluation Questions
+        </div>
+        <div class="editor-sub">
+          Manage criteria, questions, rating choices, and remarks sections. Each question has its own rating scale.
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeCriteriaEditor()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="editor-body">
+
+      <!-- ── CRITERIA & QUESTIONS SECTION ── -->
+      <div class="editor-section-heading">
+        <i class="fa-solid fa-list-check"></i> Criteria &amp; Questions
+        <span class="criteria-count-badge">{{ editableCriteria.length }} {{ editableCriteria.length === 1 ? 'criterion' : 'criteria' }}</span>
+      </div>
+
+      <div class="add-criterion-row">
+        <input class="editor-input add-criterion-input"
+               placeholder="New criterion name (e.g. Technical Skills)..."
+               [(ngModel)]="newCriterionLabel"
+               (keydown.enter)="addCriterion()">
+        <button class="btn-add-criterion" (click)="addCriterion()" [disabled]="!newCriterionLabel.trim()">
+          <i class="fa-solid fa-plus"></i> Add Criterion
+        </button>
+      </div>
+
+      <div class="editor-criterion" *ngFor="let c of editableCriteria; let i = index">
+
+        <div class="editor-crit-header">
+          <div class="editor-num">{{ i + 1 }}</div>
+          <div class="editor-crit-name">
+            <!-- Icon prefix preview -->
+            <ng-container *ngIf="c.prefixType === 'icon'">
+              <i class="fa-solid {{ c.icon }}" style="color:#0818A8;font-size:11px;margin-right:4px;"></i>
+            </ng-container>
+            <!-- Text prefix preview -->
+            <ng-container *ngIf="c.prefixType === 'text' && c.prefixText">
+              <span class="crit-text-prefix-preview">{{ c.prefixText }}</span>
+            </ng-container>
+            {{ c.label }}
+          </div>
+          <div class="editor-crit-actions">
+            <button class="ec-action-btn" (click)="moveCriterionUp(i)"   [disabled]="i === 0"                          title="Move up">   <i class="fa-solid fa-chevron-up"></i>   </button>
+            <button class="ec-action-btn" (click)="moveCriterionDown(i)" [disabled]="i === editableCriteria.length - 1" title="Move down"> <i class="fa-solid fa-chevron-down"></i> </button>
+            <button class="ec-action-btn ec-remove-btn" (click)="removeCriterion(i)" title="Remove">                    <i class="fa-solid fa-trash"></i>         </button>
+          </div>
+        </div>
+
+        <!-- Label + Prefix Type row -->
+        <div class="editor-row-2col" style="margin-bottom:10px;">
+          <div>
+            <div class="editor-field-label">Criterion Label</div>
+            <input class="editor-input" [(ngModel)]="c.label" placeholder="e.g. Punctuality">
+          </div>
+          <div>
+            <div class="editor-field-label">Prefix Type</div>
+            <div class="prefix-type-row">
+              <button class="prefix-type-btn" [class.active]="c.prefixType === 'icon'" (click)="c.prefixType = 'icon'">
+                <i class="fa-solid fa-icons"></i> Icon
+              </button>
+              <button class="prefix-type-btn" [class.active]="c.prefixType === 'text'" (click)="c.prefixType = 'text'">
+                <i class="fa-solid fa-font"></i> Text
+              </button>
+              <button class="prefix-type-btn" 
+        [class.active]="c.prefixType !== 'icon' && c.prefixType !== 'text' || (!c.icon && !c.prefixText)" 
+        (click)="setPrefixTypeNone(c)">
+  <i class="fa-solid fa-ban"></i> None
+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Icon selector (only when prefixType === icon) -->
+        <div *ngIf="c.prefixType === 'icon'" style="margin-bottom:10px;">
+          <div class="editor-field-label">Icon (Font Awesome)</div>
+          <div class="icon-select-row">
+            <select class="editor-input editor-select" [(ngModel)]="c.icon">
+              <option *ngFor="let ico of availableIcons" [value]="ico">{{ ico }}</option>
+            </select>
+            <span class="icon-preview"><i class="fa-solid {{ c.icon }}"></i></span>
+          </div>
+        </div>
+
+        <!-- Text prefix (only when prefixType === text) -->
+        <div *ngIf="c.prefixType === 'text'" style="margin-bottom:10px;">
+          <div class="editor-field-label">Bold Prefix Label <span class="field-hint">e.g. "Part 1", "Section A"</span></div>
+          <input class="editor-input" [(ngModel)]="c.prefixText" placeholder="e.g. Part 1">
+        </div>
+
+        <!-- Questions -->
+        <div class="editor-field-label" style="margin-bottom:6px;">
+          Questions
+          <span class="field-hint">{{ c.questions.length }} question{{ c.questions.length !== 1 ? 's' : '' }}</span>
+        </div>
+
+        <div class="editor-questions-list">
+          <div class="editor-question-block" *ngFor="let q of c.questions; let qi = index">
+
+            <!-- Question text row -->
+            <div class="eq-text-row">
+              <span class="eq-num">{{ qi + 1 }}</span>
+              <textarea class="editor-input eq-textarea" rows="2"
+                        [(ngModel)]="q.text"
+                        placeholder="Enter question text..."></textarea>
+              <button class="ec-action-btn ec-remove-btn" (click)="removeQuestion(c, qi)"
+                      [disabled]="c.questions.length === 1" title="Remove question">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+
+            <!-- Choices config row -->
+            <div class="eq-choices-config">
+              <div class="eq-choices-header">
+                <span class="editor-field-label" style="margin-bottom:0;">
+                  Choices
+                  <span class="field-hint">{{ q.numChoices }} options (2–10)</span>
+                </span>
+                <div class="num-choices-row">
+                  <input type="range" min="2" max="10" step="1"
+                         class="choices-range"
+                         [value]="q.numChoices"
+                         (input)="q.numChoices = +$any($event.target).value; onNumChoicesChange(q)">
+                  <span class="num-choices-badge">{{ q.numChoices }}</span>
+                </div>
+              </div>
+              <div class="eq-choice-labels-grid">
+                <div class="eq-choice-label-row" *ngFor="let v of choiceRange(q)">
+                  <span class="eq-choice-num"
+                        [style.background]="getRatingColor(v, q.numChoices) + '20'"
+                        [style.color]="getRatingColor(v, q.numChoices)">{{ v }}</span>
+                  <input class="editor-input eq-choice-input"
+                         [(ngModel)]="q.choiceLabels[v]"
+                         placeholder="Label for {{ v }}">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <button class="btn-add-question" (click)="addQuestion(c)">
+          <i class="fa-solid fa-plus"></i> Add Question
+        </button>
+
+      </div>
+
+      <div class="empty-editor-hint" *ngIf="editableCriteria.length === 0">
+        <i class="fa-solid fa-circle-info"></i>
+        No criteria configured. Add at least one criterion above.
+      </div>
+
+      <!-- ── REMARKS SECTIONS ── -->
+      <div class="editor-section-heading" style="margin-top:28px;">
+        <i class="fa-solid fa-align-left"></i> Remarks Sections
+        <span class="criteria-count-badge">{{ editableRemarksSections.length }} section{{ editableRemarksSections.length !== 1 ? 's' : '' }}</span>
+      </div>
+
+      <div class="add-criterion-row">
+        <input class="editor-input add-criterion-input"
+               placeholder="New section name (e.g. Overall Comments)..."
+               [(ngModel)]="newRemarksSectionLabel"
+               (keydown.enter)="addRemarksSection()">
+        <button class="btn-add-criterion" (click)="addRemarksSection()" [disabled]="!newRemarksSectionLabel.trim()">
+          <i class="fa-solid fa-plus"></i> Add Section
+        </button>
+      </div>
+
+      <div class="editor-criterion" *ngFor="let rs of editableRemarksSections; let ri = index">
+        <div class="editor-crit-header">
+          <div class="editor-num" style="background:#059669;">{{ ri + 1 }}</div>
+          <div class="editor-crit-name">
+            <i class="fa-solid {{ rs.icon }}" [style.color]="rs.iconColor" style="margin-right:5px;font-size:11px;"></i>
+            {{ rs.label }}
+          </div>
+          <div class="editor-crit-actions">
+            <button class="ec-action-btn" (click)="moveRemarksSectionUp(ri)"   [disabled]="ri === 0"                                 title="Move up">   <i class="fa-solid fa-chevron-up"></i>   </button>
+            <button class="ec-action-btn" (click)="moveRemarksSectionDown(ri)" [disabled]="ri === editableRemarksSections.length - 1" title="Move down"> <i class="fa-solid fa-chevron-down"></i> </button>
+            <button class="ec-action-btn ec-remove-btn" (click)="removeRemarksSection(ri)" title="Remove">                           <i class="fa-solid fa-trash"></i>         </button>
+          </div>
+        </div>
+        <div class="editor-row-2col">
+          <div>
+            <div class="editor-field-label">Section Label</div>
+            <input class="editor-input" [(ngModel)]="rs.label" placeholder="e.g. Strengths">
+          </div>
+          <div>
+            <div class="editor-field-label">Icon Class</div>
+            <div class="icon-select-row">
+              <select class="editor-input editor-select" [(ngModel)]="rs.icon">
+                <option *ngFor="let ico of availableIcons" [value]="ico">{{ ico }}</option>
+              </select>
+              <span class="icon-preview"><i class="fa-solid {{ rs.icon }}"></i></span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="editor-field-label">Placeholder Text</div>
+          <input class="editor-input" [(ngModel)]="rs.placeholder" placeholder="Placeholder shown inside textarea...">
+        </div>
+      </div>
+
+      <div class="empty-editor-hint" *ngIf="editableRemarksSections.length === 0">
+        <i class="fa-solid fa-circle-info"></i>
+        No remarks sections configured.
+      </div>
+
+    </div>
+
+    <div class="editor-footer">
+      <button class="btn-cancel" (click)="resetCriteriaToDefault()">
+        <i class="fa-solid fa-rotate-left"></i> Reset Defaults
+      </button>
+      <button class="btn-cancel" (click)="closeCriteriaEditor()">Cancel</button>
+      <button class="btn-submit" (click)="saveCriteriaEdits()" [disabled]="editableCriteria.length === 0">
+        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
      EVALUATION MODAL
-══════════════════════════════════════ -->
+══════════════════════════════════════════════════ -->
 <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
   <div class="modal-box" (click)="$event.stopPropagation()">
 
@@ -188,13 +432,11 @@
       </button>
     </div>
 
-    <!-- Supervisor attribution banner (new evaluate only) -->
+    <!-- Supervisor banner -->
     <div class="supervisor-eval-banner" *ngIf="!isViewMode() && currentSupervisor">
       <i class="fa-solid fa-user-tie"></i>
       <span>Submitting evaluation as <strong>{{ supervisorFullName }}</strong></span>
     </div>
-
-    <!-- Who evaluated (view mode) -->
     <div class="supervisor-eval-banner view-banner" *ngIf="isViewMode() && evaluation.supervisor_name">
       <i class="fa-solid fa-circle-check"></i>
       <span>Evaluated by <strong>{{ evaluation.supervisor_name }}</strong> on {{ getEvalDate(selectedStudent!) }}</span>
@@ -230,104 +472,114 @@
       </div>
     </div>
 
-    <!-- RATING LEGEND -->
-    <div class="rating-legend">
-      <span *ngFor="let item of [{v:5,l:'Excellent'},{v:4,l:'Very Good'},{v:3,l:'Good'},{v:2,l:'Fair'},{v:1,l:'Poor'}]"
-            class="legend-item" [style.color]="getRatingColor(item.v)">
-        <span class="legend-dot" [style.background]="getRatingColor(item.v)"></span>
-        {{ item.v }} = {{ item.l }}
-      </span>
+    <!-- Progress indicator (edit mode) -->
+    <div class="criteria-info-banner" *ngIf="!isViewMode()">
+      <i class="fa-solid fa-list-check"></i>
+      <span>{{ getRatedCount() }} / {{ getTotalQuestions() }} questions rated</span>
+      <span style="margin-left:auto;font-weight:600;color:#0818A8;">{{ CRITERIA.length }} criteria</span>
     </div>
 
     <!-- BODY -->
     <div class="modal-body">
       <div class="section-title">Performance Appraisal</div>
 
-      <!-- 9 criteria (including dependability) rendered by ngFor -->
+      <!-- Criteria -->
       <div class="criterion-card" *ngFor="let c of CRITERIA; let i = index">
+
+        <!-- Criterion header -->
         <div class="criterion-top">
           <div class="criterion-number">{{ i + 1 }}</div>
           <div class="criterion-info">
             <div class="criterion-name">
-              <i class="fa-solid {{ c.icon }}"></i> {{ c.label }}
+              <!-- Icon prefix -->
+              <ng-container *ngIf="c.prefixType === 'icon' && c.icon">
+                <i class="fa-solid {{ c.icon }}"></i>
+              </ng-container>
+              <!-- Bold text prefix -->
+              <ng-container *ngIf="c.prefixType === 'text' && c.prefixText">
+                <span class="crit-text-prefix">{{ c.prefixText }}</span>
+              </ng-container>
+              {{ c.label }}
             </div>
-            <div class="criterion-question">{{ c.question }}</div>
           </div>
         </div>
-        <div class="rating-row">
-          <button *ngFor="let v of [1,2,3,4,5]"
-                  class="rating-btn"
-                  [class.selected]="getRating(c.key) === v"
-                  [class.readonly]="isViewMode()"
-                  [style.--accent]="getRatingColor(v)"
-                  (click)="setRating(c.key, v)">
-            <span class="rating-num">{{ v }}</span>
-            <span class="rating-word">{{ getRatingLabelForValue(v) }}</span>
-          </button>
+
+        <!-- Questions with rating buttons -->
+        <div class="criterion-questions">
+          <div class="cq-item" *ngFor="let q of c.questions; let qi = index">
+
+            <div class="cq-label-row">
+              <span class="cq-num">{{ qi + 1 }}</span>
+              <span class="cq-text">{{ q.text }}</span>
+            </div>
+
+            <!-- Rating buttons -->
+            <div class="rating-row">
+              <button *ngFor="let v of choiceRange(q)"
+                      class="rating-btn"
+                      [class.selected]="getRatingValue(c.key, q.qkey) === v"
+                      [class.readonly]="isViewMode()"
+                      [style.--accent]="getRatingColor(v, q.numChoices)"
+                      (click)="setRating(c.key, q.qkey, v)">
+                <span class="rating-num">{{ v }}</span>
+                <span class="rating-word">{{ getChoiceLabel(q, v) }}</span>
+              </button>
+            </div>
+
+            <!-- Selected label -->
+            <div class="selected-label"
+                 *ngIf="getRatingValue(c.key, q.qkey) > 0"
+                 [style.color]="getRatingColor(getRatingValue(c.key, q.qkey), q.numChoices)">
+              <i class="fa-solid fa-circle-check"></i>
+              Rated: <strong>{{ getRatingValue(c.key, q.qkey) }} — {{ getChoiceLabel(q, getRatingValue(c.key, q.qkey)) }}</strong>
+            </div>
+            <div class="selected-label unrated"
+                 *ngIf="getRatingValue(c.key, q.qkey) === 0 && !isViewMode()">
+              <i class="fa-solid fa-circle-exclamation"></i> Not yet rated
+            </div>
+
+          </div>
         </div>
-        <div class="selected-label" *ngIf="getRating(c.key) > 0"
-             [style.color]="getRatingColor(getRating(c.key))">
-          <i class="fa-solid fa-circle-check"></i>
-          Rated: <strong>{{ getRating(c.key) }} — {{ getRatingLabelForValue(getRating(c.key)) }}</strong>
-        </div>
-        <div class="selected-label unrated" *ngIf="getRating(c.key) === 0 && !isViewMode()">
-          <i class="fa-solid fa-circle-exclamation"></i> Not yet rated
-        </div>
+
       </div>
 
       <!-- OVERALL AVERAGE -->
-      <div class="overall-summary" *ngIf="getOverallAverage() > 0">
+      <div class="overall-summary" *ngIf="getNormalizedAverage() > 0">
         <div>
           <div class="overall-title">Overall Rating</div>
-          <div class="overall-sub">Average of all 9 criteria</div>
+          <div class="overall-sub">Normalized average across all criteria (5-point scale)</div>
         </div>
         <div class="overall-score"
-             [style.background]="getOverallColor(getOverallAverage()) + '15'"
-             [style.color]="getOverallColor(getOverallAverage())">
-          ★ {{ getOverallAverage() }}
-          <span class="overall-word">{{ getOverallLabel(getOverallAverage()) }}</span>
+             [style.background]="getOverallColor(getNormalizedAverage()) + '15'"
+             [style.color]="getOverallColor(getNormalizedAverage())">
+          ★ {{ getNormalizedAverage() }}
+          <span class="overall-word">{{ getOverallLabel(getNormalizedAverage()) }}</span>
         </div>
       </div>
 
-      <!-- ── STRENGTHS ── -->
-      <div class="section-title" style="margin-top: 20px;">
-        <span><i class="fa-solid fa-thumbs-up" style="color:#059669;margin-right:6px;"></i>Strengths</span>
-      </div>
-      <textarea class="remarks-textarea"
-                placeholder="Describe the intern's notable strengths and accomplishments..."
-                [(ngModel)]="evaluation.strengths"
-                [readonly]="isViewMode()"
-                rows="3"></textarea>
+      <!-- DYNAMIC REMARKS SECTIONS -->
+      <ng-container *ngFor="let rs of REMARKS_SECTIONS">
+        <div class="section-title" style="margin-top:20px;">
+          <span>
+            <i class="fa-solid {{ rs.icon }}" [style.color]="rs.iconColor" style="margin-right:6px;"></i>
+            {{ rs.label }}
+          </span>
+        </div>
+        <textarea class="remarks-textarea"
+                  [placeholder]="rs.placeholder"
+                  [(ngModel)]="remarkAnswers[rs.key]"
+                  [readonly]="isViewMode()"
+                  rows="3"></textarea>
+      </ng-container>
 
-      <!-- ── AREAS FOR IMPROVEMENT ── -->
-      <div class="section-title" style="margin-top: 16px;">
-        <span><i class="fa-solid fa-arrow-trend-up" style="color:#d97706;margin-right:6px;"></i>Areas for Improvement</span>
-      </div>
-      <textarea class="remarks-textarea"
-                placeholder="What areas should the intern focus on improving?"
-                [(ngModel)]="evaluation.areas_for_improvement"
-                [readonly]="isViewMode()"
-                rows="3"></textarea>
-
-      <!-- ── REMARKS / COMMENTS ── -->
-      <div class="section-title" style="margin-top: 16px;">
-        <span>Overall Remarks / Comments</span>
-      </div>
-      <textarea class="remarks-textarea"
-                placeholder="Write your overall remarks about this student's OJT performance..."
-                [(ngModel)]="evaluation.remarks"
-                [readonly]="isViewMode()"
-                rows="3"></textarea>
-
-      <!-- ── RECOMMENDATION ── -->
-      <div class="section-title" style="margin-top: 20px;">
+      <!-- RECOMMENDATION -->
+      <div class="section-title" style="margin-top:20px;">
         <span><i class="fa-solid fa-award" style="color:#0818A8;margin-right:6px;"></i>Recommendation</span>
         <span class="rec-required" *ngIf="!isViewMode() && !evaluation.recommendation">
           <i class="fa-solid fa-circle-exclamation"></i> Required
         </span>
       </div>
 
-      <!-- Edit mode: clickable buttons -->
       <div class="rec-options-row" *ngIf="!isViewMode()">
         <button *ngFor="let r of RECOMMENDATIONS"
                 class="rec-btn"
@@ -337,8 +589,6 @@
           {{ r.label }}
         </button>
       </div>
-
-      <!-- View mode: highlight the stored recommendation -->
       <div class="rec-options-row" *ngIf="isViewMode()">
         <span *ngFor="let r of RECOMMENDATIONS"
               class="rec-btn readonly"
@@ -348,8 +598,8 @@
         </span>
       </div>
 
-      <!-- ── SIGNATURE SECTION ── -->
-      <div class="section-title sig-title-row" style="margin-top: 22px;">
+      <!-- SIGNATURE -->
+      <div class="section-title sig-title-row" style="margin-top:22px;">
         <span>Supervisor E-Signature</span>
         <button *ngIf="!isViewMode() && signatureMode === 'draw' && hasSignature"
                 class="clear-btn" (click)="clearCanvas()">
@@ -357,7 +607,6 @@
         </button>
       </div>
 
-      <!-- Signature Mode Tabs -->
       <div class="sig-mode-tabs" *ngIf="!isViewMode()">
         <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
           <i class="fa-solid fa-pen-nib"></i> Draw
@@ -367,7 +616,6 @@
         </button>
       </div>
 
-      <!-- Draw Mode -->
       <div class="sig-wrapper" [class.view-only]="isViewMode()" *ngIf="signatureMode === 'draw' || isViewMode()">
         <canvas id="sigCanvas" width="560" height="110"
                 (mousedown)="onMouseDown($event)"
@@ -383,7 +631,6 @@
         </div>
       </div>
 
-      <!-- Upload Mode -->
       <div class="sig-upload-area" *ngIf="signatureMode === 'upload' && !isViewMode()">
         <input type="file" id="sigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
                style="display:none" (change)="onSignatureImageUpload($event)">
@@ -408,7 +655,7 @@
         Signature is required before submitting.
       </div>
 
-    </div><!-- /modal-body -->
+    </div>
 
     <!-- FOOTER -->
     <div class="modal-footer">
