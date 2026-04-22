@@ -1,0 +1,952 @@
+<!-- ================================================
+     ADMIN CERTIFICATE PAGE
+================================================ -->
+
+<div class="dashboard-wrapper" [class.collapsed]="sidenavCollapsed">
+    <app-admin-sidenav (toggle)="onSidenavToggle($event)"></app-admin-sidenav>
+  
+    <div class="main-section">
+      <app-admin-topnav></app-admin-topnav>
+  
+      <div class="dashboard-content">
+  
+        <!-- HEADER -->
+        <div class="dashboard-header">
+          <div class="header-flex">
+            <h2>OJT Certificate Manager</h2>
+            <button class="btn-add" (click)="openTemplateSettings()">
+              <i class="fa-solid fa-sliders"></i> Template Settings
+            </button>
+          </div>
+        </div>
+        <div class="dashboard-divider"></div>
+  
+        <!-- STAT CARDS -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info"><p>Total Interns</p><h3>{{ allInterns.length }}</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-info"><p>Completed</p><h3>{{ completedInterns.length }}</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="stat-info"><p>In Progress</p><h3>{{ ongoingInterns.length }}</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-paper-plane"></i></div>
+            <div class="stat-info"><p>Certificates Sent</p><h3>{{ sentCerts.length }}</h3></div>
+          </div>
+        </div>
+  
+        <!-- TABLE SECTION -->
+        <div class="center-wrapper">
+          <div class="table-container">
+  
+            <!-- TABS -->
+            <div class="cert-tabs">
+              <button class="cert-tab" [class.active]="activeTab==='completed'" (click)="switchTab('completed')">
+                <i class="fa-solid fa-circle-check"></i> Completed
+                <span class="cert-tab-badge green">{{ completedInterns.length }}</span>
+              </button>
+              <button class="cert-tab" [class.active]="activeTab==='ongoing'" (click)="switchTab('ongoing')">
+                <i class="fa-solid fa-hourglass-half"></i> In Progress
+                <span class="cert-tab-badge orange">{{ ongoingInterns.length }}</span>
+              </button>
+              <button class="cert-tab" [class.active]="activeTab==='sent'" (click)="switchTab('sent')">
+                <i class="fa-solid fa-paper-plane"></i> Sent Certificates
+                <span class="cert-tab-badge blue">{{ sentCerts.length }}</span>
+              </button>
+            </div>
+
+            <!-- FILTER + SORT BAR -->
+            <div class="filter-sort-bar">
+
+              <!-- FILTER DROPDOWN -->
+              <div class="filter-wrap">
+                <button class="filter-btn" [class.active]="hasActiveFilters" (click)="toggleFilterPanel($event)">
+                  <i class="fa-solid fa-filter"></i>
+                  Filter
+                  <span *ngIf="hasActiveFilters" class="filter-badge">{{ activeFilterCount }}</span>
+                  <i class="fa-solid fa-chevron-down sort-chevron" [class.open]="showFilterPanel"></i>
+                </button>
+                <div class="filter-panel" [class.open]="showFilterPanel">
+                  <div class="filter-panel-header">
+                    <span class="filter-panel-title"><i class="fa-solid fa-filter"></i> Filter Records</span>
+                    <button class="filter-clear-btn" (click)="clearAllFilters()">
+                      <i class="fa-solid fa-rotate-left"></i> Clear all
+                    </button>
+                  </div>
+
+                  <!-- YEAR FILTER -->
+                  <div class="filter-section">
+                    <div class="filter-section-label">
+                      <i class="fa-solid fa-calendar"></i> Year
+                    </div>
+                    <div class="year-pills">
+                      <button *ngFor="let y of availableYears"
+                        class="year-pill"
+                        [class.active]="filterYear === y"
+                        (click)="toggleYearFilter(y)">{{ y }}</button>
+                    </div>
+                  </div>
+
+                  <!-- MONTH FILTER (only shows if year is selected) -->
+                  <div class="filter-section" *ngIf="filterYear">
+                    <div class="filter-section-label">
+                      <i class="fa-solid fa-calendar-days"></i> Month
+                      <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af;font-size:10px;">(optional)</span>
+                    </div>
+                    <div class="month-pills">
+                      <button *ngFor="let m of monthNames; let i = index"
+                        class="month-pill"
+                        [class.active]="filterMonth === i + 1"
+                        (click)="toggleMonthFilter(i + 1)">{{ m }}</button>
+                    </div>
+                  </div>
+
+                  <!-- HOURS FILTER -->
+                  <div class="filter-section">
+                    <div class="filter-section-label">
+                      <i class="fa-solid fa-clock"></i> Hours Range
+                    </div>
+                    <div class="hours-range-row">
+                      <input class="hours-input" type="number" placeholder="Min hrs"
+                             [(ngModel)]="filterHoursMin" min="0">
+                      <span class="hours-sep">–</span>
+                      <input class="hours-input" type="number" placeholder="Max hrs"
+                             [(ngModel)]="filterHoursMax" min="0">
+                    </div>
+                  </div>
+
+                  <div class="filter-apply-row">
+                    <button class="filter-apply-btn" (click)="applyFilters()">
+                      <i class="fa-solid fa-check"></i> Apply Filter
+                    </button>
+                  </div>
+                </div>
+                <div *ngIf="showFilterPanel" class="filter-backdrop" (click)="showFilterPanel=false"></div>
+              </div>
+
+              <!-- SORT DROPDOWN -->
+              <div class="sort-wrap">
+                <button class="sort-btn" (click)="toggleSortPanel($event)">
+                  <i class="fa-solid fa-arrow-up-wide-short"></i>
+                  Sort
+                  <i class="fa-solid fa-chevron-down sort-chevron" [class.open]="showSortPanel"></i>
+                </button>
+                <div class="sort-panel" [class.open]="showSortPanel">
+                  <p class="sort-panel-label">Sort by</p>
+                  <button *ngFor="let opt of sortOptions"
+                    class="sort-option"
+                    [class.active]="sortKey===opt.key && sortDir==='asc'"
+                    (click)="setSort(opt.key, 'asc')">
+                    <i class="fa-solid fa-arrow-up-short-wide"></i> {{ opt.label }} ↑
+                  </button>
+                  <button *ngFor="let opt of sortOptions"
+                    class="sort-option"
+                    [class.active]="sortKey===opt.key && sortDir==='desc'"
+                    (click)="setSort(opt.key, 'desc')">
+                    <i class="fa-solid fa-arrow-down-wide-short"></i> {{ opt.label }} ↓
+                  </button>
+                </div>
+                <div *ngIf="showSortPanel" class="sort-backdrop" (click)="showSortPanel=false"></div>
+              </div>
+
+              <div class="filter-spacer"></div>
+
+              <!-- SEARCH -->
+              <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Search intern..."
+                       [(ngModel)]="searchQuery" (ngModelChange)="currentPage=1">
+                <button *ngIf="searchQuery" class="search-clear" (click)="searchQuery=''; currentPage=1">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- TABLE BODY AREA -->
+            <div class="table-body-area">
+  
+              <!-- TABLE: COMPLETED -->
+              <ng-container *ngIf="activeTab==='completed'">
+                <table class="cert-table" *ngIf="pagedCompleted.length>0; else emptyCompleted">
+                  <thead><tr>
+                    <th>Name</th>
+                    <th>Student ID</th>
+                    <th>Course</th>
+                    <th>OJT Start Date</th>
+                    <th>Hours Progress</th>
+                    <th>Actions</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr *ngFor="let intern of pagedCompleted">
+                      <td>
+                        <div class="profile-name">
+                          <img *ngIf="intern.photoUrl" [src]="intern.photoUrl" class="profile-pic" [alt]="intern.name">
+                          <div *ngIf="!intern.photoUrl" class="avatar-initials">{{ getInitials(intern.name) }}</div>
+                          <span class="name-main">{{ intern.name }}</span>
+                        </div>
+                      </td>
+                      <td class="text-muted">{{ intern.studentId || '—' }}</td>
+                      <td class="text-muted">{{ intern.course }}</td>
+                      <td class="text-muted">{{ intern.startDate }}</td>
+                      <td style="min-width:180px;">
+                        <div class="progress-bar">
+                          <div class="progress-fill" [style.width.%]="getPct(intern.hoursCompleted)"></div>
+                        </div>
+                        <span class="progress-text">
+                          {{ intern.hoursCompleted }} / {{ certTemplate.requiredHours }} hrs
+                          ({{ getPct(intern.hoursCompleted) }}%)
+                        </span>
+                      </td>
+                      <td>
+                        <div class="action-btns">
+                          <button class="btn-action btn-preview" (click)="previewCert(intern)">
+                            <i class="fa-solid fa-file-certificate"></i> Preview
+                          </button>
+                          <button class="btn-action btn-send-cert" (click)="promptSendCert(intern)">
+                            <i class="fa-solid fa-paper-plane"></i> Send
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <ng-template #emptyCompleted>
+                  <div class="empty-state"><i class="fa-solid fa-user-graduate"></i><p>No completed interns found.</p></div>
+                </ng-template>
+              </ng-container>
+  
+              <!-- TABLE: IN PROGRESS -->
+              <ng-container *ngIf="activeTab==='ongoing'">
+                <table class="cert-table" *ngIf="pagedOngoing.length>0; else emptyOngoing">
+                  <thead><tr>
+                    <th>Name</th>
+                    <th>Student ID</th>
+                    <th>Course</th>
+                    <th>OJT Start Date</th>
+                    <th>Hours Progress</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr *ngFor="let intern of pagedOngoing">
+                      <td>
+                        <div class="profile-name">
+                          <img *ngIf="intern.photoUrl" [src]="intern.photoUrl" class="profile-pic" [alt]="intern.name">
+                          <div *ngIf="!intern.photoUrl" class="avatar-initials">{{ getInitials(intern.name) }}</div>
+                          <span class="name-main">{{ intern.name }}</span>
+                        </div>
+                      </td>
+                      <td class="text-muted">{{ intern.studentId || '—' }}</td>
+                      <td class="text-muted">{{ intern.course }}</td>
+                      <td class="text-muted">{{ intern.startDate }}</td>
+                      <td style="min-width:180px;">
+                        <div class="progress-bar">
+                          <div class="progress-fill" [style.width.%]="getPct(intern.hoursCompleted)"></div>
+                        </div>
+                        <span class="progress-text">
+                          {{ intern.hoursCompleted }} / {{ certTemplate.requiredHours }} hrs
+                          ({{ getPct(intern.hoursCompleted) }}%)
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <ng-template #emptyOngoing>
+                  <div class="empty-state"><i class="fa-solid fa-user-clock"></i><p>No ongoing interns found.</p></div>
+                </ng-template>
+              </ng-container>
+  
+              <!-- TABLE: SENT CERTIFICATES -->
+              <ng-container *ngIf="activeTab==='sent'">
+                <table class="cert-table" *ngIf="pagedSent.length>0; else emptySent">
+                  <thead><tr>
+                    <th>Name</th>
+                    <th>Student ID</th>
+                    <th>OJT Start Date</th>
+                    <th>OJT End Date</th>
+                    <th>Hours Progress</th>
+                    <th>Sent On</th>
+                    <th></th>
+                  </tr></thead>
+                  <tbody>
+                    <tr *ngFor="let intern of pagedSent">
+                      <td>
+                        <div class="profile-name">
+                          <img *ngIf="intern.photoUrl" [src]="intern.photoUrl" class="profile-pic" [alt]="intern.name">
+                          <div *ngIf="!intern.photoUrl" class="avatar-initials">{{ getInitials(intern.name) }}</div>
+                          <span class="name-main">{{ intern.name }}</span>
+                        </div>
+                      </td>
+                      <td class="text-muted">{{ intern.studentId || '—' }}</td>
+                      <td class="text-muted">{{ intern.startDate }}</td>
+                      <td class="text-muted">{{ intern.endDate || '—' }}</td>
+                      <td style="min-width:160px;">
+                        <div class="progress-bar">
+                          <div class="progress-fill" [style.width.%]="getPct(intern.hoursCompleted)"></div>
+                        </div>
+                        <span class="progress-text">
+                          {{ intern.hoursCompleted }} / {{ certTemplate.requiredHours }} hrs
+                          ({{ getPct(intern.hoursCompleted) }}%)
+                        </span>
+                      </td>
+                      <td>
+                        <span class="sent-date-badge">
+                          <i class="fa-solid fa-circle-check"></i>
+                          {{ intern.sentDate }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="dot-menu-wrap">
+                          <button class="btn-dots" (click)="toggleDotMenu($event, intern.$id)">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                          </button>
+                          <div class="dot-dropdown" [class.open]="openDotMenu === intern.$id">
+                            <button class="dot-item" (click)="previewCert(intern); closeDotMenu()">
+                              <i class="fa-solid fa-file-certificate"></i> View Certificate
+                            </button>
+                            <button class="dot-item" (click)="downloadCert(intern); closeDotMenu()">
+                              <i class="fa-solid fa-arrow-down-to-line"></i> Download
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <ng-template #emptySent>
+                  <div class="empty-state"><i class="fa-solid fa-paper-plane"></i><p>No certificates sent yet.</p></div>
+                </ng-template>
+              </ng-container>
+  
+            </div><!-- /table-body-area -->
+  
+            <!-- PAGINATION — count left of buttons, both on the right -->
+            <div class="pagination-row">
+              <span class="page-info">
+                Showing {{ pageRangeStart }}–{{ pageRangeEnd }} of {{ activeList.length }}
+              </span>
+              <div class="pagination-controls">
+                <button class="page-nav-btn" (click)="prevPage()" [disabled]="currentPage===1">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <ng-container *ngFor="let p of visiblePageNumbers">
+                  <span *ngIf="p === -1" class="page-ellipsis">…</span>
+                  <button *ngIf="p !== -1"
+                    class="page-num-btn"
+                    [class.active]="p === currentPage"
+                    (click)="goToPage(p)">{{ p }}</button>
+                </ng-container>
+                <button class="page-nav-btn" (click)="nextPage()" [disabled]="currentPage===totalPages">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+  
+          </div>
+        </div>
+  
+      </div>
+    </div>
+  </div>
+  
+  <!-- dot-menu backdrop -->
+  <div *ngIf="openDotMenu" class="dot-backdrop" (click)="closeDotMenu()"></div>
+  
+  
+  <!-- ================================================
+       TEMPLATE SETTINGS MODAL
+  ================================================ -->
+  <div class="modal-overlay" *ngIf="showSettings" (click)="closeSettings()">
+    <div class="modal-box settings-modal" (click)="$event.stopPropagation()">
+  
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon"><i class="fa-solid fa-sliders"></i></div>
+          <div><h3>Certificate Template</h3><p>Edit default values for all certificates</p></div>
+        </div>
+        <button class="modal-close" (click)="closeSettings()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+  
+      <div class="modal-body settings-body">
+  
+        <!-- FORM COL -->
+        <div class="settings-form-col">
+  
+          <div class="settings-section-label">General Info</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Required OJT Hours <span class="req">*</span></label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-clock input-icon"></i>
+                <input type="number" [(ngModel)]="certTemplate.requiredHours" min="1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Issue Location</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-location-dot input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.issuedLocation">
+              </div>
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label>Republic Header</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-flag input-icon"></i>
+              <input type="text" [(ngModel)]="certTemplate.republic">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Department</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-building input-icon"></i>
+              <input type="text" [(ngModel)]="certTemplate.department">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Division</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-sitemap input-icon"></i>
+              <input type="text" [(ngModel)]="certTemplate.division">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>School Name</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-school input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.schoolName">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Host School / Company</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-building-columns input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.hostSchool">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Address</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-map-pin input-icon"></i>
+              <input type="text" [(ngModel)]="certTemplate.address">
+            </div>
+          </div>
+  
+          <div class="settings-section-label" style="margin-top:16px;">Certificate Text</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Certificate Title</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-heading input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.mainTitle">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Subtitle Tag</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-tag input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.subtitleTag">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Award Preamble</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-quote-left input-icon"></i>
+              <input type="text" [(ngModel)]="certTemplate.awardedText">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Body Text <span class="hint">use &#123;name&#125; &#123;hours&#125; &#123;course&#125; &#123;school&#125; &#123;host&#125;</span></label>
+            <div class="input-wrap textarea-wrap">
+              <i class="fa-solid fa-align-left input-icon" style="margin-top:10px;"></i>
+              <textarea rows="3" [(ngModel)]="certTemplate.bodyText"
+                        placeholder="e.g. for completing the &#123;hours&#125;-hour OJT..."></textarea>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Given / Closing Line</label>
+            <div class="input-wrap">
+              <i class="fa-solid fa-pen-nib input-icon"></i>
+              <input type="text" [(ngModel)]="certTemplate.givenText"
+                     placeholder="e.g. Given this &#123;date&#125;, &#123;location&#125;.">
+            </div>
+          </div>
+  
+          <div class="settings-section-label" style="margin-top:16px;">Signatories</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Left Signatory Name</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-user input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.leftSignatoryName">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Left Signatory Position</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-id-badge input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.leftSignatoryPos">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Right Signatory Name</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-user input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.supervisorName">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Right Signatory Position</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-id-badge input-icon"></i>
+                <input type="text" [(ngModel)]="certTemplate.supervisorPos">
+              </div>
+            </div>
+          </div>
+  
+          <div class="settings-section-label" style="margin-top:16px;">Certificate Colors</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Primary Color</label>
+              <div class="input-wrap color-input-wrap">
+                <input type="color" [(ngModel)]="certTemplate.primaryColor" class="color-swatch">
+                <input type="text"  [(ngModel)]="certTemplate.primaryColor" class="color-text">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Accent Color</label>
+              <div class="input-wrap color-input-wrap">
+                <input type="color" [(ngModel)]="certTemplate.accentColor" class="color-swatch">
+                <input type="text"  [(ngModel)]="certTemplate.accentColor" class="color-text">
+              </div>
+            </div>
+          </div>
+  
+          <div class="settings-section-label" style="margin-top:16px;">Logo Uploads</div>
+          <div class="upload-row">
+            <div>
+              <p class="upload-label">DepEd / Left Logo</p>
+              <div class="upload-box" (click)="depedInput.click()"
+                   (dragover)="$event.preventDefault()" (drop)="onLogoDrop($event,'deped')">
+                <input #depedInput type="file" accept="image/*" style="display:none" (change)="onLogoChange($event,'deped')">
+                <div *ngIf="!certTemplate.depedLogoUrl" class="upload-placeholder">
+                  <i class="fa-solid fa-cloud-arrow-up"></i><span>Upload</span>
+                </div>
+                <div *ngIf="certTemplate.depedLogoUrl" class="upload-preview">
+                  <img [src]="certTemplate.depedLogoUrl">
+                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.depedLogoUrl=''">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="upload-label">School / Right Logo</p>
+              <div class="upload-box" (click)="schoolInput.click()"
+                   (dragover)="$event.preventDefault()" (drop)="onLogoDrop($event,'school')">
+                <input #schoolInput type="file" accept="image/*" style="display:none" (change)="onLogoChange($event,'school')">
+                <div *ngIf="!certTemplate.schoolLogoUrl" class="upload-placeholder">
+                  <i class="fa-solid fa-cloud-arrow-up"></i><span>Upload</span>
+                </div>
+                <div *ngIf="certTemplate.schoolLogoUrl" class="upload-preview">
+                  <img [src]="certTemplate.schoolLogoUrl">
+                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.schoolLogoUrl=''">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="upload-label">Watermark</p>
+              <div class="upload-box" (click)="watermarkInput.click()"
+                   (dragover)="$event.preventDefault()" (drop)="onLogoDrop($event,'watermark')">
+                <input #watermarkInput type="file" accept="image/*" style="display:none" (change)="onLogoChange($event,'watermark')">
+                <div *ngIf="!certTemplate.watermarkUrl" class="upload-placeholder">
+                  <i class="fa-solid fa-droplet"></i><span>Upload</span>
+                </div>
+                <div *ngIf="certTemplate.watermarkUrl" class="upload-preview">
+                  <img [src]="certTemplate.watermarkUrl">
+                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.watermarkUrl=''">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+  
+          <div class="settings-section-label" style="margin-top:16px;">Signature Images <span style="font-weight:400;font-size:11px;">(optional)</span></div>
+          <div class="upload-row">
+            <div>
+              <p class="upload-label">Left Signature</p>
+              <div class="upload-box sig-upload" (click)="leftSigInput.click()"
+                   (dragover)="$event.preventDefault()" (drop)="onLogoDrop($event,'leftSig')">
+                <input #leftSigInput type="file" accept="image/*" style="display:none" (change)="onLogoChange($event,'leftSig')">
+                <div *ngIf="!certTemplate.leftSigUrl" class="upload-placeholder">
+                  <i class="fa-solid fa-signature"></i><span>Upload</span>
+                </div>
+                <div *ngIf="certTemplate.leftSigUrl" class="upload-preview">
+                  <img [src]="certTemplate.leftSigUrl">
+                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.leftSigUrl=''">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="upload-label">Right Signature</p>
+              <div class="upload-box sig-upload" (click)="rightSigInput.click()"
+                   (dragover)="$event.preventDefault()" (drop)="onLogoDrop($event,'rightSig')">
+                <input #rightSigInput type="file" accept="image/*" style="display:none" (change)="onLogoChange($event,'rightSig')">
+                <div *ngIf="!certTemplate.rightSigUrl" class="upload-placeholder">
+                  <i class="fa-solid fa-signature"></i><span>Upload</span>
+                </div>
+                <div *ngIf="certTemplate.rightSigUrl" class="upload-preview">
+                  <img [src]="certTemplate.rightSigUrl">
+                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.rightSigUrl=''">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+  
+        </div><!-- /form col -->
+  
+        <!-- MINI PREVIEW COL — drag to pan + zoom buttons -->
+        <div class="settings-preview-col">
+          <p class="mini-preview-label">Live Preview <span class="mini-hint">Drag to pan • Scroll to zoom</span></p>
+          <div class="mini-cert-wrap">
+            <!-- zoom control buttons -->
+            <div class="mini-zoom-controls">
+              <button class="mini-zoom-btn" (click)="miniZoomIn()" title="Zoom in">+</button>
+              <button class="mini-zoom-btn" (click)="miniZoomReset()" title="Reset" style="font-size:9px;">⟳</button>
+              <button class="mini-zoom-btn" (click)="miniZoomOut()" title="Zoom out">−</button>
+            </div>
+            <!-- pannable viewport -->
+            <div class="mini-cert-viewport"
+                 #miniViewport
+                 (mousedown)="miniStartDrag($event)"
+                 (mousemove)="miniOnDrag($event)"
+                 (mouseup)="miniStopDrag()"
+                 (mouseleave)="miniStopDrag()"
+                 (wheel)="miniOnWheel($event)">
+              <div class="mini-cert-transform"
+                   #miniTransform
+                   [style.transform]="miniTransformStyle">
+                <div class="mini-cert">
+                  <div class="mini-top-bar"  [style.background]="certTemplate.primaryColor"></div>
+                  <div class="mini-gold-bar" [style.background]="certTemplate.accentColor"></div>
+                  <div class="mini-body"
+                       [style.border-left-color]="certTemplate.primaryColor"
+                       [style.border-right-color]="certTemplate.primaryColor">
+                    <div class="mini-watermark" *ngIf="certTemplate.watermarkUrl">
+                      <img [src]="certTemplate.watermarkUrl">
+                    </div>
+                    <div class="mini-content">
+                      <div class="mini-header">
+                        <img *ngIf="certTemplate.depedLogoUrl"  [src]="certTemplate.depedLogoUrl"  class="mini-logo">
+                        <div class="mini-header-text">
+                          <p class="mini-republic">{{ certTemplate.republic }}</p>
+                          <p class="mini-dept"   [style.color]="certTemplate.primaryColor">{{ certTemplate.department }}</p>
+                          <p class="mini-school" [style.color]="certTemplate.primaryColor">{{ certTemplate.schoolName }}</p>
+                        </div>
+                        <img *ngIf="certTemplate.schoolLogoUrl" [src]="certTemplate.schoolLogoUrl" class="mini-logo">
+                      </div>
+                      <p class="mini-title"    [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</p>
+                      <p class="mini-subtitle">{{ certTemplate.subtitleTag }}</p>
+                      <p class="mini-awarded"> {{ certTemplate.awardedText }}</p>
+                      <p class="mini-name">Sample Name</p>
+                      <div class="mini-name-line" [style.background]="certTemplate.primaryColor"></div>
+                      <p class="mini-body-text">
+                        for completing a <strong>{{ certTemplate.requiredHours }}-hour OJT</strong>
+                        at <strong>{{ certTemplate.schoolName }}</strong>.
+                      </p>
+                      <div class="mini-sigs">
+                        <div class="mini-sig">
+                          <img *ngIf="certTemplate.leftSigUrl"  [src]="certTemplate.leftSigUrl"  class="mini-sig-img">
+                          <div class="mini-sig-line"></div>
+                          <p>{{ certTemplate.leftSignatoryName }}</p>
+                          <p>{{ certTemplate.leftSignatoryPos }}</p>
+                        </div>
+                        <div class="mini-sig">
+                          <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="mini-sig-img">
+                          <div class="mini-sig-line"></div>
+                          <p>{{ certTemplate.supervisorName }}</p>
+                          <p>{{ certTemplate.supervisorPos }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mini-gold-bar" [style.background]="certTemplate.accentColor"></div>
+                  <div class="mini-top-bar"  [style.background]="certTemplate.primaryColor"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="mini-zoom-tip"><i class="fa-solid fa-hand"></i> Drag to pan · Scroll to zoom</p>
+        </div>
+  
+      </div><!-- /modal-body -->
+  
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="resetTemplate()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+        <button class="btn-cancel" (click)="closeSettings()">Cancel</button>
+        <button class="btn-submit" (click)="saveTemplate()"><i class="fa-solid fa-floppy-disk"></i> Save Template</button>
+      </div>
+  
+    </div>
+  </div>
+  
+  
+  <!-- ================================================
+       SEND CERTIFICATE MODAL
+  ================================================ -->
+  <div class="modal-overlay" *ngIf="showSendModal" (click)="closeSendModal()">
+    <div class="modal-box send-modal" (click)="$event.stopPropagation()">
+  
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon" style="background:#f0fdf4;color:#16a34a;">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+          <div>
+            <h3>Send Certificate</h3>
+            <p>{{ sendTarget?.name }}</p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="closeSendModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+  
+      <div class="send-modal-body">
+        <div class="send-cert-full-preview" *ngIf="sendTarget">
+          <div class="send-preview-scroll">
+            <div class="certificate send-cert-scale">
+              <div class="cert-top-bar"      [style.background]="certTemplate.primaryColor"></div>
+              <div class="cert-top-bar-gold" [style.background]="certTemplate.accentColor"></div>
+              <div class="cert-body"
+                   [style.border-left-color]="certTemplate.primaryColor"
+                   [style.border-right-color]="certTemplate.primaryColor">
+                <div class="cert-watermark" *ngIf="certTemplate.watermarkUrl">
+                  <img [src]="certTemplate.watermarkUrl" alt="Watermark">
+                </div>
+                <div class="cert-inner-border"></div>
+                <svg class="cert-corner-ornament tl" viewBox="0 0 28 28">
+                  <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                  <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+                </svg>
+                <svg class="cert-corner-ornament tr" viewBox="0 0 28 28">
+                  <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                  <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+                </svg>
+                <svg class="cert-corner-ornament bl" viewBox="0 0 28 28">
+                  <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                  <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+                </svg>
+                <svg class="cert-corner-ornament br" viewBox="0 0 28 28">
+                  <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                  <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+                </svg>
+                <div class="cert-content">
+                  <div class="cert-header">
+                    <div class="cert-header-logo">
+                      <img [src]="certTemplate.depedLogoUrl || 'assets/images/Deped_logo.png'" alt="Left Logo">
+                    </div>
+                    <div class="cert-header-text">
+                      <p class="cert-republic">{{ certTemplate.republic }}</p>
+                      <p class="cert-dept" [style.color]="certTemplate.primaryColor">{{ certTemplate.department }}</p>
+                      <p class="cert-division">{{ certTemplate.division }}</p>
+                      <p class="cert-school-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.schoolName }}</p>
+                      <p class="cert-address">{{ certTemplate.address }}</p>
+                    </div>
+                    <div class="cert-header-logo">
+                      <img [src]="certTemplate.schoolLogoUrl || 'assets/images/OCES_logo.png'" alt="Right Logo">
+                    </div>
+                  </div>
+                  <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
+                  <p class="cert-subtitle-tag">{{ certTemplate.subtitleTag }}</p>
+                  <p class="cert-awarded-text">{{ certTemplate.awardedText }}</p>
+                  <div class="cert-name-wrap">
+                    <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">{{ sendTarget.name }}</p>
+                    <div class="cert-name-line" [style.background]="certTemplate.primaryColor"></div>
+                  </div>
+                  <p class="cert-body-para" [innerHTML]="getBodyText(sendTarget)"></p>
+                  <p class="cert-given-text">{{ getGivenText(sendTarget) }}</p>
+                  <div class="cert-sig-row">
+                    <div class="cert-sig-block">
+                      <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
+                      <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.leftSignatoryName | uppercase }}</p>
+                      <div class="cert-sig-underline"></div>
+                      <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
+                      <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+                    </div>
+                    <div class="cert-sig-block">
+                      <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
+                      <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.supervisorName | uppercase }}</p>
+                      <div class="cert-sig-underline"></div>
+                      <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
+                      <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="cert-bottom-bar-gold" [style.background]="certTemplate.accentColor"></div>
+              <div class="cert-bottom-bar"      [style.background]="certTemplate.primaryColor"></div>
+            </div>
+          </div>
+        </div>
+  
+        <div class="send-modal-info">
+          <p class="send-info-note">
+            <i class="fa-solid fa-circle-info" style="color:#2563eb;margin-right:6px;"></i>
+            Review the certificate above. Edit the template first if you need changes before sending.
+          </p>
+          <button class="btn-edit-template" (click)="closeSendModal(); openTemplateSettings()">
+            <i class="fa-solid fa-pen-to-square"></i> Edit Template First
+          </button>
+        </div>
+      </div>
+  
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeSendModal()">Cancel</button>
+        <button class="btn-send" (click)="confirmSendCert()">
+          <i class="fa-solid fa-paper-plane"></i> Confirm &amp; Send
+        </button>
+      </div>
+  
+    </div>
+  </div>
+  
+  
+  <!-- ================================================
+       CERTIFICATE PREVIEW MODAL — drag to pan + zoom controls
+  ================================================ -->
+  <div class="modal-overlay cert-overlay" *ngIf="showCertPreview" (click)="closeCertPreview()">
+    <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
+  
+      <div class="cert-modal-topbar">
+        <div class="cert-modal-title-group">
+          <div class="cert-modal-icon-wrap"><i class="fa-solid fa-certificate"></i></div>
+          <div>
+            <p class="cert-modal-label">{{ selectedIntern?.name }} — Certificate Preview</p>
+            <p class="cert-modal-sub">On-the-Job Training Program</p>
+          </div>
+        </div>
+        <div class="cert-modal-actions">
+          <span class="cert-hover-tip"><i class="fa-solid fa-hand"></i> Drag to pan · Scroll to zoom</span>
+          <button class="cert-dl-btn" (click)="downloadCert(selectedIntern)">
+            <i class="fa-solid fa-arrow-down-to-line"></i> Download
+          </button>
+          <button class="cert-close-btn" (click)="closeCertPreview()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+  
+      <!-- pannable + zoomable area -->
+      <div class="cert-scroll-area"
+           #certViewport
+           (mousedown)="certStartDrag($event)"
+           (mousemove)="certOnDrag($event)"
+           (mouseup)="certStopDrag()"
+           (mouseleave)="certStopDrag()"
+           (wheel)="certOnWheel($event)">
+
+        <div class="cert-pan-transform"
+             #certTransform
+             [style.transform]="certTransformStyle">
+          <div id="certificate-preview" class="certificate"
+               *ngIf="selectedIntern">
+            <div class="cert-top-bar"      [style.background]="certTemplate.primaryColor"></div>
+            <div class="cert-top-bar-gold" [style.background]="certTemplate.accentColor"></div>
+            <div class="cert-body"
+                 [style.border-left-color]="certTemplate.primaryColor"
+                 [style.border-right-color]="certTemplate.primaryColor">
+              <div class="cert-watermark" *ngIf="certTemplate.watermarkUrl">
+                <img [src]="certTemplate.watermarkUrl" alt="Watermark">
+              </div>
+              <div class="cert-inner-border"></div>
+              <svg class="cert-corner-ornament tl" viewBox="0 0 28 28">
+                <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+              </svg>
+              <svg class="cert-corner-ornament tr" viewBox="0 0 28 28">
+                <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+              </svg>
+              <svg class="cert-corner-ornament bl" viewBox="0 0 28 28">
+                <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+              </svg>
+              <svg class="cert-corner-ornament br" viewBox="0 0 28 28">
+                <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+                <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+              </svg>
+              <div class="cert-content">
+                <div class="cert-header">
+                  <div class="cert-header-logo">
+                    <img [src]="certTemplate.depedLogoUrl || 'assets/images/Deped_logo.png'" alt="Left Logo">
+                  </div>
+                  <div class="cert-header-text">
+                    <p class="cert-republic">{{ certTemplate.republic }}</p>
+                    <p class="cert-dept" [style.color]="certTemplate.primaryColor">{{ certTemplate.department }}</p>
+                    <p class="cert-division">{{ certTemplate.division }}</p>
+                    <p class="cert-school-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.schoolName }}</p>
+                    <p class="cert-address">{{ certTemplate.address }}</p>
+                  </div>
+                  <div class="cert-header-logo">
+                    <img [src]="certTemplate.schoolLogoUrl || 'assets/images/OCES_logo.png'" alt="Right Logo">
+                  </div>
+                </div>
+                <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
+                <p class="cert-subtitle-tag">{{ certTemplate.subtitleTag }}</p>
+                <p class="cert-awarded-text">{{ certTemplate.awardedText }}</p>
+                <div class="cert-name-wrap">
+                  <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">{{ selectedIntern.name }}</p>
+                  <div class="cert-name-line" [style.background]="certTemplate.primaryColor"></div>
+                </div>
+                <p class="cert-body-para" [innerHTML]="getBodyText(selectedIntern)"></p>
+                <p class="cert-given-text">{{ getGivenText(selectedIntern) }}</p>
+                <div class="cert-sig-row">
+                  <div class="cert-sig-block">
+                    <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
+                    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.leftSignatoryName | uppercase }}</p>
+                    <div class="cert-sig-underline"></div>
+                    <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
+                    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+                  </div>
+                  <div class="cert-sig-block">
+                    <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
+                    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.supervisorName | uppercase }}</p>
+                    <div class="cert-sig-underline"></div>
+                    <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
+                    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cert-bottom-bar-gold" [style.background]="certTemplate.accentColor"></div>
+            <div class="cert-bottom-bar"      [style.background]="certTemplate.primaryColor"></div>
+          </div>
+        </div>
+
+        <!-- zoom controls overlay -->
+        <div class="cert-zoom-controls">
+          <button class="cert-zoom-ctrl-btn" (click)="certZoomOut()" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
+          <span class="cert-zoom-label">{{ (certScale * 100) | number:'1.0-0' }}%</span>
+          <button class="cert-zoom-ctrl-btn" (click)="certZoomIn()" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
+          <button class="cert-zoom-reset" (click)="certResetView()" title="Reset view">Reset</button>
+        </div>
+      </div>
+  
+    </div>
+  </div>

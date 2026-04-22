@@ -30,6 +30,7 @@ import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/
 import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluation/supervisor-evaluation.component';
 import { AdminSupervisorManagementComponent } from './admin/admin-supervisor-management/admin-supervisor-management.component';
 import { InternEvaluationComponent } from './Intern/intern-evaluation/intern-evaluation.component';
+import { AdminCertificateComponent } from './admin/admin-certificate/admin-certificate.component';
 
 
 import { authGuard } from './guards/auth.guard';
@@ -60,6 +61,7 @@ export const routes: Routes = [
   { path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent },
   { path: 'admin-attendance-history', component: AdminAttendanceHistoryComponent },
   { path: 'admin-completed-ojt', component: AdminCompletedOjtComponent }, // <-- NEW
+  { path: 'admin-certificate', component: AdminCertificateComponent },
 
 
   { path: 'supervisor-login', component: SupervisorLoginComponent },   
@@ -72,5 +74,5 @@ export const routes: Routes = [
   { path: 'supervisor-tasks', component: SupervisorTasksComponent },   
   { path: 'supervisor-dashboard', component: SupervisorDashboardComponent },
   { path: 'supervisor-evaluation', component: SupervisorEvaluationComponent },
-  { path: 'admin-supervisor-management', component: AdminSupervisorManagementComponent }
+  { path: 'admin-supervisor-management', component: AdminSupervisorManagementComponent },
 ];
