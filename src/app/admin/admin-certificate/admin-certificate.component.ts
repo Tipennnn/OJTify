@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
+import { ID, Query } from 'appwrite';
 import Swal from 'sweetalert2';
-
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface Intern {
@@ -15,12 +17,12 @@ export interface Intern {
   course:         string;
   school:         string;
   hoursCompleted: number;
+  requiredHours:  number;
   startDate:      string;
   endDate:        string;
   photoUrl?:      string;
   sentDate?:      string;
   _sortDate?:     number;
-  /** raw ISO date string used for date filtering */
   _rawStartDate?: string;
   _rawEndDate?:   string;
   _rawSentDate?:  string;
@@ -66,13 +68,13 @@ const DEFAULT_TEMPLATE: CertTemplate = {
   mainTitle:         'Certificate of Completion',
   subtitleTag:       'On-the-Job Training Program',
   awardedText:       'This certificate is proudly awarded to',
-  bodyText:          'for successfully completing the <strong>{hours}-hour On-the-Job Training (OJT)</strong>, taking up <strong>{course}</strong> from <strong>{school}</strong>, conducted at <strong>{host}</strong>.',
-  givenText:         'Given this {date}, {location}.',
+  bodyText:          'for successfully completing the {hours}-hour On-the-Job Training (OJT), taking up {course} from {school}, conducted at {host}.',
+  givenText:         'Given this {date}, at {location}.',
   supervisorName:    'Maria Santos',
   supervisorPos:     'OJT Supervisor',
   leftSignatoryName: 'Juan Dela Cruz',
   leftSignatoryPos:  'School Principal',
-  issuedLocation:    'Olongapo City, Zambales',
+  issuedLocation:    'Olongapo City Elementary School',
   primaryColor:      '#1e3a8a',
   accentColor:       '#c9a84c',
   depedLogoUrl:      'assets/images/Deped_logo.png',
@@ -81,8 +83,6 @@ const DEFAULT_TEMPLATE: CertTemplate = {
   leftSigUrl:        '',
   rightSigUrl:       '',
 };
-
-// ─── Sort option descriptor ───────────────────────────────────────────────────
 
 export interface SortOption {
   key:   string;
@@ -118,10 +118,9 @@ export class AdminCertificateComponent implements OnInit {
   // ── Filter
   showFilterPanel = false;
   filterYear:     number | null = null;
-  filterMonth:    number | null = null;   // 1–12
+  filterMonth:    number | null = null;
   filterHoursMin: number | null = null;
   filterHoursMax: number | null = null;
-  // applied (committed) values
   appliedYear:     number | null = null;
   appliedMonth:    number | null = null;
   appliedHoursMin: number | null = null;
@@ -129,7 +128,6 @@ export class AdminCertificateComponent implements OnInit {
 
   readonly monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  /** Collect unique years from all interns' start/end dates + sentDates */
   get availableYears(): number[] {
     const years = new Set<number>();
     const addDate = (raw?: string) => {
@@ -146,7 +144,6 @@ export class AdminCertificateComponent implements OnInit {
       addDate(i._rawEndDate);
       addDate(i._rawSentDate);
     });
-    // also current year
     years.add(new Date().getFullYear());
     return Array.from(years).sort((a, b) => b - a);
   }
@@ -157,16 +154,15 @@ export class AdminCertificateComponent implements OnInit {
 
   get activeFilterCount(): number {
     let n = 0;
-    if (this.appliedYear)                  n++;
-    if (this.appliedMonth)                 n++;
-    if (this.appliedHoursMin !== null)     n++;
-    if (this.appliedHoursMax !== null)     n++;
+    if (this.appliedYear)              n++;
+    if (this.appliedMonth)             n++;
+    if (this.appliedHoursMin !== null) n++;
+    if (this.appliedHoursMax !== null) n++;
     return n;
   }
 
   toggleFilterPanel(event: MouseEvent): void {
     event.stopPropagation();
-    // sync draft values from applied
     this.filterYear     = this.appliedYear;
     this.filterMonth    = this.appliedMonth;
     this.filterHoursMin = this.appliedHoursMin;
@@ -177,7 +173,7 @@ export class AdminCertificateComponent implements OnInit {
 
   toggleYearFilter(year: number): void {
     this.filterYear  = this.filterYear === year ? null : year;
-    this.filterMonth = null; // reset month when year changes
+    this.filterMonth = null;
   }
 
   toggleMonthFilter(month: number): void {
@@ -187,8 +183,8 @@ export class AdminCertificateComponent implements OnInit {
   applyFilters(): void {
     this.appliedYear     = this.filterYear;
     this.appliedMonth    = this.filterMonth;
-    this.appliedHoursMin = this.filterHoursMin !== null && this.filterHoursMin !== undefined && String(this.filterHoursMin) !== '' ? Number(this.filterHoursMin) : null;
-    this.appliedHoursMax = this.filterHoursMax !== null && this.filterHoursMax !== undefined && String(this.filterHoursMax) !== '' ? Number(this.filterHoursMax) : null;
+    this.appliedHoursMin = this.filterHoursMin !== null && String(this.filterHoursMin) !== '' ? Number(this.filterHoursMin) : null;
+    this.appliedHoursMax = this.filterHoursMax !== null && String(this.filterHoursMax) !== '' ? Number(this.filterHoursMax) : null;
     this.currentPage     = 1;
     this.showFilterPanel = false;
   }
@@ -206,11 +202,6 @@ export class AdminCertificateComponent implements OnInit {
     this.showFilterPanel = false;
   }
 
-  /**
-   * Determine which raw date to use for filtering based on tab.
-   * - completed / ongoing: use startDate
-   * - sent: use sentDate (or startDate fallback)
-   */
   private getFilterDate(intern: Intern): Date | null {
     let raw: string | undefined;
     if (this.activeTab === 'sent') {
@@ -224,10 +215,8 @@ export class AdminCertificateComponent implements OnInit {
   }
 
   private passesFilters(intern: Intern): boolean {
-    // Hours filter
     if (this.appliedHoursMin !== null && intern.hoursCompleted < this.appliedHoursMin) return false;
     if (this.appliedHoursMax !== null && intern.hoursCompleted > this.appliedHoursMax) return false;
-    // Date filter
     if (this.appliedYear !== null) {
       const d = this.getFilterDate(intern);
       if (!d) return false;
@@ -237,14 +226,13 @@ export class AdminCertificateComponent implements OnInit {
     return true;
   }
 
-  /** Sort options */
   get sortOptions(): SortOption[] {
     const common: SortOption[] = [
-      { key: 'name',      label: 'Name'       },
-      { key: 'studentId', label: 'Student ID'  },
-      { key: 'course',    label: 'Course'      },
-      { key: 'startDate', label: 'Start Date'  },
-      { key: 'hours',     label: 'Hours'       },
+      { key: 'name',      label: 'Name'      },
+      { key: 'studentId', label: 'Student ID' },
+      { key: 'course',    label: 'Course'     },
+      { key: 'startDate', label: 'Start Date' },
+      { key: 'hours',     label: 'Hours'      },
     ];
     if (this.activeTab === 'sent') {
       return [...common, { key: 'sentDate', label: 'Sent Date' }];
@@ -271,20 +259,23 @@ export class AdminCertificateComponent implements OnInit {
   certTemplate: CertTemplate = { ...DEFAULT_TEMPLATE };
 
   // ── Appwrite
-  readonly BUCKET_ID  = '69baaf64002ceb2490df';
-  readonly PROJECT_ID = '69ba8d9c0027d10c447f';
-  readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+  readonly BUCKET_ID        = '69baaf64002ceb2490df';  // profile photos bucket
+readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the ID not the name
+  readonly PROJECT_ID      = '69ba8d9c0027d10c447f';
+  readonly ENDPOINT        = 'https://sgp.cloud.appwrite.io/v1';
+  readonly CERT_TEMPLATE_DOC_KEY = 'cert_template_json';
 
-  // ──────────────────────────────────────────────────────────────────────────
-  //  PAN + ZOOM — Mini preview (settings modal)
-  // ──────────────────────────────────────────────────────────────────────────
+  // ── File ID map — tracks which Appwrite file ID lives in each slot
+  //    so we can delete the old file when the admin re-uploads
+  private fileIdMap: Record<string, string> = {};
 
-  miniScale   = 1;
-  miniTransX  = 0;
-  miniTransY  = 0;
+  // ── Pan + Zoom (mini preview)
+  miniScale    = 1;
+  miniTransX   = 0;
+  miniTransY   = 0;
   miniDragging = false;
-  miniDragStartX = 0;
-  miniDragStartY = 0;
+  miniDragStartX  = 0;
+  miniDragStartY  = 0;
   miniDragOriginX = 0;
   miniDragOriginY = 0;
 
@@ -297,38 +288,32 @@ export class AdminCertificateComponent implements OnInit {
   miniZoomReset(): void { this.miniScale = 1; this.miniTransX = 0; this.miniTransY = 0; }
 
   miniStartDrag(e: MouseEvent): void {
-    this.miniDragging   = true;
-    this.miniDragStartX = e.clientX;
-    this.miniDragStartY = e.clientY;
+    this.miniDragging    = true;
+    this.miniDragStartX  = e.clientX;
+    this.miniDragStartY  = e.clientY;
     this.miniDragOriginX = this.miniTransX;
     this.miniDragOriginY = this.miniTransY;
     e.preventDefault();
   }
-
   miniOnDrag(e: MouseEvent): void {
     if (!this.miniDragging) return;
     this.miniTransX = this.miniDragOriginX + (e.clientX - this.miniDragStartX);
     this.miniTransY = this.miniDragOriginY + (e.clientY - this.miniDragStartY);
   }
-
   miniStopDrag(): void { this.miniDragging = false; }
-
   miniOnWheel(e: WheelEvent): void {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     this.miniScale = Math.min(3, Math.max(0.5, this.miniScale + delta));
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  //  PAN + ZOOM — Full cert preview modal
-  // ──────────────────────────────────────────────────────────────────────────
-
-  certScale   = 0.75;
-  certTransX  = 0;
-  certTransY  = 0;
+  // ── Pan + Zoom (full cert preview)
+  certScale    = 0.75;
+  certTransX   = 0;
+  certTransY   = 0;
   certDragging = false;
-  certDragStartX = 0;
-  certDragStartY = 0;
+  certDragStartX  = 0;
+  certDragStartY  = 0;
   certDragOriginX = 0;
   certDragOriginY = 0;
 
@@ -336,46 +321,39 @@ export class AdminCertificateComponent implements OnInit {
     return `translate(${this.certTransX}px, ${this.certTransY}px) scale(${this.certScale})`;
   }
 
-  certZoomIn():  void { this.certScale = Math.min(2, this.certScale + 0.1); }
-  certZoomOut(): void { this.certScale = Math.max(0.25, this.certScale - 0.1); }
+  certZoomIn():    void { this.certScale = Math.min(2, this.certScale + 0.1); }
+  certZoomOut():   void { this.certScale = Math.max(0.25, this.certScale - 0.1); }
   certResetView(): void { this.certScale = 0.75; this.certTransX = 0; this.certTransY = 0; }
 
   certStartDrag(e: MouseEvent): void {
-    this.certDragging   = true;
-    this.certDragStartX = e.clientX;
-    this.certDragStartY = e.clientY;
+    this.certDragging    = true;
+    this.certDragStartX  = e.clientX;
+    this.certDragStartY  = e.clientY;
     this.certDragOriginX = this.certTransX;
     this.certDragOriginY = this.certTransY;
     e.preventDefault();
   }
-
   certOnDrag(e: MouseEvent): void {
     if (!this.certDragging) return;
     this.certTransX = this.certDragOriginX + (e.clientX - this.certDragStartX);
     this.certTransY = this.certDragOriginY + (e.clientY - this.certDragStartY);
   }
-
   certStopDrag(): void { this.certDragging = false; }
-
   certOnWheel(e: WheelEvent): void {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
     this.certScale = Math.min(2, Math.max(0.25, this.certScale + delta));
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
 
   constructor(private appwrite: AppwriteService) {}
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-  async ngOnInit() {
-    this.loadSavedTemplate();
-    this.loadSentCertsFromStorage();
-    await this.loadInterns();
-  }
-
-  // ── Sidenav ───────────────────────────────────────────────────────────────────
+ async ngOnInit() {
+  await this.loadSavedTemplate();   // now async — loads from DB first, falls back to localStorage
+  this.loadSavedFileIds();
+  await this.loadInterns();
+}
 
   onSidenavToggle(collapsed: boolean) {
     this.sidenavCollapsed = collapsed;
@@ -384,11 +362,11 @@ export class AdminCertificateComponent implements OnInit {
   // ── Tab ───────────────────────────────────────────────────────────────────────
 
   switchTab(tab: 'completed' | 'ongoing' | 'sent') {
-    this.activeTab    = tab;
-    this.currentPage  = 1;
-    this.sortKey      = 'name';
-    this.sortDir      = 'asc';
-    this.showSortPanel = false;
+    this.activeTab       = tab;
+    this.currentPage     = 1;
+    this.sortKey         = 'name';
+    this.sortDir         = 'asc';
+    this.showSortPanel   = false;
     this.showFilterPanel = false;
   }
 
@@ -396,7 +374,7 @@ export class AdminCertificateComponent implements OnInit {
 
   toggleSortPanel(event: MouseEvent): void {
     event.stopPropagation();
-    this.showSortPanel = !this.showSortPanel;
+    this.showSortPanel   = !this.showSortPanel;
     this.showFilterPanel = false;
   }
 
@@ -407,7 +385,6 @@ export class AdminCertificateComponent implements OnInit {
     this.showSortPanel = false;
   }
 
-  /** Sort a list by the current sortKey / sortDir */
   private applySort(list: Intern[]): Intern[] {
     return [...list].sort((a, b) => {
       let av: any;
@@ -432,20 +409,124 @@ export class AdminCertificateComponent implements OnInit {
 
   // ── Template ──────────────────────────────────────────────────────────────────
 
-  loadSavedTemplate(): void {
-    const saved = localStorage.getItem('admin_cert_template');
+  async loadSavedTemplate(): Promise<void> {
+  try {
+    const user = await this.appwrite.account.get();
+
+    // Try by auth_user_id first
+    let adminDoc: any = null;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ADMINS_COL,
+        [Query.equal('auth_user_id', user.$id)]
+      );
+      if (res.documents.length > 0) adminDoc = res.documents[0];
+    } catch { /* ignore */ }
+
+    // Fallback: try by $id directly
+    if (!adminDoc) {
+      try {
+        adminDoc = await this.appwrite.databases.getDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ADMINS_COL,
+          user.$id
+        );
+      } catch { /* ignore */ }
+    }
+
+    if (adminDoc?.cert_template_json) {
+      const parsed = JSON.parse(adminDoc.cert_template_json);
+      // Restore image URLs from their own dedicated columns
+      if (adminDoc.cert_deped_logo_url)   parsed.depedLogoUrl  = adminDoc.cert_deped_logo_url;
+      if (adminDoc.cert_school_logo_url)  parsed.schoolLogoUrl = adminDoc.cert_school_logo_url;
+      if (adminDoc.cert_watermark_url)    parsed.watermarkUrl  = adminDoc.cert_watermark_url;
+      if (adminDoc.cert_left_sig_url)     parsed.leftSigUrl    = adminDoc.cert_left_sig_url;
+      if (adminDoc.cert_right_sig_url)    parsed.rightSigUrl   = adminDoc.cert_right_sig_url;
+      this.certTemplate = { ...DEFAULT_TEMPLATE, ...parsed };
+      localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
+      return;
+    }
+  } catch (err) {
+    console.warn('Could not load template from DB:', err);
+  }
+  // Fallback to localStorage
+  const saved = localStorage.getItem('admin_cert_template');
+  if (saved) {
+    try { this.certTemplate = { ...DEFAULT_TEMPLATE, ...JSON.parse(saved) }; }
+    catch { this.certTemplate = { ...DEFAULT_TEMPLATE }; }
+  }
+}
+
+  // ── Load and save the file ID map (so we know which Appwrite file to delete on re-upload)
+  private loadSavedFileIds(): void {
+    const saved = localStorage.getItem('admin_cert_file_ids');
     if (saved) {
-      try { this.certTemplate = { ...DEFAULT_TEMPLATE, ...JSON.parse(saved) }; }
-      catch { this.certTemplate = { ...DEFAULT_TEMPLATE }; }
+      try { this.fileIdMap = JSON.parse(saved); }
+      catch { this.fileIdMap = {}; }
     }
   }
 
-  saveTemplate(): void {
-    localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
+  private saveFileIds(): void {
+    localStorage.setItem('admin_cert_file_ids', JSON.stringify(this.fileIdMap));
+  }
+
+ async saveTemplate(): Promise<void> {
+  // Separate image URLs from the rest (to avoid the 5000 char limit)
+  const { depedLogoUrl, schoolLogoUrl, watermarkUrl, leftSigUrl, rightSigUrl, ...textFields } = this.certTemplate;
+  const json = JSON.stringify(textFields);  // ← only text fields, no long URLs
+
+  localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));  // full copy locally
+
+  try {
+    const user = await this.appwrite.account.get();
+
+    // Find admin doc
+    let adminDocId: string | null = null;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ADMINS_COL,
+        [Query.equal('auth_user_id', user.$id)]
+      );
+      if (res.documents.length > 0) adminDocId = res.documents[0].$id;
+    } catch { /* ignore */ }
+
+    if (!adminDocId) adminDocId = user.$id;  // fallback: try auth user ID as doc ID
+
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ADMINS_COL,
+      adminDocId,
+      {
+        cert_template_json:    json,           // text fields only — stays under 5000 chars
+        cert_deped_logo_url:   depedLogoUrl  || '',
+        cert_school_logo_url:  schoolLogoUrl || '',
+        cert_watermark_url:    watermarkUrl  || '',
+        cert_left_sig_url:     leftSigUrl    || '',
+        cert_right_sig_url:    rightSigUrl   || '',
+      }
+    );
+  } catch (err) {
+    console.error('Could not save template to DB:', err);
+    Swal.fire({
+      icon: 'warning', title: 'Saved Locally Only',
+      text: 'Template saved to browser cache but failed to save to the database.',
+      confirmButtonColor: '#2563eb'
+    });
     this.closeSettings();
     this.splitInterns();
-    Swal.fire({ icon: 'success', title: 'Template Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true });
+    return;
   }
+
+  this.closeSettings();
+  this.splitInterns();
+  Swal.fire({
+    icon: 'success', title: 'Template Saved!',
+    toast: true, position: 'top-end',
+    showConfirmButton: false, timer: 2500, timerProgressBar: true
+  });
+}
 
   resetTemplate(): void {
     Swal.fire({
@@ -467,7 +548,35 @@ export class AdminCertificateComponent implements OnInit {
   }
   closeSettings(): void { this.showSettings = false; }
 
-  // ── Data ──────────────────────────────────────────────────────────────────────
+  // ── Data loading ──────────────────────────────────────────────────────────────
+
+  /**
+   * Fetches the most recent attendance date for each student ID in the given list.
+   * Returns a Map of student_id → raw date string.
+   */
+  private async fetchLastAttendanceDates(studentIds: string[]): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (!studentIds.length) return map;
+
+    try {
+      // Fetch all attendance records ordered by date descending.
+      // We build the map client-side — first occurrence per student_id wins (most recent).
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        'attendance',
+        [Query.orderDesc('date'), Query.limit(5000)]
+      );
+      for (const doc of res.documents as any[]) {
+        const sid = doc.student_id as string;
+        if (sid && studentIds.includes(sid) && !map.has(sid) && doc.date) {
+          map.set(sid, doc.date as string);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch attendance dates:', err);
+    }
+    return map;
+  }
 
   async loadInterns(): Promise<void> {
     try {
@@ -475,22 +584,72 @@ export class AdminCertificateComponent implements OnInit {
         this.appwrite.DATABASE_ID,
         this.appwrite.STUDENTS_COL
       );
-      this.allInterns = (res.documents as any[]).map(doc => ({
-        $id:            doc.$id,
-        name:           doc.name ?? doc.full_name ?? 'Unknown Intern',
-        studentId:      doc.student_id ?? '',
-        course:         doc.course ?? 'N/A',
-        school:         doc.school ?? 'N/A',
-        hoursCompleted: doc.hours_rendered ?? doc.hoursCompleted ?? doc.completed_hours ?? 0,
-        startDate:      this.formatDate(doc.start_date ?? doc.startDate ?? doc.$createdAt),
-        endDate:        this.formatDate(doc.end_date ?? doc.endDate),
-        photoUrl:       doc.profile_photo_id
-                          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`
-                          : '',
-        _sortDate:      new Date(doc.end_date ?? doc.endDate ?? doc.$createdAt ?? 0).getTime(),
-        _rawStartDate:  doc.start_date ?? doc.startDate ?? doc.$createdAt ?? '',
-        _rawEndDate:    doc.end_date ?? doc.endDate ?? '',
-      }));
+
+      const docs = res.documents as any[];
+
+      // ── Fetch last attendance date for every intern upfront ───────────────
+      const studentIds = docs.map(d => d.student_id ?? '').filter(Boolean);
+      const lastAttMap = await this.fetchLastAttendanceDates(studentIds);
+
+      const mapped: Intern[] = docs.map(doc => {
+        const firstName  = (doc.first_name  ?? '').trim();
+        const middleName = (doc.middle_name ?? '').trim();
+        const lastName   = (doc.last_name   ?? '').trim();
+        const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Unknown Intern';
+
+        const hoursCompleted = Number(doc.completed_hours ?? 0);
+        const requiredHours  = Number(doc.required_hours  ?? this.certTemplate.requiredHours);
+
+        const rawStart = doc.start_date ?? doc.$createdAt ?? '';
+        const rawEnd   = doc.end_date   ?? '';
+
+        // ── Use last attendance date as end date; fall back to doc.end_date ──
+        const lastAttRaw     = lastAttMap.get(doc.student_id ?? '') ?? '';
+        const resolvedEndRaw = lastAttRaw || rawEnd;
+
+        const photoUrl = doc.profile_photo_id
+          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`
+          : '';
+
+        const rawSentDate = doc.cert_sent_date ?? '';
+
+        return {
+          $id:            doc.$id,
+          name:           fullName,
+          studentId:      doc.student_id  ?? '',
+          course:         doc.course      ?? 'N/A',
+          school:         doc.school_name ?? 'N/A',
+          hoursCompleted,
+          requiredHours,
+          startDate:      this.formatDate(rawStart),
+          endDate:        this.formatDate(resolvedEndRaw),   // ← last attendance date
+          photoUrl,
+          sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
+          _sortDate:      resolvedEndRaw
+                            ? new Date(resolvedEndRaw).getTime()
+                            : new Date(rawStart).getTime(),
+          _rawStartDate:  rawStart,
+          _rawEndDate:    resolvedEndRaw,                    // ← last attendance date
+          _rawSentDate:   rawSentDate,
+          _certSent:      doc.cert_sent === true,
+        } as any;
+      });
+
+      this.allInterns = mapped;
+
+      // Build sentCerts from DB (cert_sent === true)
+      this.sentCerts = mapped
+        .filter((i: any) => i._certSent === true)
+        .map((i: any) => {
+          const { _certSent, ...intern } = i;
+          return intern as Intern;
+        })
+        .sort((a: Intern, b: Intern) => {
+          const da = a._rawSentDate ? new Date(a._rawSentDate).getTime() : 0;
+          const db = b._rawSentDate ? new Date(b._rawSentDate).getTime() : 0;
+          return db - da;
+        });
+
       this.splitInterns();
     } catch (err) {
       console.error('Failed to load interns:', err);
@@ -500,50 +659,33 @@ export class AdminCertificateComponent implements OnInit {
 
   private splitInterns(): void {
     const sentIds = new Set(this.sentCerts.map(s => s.$id));
+
     this.completedInterns = this.allInterns
-      .filter(i => i.hoursCompleted >= this.certTemplate.requiredHours && !sentIds.has(i.$id))
+      .filter(i => i.hoursCompleted >= i.requiredHours && !sentIds.has(i.$id))
       .sort((a, b) => (b._sortDate ?? 0) - (a._sortDate ?? 0));
+
     this.ongoingInterns = this.allInterns
-      .filter(i => i.hoursCompleted < this.certTemplate.requiredHours && !sentIds.has(i.$id))
+      .filter(i => i.hoursCompleted < i.requiredHours && !sentIds.has(i.$id))
       .sort((a, b) => b.hoursCompleted - a.hoursCompleted);
+
     this.currentPage = 1;
   }
 
   private loadMockData(): void {
     this.allInterns = [
-      { $id: '1', name: 'Maria Clara Santos',    studentId: 'STU-001', course: 'BSIT', school: 'PUP',            hoursCompleted: 500, startDate: 'January 6, 2025',  endDate: 'May 16, 2025',  photoUrl: '', _sortDate: new Date('2025-05-16').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-16' },
-      { $id: '2', name: 'Juan Pablo Reyes',       studentId: 'STU-002', course: 'BSCS', school: 'Gordon College', hoursCompleted: 500, startDate: 'January 6, 2025',  endDate: 'May 10, 2025',  photoUrl: '', _sortDate: new Date('2025-05-10').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-10' },
-      { $id: '3', name: 'Angela Marie Cruz',      studentId: 'STU-003', course: 'BSED', school: 'Holy Angels',    hoursCompleted: 320, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
-      { $id: '4', name: 'Ricardo Jose Flores',    studentId: 'STU-004', course: 'BSIT', school: 'DMMMSU',         hoursCompleted: 410, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
-      { $id: '5', name: 'Sophia Nicole Bautista', studentId: 'STU-005', course: 'BSBA', school: 'Columban',       hoursCompleted: 180, startDate: 'March 3, 2025',    endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-03-03', _rawEndDate: '' },
+      { $id: '1', name: 'Maria Clara Santos',    studentId: 'STU-001', course: 'BSIT', school: 'PUP',            hoursCompleted: 500, requiredHours: 500, startDate: 'January 6, 2025',  endDate: 'May 16, 2025',  photoUrl: '', _sortDate: new Date('2025-05-16').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-16' },
+      { $id: '2', name: 'Juan Pablo Reyes',       studentId: 'STU-002', course: 'BSCS', school: 'Gordon College', hoursCompleted: 500, requiredHours: 500, startDate: 'January 6, 2025',  endDate: 'May 10, 2025',  photoUrl: '', _sortDate: new Date('2025-05-10').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-10' },
+      { $id: '3', name: 'Angela Marie Cruz',      studentId: 'STU-003', course: 'BSED', school: 'Holy Angels',    hoursCompleted: 320, requiredHours: 500, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
+      { $id: '4', name: 'Ricardo Jose Flores',    studentId: 'STU-004', course: 'BSIT', school: 'DMMMSU',         hoursCompleted: 410, requiredHours: 500, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
+      { $id: '5', name: 'Sophia Nicole Bautista', studentId: 'STU-005', course: 'BSBA', school: 'Columban',       hoursCompleted: 180, requiredHours: 500, startDate: 'March 3, 2025',    endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-03-03', _rawEndDate: '' },
     ];
     this.splitInterns();
-  }
-
-  // ── Sent certs persistence ────────────────────────────────────────────────────
-
-  private loadSentCertsFromStorage(): void {
-    const saved = localStorage.getItem('admin_sent_certs');
-    if (saved) {
-      try { this.sentCerts = JSON.parse(saved); }
-      catch { this.sentCerts = []; }
-    }
-    this.sentCerts.sort((a, b) => {
-      const da = a._rawSentDate ? new Date(a._rawSentDate).getTime() : 0;
-      const db = b._rawSentDate ? new Date(b._rawSentDate).getTime() : 0;
-      return db - da;
-    });
-  }
-
-  private saveSentCertsToStorage(): void {
-    localStorage.setItem('admin_sent_certs', JSON.stringify(this.sentCerts));
   }
 
   // ── Filtered + sorted lists ───────────────────────────────────────────────────
 
   private filterList(list: Intern[]): Intern[] {
     let result = list;
-    // text search
     const q = this.searchQuery.toLowerCase();
     if (q) {
       result = result.filter(i =>
@@ -552,7 +694,6 @@ export class AdminCertificateComponent implements OnInit {
         i.course.toLowerCase().includes(q)
       );
     }
-    // date + hours filters
     result = result.filter(i => this.passesFilters(i));
     return result;
   }
@@ -602,8 +743,8 @@ export class AdminCertificateComponent implements OnInit {
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
-  getPct(hours: number): number {
-    return Math.min(100, Math.round((hours / this.certTemplate.requiredHours) * 100));
+  getPct(intern: Intern): number {
+    return Math.min(100, Math.round((intern.hoursCompleted / intern.requiredHours) * 100));
   }
 
   getInitials(name: string): string {
@@ -611,19 +752,35 @@ export class AdminCertificateComponent implements OnInit {
   }
 
   getBodyText(intern: Intern): string {
-    return (this.certTemplate.bodyText || '')
-      .replace(/{name}/g,   intern.name)
-      .replace(/{hours}/g,  String(intern.hoursCompleted))
-      .replace(/{course}/g, intern.course)
-      .replace(/{school}/g, intern.school)
-      .replace(/{host}/g,   this.certTemplate.hostSchool);
+    const raw = this.certTemplate.bodyText || '';
+    const escaped = raw
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return escaped
+      .replace(/\{name\}/g,   `<strong>${this.escapeHtml(intern.name)}</strong>`)
+      .replace(/\{hours\}/g,  `<strong>${intern.hoursCompleted}</strong>`)
+      .replace(/\{course\}/g, `<strong>${this.escapeHtml(intern.course)}</strong>`)
+      .replace(/\{school\}/g, `<strong>${this.escapeHtml(intern.school)}</strong>`)
+      .replace(/\{host\}/g,   `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`);
   }
 
   getGivenText(intern: Intern): string {
-    const date = intern.endDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const date = intern.endDate
+      ? intern.endDate
+      : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const location = this.certTemplate.schoolName;
     return (this.certTemplate.givenText || '')
-      .replace(/{date}/g,     date)
-      .replace(/{location}/g, this.certTemplate.issuedLocation);
+      .replace(/\{date\}/g,     date)
+      .replace(/\{location\}/g, location);
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   private formatDate(raw: string | null | undefined): string {
@@ -643,8 +800,8 @@ export class AdminCertificateComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    this.openDotMenu    = null;
-    this.showSortPanel  = false;
+    this.openDotMenu     = null;
+    this.showSortPanel   = false;
     this.showFilterPanel = false;
   }
 
@@ -673,110 +830,183 @@ export class AdminCertificateComponent implements OnInit {
     this.sendTarget    = null;
   }
 
-  confirmSendCert(): void {
+  async confirmSendCert(): Promise<void> {
     if (!this.sendTarget) return;
-    const intern  = this.sendTarget;
-    const today   = new Date();
-    const todayFmt = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    this.sentCerts.unshift({
+    const intern     = this.sendTarget;
+    const today      = new Date();
+    const todayIso   = today.toISOString();
+    const todayFmt   = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        intern.$id,
+        { cert_sent: true, cert_sent_date: todayIso }
+      );
+    } catch (err) {
+      console.error('Failed to update cert_sent in DB:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'DB Error',
+        text: 'Could not save cert status to the database. Please try again.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    const sentIntern: Intern = {
       ...intern,
-      sentDate:      todayFmt,
-      _rawSentDate:  today.toISOString(),
-    });
-    this.saveSentCertsToStorage();
+      sentDate:     todayFmt,
+      _rawSentDate: todayIso,
+    };
+
+    this.sentCerts.unshift(sentIntern);
     this.completedInterns = this.completedInterns.filter(i => i.$id !== intern.$id);
+
     this.closeSendModal();
+
     Swal.fire({
       icon: 'success', title: 'Certificate Sent!',
       html: `Certificate has been issued to <b>${intern.name}</b>.`,
       toast: true, position: 'top-end', showConfirmButton: false,
       timer: 3000, timerProgressBar: true,
     });
+
     this.downloadCert(intern);
   }
 
   // ── Download / Print ──────────────────────────────────────────────────────────
 
-  downloadCert(intern: Intern | null): void {
-    if (!intern) return;
+ downloadCert(intern: Intern | null): void {
+  if (!intern) return;
 
-    const wasOpen       = this.showCertPreview;
-    this.certResetView();
-    this.selectedIntern = intern;
-    this.showCertPreview = true;
+  const wasOpen       = this.showCertPreview;
+  this.certResetView();
+  this.selectedIntern = intern;
+  this.showCertPreview = true;
 
-    setTimeout(() => {
-      const certEl = document.getElementById('certificate-preview');
-      if (!certEl) { if (!wasOpen) this.showCertPreview = false; return; }
+  setTimeout(async () => {
+    const certEl = document.getElementById('certificate-preview');
+    if (!certEl) { if (!wasOpen) this.showCertPreview = false; return; }
 
-      const styles = Array.from(document.styleSheets).map(sheet => {
-        try   { return Array.from(sheet.cssRules).map(r => r.cssText).join('\n'); }
-        catch { return sheet.href ? `@import url('${sheet.href}');` : ''; }
-      }).join('\n');
+    try {
+      const canvas = await html2canvas(certEl, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
 
-      const printWin = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
-      if (!printWin) {
-        Swal.fire({ icon: 'warning', title: 'Pop-up Blocked', text: 'Please allow pop-ups to download the certificate.', confirmButtonColor: '#2563eb' });
-        return;
-      }
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
 
-      printWin.document.write(`
-        <!DOCTYPE html><html>
-          <head>
-            <title>Certificate_${intern.name.replace(/\s+/g, '_')}</title>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap">
-            <style>
-              ${styles}
-              * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
-              @page { size:A4 landscape; margin:0; }
-              @media print { body { margin:0; background:white; } .certificate { box-shadow:none!important; } }
-              body { margin:0; padding:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:white; }
-              .certificate { width:100%; max-width:100%; transform:none!important; }
-            </style>
-          </head>
-          <body>
-            ${certEl.outerHTML}
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  window.onafterprint = function() { window.close(); };
-                  setTimeout(function() { window.close(); }, 3000);
-                }, 600);
-              };
-            <\/script>
-          </body>
-        </html>
-      `);
-      printWin.document.close();
-      if (!wasOpen) setTimeout(() => { this.showCertPreview = false; }, 1000);
-    }, 150);
-  }
+      // A4 landscape in mm
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pdfW = pdf.internal.pageSize.getWidth();
+      const pdfH = pdf.internal.pageSize.getHeight();
 
-  // ── Logo Uploads ──────────────────────────────────────────────────────────────
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+      pdf.save(`Certificate_${intern.name.replace(/\s+/g, '_')}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      Swal.fire({ icon: 'error', title: 'Download Failed', text: 'Could not generate the PDF. Please try again.', confirmButtonColor: '#2563eb' });
+    }
+
+    if (!wasOpen) setTimeout(() => { this.showCertPreview = false; }, 500);
+  }, 150);
+}
+
+  // ── Logo & Signature Uploads ──────────────────────────────────────────────────
+  //
+  // Files are uploaded to Appwrite Storage (ojt_files bucket).
+  // We store only the public view URL in the template (saved to localStorage).
+  // The Appwrite file ID is stored separately in fileIdMap so we can delete the
+  // old file when the admin re-uploads or removes a slot.
 
   onLogoChange(event: Event, type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'): void {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) this.readFile(file, type);
+    if (file) this.uploadFile(file, type);
   }
 
   onLogoDrop(event: DragEvent, type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'): void {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
-    if (file && file.type.startsWith('image/')) this.readFile(file, type);
+    if (file && file.type.startsWith('image/')) this.uploadFile(file, type);
   }
 
-  private readFile(file: File, type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'): void {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const url = e.target?.result as string;
+  /**
+   * Removes an image slot: deletes the old file from Appwrite Storage and
+   * clears the URL from the template. Call this from the ✕ remove buttons.
+   */
+  async removeFile(type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'): Promise<void> {
+    const oldFileId = this.fileIdMap[type];
+    if (oldFileId) {
+      try {
+        await this.appwrite.storage.deleteFile(this.OJT_FILES_BUCKET, oldFileId);
+      } catch (e) {
+        console.warn('Could not delete old file (may already be gone):', e);
+      }
+      delete this.fileIdMap[type];
+      this.saveFileIds();
+    }
+    // Clear the URL from the template
+    if (type === 'deped')     this.certTemplate.depedLogoUrl  = '';
+    if (type === 'school')    this.certTemplate.schoolLogoUrl = '';
+    if (type === 'watermark') this.certTemplate.watermarkUrl  = '';
+    if (type === 'leftSig')   this.certTemplate.leftSigUrl    = '';
+    if (type === 'rightSig')  this.certTemplate.rightSigUrl   = '';
+  }
+
+  /**
+   * Uploads a file to Appwrite Storage (ojt_files bucket).
+   * Deletes the previously stored file for this slot first (re-upload replaces old).
+   * Saves the public view URL into the template.
+   */
+  private async uploadFile(
+    file: File,
+    type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'
+  ): Promise<void> {
+    try {
+      // 1. Delete the old file for this slot if one exists
+      const oldFileId = this.fileIdMap[type];
+      if (oldFileId) {
+        try {
+          await this.appwrite.storage.deleteFile(this.OJT_FILES_BUCKET, oldFileId);
+        } catch (e) {
+          console.warn('Could not delete old file (may already be gone):', e);
+        }
+      }
+
+      // 2. Upload the new file with a unique Appwrite ID
+      const newFileId = ID.unique();
+      await this.appwrite.storage.createFile(
+        this.OJT_FILES_BUCKET,
+        newFileId,
+        file
+      );
+
+      // 3. Build the public view URL (no auth token needed — bucket must allow Any read)
+      const url = `${this.ENDPOINT}/storage/buckets/${this.OJT_FILES_BUCKET}/files/${newFileId}/view?project=${this.PROJECT_ID}`;
+
+      // 4. Persist the new file ID so we can delete it later
+      this.fileIdMap[type] = newFileId;
+      this.saveFileIds();
+
+      // 5. Update the live template so the preview refreshes immediately
       if (type === 'deped')     this.certTemplate.depedLogoUrl  = url;
       if (type === 'school')    this.certTemplate.schoolLogoUrl = url;
       if (type === 'watermark') this.certTemplate.watermarkUrl  = url;
       if (type === 'leftSig')   this.certTemplate.leftSigUrl    = url;
       if (type === 'rightSig')  this.certTemplate.rightSigUrl   = url;
-    };
-    reader.readAsDataURL(file);
+
+    } catch (err) {
+      console.error('File upload failed:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Upload Failed',
+        text: 'Could not upload the image. Make sure the "ojt_files" bucket exists in Appwrite and has the correct permissions (Read: Any, Create: Users).',
+        confirmButtonColor: '#2563eb'
+      });
+    }
   }
 }

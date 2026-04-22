@@ -4,7 +4,6 @@
   </div>
   <div class="topnav-right">
 
-    <!-- DateTime Display -->
     <div class="datetime-display">
       <i class="fa-regular fa-calendar datetime-icon"></i>
       <span class="datetime-date">{{ currentDayDate }}</span>
@@ -39,40 +38,26 @@
 <!-- CHANGE PASSWORD MODAL -->
 <div class="modal-overlay" *ngIf="showPasswordModal">
   <div class="password-modal">
-
     <div class="modal-header">
-      <div class="modal-header-icon">
-        <i class="fa-solid fa-lock"></i>
-      </div>
+      <div class="modal-header-icon"><i class="fa-solid fa-lock"></i></div>
       <div class="modal-header-text">
         <h2>Change Password</h2>
         <p>Password must be at least 8 characters.</p>
       </div>
       <i class="fa-solid fa-xmark close-icon" (click)="closeModal()"></i>
     </div>
-
     <div class="modal-divider"></div>
-
-    <div class="pw-error" *ngIf="pwError">
-      <i class="fa fa-circle-exclamation"></i> {{ pwError }}
-    </div>
-
-    <div class="pw-success" *ngIf="pwSuccess">
-      <i class="fa fa-circle-check"></i> {{ pwSuccess }}
-    </div>
+    <div class="pw-error" *ngIf="pwError"><i class="fa fa-circle-exclamation"></i> {{ pwError }}</div>
+    <div class="pw-success" *ngIf="pwSuccess"><i class="fa fa-circle-check"></i> {{ pwSuccess }}</div>
 
     <div class="input-group">
       <label>Current Password</label>
       <div class="password-field" [class.field-error-border]="pwFieldErrors.current">
         <i class="fa-solid fa-lock field-icon"></i>
-        <input [type]="showCurrent ? 'text' : 'password'"
-               [(ngModel)]="currentPassword"
+        <input [type]="showCurrent ? 'text' : 'password'" [(ngModel)]="currentPassword"
                placeholder="Enter current password"
-               (paste)="$event.preventDefault()"
-               (copy)="$event.preventDefault()">
-        <i class="fa-solid"
-           [ngClass]="showCurrent ? 'fa-eye-slash' : 'fa-eye'"
-           (click)="showCurrent = !showCurrent"></i>
+               (paste)="$event.preventDefault()" (copy)="$event.preventDefault()">
+        <i class="fa-solid" [ngClass]="showCurrent ? 'fa-eye-slash' : 'fa-eye'" (click)="showCurrent = !showCurrent"></i>
       </div>
       <div class="field-error-msg" *ngIf="pwFieldErrors.current">
         <i class="fa fa-circle-exclamation"></i> {{ pwFieldErrors.current }}
@@ -83,14 +68,10 @@
       <label>New Password</label>
       <div class="password-field" [class.field-error-border]="pwFieldErrors.newPw">
         <i class="fa-solid fa-key field-icon"></i>
-        <input [type]="showNew ? 'text' : 'password'"
-               [(ngModel)]="newPassword"
+        <input [type]="showNew ? 'text' : 'password'" [(ngModel)]="newPassword"
                placeholder="Create new password"
-               (paste)="$event.preventDefault()"
-               (copy)="$event.preventDefault()">
-        <i class="fa-solid"
-           [ngClass]="showNew ? 'fa-eye-slash' : 'fa-eye'"
-           (click)="showNew = !showNew"></i>
+               (paste)="$event.preventDefault()" (copy)="$event.preventDefault()">
+        <i class="fa-solid" [ngClass]="showNew ? 'fa-eye-slash' : 'fa-eye'" (click)="showNew = !showNew"></i>
       </div>
       <div class="field-error-msg" *ngIf="pwFieldErrors.newPw">
         <i class="fa fa-circle-exclamation"></i> {{ pwFieldErrors.newPw }}
@@ -101,14 +82,10 @@
       <label>Confirm New Password</label>
       <div class="password-field" [class.field-error-border]="pwFieldErrors.confirm">
         <i class="fa-solid fa-key field-icon"></i>
-        <input [type]="showConfirm ? 'text' : 'password'"
-               [(ngModel)]="confirmPassword"
+        <input [type]="showConfirm ? 'text' : 'password'" [(ngModel)]="confirmPassword"
                placeholder="Confirm new password"
-               (paste)="$event.preventDefault()"
-               (copy)="$event.preventDefault()">
-        <i class="fa-solid"
-           [ngClass]="showConfirm ? 'fa-eye-slash' : 'fa-eye'"
-           (click)="showConfirm = !showConfirm"></i>
+               (paste)="$event.preventDefault()" (copy)="$event.preventDefault()">
+        <i class="fa-solid" [ngClass]="showConfirm ? 'fa-eye-slash' : 'fa-eye'" (click)="showConfirm = !showConfirm"></i>
       </div>
       <div class="field-error-msg" *ngIf="pwFieldErrors.confirm">
         <i class="fa fa-circle-exclamation"></i> {{ pwFieldErrors.confirm }}
@@ -116,31 +93,26 @@
     </div>
 
     <div class="modal-actions">
-      <button class="cancel-btn" (click)="closeModal()" [disabled]="passwordLoading">
-        Cancel
-      </button>
+      <button class="cancel-btn" (click)="closeModal()" [disabled]="passwordLoading">Cancel</button>
       <button class="save-btn" (click)="updatePassword()" [disabled]="passwordLoading">
         <i class="fa fa-spinner fa-spin" *ngIf="passwordLoading"></i>
         <i class="fa-solid fa-floppy-disk" *ngIf="!passwordLoading"></i>
         {{ passwordLoading ? 'Updating...' : 'Update Password' }}
       </button>
     </div>
-
   </div>
 </div>
 
 
-<!-- ========================
-     CERTIFICATE MODAL
-========================= -->
+<!-- ================================================
+     CERTIFICATE MODAL — fully driven by certTemplate
+================================================= -->
 <div class="modal-overlay cert-overlay" *ngIf="showCertModal" (click)="closeCertModal()">
   <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
 
     <div class="cert-modal-topbar">
       <div class="cert-modal-title-group">
-        <div class="cert-modal-icon-wrap">
-          <i class="fa-solid fa-certificate"></i>
-        </div>
+        <div class="cert-modal-icon-wrap"><i class="fa-solid fa-certificate"></i></div>
         <div>
           <p class="cert-modal-label">Certificate of Completion</p>
           <p class="cert-modal-sub">On-the-Job Training Program</p>
@@ -159,102 +131,110 @@
     <div class="cert-scroll-area">
       <div id="certificate-preview" class="certificate">
 
-        <div class="cert-top-bar"></div>
-        <div class="cert-top-bar-gold"></div>
+        <!-- ── Bars ── -->
+        <div class="cert-top-bar"      [style.background]="certTemplate.primaryColor"></div>
+        <div class="cert-top-bar-gold" [style.background]="certTemplate.accentColor"></div>
 
-        <div class="cert-body">
+        <div class="cert-body"
+             [style.border-left-color]="certTemplate.primaryColor"
+             [style.border-right-color]="certTemplate.primaryColor">
 
-          <div class="cert-watermark">
-            <img src="assets/images/OCES_logo.png" alt="OCES Watermark" />
+          <!-- Watermark -->
+          <div class="cert-watermark" *ngIf="certTemplate.watermarkUrl">
+            <img [src]="certTemplate.watermarkUrl" alt="Watermark">
           </div>
 
           <div class="cert-inner-border"></div>
 
-          <svg class="cert-corner-ornament tl" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
-            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
+          <!-- Corner ornaments -->
+          <svg class="cert-corner-ornament tl" viewBox="0 0 28 28">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
           </svg>
-          <svg class="cert-corner-ornament tr" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
-            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
+          <svg class="cert-corner-ornament tr" viewBox="0 0 28 28">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
           </svg>
-          <svg class="cert-corner-ornament bl" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
-            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
+          <svg class="cert-corner-ornament bl" viewBox="0 0 28 28">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
           </svg>
-          <svg class="cert-corner-ornament br" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" fill="#c9a84c"/>
-            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" fill="#1e3a8a"/>
+          <svg class="cert-corner-ornament br" viewBox="0 0 28 28">
+            <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+            <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
           </svg>
 
           <div class="cert-content">
 
+            <!-- Header -->
             <div class="cert-header">
               <div class="cert-header-logo cert-header-logo--left">
-                <img src="assets/images/Deped_logo.png" alt="DepEd Logo" />
+                <img [src]="certTemplate.depedLogoUrl || 'assets/images/Deped_logo.png'" alt="Left Logo">
               </div>
-
               <div class="cert-header-text">
-                <p class="cert-republic">Republic of the Philippines</p>
-                <p class="cert-dept">Department of Education</p>
-                <p class="cert-division">Schools Division of Olongapo City</p>
-                <p class="cert-school-name">Olongapo City Elementary School</p>
-                <p class="cert-address">Olongapo City, Zambales</p>
+                <p class="cert-republic">{{ certTemplate.republic }}</p>
+                <p class="cert-dept"        [style.color]="certTemplate.primaryColor">{{ certTemplate.department }}</p>
+                <p class="cert-division">{{ certTemplate.division }}</p>
+                <p class="cert-school-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.schoolName }}</p>
+                <p class="cert-address">{{ certTemplate.address }}</p>
               </div>
-
               <div class="cert-header-logo cert-header-logo--right">
-                <img src="assets/images/OCES_logo.png" alt="OCES Logo" />
+                <img [src]="certTemplate.schoolLogoUrl || 'assets/images/OCES_logo.png'" alt="Right Logo">
               </div>
             </div>
 
-            <h1 class="cert-main-title">Certificate of Completion</h1>
-            <p class="cert-subtitle-tag">On-the-Job Training Program</p>
+            <!-- Title -->
+            <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
+            <p class="cert-subtitle-tag">{{ certTemplate.subtitleTag }}</p>
+            <p class="cert-awarded-text">{{ certTemplate.awardedText }}</p>
 
-            <p class="cert-awarded-text">This certificate is proudly awarded to</p>
-
+            <!-- Name -->
             <div class="cert-name-wrap">
-              <p class="cert-cursive-name">{{ certData.studentName }}</p>
-              <div class="cert-name-line"></div>
+              <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">{{ certData.studentName }}</p>
+              <div class="cert-name-line"  [style.background]="certTemplate.primaryColor"></div>
             </div>
 
-            <p class="cert-body-para">
-              for successfully completing the
-              <strong>{{ certData.hoursCompleted }}-hour On-the-Job Training (OJT)</strong>,
-              taking up <strong>{{ certData.course }}</strong>
-              from <strong>{{ certData.school }}</strong>,
-              conducted at <strong>Olongapo City Elementary School</strong>.
-            </p>
+            <!-- Body paragraph — token-replaced -->
+            <p class="cert-body-para" [innerHTML]="getBodyText()"></p>
 
-            <p class="cert-given-text">
-              Given this {{ certData.endDate }}, Olongapo City, Zambales.
-            </p>
+            <!-- Given / closing line — token-replaced -->
+            <p class="cert-given-text">{{ getGivenText() }}</p>
 
+            <!-- Signatories -->
             <div class="cert-sig-row">
 
+              <!-- LEFT signatory -->
               <div class="cert-sig-block">
-                <p class="cert-sig-name">{{ certData.supervisorName | uppercase }}</p>
+                <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
+                <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+                  {{ certTemplate.leftSignatoryName | uppercase }}
+                </p>
                 <div class="cert-sig-underline"></div>
-                <p class="cert-sig-pos">{{ certData.supervisorPos }}</p>
-                <p class="cert-sig-school">Olongapo City Elementary School</p>
+                <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
+                <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 
+              <!-- RIGHT signatory -->
               <div class="cert-sig-block">
-                <p class="cert-sig-name">{{ certData.supervisorName | uppercase }}</p>
+                <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
+                <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+                  {{ certTemplate.supervisorName | uppercase }}
+                </p>
                 <div class="cert-sig-underline"></div>
-                <p class="cert-sig-pos">OJT Supervisor</p>
-                <p class="cert-sig-school">Olongapo City Elementary School</p>
+                <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
+                <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 
             </div>
 
-          </div>
-        </div>
+          </div><!-- /cert-content -->
+        </div><!-- /cert-body -->
 
-        <div class="cert-bottom-bar-gold"></div>
-        <div class="cert-bottom-bar"></div>
+        <div class="cert-bottom-bar-gold" [style.background]="certTemplate.accentColor"></div>
+        <div class="cert-bottom-bar"      [style.background]="certTemplate.primaryColor"></div>
 
-      </div>
-    </div>
+      </div><!-- /certificate -->
+    </div><!-- /cert-scroll-area -->
 
   </div>
 </div>

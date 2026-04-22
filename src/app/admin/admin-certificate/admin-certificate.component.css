@@ -731,9 +731,16 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
 ========================= */
 .cert-overlay { align-items: center; padding-top: 0; }
 .cert-modal-wrapper {
-  width: min(980px, 96vw); background: #f1f5f9; border-radius: 14px;
-  box-shadow: 0 32px 80px rgba(0,0,0,.3); overflow: hidden;
-  animation: slideUp .3s ease; display: flex; flex-direction: column; max-height: 94vh;
+  width: min(980px, 96vw);
+  background: #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.3);
+  overflow: hidden;
+  animation: fadeIn .3s ease;
+  display: flex;
+  flex-direction: column;
+  max-height: 94vh;
+  height: 94vh;              /* ← add this so flex children can fill it */
 }
 .cert-modal-topbar {
   display: flex; justify-content: space-between; align-items: center;
@@ -774,16 +781,15 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
   cert-scroll-area: the pannable/zoomable container in the preview modal 
 */
 .cert-scroll-area {
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;              /* ← critical */
+  overflow: auto;             /* ← allow both axes to scroll */
   padding: 28px 24px;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  position: relative;
-  cursor: grab;
-  user-select: none;
-  flex: 1;
-}
+  align-items: flex-start;   /* ← not center, so tall content isn't clipped */
+  background: #f1f5f9;
+} 
 .cert-scroll-area:active { cursor: grabbing; }
 
 /* Zoom controls in preview modal */
@@ -823,19 +829,29 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
    CERTIFICATE (A4 Landscape)
 ========================= */
 .certificate {
-  width: 900px; height: 638px; background: #fff;
-  position: relative; overflow: hidden;
+  width: 900px;
+  min-height: 638px;          /* ← min-height, NOT fixed height */
+  background: #fff;
+  position: relative;
+                              /* ← DELETE overflow: hidden */
   font-family: 'Times New Roman', Times, serif;
   box-shadow: 0 6px 32px rgba(30,58,138,.18);
-  display: flex; flex-direction: column; flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 .cert-top-bar        { height: 10px; flex-shrink: 0; }
 .cert-top-bar-gold   { height: 4px;  flex-shrink: 0; }
 .cert-bottom-bar-gold{ height: 4px;  flex-shrink: 0; }
 .cert-bottom-bar     { height: 10px; flex-shrink: 0; }
 .cert-body {
-  flex: 1; position: relative; display: flex; flex-direction: column;
-  border-left: 10px solid; border-right: 10px solid; overflow: hidden;
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-left: 10px solid;
+  border-right: 10px solid;
+                              /* ← DELETE overflow: hidden */
 }
 .cert-watermark {
   position: absolute; inset: 0;

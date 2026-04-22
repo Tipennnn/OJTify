@@ -196,11 +196,11 @@
                       <td class="text-muted">{{ intern.startDate }}</td>
                       <td style="min-width:180px;">
                         <div class="progress-bar">
-                          <div class="progress-fill" [style.width.%]="getPct(intern.hoursCompleted)"></div>
+                          <div class="progress-fill" [style.width.%]="getPct(intern)"></div>
                         </div>
                         <span class="progress-text">
-                          {{ intern.hoursCompleted }} / {{ certTemplate.requiredHours }} hrs
-                          ({{ getPct(intern.hoursCompleted) }}%)
+                          {{ intern.hoursCompleted }} / {{ intern.requiredHours }} hrs
+                          ({{ getPct(intern) }}%)
                         </span>
                       </td>
                       <td>
@@ -245,11 +245,11 @@
                       <td class="text-muted">{{ intern.startDate }}</td>
                       <td style="min-width:180px;">
                         <div class="progress-bar">
-                          <div class="progress-fill" [style.width.%]="getPct(intern.hoursCompleted)"></div>
+                          <div class="progress-fill" [style.width.%]="getPct(intern)"></div>
                         </div>
                         <span class="progress-text">
-                          {{ intern.hoursCompleted }} / {{ certTemplate.requiredHours }} hrs
-                          ({{ getPct(intern.hoursCompleted) }}%)
+                          {{ intern.hoursCompleted }} / {{ intern.requiredHours }} hrs
+                          ({{ getPct(intern) }}%)
                         </span>
                       </td>
                     </tr>
@@ -286,11 +286,11 @@
                       <td class="text-muted">{{ intern.endDate || '—' }}</td>
                       <td style="min-width:160px;">
                         <div class="progress-bar">
-                          <div class="progress-fill" [style.width.%]="getPct(intern.hoursCompleted)"></div>
+                          <div class="progress-fill" [style.width.%]="getPct(intern)"></div>
                         </div>
                         <span class="progress-text">
-                          {{ intern.hoursCompleted }} / {{ certTemplate.requiredHours }} hrs
-                          ({{ getPct(intern.hoursCompleted) }}%)
+                          {{ intern.hoursCompleted }} / {{ intern.requiredHours }} hrs
+                          ({{ getPct(intern) }}%)
                         </span>
                       </td>
                       <td>
@@ -324,7 +324,7 @@
   
             </div><!-- /table-body-area -->
   
-            <!-- PAGINATION — count left of buttons, both on the right -->
+            <!-- PAGINATION -->
             <div class="pagination-row">
               <span class="page-info">
                 Showing {{ pageRangeStart }}–{{ pageRangeEnd }} of {{ activeList.length }}
@@ -544,7 +544,8 @@
                 </div>
                 <div *ngIf="certTemplate.depedLogoUrl" class="upload-preview">
                   <img [src]="certTemplate.depedLogoUrl">
-                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.depedLogoUrl=''">
+                  <!-- ✕ Remove: deletes old file from Appwrite Storage, then clears URL -->
+                  <button class="remove-img" (click)="$event.stopPropagation(); removeFile('deped')">
                     <i class="fa-solid fa-xmark"></i>
                   </button>
                 </div>
@@ -560,7 +561,8 @@
                 </div>
                 <div *ngIf="certTemplate.schoolLogoUrl" class="upload-preview">
                   <img [src]="certTemplate.schoolLogoUrl">
-                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.schoolLogoUrl=''">
+                  <!-- ✕ Remove: deletes old file from Appwrite Storage, then clears URL -->
+                  <button class="remove-img" (click)="$event.stopPropagation(); removeFile('school')">
                     <i class="fa-solid fa-xmark"></i>
                   </button>
                 </div>
@@ -576,7 +578,8 @@
                 </div>
                 <div *ngIf="certTemplate.watermarkUrl" class="upload-preview">
                   <img [src]="certTemplate.watermarkUrl">
-                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.watermarkUrl=''">
+                  <!-- ✕ Remove: deletes old file from Appwrite Storage, then clears URL -->
+                  <button class="remove-img" (click)="$event.stopPropagation(); removeFile('watermark')">
                     <i class="fa-solid fa-xmark"></i>
                   </button>
                 </div>
@@ -596,7 +599,8 @@
                 </div>
                 <div *ngIf="certTemplate.leftSigUrl" class="upload-preview">
                   <img [src]="certTemplate.leftSigUrl">
-                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.leftSigUrl=''">
+                  <!-- ✕ Remove: deletes old file from Appwrite Storage, then clears URL -->
+                  <button class="remove-img" (click)="$event.stopPropagation(); removeFile('leftSig')">
                     <i class="fa-solid fa-xmark"></i>
                   </button>
                 </div>
@@ -612,7 +616,8 @@
                 </div>
                 <div *ngIf="certTemplate.rightSigUrl" class="upload-preview">
                   <img [src]="certTemplate.rightSigUrl">
-                  <button class="remove-img" (click)="$event.stopPropagation(); certTemplate.rightSigUrl=''">
+                  <!-- ✕ Remove: deletes old file from Appwrite Storage, then clears URL -->
+                  <button class="remove-img" (click)="$event.stopPropagation(); removeFile('rightSig')">
                     <i class="fa-solid fa-xmark"></i>
                   </button>
                 </div>
@@ -622,17 +627,15 @@
   
         </div><!-- /form col -->
   
-        <!-- MINI PREVIEW COL — drag to pan + zoom buttons -->
+        <!-- MINI PREVIEW COL -->
         <div class="settings-preview-col">
           <p class="mini-preview-label">Live Preview <span class="mini-hint">Drag to pan • Scroll to zoom</span></p>
           <div class="mini-cert-wrap">
-            <!-- zoom control buttons -->
             <div class="mini-zoom-controls">
               <button class="mini-zoom-btn" (click)="miniZoomIn()" title="Zoom in">+</button>
               <button class="mini-zoom-btn" (click)="miniZoomReset()" title="Reset" style="font-size:9px;">⟳</button>
               <button class="mini-zoom-btn" (click)="miniZoomOut()" title="Zoom out">−</button>
             </div>
-            <!-- pannable viewport -->
             <div class="mini-cert-viewport"
                  #miniViewport
                  (mousedown)="miniStartDrag($event)"
@@ -828,7 +831,7 @@
   
   
   <!-- ================================================
-       CERTIFICATE PREVIEW MODAL — drag to pan + zoom controls
+       CERTIFICATE PREVIEW MODAL
   ================================================ -->
   <div class="modal-overlay cert-overlay" *ngIf="showCertPreview" (click)="closeCertPreview()">
     <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
@@ -852,7 +855,6 @@
         </div>
       </div>
   
-      <!-- pannable + zoomable area -->
       <div class="cert-scroll-area"
            #certViewport
            (mousedown)="certStartDrag($event)"
