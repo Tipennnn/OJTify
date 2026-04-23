@@ -60,7 +60,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
 
   currentUserId = '';
   qrData        = '';
-  qrExpiresIn   = 10;
+  qrExpiresIn   = 10 ;
   private qrTimer: any;
   realStudentId = '';
   internName    = '';

@@ -68,8 +68,8 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
   // ── Geofence ──────────────────────────────────────────────
-  readonly OFFICE_LAT    = 14.844565;
-  readonly OFFICE_LNG    = 120.289284;
+  readonly OFFICE_LAT    = 14.843888;
+  readonly OFFICE_LNG    = 120.289486;
   readonly OFFICE_RADIUS = 100;
 
   // ── Pagination ────────────────────────────────────────────
