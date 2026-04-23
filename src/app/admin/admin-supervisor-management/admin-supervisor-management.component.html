@@ -112,9 +112,7 @@
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
               <div class="page-numbers">
-                <span *ngFor="let p of totalPagesArray"
-                      class="page" [class.active]="p === currentPage"
-                      (click)="changePage(p)">{{ p }}</span>
+                <span class="page active">{{ currentPage }}</span>
               </div>
               <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
                 <i class="fa-solid fa-chevron-right"></i>

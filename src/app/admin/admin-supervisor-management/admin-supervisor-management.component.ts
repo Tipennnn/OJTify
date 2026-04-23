@@ -121,7 +121,7 @@ internsSearchQuery = '';
 assigningIntern = false;
 
   currentPage = 1;
-  pageSize    = 3;
+  pageSize    = 10;
   realTotalAssignedInterns = 0;
 
   readonly BUCKET_ID       = '69baaf64002ceb2490df';

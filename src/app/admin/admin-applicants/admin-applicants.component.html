@@ -90,13 +90,7 @@
               <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="page-numbers">
-              <span
-                *ngFor="let p of pageNumbers"
-                class="page"
-                [class.active]="p === currentPage"
-                (click)="goToPage(p)">
-                {{ p }}
-              </span>
+              <span class="page active">{{ currentPage }}</span>
             </div>
             <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
               <i class="fa-solid fa-chevron-right"></i>

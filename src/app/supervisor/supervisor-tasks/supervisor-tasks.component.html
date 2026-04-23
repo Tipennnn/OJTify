@@ -93,7 +93,7 @@
                   <th>Intern</th>
                   <th>Course</th>
                   <th>Total Entries</th>
-                 <!--<th>Avg Score</th>-->
+                  <th>Avg Score</th>
                   <th></th>
                 </tr>
               </thead>
@@ -121,14 +121,14 @@
                       {{ internEntryCountMap[intern.$id] || 0 }} entries
                     </span>
                   </td>
-                  <!--<td>
+                  <td>
                     <span class="intern-avg-badge" *ngIf="internAvgScoreMap[intern.$id] !== null && internAvgScoreMap[intern.$id] !== undefined; else noScore">
                       {{ internAvgScoreMap[intern.$id] }}/100
                     </span>
                     <ng-template #noScore>
                       <span class="intern-avg-badge no-score">—</span>
                     </ng-template>
-                  </td>-->
+                  </td>
                   <td class="intern-table-chevron-cell">
                     <i class="fas fa-chevron-right intern-table-chevron"></i>
                   </td>

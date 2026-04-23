@@ -36,11 +36,11 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   showReportsModal    = false;
   showQRModal         = false;
 
-  selectedDate = '';
-  timeIn       = '—';
-  timeOut      = '—';
-  status       = 'No Attendance Record';
-  scannedBy    = '—';
+  selectedDate  = '';
+  timeIn        = '—';
+  timeOut       = '—';
+  status        = 'No Attendance Record';
+  scannedBy     = '—';
   calendarReady = false;
 
   firstDayOfMonth = 0;
@@ -50,7 +50,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   days  : number[] = [];
   attendanceStatus : { [key: number]: string } = {};
   attendanceRecords: { [key: number]: any }    = {};
-  internStartDate: Date | null = null;
+  internStartDate  : Date | null = null;
 
   reportFilterMonth  = '';
   reportFilterYear   = '';
@@ -58,9 +58,35 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   filteredRecordsList: AttendanceRecord[] = [];
   allRecords         : AttendanceRecord[] = [];
 
+  // PAGINATION - Reports Modal
+  reportCurrentPage = 1;
+  reportPageSize    = 1;
+  readonly Math     = Math;
+
+  get reportTotalPages(): number {
+    return Math.ceil(this.filteredRecordsList.length / this.reportPageSize) || 1;
+  }
+
+  get reportPageNumbers(): number[] {
+    return Array.from({ length: this.reportTotalPages }, (_, i) => i + 1);
+  }
+
+  get pagedRecordsList(): AttendanceRecord[] {
+    const start = (this.reportCurrentPage - 1) * this.reportPageSize;
+    return this.filteredRecordsList.slice(start, start + this.reportPageSize);
+  }
+
+  reportGoToPage(page: number) {
+    if (page < 1 || page > this.reportTotalPages) return;
+    this.reportCurrentPage = page;
+  }
+
+  reportPrevPage() { this.reportGoToPage(this.reportCurrentPage - 1); }
+  reportNextPage() { this.reportGoToPage(this.reportCurrentPage + 1); }
+
   currentUserId = '';
   qrData        = '';
-  qrExpiresIn   = 10 ;
+  qrExpiresIn   = 10;
   private qrTimer: any;
   realStudentId = '';
   internName    = '';
@@ -219,10 +245,10 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
           date:      record.date,
           day:       new Date(recordYear, recordMonth, recordDay)
                        .toLocaleString('default', { weekday: 'short' }),
-          timeIn:    record.time_in          || '—',
-          timeOut:   record.time_out         || '—',
+          timeIn:    record.time_in         || '—',
+          timeOut:   record.time_out        || '—',
           status:    record.status,
-          scannedBy: record.scanned_by_name  || '—'
+          scannedBy: record.scanned_by_name || '—'
         });
       });
 
@@ -287,9 +313,9 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     const record = this.attendanceRecords[day];
     if (record) {
       this.status    = record.status;
-      this.timeIn    = record.time_in           || '—';
-      this.timeOut   = record.time_out          || '—';
-      this.scannedBy = record.scanned_by_name   || '—';
+      this.timeIn    = record.time_in          || '—';
+      this.timeOut   = record.time_out         || '—';
+      this.scannedBy = record.scanned_by_name  || '—';
     } else {
       this.status    = 'No Attendance Record';
       this.timeIn    = '—';
@@ -320,6 +346,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
         ? r.status === this.reportFilterStatus : true;
       return monthMatch && yearMatch && statusMatch;
     });
+    this.reportCurrentPage = 1; // reset page on every filter change
   }
 
   generateYears() {
@@ -390,7 +417,6 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     const FOOTER_H = 28;
     const usableH  = pageH - FOOTER_H - 12;
 
-    // ── Auto-detect period from filtered records ──────────
     let periodLabel = '';
     if (this.reportFilterMonth && this.reportFilterYear) {
       periodLabel = `${this.reportFilterMonth} ${this.reportFilterYear}`;
@@ -420,12 +446,10 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     }
     if (!periodLabel) periodLabel = 'All Records';
 
-    // Split for Month / Year display in header
     const periodParts  = periodLabel.split(' ');
     const displayMonth = periodParts.length >= 2 ? periodParts.slice(0, -1).join(' ') : periodLabel;
     const displayYear  = periodParts.length >= 2 ? periodParts[periodParts.length - 1] : '';
 
-    // ── Pre-generate footer QR code ───────────────────────
     let footerQrBase64: string | null = null;
     try {
       footerQrBase64 = await this.buildQrBase64(verifyUrl, 120);
@@ -433,10 +457,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
       footerQrBase64 = null;
     }
 
-    // ─────────────────────────────────────────────────
-    // FOOTER HELPER
-    // ─────────────────────────────────────────────────
-    const QR_SIZE = 20; // mm
+    const QR_SIZE = 20;
     const drawFooter = (pageNum: number, totalPgs: number) => {
       const fy = pageH - FOOTER_H - 3;
 
@@ -513,25 +534,19 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
       doc.text(`Page ${pageNum} of ${totalPgs}`, pageW - MARGIN - 2, fy + FOOTER_H - 3, { align: 'right' });
     };
 
-    // ─────────────────────────────────────────────────
-    // 1. HEADER
-    // ─────────────────────────────────────────────────
     let y = MARGIN;
 
-    // "ON-THE-JOB TRAINING PROGRAM"
     doc.setFontSize(9.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...DARK);
     doc.text('ON-THE-JOB TRAINING PROGRAM', pageW / 2, y + 6, { align: 'center' });
 
-    // "DAILY TIME RECORD"
     y += 12;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...DARK);
     doc.text('DAILY TIME RECORD', pageW / 2, y, { align: 'center' });
 
-    // Month / Year (auto-detected)
     y += 6;
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
@@ -543,7 +558,6 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
       pageW / 2, y, { align: 'center' }
     );
 
-    // Double rule closing header
     y += 5;
     doc.setDrawColor(...DARK);
     doc.setLineWidth(0.7);
@@ -551,9 +565,6 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     doc.setLineWidth(0.25);
     doc.line(MARGIN, y + 1.2, pageW - MARGIN, y + 1.2);
 
-    // ─────────────────────────────────────────────────
-    // 2. INTERN INFO
-    // ─────────────────────────────────────────────────
     y += 8;
     const col1 = MARGIN;
     const col2 = 78;
@@ -595,38 +606,12 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     doc.setLineWidth(0.4);
     doc.line(MARGIN, y, pageW - MARGIN, y);
 
-    // ─────────────────────────────────────────────────
-    // 3. SUMMARY (commented out — uncomment to re-enable)
-    // ─────────────────────────────────────────────────
-    // y += 6;
-    // const presentCnt  = this.filteredRecordsList.filter(r => r.status === 'Present').length;
-    // const absentCnt   = this.filteredRecordsList.filter(r => r.status === 'Absent').length;
-    // const noRecordCnt = this.filteredRecordsList.filter(r =>
-    //   r.status !== 'Present' && r.status !== 'Absent').length;
-    //
-    // doc.setFontSize(8);
-    // doc.setFont('helvetica', 'bold');
-    // doc.setTextColor(...DARK);
-    // doc.text(`Attendance Period: ${periodLabel}`, MARGIN, y);
-    //
-    // doc.setFontSize(7.5);
-    // doc.setFont('helvetica', 'normal');
-    // doc.setTextColor(...GRAY);
-    // doc.text(
-    //   `Total: ${this.filteredRecordsList.length}   ·   Present: ${presentCnt}   ·   Absent: ${absentCnt}   ·   No Record: ${noRecordCnt}`,
-    //   MARGIN, y + 5.5
-    // );
-
-    // ─────────────────────────────────────────────────
-    // 4. TABLE
-    // ─────────────────────────────────────────────────
     y += 13;
     const colX  = [12,  52,  74,  104, 134, 174];
     const colW  = [40,  22,  30,  30,   40,  26];
     const heads = ['Date', 'Day', 'Time In', 'Time Out', 'Recorded By', 'Status'];
     const rowH  = 8;
 
-    // Table header
     doc.setFillColor(...BLUE);
     doc.rect(MARGIN, y, pageW - MARGIN * 2, rowH, 'F');
     doc.setFontSize(7.5);
@@ -673,9 +658,9 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
 
         cells.forEach((cell, i) => {
           if (i === 5) {
-            if (cell === 'Present')      doc.setTextColor(...GREEN);
-            else if (cell === 'Absent')  doc.setTextColor(...RED);
-            else                         doc.setTextColor(...GRAY);
+            if (cell === 'Present')     doc.setTextColor(...GREEN);
+            else if (cell === 'Absent') doc.setTextColor(...RED);
+            else                        doc.setTextColor(...GRAY);
             doc.setFont('helvetica', 'bold');
           } else {
             doc.setTextColor(...DARK);
@@ -691,18 +676,12 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
       });
     }
 
-    // ─────────────────────────────────────────────────
-    // 5. FOOTER — drawn on ALL pages with correct total
-    // ─────────────────────────────────────────────────
     const totalPages = (doc as any).internal.getNumberOfPages();
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
       drawFooter(p, totalPages);
     }
 
-    // ─────────────────────────────────────────────────
-    // 6. SAVE
-    // ─────────────────────────────────────────────────
     doc.save(`DTR_${this.realStudentId || 'intern'}_${periodLabel.replace(/\s+/g, '_')}_${ref}.pdf`);
   }
 

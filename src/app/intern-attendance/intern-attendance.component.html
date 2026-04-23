@@ -212,7 +212,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of filteredRecordsList">
+              <tr *ngFor="let r of pagedRecordsList">
                 <td>{{ r.date | date: 'MMMM d, y' }}</td>
                 <td>{{ r.day }}</td>
                 <td>{{ r.timeIn }}</td>
@@ -230,6 +230,25 @@
             No records found for selected filters.
           </div>
         </div>
+      
+        <!-- PAGINATION -->
+        <div class="report-pagination" *ngIf="filteredRecordsList.length > 0">
+          <span class="report-page-info">
+            Showing {{ (reportCurrentPage - 1) * reportPageSize + 1 }}–{{ Math.min(reportCurrentPage * reportPageSize, filteredRecordsList.length) }}
+            of {{ filteredRecordsList.length }}
+          </span>
+          <button class="report-page-btn" (click)="reportPrevPage()" [disabled]="reportCurrentPage === 1">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <div class="report-page-numbers">
+            <span class="report-page active">{{ reportCurrentPage }}</span>
+          </div>
+          <button class="report-page-btn" (click)="reportNextPage()" [disabled]="reportCurrentPage === reportTotalPages">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      
+      
       </div>
     </div>
   </div>

@@ -33,13 +33,17 @@ interface Student {
   styleUrl: './admin-ojt.component.css'
 })
 export class AdminOjtComponent implements OnInit {
-  
 
   students        : Student[] = [];
   filteredStudents: Student[] = [];
   loading         = false;
   searchQuery     = '';
   isCollapsed     = false;
+
+  // PAGINATION
+  currentPage  = 1;
+  pageSize     = 10;
+  readonly Math = Math;
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
@@ -54,37 +58,59 @@ export class AdminOjtComponent implements OnInit {
     await this.loadStudents();
   }
 
- async loadStudents() {
-  this.loading = true;
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL
-    );
-    // Only show interns who have NOT completed their hours
-    this.students = (res.documents as any[]).filter(s => {
-      const completed = s.completed_hours || 0;
-      const required  = s.required_hours  || 500;
-      return completed < required;
-    });
-    this.filteredStudents = [...this.students];
-  } catch (error: any) {
-    console.error('Failed to load students:', error.message);
-  } finally {
-    this.loading = false;
+  async loadStudents() {
+    this.loading = true;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+      this.students = (res.documents as any[]).filter(s => {
+        const completed = s.completed_hours || 0;
+        const required  = s.required_hours  || 500;
+        return completed < required;
+      });
+      this.filteredStudents = [...this.students];
+    } catch (error: any) {
+      console.error('Failed to load students:', error.message);
+    } finally {
+      this.loading = false;
+    }
   }
-}
+
+  // PAGINATION
+  get pagedStudents(): Student[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredStudents.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredStudents.length / this.pageSize) || 1;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  prevPage() { this.goToPage(this.currentPage - 1); }
+  nextPage() { this.goToPage(this.currentPage + 1); }
 
   onToggleSidebar(collapsed: boolean) {
     this.isCollapsed = collapsed;
   }
- 
+
   openProfile(student: Student) {
     this.router.navigate(['/admin-ojt-profile', student.$id]);
   }
 
   onSearch(event: any) {
     this.searchQuery = event.target.value.toLowerCase();
+    this.currentPage = 1;
     this.filteredStudents = this.students.filter(s => {
       const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
       return fullName.includes(this.searchQuery) ||
