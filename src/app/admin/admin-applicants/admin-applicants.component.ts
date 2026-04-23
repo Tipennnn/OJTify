@@ -56,7 +56,7 @@ export class AdminApplicantsComponent implements OnInit {
   loading           = false;
   actionLoading     = false;
   searchQuery       = '';
-  statusFilter      = 'all';
+  statusFilter      = 'pending';
 
   // PAGINATION
   currentPage  = 1;
@@ -139,13 +139,12 @@ export class AdminApplicantsComponent implements OnInit {
         this.appwrite.DATABASE_ID,
         this.appwrite.APPLICANTS_COL
       );
-
-      // Sort newest first
+  
       this.applicants = (res.documents as any[]).sort((a, b) =>
         new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
       );
-
-      this.filteredApplicants = [...this.applicants];
+  
+      this.applyFilter(); // apply default filter
     } catch (error: any) {
       console.error('Failed to load applicants:', error.message);
     } finally {
