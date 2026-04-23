@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { SupervisorSidenavComponent } from '../supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from '../supervisor-topnav/supervisor-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
-import { ID } from 'appwrite';
+import { ID, Query } from 'appwrite';
 import Swal from 'sweetalert2';
 
 interface AttendanceLog {
@@ -69,11 +69,11 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
 
   constructor(private appwrite: AppwriteService) {}
 
-  async ngOnInit() {
-    await this.loadCurrentSupervisor();
-    await this.loadStudents();
-    await this.loadTodayAttendance();
-  }
+ async ngOnInit() {
+  await this.loadCurrentSupervisor();  // must finish first
+  await this.loadStudents();           // must finish second
+  await this.loadTodayAttendance();    // then filter
+}
 
   ngOnDestroy() {
     this.stopCamera();
@@ -98,23 +98,36 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   }
 
   async loadStudents() {
-    try {
+  try {
+    let allStudents: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
+        this.appwrite.STUDENTS_COL,
+        [
+          Query.limit(limit),
+          Query.offset(offset)
+        ]
       );
-      this.allStudents = res.documents as any[];
-
-      const archiveRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL
-      );
-      this.allArchived = archiveRes.documents as any[];
-
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
+      allStudents = allStudents.concat(res.documents);
+      if (allStudents.length >= res.total || res.documents.length < limit) break;
+      offset += limit;
     }
+    this.allStudents = allStudents;
+
+    const archiveRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ARCHIVES_COL
+    );
+    this.allArchived = archiveRes.documents as any[];
+
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
   }
+}
 
   currentPage  = 1;
   pageSize     = 10;
@@ -135,68 +148,95 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     return this.filteredLogs.slice(start, start + this.pageSize);
   }
 
-  async loadTodayAttendance() {
-    this.loading = true;
-    try {
-      const now   = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+ async loadTodayAttendance() {
+  this.loading = true;
+  try {
+    const now   = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+    // Get assigned student IDs for THIS supervisor
+    const assignedStudentIds = new Set(
+      this.allStudents
+        .filter(s => s.supervisor_id === this.supervisorId)
+        .map(s => s.$id)
+    );
+
+    console.log('Supervisor ID:', this.supervisorId);
+    console.log('Assigned student IDs:', [...assignedStudentIds]);
+    console.log('Today:', today);
+
+    // Fetch ALL attendance docs (handle pagination)
+    let allDocs: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
+        this.appwrite.ATTENDANCE_COL,
+        [
+          Query.limit(limit),
+          Query.offset(offset)
+        ]
       );
-
-  const assignedStudentIds = new Set(
-  this.allStudents
-    .filter(s => s.supervisor_id === this.supervisorId)
-    .map(s => s.$id)
-);
-
-const todayDocs = (res.documents as any[]).filter(d =>
-  d.date === today && assignedStudentIds.has(d.student_id)
-);
-
-      this.todayLogs = todayDocs.map(doc => {
-        const student = this.allStudents.find(s => s.$id === doc.student_id)
-               ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
-        return {
-          $id:               doc.$id,
-          student_id:        doc.student_id,
-          student_name:      student
-            ? `${student.first_name} ${student.last_name}`
-            : 'Unknown',
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              doc.date,
-          time_in:           doc.time_in  || '—',
-          time_out:          doc.time_out || '—',
-          status:            doc.status,
-          scanned_by_name:   doc.scanned_by_name || '—'
-        };
-      });
-
-      this.filteredLogs = [...this.todayLogs];
-
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
-    } finally {
-      this.loading = false;
+      allDocs = allDocs.concat(res.documents);
+      if (allDocs.length >= res.total || res.documents.length < limit) break;
+      offset += limit;
     }
+
+    console.log('Total attendance docs fetched:', allDocs.length);
+
+    const todayDocs = allDocs.filter(d =>
+      d.date === today && assignedStudentIds.has(d.student_id)
+    );
+
+    console.log('Today docs for this supervisor:', todayDocs.length);
+
+    this.todayLogs = todayDocs.map(doc => {
+      const student = this.allStudents.find(s => s.$id === doc.student_id)
+             ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
+      return {
+        $id:               doc.$id,
+        student_id:        doc.student_id,
+        student_name:      student
+          ? `${student.first_name} ${student.last_name}`
+          : 'Unknown',
+        student_photo:     student?.profile_photo_id
+          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+          : null,
+        student_id_number: student?.student_id || '—',
+        date:              doc.date,
+        time_in:           doc.time_in  || '—',
+        time_out:          doc.time_out || '—',
+        status:            doc.status,
+        scanned_by_name:   doc.scanned_by_name || '—'
+      };
+    });
+
+    this.filteredLogs = [...this.todayLogs];
+    this.currentPage  = 1;
+    this.updatePagination();
+
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   onToggleSidebar(collapsed: boolean) {
     this.isCollapsed = collapsed;
   }
 
-  onSearch(event: any) {
-    this.searchQuery  = event.target.value.toLowerCase();
-    this.filteredLogs = this.todayLogs.filter(log =>
-      log.student_name.toLowerCase().includes(this.searchQuery) ||
-      log.student_id_number.toLowerCase().includes(this.searchQuery)
-    );
-  }
+ onSearch(event: any) {
+  this.searchQuery  = event.target.value.toLowerCase();
+  this.filteredLogs = this.todayLogs.filter(log =>
+    log.student_name.toLowerCase().includes(this.searchQuery) ||
+    log.student_id_number.toLowerCase().includes(this.searchQuery)
+  );
+  this.currentPage = 1;        // ← reset to page 1
+  this.updatePagination();     // ← ADD THIS
+}
 
   openScanner() {
     this.showScanner          = true;
@@ -316,19 +356,23 @@ async processManualAttendance(student: any) {
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     const attendRes = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL
-    );
+  this.appwrite.DATABASE_ID,
+  this.appwrite.ATTENDANCE_COL,
+  [
+    Query.equal('student_id', studentId),
+    Query.equal('date', today),
+    Query.limit(1)
+  ]
+);
 
-    const existing = (attendRes.documents as any[])
-      .find(a => a.student_id === studentId && a.date === today);
+const existing = attendRes.documents[0] ?? null;
 
     // ── Determine scanned-by name (admin or supervisor) ──
     const scannedById   = (this as any).adminId   ?? (this as any).supervisorId;
     const scannedByName = (this as any).adminName ?? (this as any).supervisorName;
 
     if (existing) {
-      if (!existing.time_out || existing.time_out === '') {
+      if (!existing['time_out'] || existing['time_out'] === '') {
 
         // ── TIME OUT ────────────────────────────────────
         await this.appwrite.databases.updateDocument(
@@ -351,7 +395,7 @@ async processManualAttendance(student: any) {
           } catch { return 0; }
         };
 
-        const timeInMinutes  = parseTimeToMinutes(existing.time_in);
+        const timeInMinutes = parseTimeToMinutes(existing['time_in']);
         const timeOutMinutes = parseTimeToMinutes(timeStr);
         let diffMinutes      = timeOutMinutes - timeInMinutes;
         if (diffMinutes < 0) diffMinutes += 24 * 60;
@@ -653,15 +697,19 @@ async processManualAttendance(student: any) {
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
       const attendRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+  this.appwrite.DATABASE_ID,
+  this.appwrite.ATTENDANCE_COL,
+  [
+    Query.equal('student_id', studentId),
+    Query.equal('date', today),
+    Query.limit(1)
+  ]
+);
 
-      const existing = (attendRes.documents as any[])
-        .find(a => a.student_id === studentId && a.date === today);
+const existing = attendRes.documents[0] ?? null;
 
       if (existing) {
-        if (!existing.time_out || existing.time_out === '') {
+        if (!existing['time_out'] || existing['time_out'] === '') {
 
           await this.appwrite.databases.updateDocument(
             this.appwrite.DATABASE_ID,
@@ -687,7 +735,7 @@ async processManualAttendance(student: any) {
             } catch { return 0; }
           };
 
-          const timeInMinutes  = parseTimeToMinutes(existing.time_in);
+          const timeInMinutes = parseTimeToMinutes(existing['time_in']);
           const timeOutMinutes = parseTimeToMinutes(timeStr);
           let diffMinutes      = timeOutMinutes - timeInMinutes;
           if (diffMinutes < 0) diffMinutes += 24 * 60;
@@ -845,23 +893,27 @@ async processManualAttendance(student: any) {
   }
 
   onManualIdInput() {
-    const query = this.manualStudentId.trim().toLowerCase();
-    if (!query) {
-      this.manualSearchResults   = [];
-      this.selectedManualStudent = null;
-      return;
-    }
-
-    this.manualSearchResults = this.allStudents
-      .filter(s =>
-        s.supervisor_id === this.supervisorId &&
-        (
-          s.student_id?.toLowerCase().includes(query) ||
-          `${s.first_name} ${s.last_name}`.toLowerCase().includes(query)
-        )
-      )
-      .slice(0, 5);
+  const query = this.manualStudentId.trim().toLowerCase();
+  if (!query) {
+    this.manualSearchResults   = [];
+    this.selectedManualStudent = null;
+    return;
   }
+
+  this.manualSearchResults = this.allStudents
+    .filter(s => {
+      if (s.supervisor_id !== this.supervisorId) return false;
+
+      // Hide interns who completed their hours
+      const completed = Number(s.completed_hours) || 0;
+      const required  = Number(s.required_hours)  || 500;
+      if (completed >= required) return false;
+
+      return s.student_id?.toLowerCase().includes(query) ||
+             `${s.first_name} ${s.last_name}`.toLowerCase().includes(query);
+    })
+    .slice(0, 5);
+}
 
   selectManualStudent(student: any) {
     this.selectedManualStudent = student;

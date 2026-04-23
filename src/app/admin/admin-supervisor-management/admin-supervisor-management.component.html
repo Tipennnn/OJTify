@@ -202,6 +202,10 @@
             <span class="interns-tab-title">Assigned OJT Students</span>
             <span class="interns-tab-count">{{ assignedInterns.length }} student{{ assignedInterns.length !== 1 ? 's' : '' }}</span>
           </div>
+
+                <button class="btn-assign-intern" (click)="openAssignModal()">
+        <i class="fa-solid fa-user-plus"></i> Assign Intern
+      </button>
   
           <div class="interns-loading" *ngIf="internsLoading">
             <i class="fa fa-spinner fa-spin"></i>
@@ -232,6 +236,9 @@
                   </span>
                 </div>
               </div>
+              <button class="btn-unassign" (click)="unassignIntern(intern)" [disabled]="assigningIntern" title="Unassign intern">
+         <i class="fa-solid fa-user-minus"></i>
+           </button>
             </div>
           </div>
         </ng-container>
@@ -461,3 +468,63 @@
       </div>
     </div>
   </div>
+  <!-- ASSIGN INTERN MODAL -->
+<div class="modal-overlay" *ngIf="showAssignModal" (click)="showAssignModal = false">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-icon">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div>
+          <h3>Assign Intern</h3>
+          <p>Select an intern to assign to {{ selectedSupervisor ? getFullName(selectedSupervisor) : '' }}</p>
+        </div>
+      </div>
+      <button class="modal-close" (click)="showAssignModal = false">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="search-box" style="width:100%; margin-bottom:4px;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search intern by name, school, course..."
+               (input)="onInternSearch($event)">
+      </div>
+
+      <div class="assign-intern-list">
+        <div *ngFor="let intern of filteredInterns" class="assign-intern-row"
+             [class.already-assigned-self]="(intern)['supervisor_id'] === selectedSupervisor?.$id"
+             [class.already-assigned-other]="(intern)['supervisor_id'] && (intern)['supervisor_id'] !== selectedSupervisor?.$id">
+          <img [src]="getInternAvatarUrl(intern)" class="intern-avatar" alt="Intern">
+          <div class="intern-info">
+            <div class="intern-name">{{ getInternFullName(intern) }}</div>
+            <div class="intern-meta">{{ intern.school_name || 'No school' }} &bull; {{ intern.course || '—' }}</div>
+            <div class="assign-label" *ngIf="getInternSupervisorLabel(intern)">
+              <i class="fa-solid fa-circle-info"></i>
+              {{ getInternSupervisorLabel(intern) }}
+            </div>
+          </div>
+          <button class="btn-assign"
+                  [disabled]="(intern)['supervisor_id'] === selectedSupervisor?.$id || assigningIntern"
+                  [class.btn-assigned]="(intern)['supervisor_id'] === selectedSupervisor?.$id"
+                  (click)="assignIntern(intern)">
+            <i class="fa-solid fa-check" *ngIf="(intern)['supervisor_id'] === selectedSupervisor?.$id"></i>
+            <i class="fa-solid fa-plus" *ngIf="(intern)['supervisor_id'] !== selectedSupervisor?.$id"></i>
+            {{ (intern)['supervisor_id'] === selectedSupervisor?.$id ? 'Assigned' : 'Assign' }}
+          </button>
+        </div>
+
+        <div *ngIf="filteredInterns.length === 0" class="interns-empty">
+          <i class="fa-solid fa-user-slash"></i>
+          <p>No interns found.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="showAssignModal = false">Close</button>
+    </div>
+  </div>
+</div>

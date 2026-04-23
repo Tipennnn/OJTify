@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Client, Account, Databases, Storage, Functions } from 'appwrite';
 import { environment } from '../../environments/environment.example';
 import { BehaviorSubject } from 'rxjs';
+import { Query } from 'appwrite';
 
 @Injectable({ providedIn: 'root' })
 export class AppwriteService {

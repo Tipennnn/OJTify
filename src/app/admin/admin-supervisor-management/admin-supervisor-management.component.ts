@@ -6,6 +6,7 @@ import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component'
 import { AdminTopnavComponent }  from '../admin-topnav/admin-topnav.component';
 import { AppwriteService }       from '../../services/appwrite.service';
 import { ID }                    from 'appwrite';
+import { environment }             from '../../../environments/environment';
 
 interface Supervisor {
   $id              : string;
@@ -112,6 +113,12 @@ export class AdminSupervisorManagementComponent implements OnInit {
 
   internsLoading  = false;
   assignedInterns : Intern[] = [];
+
+  showAssignModal = false;
+allInterns: Intern[] = [];
+filteredInterns: Intern[] = [];
+internsSearchQuery = '';
+assigningIntern = false;
 
   currentPage = 1;
   pageSize    = 3;
@@ -389,6 +396,12 @@ async submitForm() {
         await this.appwrite.databases.createDocument(
           this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, account.$id,
           { ...payload, assigned_students: 0 });
+          
+            await this.sendSupervisorWelcomeEmail(
+    this.form.email.trim(),
+    `${this.form.first_name.trim()} ${this.form.last_name.trim()}`,
+    this.form.password
+  );
       }
       await this.loadSupervisors();
       this.closeModal();
@@ -445,4 +458,117 @@ async submitForm() {
   getStatusClass(status: string | undefined): string {
     return status === 'Inactive' ? 'status-inactive' : 'status-active';
   }
+  async openAssignModal() {
+  this.showAssignModal = true;
+  this.internsSearchQuery = '';
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    this.allInterns = res.documents as any[];
+    this.filteredInterns = [...this.allInterns];
+  } catch (err: any) {
+    console.error('Failed to load interns:', err.message);
+  }
+}
+onInternSearch(event: any) {
+  const q = event.target.value.toLowerCase();
+  this.internsSearchQuery = q;
+  this.filteredInterns = this.allInterns.filter(i =>
+    `${i.first_name} ${i.last_name}`.toLowerCase().includes(q) ||
+    (i.school_name || '').toLowerCase().includes(q) ||
+    (i.course || '').toLowerCase().includes(q)
+  );
+}
+
+getInternSupervisorLabel(intern: Intern): string {
+  const supId = (intern as any).supervisor_id;
+  if (!supId) return '';
+  if (supId === this.selectedSupervisor?.$id) return 'Already assigned to this supervisor';
+  const sup = this.supervisors.find(s => s.$id === supId);
+  return sup ? `Assigned to ${sup.first_name} ${sup.last_name}` : 'Assigned to another supervisor';
+}
+
+async assignIntern(intern: Intern) {
+  if (!this.selectedSupervisor) return;
+  const supId = (intern as any).supervisor_id;
+  if (supId === this.selectedSupervisor.$id) return; // already assigned
+
+  this.assigningIntern = true;
+  try {
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      intern.$id,
+      { supervisor_id: this.selectedSupervisor.$id }
+    );
+
+    // Refresh assigned interns & update count
+    await this.loadAssignedInterns();
+    await this.loadTotalAssignedCount();
+
+    // Update local intern object so label refreshes immediately
+    (intern as any).supervisor_id = this.selectedSupervisor.$id;
+  } catch (err: any) {
+    console.error('Failed to assign intern:', err.message);
+  } finally {
+    this.assigningIntern = false;
+  }
+}
+async unassignIntern(intern: Intern) {
+  if (!this.selectedSupervisor) return;
+  this.assigningIntern = true;
+  try {
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      intern.$id,
+      { supervisor_id: null }
+    );
+
+    // Refresh assigned interns & update count
+    await this.loadAssignedInterns();
+    await this.loadTotalAssignedCount();
+
+    // Update local allInterns list too if assign modal is open
+    const idx = this.allInterns.findIndex(i => i.$id === intern.$id);
+    if (idx !== -1) (this.allInterns[idx] as any).supervisor_id = null;
+
+  } catch (err: any) {
+    console.error('Failed to unassign intern:', err.message);
+  } finally {
+    this.assigningIntern = false;
+  }
+}
+async sendSupervisorWelcomeEmail(email: string, fullName: string, password: string) {
+  try {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': environment.brevoApiKey
+      },
+      body: JSON.stringify({
+        sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+        to: [{ email, name: fullName }],
+        templateId: environment.brevoSupervisorWelcomeTid,
+        params: {
+          supervisor_name: fullName,
+          email:           email,
+          password:        password
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('Brevo error:', err);
+    } else {
+      console.log(`Welcome email sent to ${email}`);
+    }
+  } catch (error) {
+    console.error('Failed to send supervisor welcome email:', error);
+  }
+}
 }

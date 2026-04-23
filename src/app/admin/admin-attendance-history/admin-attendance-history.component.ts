@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
-import { ID } from 'appwrite';
+import { ID, Query } from 'appwrite';
 
 interface AttendanceLog {
   $id?: string;
@@ -126,50 +126,84 @@ export class AdminAttendanceHistoryComponent implements OnInit {
 
   // ── Load students ─────────────────────────────────────────
   async loadStudents() {
-    try {
+  try {
+    let allStudents: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
+        this.appwrite.STUDENTS_COL,
+        [Query.limit(limit), Query.offset(offset)]
       );
-      this.allStudents = res.documents as any[];
-
-      const archiveRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL
-      );
-      this.allArchived = archiveRes.documents as any[];
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
+      allStudents = allStudents.concat(res.documents);
+      if (allStudents.length >= res.total || res.documents.length < limit) break;
+      offset += limit;
     }
+    this.allStudents = allStudents;
+
+    let allArchived: any[] = [];
+    offset = 0;
+    while (true) {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ARCHIVES_COL,
+        [Query.limit(limit), Query.offset(offset)]
+      );
+      allArchived = allArchived.concat(res.documents);
+      if (allArchived.length >= res.total || res.documents.length < limit) break;
+      offset += limit;
+    }
+    this.allArchived = allArchived;
+
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
   }
+}
 
   // ── Load attendance logs ──────────────────────────────────
-  async loadLast30Days() {
-    this.loading = true;
-    try {
-      const res     = await this.appwrite.databases.listDocuments(
+ async loadLast30Days() {
+  this.loading = true;
+  try {
+    let allDocs: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
+      const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
+        this.appwrite.ATTENDANCE_COL,
+        [Query.limit(limit), Query.offset(offset)]
       );
-      const allDocs = res.documents as any[];
-
-      const last30: string[] = [];
-      for (let i = 0; i < 30; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        last30.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-      }
-
-      const recent = allDocs.filter(d => last30.includes(d.date));
-      this.datesWithRecords = new Set(recent.map(d => d.date));
-      this.allLogs = recent.map(doc => this.mapDoc(doc));
-    } catch (error: any) {
-      console.error('Failed to load history:', error.message);
-    } finally {
-      this.loading = false;
+      allDocs = allDocs.concat(res.documents);
+      if (allDocs.length >= res.total || res.documents.length < limit) break;
+      offset += limit;
     }
-  }
 
+    const last30: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last30.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    }
+
+    const recent = allDocs.filter(d => {
+      if (!last30.includes(d.date)) return false;
+      // Filter out records where student can't be found
+      const student = this.allStudents.find(s => s.$id === d.student_id)
+                   ?? this.allArchived.find(s => s.student_doc_id === d.student_id);
+      return !!student;
+    });
+
+    this.datesWithRecords = new Set(recent.map(d => d.date));
+    this.allLogs = recent.map(doc => this.mapDoc(doc));
+  } catch (error: any) {
+    console.error('Failed to load history:', error.message);
+  } finally {
+    this.loading = false;
+  }
+}
   private mapDoc(doc: any): AttendanceLog {
     const student = this.allStudents.find(s => s.$id === doc.student_id)
           ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
@@ -278,14 +312,19 @@ export class AdminAttendanceHistoryComponent implements OnInit {
   }
 
   searchStudents() {
-    const q = this.studentSearch.toLowerCase().trim();
-    if (!q) { this.studentResults = []; return; }
-    // Admin searches ALL students (no supervisor filter)
-    this.studentResults = [...this.allStudents, ...this.allArchived].filter(s =>
-      `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
-      (s.student_id || '').toLowerCase().includes(q)
-    ).slice(0, 8);
-  }
+  const q = this.studentSearch.toLowerCase().trim();
+  if (!q) { this.studentResults = []; return; }
+
+  this.studentResults = this.allStudents.filter(s => {
+    // Hide completed interns
+    const completed = Number(s.completed_hours) || 0;
+    const required  = Number(s.required_hours)  || 500;
+    if (completed >= required) return false;
+
+    return `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
+           (s.student_id || '').toLowerCase().includes(q);
+  }).slice(0, 8);
+}
 
   pickStudent(s: any) {
     this.selectedStudent = s;
@@ -294,69 +333,84 @@ export class AdminAttendanceHistoryComponent implements OnInit {
   }
 
   async submitManualAttendance() {
-    this.addError = '';
+  this.addError = '';
 
-    if (!this.selectedStudent) { this.addError = 'Please select a student.'; return; }
-    if (!this.addForm.time_in)  { this.addError = 'Time In is required.'; return; }
+  if (!this.selectedStudent) { this.addError = 'Please select a student.'; return; }
+  if (!this.addForm.time_in)  { this.addError = 'Time In is required.'; return; }
 
-    if (this.addForm.time_out) {
-      const [inH, inM]   = this.addForm.time_in.split(':').map(Number);
-      const [outH, outM] = this.addForm.time_out.split(':').map(Number);
-      if ((outH * 60 + outM) <= (inH * 60 + inM)) {
-        this.addError = 'Time Out must be after Time In.';
-        return;
-      }
-    }
-
-    const already = this.allLogs.find(
-      l => l.date === this.selectedDate &&
-          (l.student_id === this.selectedStudent.$id ||
-           l.student_id === this.selectedStudent.student_doc_id)
-    );
-    if (already) {
-      this.addError = 'This student already has a record for this date.';
+  if (this.addForm.time_out) {
+    const [inH, inM]   = this.addForm.time_in.split(':').map(Number);
+    const [outH, outM] = this.addForm.time_out.split(':').map(Number);
+    if ((outH * 60 + outM) <= (inH * 60 + inM)) {
+      this.addError = 'Time Out must be after Time In.';
       return;
     }
+  }
 
-    this.addLoading = true;
-    try {
-      const studentDocId = this.selectedStudent.$id ?? this.selectedStudent.student_doc_id;
-
-      const doc = await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        ID.unique(),
-        {
-          student_id:      studentDocId,
-          date:            this.selectedDate,
-          time_in:         this.formatTimeTo12h(this.addForm.time_in),
-          time_out:        this.addForm.time_out
-                             ? this.formatTimeTo12h(this.addForm.time_out)
-                             : null,
-          status:          this.addForm.status,
-          scanned_by:      this.currentAdmin?.$id ?? null,
-          scanned_by_name: this.adminFullName,
-          is_manual:       true,
-        }
-      );
-
-      if (this.addForm.time_out && this.computedHours !== null) {
-        await this.updateStudentHours(studentDocId, this.computedHours);
-      }
-
-      const newLog = this.mapDoc({ ...doc, student_id: studentDocId });
-      this.allLogs.push(newLog);
-      this.datesWithRecords.add(this.selectedDate);
-      this.addSuccess = true;
-      this.applyFilters();
-
-      setTimeout(() => this.closeAddModal(), 1500);
-    } catch (error: any) {
-      this.addError = error.message || 'Failed to save record.';
-    } finally {
-      this.addLoading = false;
+  // ── OJT completed check ───────────────────────────────
+  const studentDocId  = this.selectedStudent.$id ?? this.selectedStudent.student_doc_id;
+  const activeStudent = this.allStudents.find(s => s.$id === studentDocId);
+  if (activeStudent) {
+    const completed = Number(activeStudent.completed_hours) || 0;
+    const required  = Number(activeStudent.required_hours)  || 500;
+    if (completed >= required) {
+      this.addError = `${activeStudent.first_name} ${activeStudent.last_name} has already completed their required ${required} hours. No further attendance needed.`;
+      return;
     }
   }
+
+  // ── Live duplicate check ──────────────────────────────
+  const dupCheck = await this.appwrite.databases.listDocuments(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.ATTENDANCE_COL,
+    [
+      Query.equal('student_id', studentDocId),
+      Query.equal('date', this.selectedDate),
+      Query.limit(1)
+    ]
+  );
+  if (dupCheck.documents.length > 0) {
+    this.addError = 'This student already has a record for this date.';
+    return;
+  }
+
+  this.addLoading = true;
+  try {
+    const doc = await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      ID.unique(),
+      {
+        student_id:      studentDocId,
+        date:            this.selectedDate,
+        time_in:         this.formatTimeTo12h(this.addForm.time_in),
+        time_out:        this.addForm.time_out
+                           ? this.formatTimeTo12h(this.addForm.time_out)
+                           : null,
+        status:          this.addForm.status,
+        scanned_by:      this.currentAdmin?.$id ?? null,
+        scanned_by_name: this.adminFullName,
+        is_manual:       true,
+      }
+    );
+
+    if (this.addForm.time_out && this.computedHours !== null) {
+      await this.updateStudentHours(studentDocId, this.computedHours);
+    }
+
+    const newLog = this.mapDoc({ ...doc, student_id: studentDocId });
+    this.allLogs.push(newLog);
+    this.datesWithRecords.add(this.selectedDate);
+    this.addSuccess = true;
+    this.applyFilters();
+
+    setTimeout(() => this.closeAddModal(), 1500);
+  } catch (error: any) {
+    this.addError = error.message || 'Failed to save record.';
+  } finally {
+    this.addLoading = false;
+  }
+}
 
   private async updateStudentHours(studentDocId: string, hoursToAdd: number) {
     const activeStudent   = this.allStudents.find(s => s.$id === studentDocId);
