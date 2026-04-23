@@ -771,7 +771,7 @@
                 <div class="cert-content">
                   <div class="cert-header">
                     <div class="cert-header-logo">
-                      <img [src]="certTemplate.depedLogoUrl || 'assets/images/Deped_logo.png'" alt="Left Logo">
+                       <img *ngIf="certTemplate.depedLogoUrl" [src]="certTemplate.depedLogoUrl" alt="Left Logo">
                     </div>
                     <div class="cert-header-text">
                       <p class="cert-republic">{{ certTemplate.republic }}</p>
@@ -781,7 +781,7 @@
                       <p class="cert-address">{{ certTemplate.address }}</p>
                     </div>
                     <div class="cert-header-logo">
-                      <img [src]="certTemplate.schoolLogoUrl || 'assets/images/OCES_logo.png'" alt="Right Logo">
+                      <img *ngIf="certTemplate.schoolLogoUrl" [src]="certTemplate.schoolLogoUrl" alt="Right Logo">
                     </div>
                   </div>
                   <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
@@ -794,21 +794,27 @@
                   <p class="cert-body-para" [innerHTML]="getBodyText(sendTarget)"></p>
                   <p class="cert-given-text">{{ getGivenText(sendTarget) }}</p>
                   <div class="cert-sig-row">
-                    <div class="cert-sig-block">
-                      <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
-                      <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.leftSignatoryName | uppercase }}</p>
-                      <div class="cert-sig-underline"></div>
-                      <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
-                      <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
-                    </div>
-                    <div class="cert-sig-block">
-                      <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
-                      <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.supervisorName | uppercase }}</p>
-                      <div class="cert-sig-underline"></div>
-                      <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
-                      <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
-                    </div>
-                  </div>
+  <!-- LEFT signatory — School Principal (from certTemplate, global) -->
+  <div class="cert-sig-block">
+    <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
+    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+      {{ certTemplate.leftSignatoryName | uppercase }}
+    </p>
+    <div class="cert-sig-underline"></div>
+    <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
+    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+  </div>
+  <!-- RIGHT signatory — per-intern supervisor -->
+  <div class="cert-sig-block">
+    <img *ngIf="sendTarget.rightSigBase64" [src]="sendTarget.rightSigBase64" class="cert-sig-image">
+    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+      {{ sendTarget.supervisorName | uppercase }}
+    </p>
+    <div class="cert-sig-underline"></div>
+    <p class="cert-sig-pos">{{ sendTarget.supervisorPos }}</p>
+    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+  </div>
+</div>
                 </div>
               </div>
               <div class="cert-bottom-bar-gold" [style.background]="certTemplate.accentColor"></div>
@@ -905,7 +911,7 @@
               <div class="cert-content">
                 <div class="cert-header">
                   <div class="cert-header-logo">
-                    <img [src]="certTemplate.depedLogoUrl || 'assets/images/Deped_logo.png'" alt="Left Logo">
+                    <img *ngIf="certTemplate.depedLogoUrl" [src]="certTemplate.depedLogoUrl" alt="Left Logo">
                   </div>
                   <div class="cert-header-text">
                     <p class="cert-republic">{{ certTemplate.republic }}</p>
@@ -915,7 +921,7 @@
                     <p class="cert-address">{{ certTemplate.address }}</p>
                   </div>
                   <div class="cert-header-logo">
-                    <img [src]="certTemplate.schoolLogoUrl || 'assets/images/OCES_logo.png'" alt="Right Logo">
+                    <img *ngIf="certTemplate.schoolLogoUrl" [src]="certTemplate.schoolLogoUrl" alt="Right Logo">
                   </div>
                 </div>
                 <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
@@ -936,10 +942,10 @@
                     <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
                   </div>
                   <div class="cert-sig-block">
-                    <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
-                    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.supervisorName | uppercase }}</p>
+                    <img *ngIf="selectedIntern.rightSigBase64" [src]="selectedIntern.rightSigBase64" class="cert-sig-image">
+                     <p class="cert-sig-name" ...>{{ selectedIntern.supervisorName | uppercase }}</p>
                     <div class="cert-sig-underline"></div>
-                    <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
+                    <p class="cert-sig-pos">{{ selectedIntern.supervisorPos }}</p>
                     <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
                   </div>
                 </div>

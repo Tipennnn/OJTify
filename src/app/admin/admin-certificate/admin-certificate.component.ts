@@ -11,23 +11,27 @@ import jsPDF from 'jspdf';
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface Intern {
-  $id:            string;
-  name:           string;
-  studentId:      string;
-  course:         string;
-  school:         string;
-  hoursCompleted: number;
-  requiredHours:  number;
-  startDate:      string;
-  endDate:        string;
-  photoUrl?:      string;
-  sentDate?:      string;
-  _sortDate?:     number;
-  _rawStartDate?: string;
-  _rawEndDate?:   string;
-  _rawSentDate?:  string;
+  $id:              string;
+  name:             string;
+  studentId:        string;
+  course:           string;
+  school:           string;
+  hoursCompleted:   number;
+  requiredHours:    number;
+  startDate:        string;
+  endDate:          string;
+  photoUrl?:        string;
+  sentDate?:        string;
+  _sortDate?:       number;
+  _rawStartDate?:   string;
+  _rawEndDate?:     string;
+  _rawSentDate?:    string;
+  // ── NEW: per-intern supervisor info ──
+  supervisorName:   string;   // full name from supervisors collection
+  supervisorPos:    string;   // grade_level used as position
+  rightSigBase64:   string;   // base64 of supervisor's e-sig (empty = no sig uploaded)
 }
-
+ 
 export interface CertTemplate {
   requiredHours:     number;
   republic:          string;
@@ -77,9 +81,9 @@ const DEFAULT_TEMPLATE: CertTemplate = {
   issuedLocation:    'Olongapo City Elementary School',
   primaryColor:      '#1e3a8a',
   accentColor:       '#c9a84c',
-  depedLogoUrl:      'assets/images/Deped_logo.png',
-  schoolLogoUrl:     'assets/images/OCES_logo.png',
-  watermarkUrl:      'assets/images/OCES_logo.png',
+  depedLogoUrl:      '',
+  schoolLogoUrl:     '',
+  watermarkUrl:      '',
   leftSigUrl:        '',
   rightSigUrl:       '',
 };
@@ -412,8 +416,7 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
   async loadSavedTemplate(): Promise<void> {
   try {
     const user = await this.appwrite.account.get();
-
-    // Try by auth_user_id first
+ 
     let adminDoc: any = null;
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -423,8 +426,7 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
       );
       if (res.documents.length > 0) adminDoc = res.documents[0];
     } catch { /* ignore */ }
-
-    // Fallback: try by $id directly
+ 
     if (!adminDoc) {
       try {
         adminDoc = await this.appwrite.databases.getDocument(
@@ -434,30 +436,58 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
         );
       } catch { /* ignore */ }
     }
-
+ 
     if (adminDoc?.cert_template_json) {
       const parsed = JSON.parse(adminDoc.cert_template_json);
-      // Restore image URLs from their own dedicated columns
-      if (adminDoc.cert_deped_logo_url)   parsed.depedLogoUrl  = adminDoc.cert_deped_logo_url;
-      if (adminDoc.cert_school_logo_url)  parsed.schoolLogoUrl = adminDoc.cert_school_logo_url;
-      if (adminDoc.cert_watermark_url)    parsed.watermarkUrl  = adminDoc.cert_watermark_url;
-      if (adminDoc.cert_left_sig_url)     parsed.leftSigUrl    = adminDoc.cert_left_sig_url;
-      if (adminDoc.cert_right_sig_url)    parsed.rightSigUrl   = adminDoc.cert_right_sig_url;
+ 
+      // ── Read file IDs stored in the DB columns ──
+      const depedFileId     = adminDoc.cert_deped_logo_url  || '';
+      const schoolFileId    = adminDoc.cert_school_logo_url || '';
+      const watermarkFileId = adminDoc.cert_watermark_url   || '';
+      const leftSigFileId   = adminDoc.cert_left_sig_url    || '';
+      const rightSigFileId  = adminDoc.cert_right_sig_url   || '';
+ 
+      // Rebuild fileIdMap from DB (so re-upload can delete the old files)
+      if (depedFileId)     this.fileIdMap['deped']     = depedFileId;
+      if (schoolFileId)    this.fileIdMap['school']    = schoolFileId;
+      if (watermarkFileId) this.fileIdMap['watermark'] = watermarkFileId;
+      if (leftSigFileId)   this.fileIdMap['leftSig']   = leftSigFileId;
+      if (rightSigFileId)  this.fileIdMap['rightSig']  = rightSigFileId;
+      this.saveFileIds();
+ 
+      // ── Download all images as base64 in parallel ──
+      const [depedB64, schoolB64, watermarkB64, leftSigB64, rightSigB64] = await Promise.all([
+        this.appwriteFileToBase64(this.OJT_FILES_BUCKET, depedFileId),
+        this.appwriteFileToBase64(this.OJT_FILES_BUCKET, schoolFileId),
+        this.appwriteFileToBase64(this.OJT_FILES_BUCKET, watermarkFileId),
+        this.appwriteFileToBase64(this.OJT_FILES_BUCKET, leftSigFileId),
+        this.appwriteFileToBase64(this.OJT_FILES_BUCKET, rightSigFileId),
+      ]);
+ 
+      parsed.depedLogoUrl  = depedB64;
+      parsed.schoolLogoUrl = schoolB64;
+      parsed.watermarkUrl  = watermarkB64;
+      parsed.leftSigUrl    = leftSigB64;
+      parsed.rightSigUrl   = rightSigB64;
+ 
       this.certTemplate = { ...DEFAULT_TEMPLATE, ...parsed };
+ 
+      // Cache to localStorage (with base64) so next load is instant
       localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
       return;
     }
   } catch (err) {
     console.warn('Could not load template from DB:', err);
   }
-  // Fallback to localStorage
+ 
+  // ── Fallback: localStorage already has base64 from last successful load ──
   const saved = localStorage.getItem('admin_cert_template');
   if (saved) {
     try { this.certTemplate = { ...DEFAULT_TEMPLATE, ...JSON.parse(saved) }; }
     catch { this.certTemplate = { ...DEFAULT_TEMPLATE }; }
   }
 }
-
+ 
   // ── Load and save the file ID map (so we know which Appwrite file to delete on re-upload)
   private loadSavedFileIds(): void {
     const saved = localStorage.getItem('admin_cert_file_ids');
@@ -472,16 +502,18 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
   }
 
  async saveTemplate(): Promise<void> {
-  // Separate image URLs from the rest (to avoid the 5000 char limit)
+  // Strip image URLs from the JSON blob — they're stored separately
   const { depedLogoUrl, schoolLogoUrl, watermarkUrl, leftSigUrl, rightSigUrl, ...textFields } = this.certTemplate;
-  const json = JSON.stringify(textFields);  // ← only text fields, no long URLs
-
-  localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));  // full copy locally
-
+  const json = JSON.stringify(textFields);
+ 
+  // Save full template (with base64) to localStorage for fast reload
+  localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
+  // Save fileIdMap too so we know which Appwrite file belongs to which slot
+  this.saveFileIds();
+ 
   try {
     const user = await this.appwrite.account.get();
-
-    // Find admin doc
+ 
     let adminDocId: string | null = null;
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -491,20 +523,21 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
       );
       if (res.documents.length > 0) adminDocId = res.documents[0].$id;
     } catch { /* ignore */ }
-
-    if (!adminDocId) adminDocId = user.$id;  // fallback: try auth user ID as doc ID
-
+ 
+    if (!adminDocId) adminDocId = user.$id;
+ 
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID,
       this.appwrite.ADMINS_COL,
       adminDocId,
       {
-        cert_template_json:    json,           // text fields only — stays under 5000 chars
-        cert_deped_logo_url:   depedLogoUrl  || '',
-        cert_school_logo_url:  schoolLogoUrl || '',
-        cert_watermark_url:    watermarkUrl  || '',
-        cert_left_sig_url:     leftSigUrl    || '',
-        cert_right_sig_url:    rightSigUrl   || '',
+        cert_template_json:    json,
+        // ── Store FILE IDs, not URLs, not base64 ──
+        cert_deped_logo_url:   this.fileIdMap['deped']     || '',
+        cert_school_logo_url:  this.fileIdMap['school']    || '',
+        cert_watermark_url:    this.fileIdMap['watermark'] || '',
+        cert_left_sig_url:     this.fileIdMap['leftSig']   || '',
+        cert_right_sig_url:    this.fileIdMap['rightSig']  || '',
       }
     );
   } catch (err) {
@@ -518,7 +551,7 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
     this.splitInterns();
     return;
   }
-
+ 
   this.closeSettings();
   this.splitInterns();
   Swal.fire({
@@ -527,6 +560,7 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
     showConfirmButton: false, timer: 2500, timerProgressBar: true
   });
 }
+ 
 
   resetTemplate(): void {
     Swal.fire({
@@ -555,107 +589,140 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
    * Returns a Map of student_id → raw date string.
    */
   private async fetchLastAttendanceDates(studentIds: string[]): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    if (!studentIds.length) return map;
+  const map = new Map<string, string>();
+  if (!studentIds.length) return map;
 
-    try {
-      // Fetch all attendance records ordered by date descending.
-      // We build the map client-side — first occurrence per student_id wins (most recent).
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        'attendance',
-        [Query.orderDesc('date'), Query.limit(5000)]
-      );
-      for (const doc of res.documents as any[]) {
-        const sid = doc.student_id as string;
-        if (sid && studentIds.includes(sid) && !map.has(sid) && doc.date) {
-          map.set(sid, doc.date as string);
-        }
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,  // ✅ use ATTENDANCE_COL constant, not hardcoded 'attendance'
+      [
+        Query.equal('status', 'Present'),  // ✅ only grab Present records
+        Query.orderDesc('date'),
+        Query.limit(5000)
+      ]
+    );
+    for (const doc of res.documents as any[]) {
+      const sid = doc.student_id as string;
+      if (sid && studentIds.includes(sid) && !map.has(sid) && doc.date) {
+        map.set(sid, doc.date as string);
       }
-    } catch (err) {
-      console.warn('Could not fetch attendance dates:', err);
     }
-    return map;
+  } catch (err) {
+    console.warn('Could not fetch attendance dates:', err);
   }
+  return map;
+}
 
   async loadInterns(): Promise<void> {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-
-      const docs = res.documents as any[];
-
-      // ── Fetch last attendance date for every intern upfront ───────────────
-      const studentIds = docs.map(d => d.student_id ?? '').filter(Boolean);
-      const lastAttMap = await this.fetchLastAttendanceDates(studentIds);
-
-      const mapped: Intern[] = docs.map(doc => {
-        const firstName  = (doc.first_name  ?? '').trim();
-        const middleName = (doc.middle_name ?? '').trim();
-        const lastName   = (doc.last_name   ?? '').trim();
-        const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Unknown Intern';
-
-        const hoursCompleted = Number(doc.completed_hours ?? 0);
-        const requiredHours  = Number(doc.required_hours  ?? this.certTemplate.requiredHours);
-
-        const rawStart = doc.start_date ?? doc.$createdAt ?? '';
-        const rawEnd   = doc.end_date   ?? '';
-
-        // ── Use last attendance date as end date; fall back to doc.end_date ──
-        const lastAttRaw     = lastAttMap.get(doc.student_id ?? '') ?? '';
-        const resolvedEndRaw = lastAttRaw || rawEnd;
-
-        const photoUrl = doc.profile_photo_id
-          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`
-          : '';
-
-        const rawSentDate = doc.cert_sent_date ?? '';
-
-        return {
-          $id:            doc.$id,
-          name:           fullName,
-          studentId:      doc.student_id  ?? '',
-          course:         doc.course      ?? 'N/A',
-          school:         doc.school_name ?? 'N/A',
-          hoursCompleted,
-          requiredHours,
-          startDate:      this.formatDate(rawStart),
-          endDate:        this.formatDate(resolvedEndRaw),   // ← last attendance date
-          photoUrl,
-          sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
-          _sortDate:      resolvedEndRaw
-                            ? new Date(resolvedEndRaw).getTime()
-                            : new Date(rawStart).getTime(),
-          _rawStartDate:  rawStart,
-          _rawEndDate:    resolvedEndRaw,                    // ← last attendance date
-          _rawSentDate:   rawSentDate,
-          _certSent:      doc.cert_sent === true,
-        } as any;
-      });
-
-      this.allInterns = mapped;
-
-      // Build sentCerts from DB (cert_sent === true)
-      this.sentCerts = mapped
-        .filter((i: any) => i._certSent === true)
-        .map((i: any) => {
-          const { _certSent, ...intern } = i;
-          return intern as Intern;
-        })
-        .sort((a: Intern, b: Intern) => {
-          const da = a._rawSentDate ? new Date(a._rawSentDate).getTime() : 0;
-          const db = b._rawSentDate ? new Date(b._rawSentDate).getTime() : 0;
-          return db - da;
-        });
-
-      this.splitInterns();
-    } catch (err) {
-      console.error('Failed to load interns:', err);
-      this.loadMockData();
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+ 
+    const docs = res.documents as any[];
+ 
+    // Fetch attendance dates and supervisors in parallel
+    const studentIds = docs.map(d => d.$id).filter(Boolean);
+    const [lastAttMap, supervisorMap] = await Promise.all([
+      this.fetchLastAttendanceDates(studentIds),
+      this.fetchSupervisors(),
+    ]);
+ 
+    // Download all unique supervisor e-sigs as base64 (deduplicated)
+    // Build a set of unique esig_file_ids first
+    const esigFileIds = new Set<string>();
+    for (const doc of docs) {
+      const supId = doc.supervisor_id;
+      if (supId) {
+        const sup = supervisorMap.get(supId);
+        if (sup?.esig_file_id) esigFileIds.add(sup.esig_file_id);
+      }
     }
+ 
+    // Download all e-sigs in parallel, keyed by file ID
+    const esigBase64Map = new Map<string, string>();
+    await Promise.all(
+      Array.from(esigFileIds).map(async (fileId) => {
+        const b64 = await this.appwriteFileToBase64(this.OJT_FILES_BUCKET, fileId);
+        esigBase64Map.set(fileId, b64);
+      })
+    );
+ 
+    const mapped: Intern[] = docs.map(doc => {
+      const firstName  = (doc.first_name  ?? '').trim();
+      const middleName = (doc.middle_name ?? '').trim();
+      const lastName   = (doc.last_name   ?? '').trim();
+      const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Unknown Intern';
+ 
+      const hoursCompleted = Number(doc.completed_hours ?? 0);
+      const requiredHours  = Number(doc.required_hours  ?? this.certTemplate.requiredHours);
+ 
+      const rawStart       = doc.start_date ?? doc.$createdAt ?? '';
+      const rawEnd         = doc.end_date   ?? '';
+      const lastAttRaw     = lastAttMap.get(doc.$id) ?? '';
+      const resolvedEndRaw = lastAttRaw || rawEnd;
+ 
+      const photoUrl = doc.profile_photo_id
+        ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`
+        : '';
+ 
+      const rawSentDate = doc.cert_sent_date ?? '';
+ 
+      // ── Resolve supervisor info ──
+      const sup = doc.supervisor_id ? supervisorMap.get(doc.supervisor_id) : null;
+      const supFirstName  = (sup?.first_name ?? '').trim();
+      const supLastName   = (sup?.last_name  ?? '').trim();
+      const supFullName   = [supFirstName, supLastName].filter(Boolean).join(' ')
+                            || this.certTemplate.supervisorName;  // fallback to template
+      const supPos        = sup?.grade_level ?? this.certTemplate.supervisorPos;
+      const supEsigFileId = sup?.esig_file_id ?? '';
+      const supEsigBase64 = supEsigFileId ? (esigBase64Map.get(supEsigFileId) ?? '') : '';
+ 
+      return {
+        $id:            doc.$id,
+        name:           fullName,
+        studentId:      doc.student_id  ?? '',
+        course:         doc.course      ?? 'N/A',
+        school:         doc.school_name ?? 'N/A',
+        hoursCompleted,
+        requiredHours,
+        startDate:      this.formatDate(rawStart),
+        endDate:        this.formatDate(resolvedEndRaw),
+        photoUrl,
+        sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
+        _sortDate:      resolvedEndRaw
+                          ? new Date(resolvedEndRaw).getTime()
+                          : new Date(rawStart).getTime(),
+        _rawStartDate:  rawStart,
+        _rawEndDate:    resolvedEndRaw,
+        _rawSentDate:   rawSentDate,
+        _certSent:      doc.cert_sent === true,
+        // ── Per-intern supervisor ──
+        supervisorName:  supFullName,
+        supervisorPos:   supPos,
+        rightSigBase64:  supEsigBase64,
+      } as any;
+    });
+ 
+    this.allInterns = mapped;
+ 
+    this.sentCerts = mapped
+      .filter((i: any) => i._certSent === true)
+      .map((i: any) => { const { _certSent, ...intern } = i; return intern as Intern; })
+      .sort((a: Intern, b: Intern) => {
+        const da = a._rawSentDate ? new Date(a._rawSentDate).getTime() : 0;
+        const db = b._rawSentDate ? new Date(b._rawSentDate).getTime() : 0;
+        return db - da;
+      });
+ 
+    this.splitInterns();
+  } catch (err) {
+    console.error('Failed to load interns:', err);
+    this.loadMockData();
   }
+}
 
   private splitInterns(): void {
     const sentIds = new Set(this.sentCerts.map(s => s.$id));
@@ -673,11 +740,11 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
 
   private loadMockData(): void {
     this.allInterns = [
-      { $id: '1', name: 'Maria Clara Santos',    studentId: 'STU-001', course: 'BSIT', school: 'PUP',            hoursCompleted: 500, requiredHours: 500, startDate: 'January 6, 2025',  endDate: 'May 16, 2025',  photoUrl: '', _sortDate: new Date('2025-05-16').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-16' },
-      { $id: '2', name: 'Juan Pablo Reyes',       studentId: 'STU-002', course: 'BSCS', school: 'Gordon College', hoursCompleted: 500, requiredHours: 500, startDate: 'January 6, 2025',  endDate: 'May 10, 2025',  photoUrl: '', _sortDate: new Date('2025-05-10').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-10' },
-      { $id: '3', name: 'Angela Marie Cruz',      studentId: 'STU-003', course: 'BSED', school: 'Holy Angels',    hoursCompleted: 320, requiredHours: 500, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
-      { $id: '4', name: 'Ricardo Jose Flores',    studentId: 'STU-004', course: 'BSIT', school: 'DMMMSU',         hoursCompleted: 410, requiredHours: 500, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
-      { $id: '5', name: 'Sophia Nicole Bautista', studentId: 'STU-005', course: 'BSBA', school: 'Columban',       hoursCompleted: 180, requiredHours: 500, startDate: 'March 3, 2025',    endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-03-03', _rawEndDate: '' },
+      { $id: '1', name: 'Maria Clara Santos', supervisorName: 'Maria Santos', supervisorPos: 'OJT Supervisor', rightSigBase64: '',   studentId: 'STU-001', course: 'BSIT', school: 'PUP',            hoursCompleted: 500, requiredHours: 500, startDate: 'January 6, 2025',  endDate: 'May 16, 2025',  photoUrl: '', _sortDate: new Date('2025-05-16').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-16' },
+      { $id: '2', name: 'Juan Pablo Reyes',supervisorName: 'Maria Santos', supervisorPos: 'OJT Supervisor', rightSigBase64: '' ,       studentId: 'STU-002', course: 'BSCS', school: 'Gordon College', hoursCompleted: 500, requiredHours: 500, startDate: 'January 6, 2025',  endDate: 'May 10, 2025',  photoUrl: '', _sortDate: new Date('2025-05-10').getTime(), _rawStartDate: '2025-01-06', _rawEndDate: '2025-05-10' },
+      { $id: '3', name: 'Angela Marie Cruz',supervisorName: 'Maria Santos', supervisorPos: 'OJT Supervisor', rightSigBase64: '' ,      studentId: 'STU-003', course: 'BSED', school: 'Holy Angels',    hoursCompleted: 320, requiredHours: 500, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
+      { $id: '4', name: 'Ricardo Jose Flores',supervisorName: 'Maria Santos', supervisorPos: 'OJT Supervisor', rightSigBase64: '' ,       studentId: 'STU-004', course: 'BSIT', school: 'DMMMSU',         hoursCompleted: 410, requiredHours: 500, startDate: 'February 3, 2025', endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-02-03', _rawEndDate: '' },
+      { $id: '5', name: 'Sophia Nicole Bautista', supervisorName: 'Maria Santos', supervisorPos: 'OJT Supervisor', rightSigBase64: '' ,       studentId: 'STU-005', course: 'BSBA', school: 'Columban',       hoursCompleted: 180, requiredHours: 500, startDate: 'March 3, 2025',    endDate: '',              photoUrl: '', _sortDate: 0, _rawStartDate: '2025-03-03', _rawEndDate: '' },
     ];
     this.splitInterns();
   }
@@ -880,40 +947,69 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
 
  downloadCert(intern: Intern | null): void {
   if (!intern) return;
-
-  const wasOpen       = this.showCertPreview;
-  this.certResetView();
-  this.selectedIntern = intern;
+ 
+  const wasOpen     = this.showCertPreview;
+  const savedScale  = this.certScale;
+  const savedTransX = this.certTransX;
+  const savedTransY = this.certTransY;
+ 
+  this.certScale       = 1;
+  this.certTransX      = 0;
+  this.certTransY      = 0;
+  this.selectedIntern  = intern;
   this.showCertPreview = true;
-
+ 
   setTimeout(async () => {
     const certEl = document.getElementById('certificate-preview');
-    if (!certEl) { if (!wasOpen) this.showCertPreview = false; return; }
-
+    if (!certEl) {
+      this.certScale  = savedScale;
+      this.certTransX = savedTransX;
+      this.certTransY = savedTransY;
+      if (!wasOpen) this.showCertPreview = false;
+      return;
+    }
+ 
     try {
       const canvas = await html2canvas(certEl, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
+        scale:           3,
+        useCORS:         false,   // no cross-origin — everything is base64
+        allowTaint:      false,   // keep canvas clean
         backgroundColor: '#ffffff',
+        windowWidth:     certEl.scrollWidth,
+        windowHeight:    certEl.scrollHeight,
+        x: 0, y: 0, scrollX: 0, scrollY: 0,
+        onclone: (clonedDoc) => {
+          const transformWrap = clonedDoc.querySelector('.cert-pan-transform') as HTMLElement;
+          if (transformWrap) transformWrap.style.transform = 'none';
+          const scrollArea = clonedDoc.querySelector('.cert-scroll-area') as HTMLElement;
+          if (scrollArea) {
+            scrollArea.style.overflow  = 'visible';
+            scrollArea.style.transform = 'none';
+          }
+        }
       });
-
+ 
       const imgData = canvas.toDataURL('image/jpeg', 1.0);
-
-      // A4 landscape in mm
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pdfW = pdf.internal.pageSize.getWidth();
       const pdfH = pdf.internal.pageSize.getHeight();
-
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
       pdf.save(`Certificate_${intern.name.replace(/\s+/g, '_')}.pdf`);
+ 
     } catch (err) {
       console.error('PDF generation failed:', err);
-      Swal.fire({ icon: 'error', title: 'Download Failed', text: 'Could not generate the PDF. Please try again.', confirmButtonColor: '#2563eb' });
+      Swal.fire({
+        icon: 'error', title: 'Download Failed',
+        text: 'Could not generate the PDF. Please try again.',
+        confirmButtonColor: '#2563eb'
+      });
     }
-
+ 
+    this.certScale  = savedScale;
+    this.certTransX = savedTransX;
+    this.certTransY = savedTransY;
     if (!wasOpen) setTimeout(() => { this.showCertPreview = false; }, 500);
-  }, 150);
+  }, 400);
 }
 
   // ── Logo & Signature Uploads ──────────────────────────────────────────────────
@@ -934,6 +1030,7 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
     if (file && file.type.startsWith('image/')) this.uploadFile(file, type);
   }
 
+  
   /**
    * Removes an image slot: deletes the old file from Appwrite Storage and
    * clears the URL from the template. Call this from the ✕ remove buttons.
@@ -963,50 +1060,116 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
    * Saves the public view URL into the template.
    */
   private async uploadFile(
-    file: File,
-    type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'
-  ): Promise<void> {
-    try {
-      // 1. Delete the old file for this slot if one exists
-      const oldFileId = this.fileIdMap[type];
-      if (oldFileId) {
-        try {
-          await this.appwrite.storage.deleteFile(this.OJT_FILES_BUCKET, oldFileId);
-        } catch (e) {
-          console.warn('Could not delete old file (may already be gone):', e);
-        }
-      }
-
-      // 2. Upload the new file with a unique Appwrite ID
-      const newFileId = ID.unique();
-      await this.appwrite.storage.createFile(
-        this.OJT_FILES_BUCKET,
-        newFileId,
-        file
-      );
-
-      // 3. Build the public view URL (no auth token needed — bucket must allow Any read)
-      const url = `${this.ENDPOINT}/storage/buckets/${this.OJT_FILES_BUCKET}/files/${newFileId}/view?project=${this.PROJECT_ID}`;
-
-      // 4. Persist the new file ID so we can delete it later
-      this.fileIdMap[type] = newFileId;
-      this.saveFileIds();
-
-      // 5. Update the live template so the preview refreshes immediately
-      if (type === 'deped')     this.certTemplate.depedLogoUrl  = url;
-      if (type === 'school')    this.certTemplate.schoolLogoUrl = url;
-      if (type === 'watermark') this.certTemplate.watermarkUrl  = url;
-      if (type === 'leftSig')   this.certTemplate.leftSigUrl    = url;
-      if (type === 'rightSig')  this.certTemplate.rightSigUrl   = url;
-
-    } catch (err) {
-      console.error('File upload failed:', err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Upload Failed',
-        text: 'Could not upload the image. Make sure the "ojt_files" bucket exists in Appwrite and has the correct permissions (Read: Any, Create: Users).',
-        confirmButtonColor: '#2563eb'
-      });
+  file: File,
+  type: 'deped' | 'school' | 'watermark' | 'leftSig' | 'rightSig'
+): Promise<void> {
+  try {
+    // Delete old file in storage
+    const oldFileId = this.fileIdMap[type];
+    if (oldFileId) {
+      try { await this.appwrite.storage.deleteFile(this.OJT_FILES_BUCKET, oldFileId); }
+      catch (e) { console.warn('Could not delete old file:', e); }
     }
+ 
+    // Upload new file
+    const newFileId = ID.unique();
+    await this.appwrite.storage.createFile(this.OJT_FILES_BUCKET, newFileId, file);
+ 
+    // Convert to base64 for immediate use in template (preview + PDF)
+    const base64 = await this.fileToBase64(file);
+ 
+    // Store the file ID so we can delete it later on re-upload
+    this.fileIdMap[type] = newFileId;
+    this.saveFileIds();
+ 
+    // Set base64 in template — preview and PDF both use this
+    if (type === 'deped')     this.certTemplate.depedLogoUrl  = base64;
+    if (type === 'school')    this.certTemplate.schoolLogoUrl = base64;
+    if (type === 'watermark') this.certTemplate.watermarkUrl  = base64;
+    if (type === 'leftSig')   this.certTemplate.leftSigUrl    = base64;
+    if (type === 'rightSig')  this.certTemplate.rightSigUrl   = base64;
+ 
+  } catch (err) {
+    console.error('File upload failed:', err);
+    Swal.fire({
+      icon: 'error', title: 'Upload Failed',
+      text: 'Could not upload the image.',
+      confirmButtonColor: '#2563eb'
+    });
   }
+}
+
+// Reads a local File object into a base64 data URL — no network, no CORS
+private fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror   = reject;
+    reader.readAsDataURL(file);
+  });
+}
+private async urlToBase64(url: string): Promise<string> {
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;   // already base64, nothing to do
+  try {
+    const response = await fetch(url);
+    const blob     = await response.blob();
+    return await this.fileToBase64(blob as File);   // FileReader works on Blobs too
+  } catch (e) {
+    console.warn('urlToBase64 failed for', url, e);
+    return url;   // fallback: keep the URL (preview may still show it)
+  }
+}
+private async appwriteFileToBase64(bucketId: string, fileId: string): Promise<string> {
+  if (!fileId) return '';
+  // If it's already a base64 string somehow, return as-is
+  if (fileId.startsWith('data:')) return fileId;
+ 
+  try {
+    // Get a short-lived JWT for the current user session
+    // This lets us make an authenticated fetch() without cookies
+    const jwt = await this.appwrite.account.createJWT();
+ 
+    const url = `${this.ENDPOINT}/storage/buckets/${bucketId}/files/${fileId}/view?project=${this.PROJECT_ID}`;
+ 
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Appwrite-JWT':     jwt.jwt,
+        'X-Appwrite-Project': this.PROJECT_ID,
+      },
+    });
+ 
+    if (!response.ok) {
+      console.warn(`appwriteFileToBase64: fetch failed ${response.status} for fileId=${fileId}`);
+      return '';
+    }
+ 
+    const blob   = await response.blob();
+    const base64 = await this.fileToBase64(blob as File);
+    return base64;
+ 
+  } catch (err) {
+    console.warn('appwriteFileToBase64 failed:', err);
+    return '';
+  }
+}
+ 
+private async fetchSupervisors(): Promise<Map<string, any>> {
+  const map = new Map<string, any>();
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      [Query.limit(500)]
+    );
+    for (const doc of res.documents as any[]) {
+      map.set(doc.$id, doc);
+    }
+  } catch (err) {
+    console.warn('Could not fetch supervisors:', err);
+  }
+  return map;
+}
+ 
 }

@@ -102,18 +102,18 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
 
   constructor(private appwrite: AppwriteService) {}
 
-  async ngOnInit() {
-    await this.getCurrentUser();
-    this.generateCalendar();
-    await Promise.all([
-      this.loadAttendance(),
-      this.loadStudentHours(),
-      this.loadTodayStatus(),
-      this.loadInternStartDate()
-    ]);
-    this.calendarReady = true;
-    this.generateYears();
-  }
+ async ngOnInit() {
+  await this.getCurrentUser();
+  await this.loadInternStartDate(); // ✅ load this FIRST before loadAttendance
+  this.generateCalendar();
+  await Promise.all([
+    this.loadAttendance(),
+    this.loadStudentHours(),
+    this.loadTodayStatus(),
+  ]);
+  this.calendarReady = true;
+  this.generateYears();
+}
 
   ngOnDestroy() {
     clearInterval(this.qrTimer);
@@ -186,22 +186,24 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   }
 
   async loadInternStartDate() {
-    try {
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
-      );
-      const createdAt = (doc as any).$createdAt;
-      if (createdAt) {
-        const d = new Date(createdAt);
-        d.setHours(0, 0, 0, 0);
-        this.internStartDate = d;
-      }
-    } catch (error: any) {
-      console.error('Failed to load intern start date:', error.message);
+  try {
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
+    const createdAt = (doc as any).$createdAt;
+    console.log('internStartDate raw:', createdAt); // ✅ add this
+    if (createdAt) {
+      const d = new Date(createdAt);
+      d.setHours(0, 0, 0, 0);
+      this.internStartDate = d;
+      console.log('internStartDate set to:', this.internStartDate); // ✅ and this
     }
+  } catch (error: any) {
+    console.error('Failed to load intern start date:', error.message);
   }
+}
 
   // ── Computed ──────────────────────────────────────────
   get remainingHours(): number {
@@ -214,49 +216,54 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   }
 
   // ── Attendance loading ────────────────────────────────
-  async loadAttendance() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [Query.limit(500)]
-      );
+ async loadAttendance() {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [Query.limit(500)]
+    );
 
-      const docs      = res.documents as any[];
-      const myRecords = docs.filter(d => d.student_id === this.currentUserId);
+    const docs      = res.documents as any[];
+    const myRecords = docs.filter(d => d.student_id === this.currentUserId);
 
-      this.attendanceStatus  = {};
-      this.attendanceRecords = {};
-      this.allRecords        = [];
+    this.attendanceStatus  = {};
+    this.attendanceRecords = {};
+    this.allRecords        = [];
 
-      myRecords.forEach(record => {
-        const parts       = record.date.split('-');
-        const recordYear  = parseInt(parts[0]);
-        const recordMonth = parseInt(parts[1]) - 1;
-        const recordDay   = parseInt(parts[2]);
+    // Map existing DB records
+    const recordsByDate: { [dateStr: string]: any } = {};
 
-        if (recordMonth === this.month && recordYear === this.year) {
-          this.attendanceStatus[recordDay]  = record.status;
-          this.attendanceRecords[recordDay] = record;
-        }
+    myRecords.forEach(record => {
+      const parts       = record.date.split('-');
+      const recordYear  = parseInt(parts[0]);
+      const recordMonth = parseInt(parts[1]) - 1;
+      const recordDay   = parseInt(parts[2]);
+
+      recordsByDate[record.date] = record;
+
+      if (recordMonth === this.month && recordYear === this.year) {
+        this.attendanceStatus[recordDay]  = record.status;
+        this.attendanceRecords[recordDay] = record;
+      }
 
         this.allRecords.push({
           $id:       record.$id,
           date:      record.date,
           day:       new Date(recordYear, recordMonth, recordDay)
                        .toLocaleString('default', { weekday: 'short' }),
-          timeIn:    record.time_in         || '—',
-          timeOut:   record.time_out        || '—',
+          timeIn:    record.time_in          || '—',
+          timeOut:   record.time_out         || '—',
           status:    record.status,
-          scannedBy: record.scanned_by_name || '—'
+          scannedBy: record.scanned_by_name  || '—'
         });
       });
 
-      this.applyReportFilters();
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
-    }
+    this.applyReportFilters();
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
   }
+}
 
   // ── Calendar ──────────────────────────────────────────
   get monthName() {

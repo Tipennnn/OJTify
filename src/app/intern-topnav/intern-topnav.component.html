@@ -105,7 +105,7 @@
 
 
 <!-- ================================================
-     CERTIFICATE MODAL — fully driven by certTemplate
+     CERTIFICATE MODAL
 ================================================= -->
 <div class="modal-overlay cert-overlay" *ngIf="showCertModal" (click)="closeCertModal()">
   <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
@@ -119,8 +119,10 @@
         </div>
       </div>
       <div class="cert-modal-actions">
-        <button class="cert-dl-btn" (click)="downloadCertificate()">
-          <i class="fa-solid fa-download"></i> Download
+        <button class="cert-dl-btn" (click)="downloadCertificate()" [disabled]="isDownloading">
+          <i class="fa-solid fa-spinner fa-spin" *ngIf="isDownloading"></i>
+          <i class="fa-solid fa-download" *ngIf="!isDownloading"></i>
+          {{ isDownloading ? 'Generating...' : 'Download' }}
         </button>
         <button class="cert-close-btn" (click)="closeCertModal()">
           <i class="fa-solid fa-xmark"></i>
@@ -131,7 +133,7 @@
     <div class="cert-scroll-area">
       <div id="certificate-preview" class="certificate">
 
-        <!-- ── Bars ── -->
+        <!-- Bars -->
         <div class="cert-top-bar"      [style.background]="certTemplate.primaryColor"></div>
         <div class="cert-top-bar-gold" [style.background]="certTemplate.accentColor"></div>
 
@@ -169,7 +171,7 @@
             <!-- Header -->
             <div class="cert-header">
               <div class="cert-header-logo cert-header-logo--left">
-                <img [src]="certTemplate.depedLogoUrl || 'assets/images/Deped_logo.png'" alt="Left Logo">
+                <img *ngIf="certTemplate.depedLogoUrl" [src]="certTemplate.depedLogoUrl" alt="Left Logo">
               </div>
               <div class="cert-header-text">
                 <p class="cert-republic">{{ certTemplate.republic }}</p>
@@ -179,7 +181,7 @@
                 <p class="cert-address">{{ certTemplate.address }}</p>
               </div>
               <div class="cert-header-logo cert-header-logo--right">
-                <img [src]="certTemplate.schoolLogoUrl || 'assets/images/OCES_logo.png'" alt="Right Logo">
+                <img *ngIf="certTemplate.schoolLogoUrl" [src]="certTemplate.schoolLogoUrl" alt="Right Logo">
               </div>
             </div>
 
@@ -194,16 +196,16 @@
               <div class="cert-name-line"  [style.background]="certTemplate.primaryColor"></div>
             </div>
 
-            <!-- Body paragraph — token-replaced -->
+            <!-- Body paragraph -->
             <p class="cert-body-para" [innerHTML]="getBodyText()"></p>
 
-            <!-- Given / closing line — token-replaced -->
+            <!-- Given / closing line -->
             <p class="cert-given-text">{{ getGivenText() }}</p>
 
             <!-- Signatories -->
             <div class="cert-sig-row">
 
-              <!-- LEFT signatory -->
+              <!-- LEFT signatory — School Principal (from template) -->
               <div class="cert-sig-block">
                 <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
                 <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
@@ -214,14 +216,14 @@
                 <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 
-              <!-- RIGHT signatory -->
+              <!-- RIGHT signatory — per-intern supervisor with their own e-sig -->
               <div class="cert-sig-block">
-                <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
+                <img *ngIf="supervisorRightSigBase64" [src]="supervisorRightSigBase64" class="cert-sig-image">
                 <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
-                  {{ certTemplate.supervisorName | uppercase }}
+                  {{ supervisorName | uppercase }}
                 </p>
                 <div class="cert-sig-underline"></div>
-                <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
+                <p class="cert-sig-pos">{{ supervisorPos }}</p>
                 <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 

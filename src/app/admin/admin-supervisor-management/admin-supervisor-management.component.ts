@@ -18,6 +18,7 @@ interface Supervisor {
   status          ?: string;
   assigned_students?: number;
   profile_photo_id ?: string;
+  esig_file_id    ?: string;   // ← NEW
   $createdAt       : string;
 }
 
@@ -124,6 +125,9 @@ assigningIntern = false;
   pageSize    = 10;
   realTotalAssignedInterns = 0;
 
+  esigPreviewUrl   = '';   // base64 preview shown in the upload box
+esigUploading    = false;
+
   readonly BUCKET_ID       = '69baaf64002ceb2490df';
   readonly PROJECT_ID      = '69ba8d9c0027d10c447f';
   readonly ENDPOINT        = 'https://sgp.cloud.appwrite.io/v1';
@@ -229,6 +233,11 @@ openViewModal(sup: Supervisor) {
 
   // ✅ Load interns immediately so profile tab count is correct
   this.loadAssignedInterns();
+
+  this.esigPreviewUrl = '';
+  if (sup.esig_file_id) {
+   this.loadEsigPreview(sup.esig_file_id);
+ }
 }
 
   openAddModal() {
@@ -571,4 +580,109 @@ async sendSupervisorWelcomeEmail(email: string, fullName: string, password: stri
     console.error('Failed to send supervisor welcome email:', error);
   }
 }
+async onEsigChange(event: Event): Promise<void> {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file || !this.selectedSupervisor) return;
+  await this.uploadEsig(file);
+}
+ 
+// ── Called on drag-drop ──
+async onEsigDrop(event: DragEvent): Promise<void> {
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if (!file || !file.type.startsWith('image/') || !this.selectedSupervisor) return;
+  await this.uploadEsig(file);
+}
+ 
+// ── Core upload logic ──
+private async uploadEsig(file: File): Promise<void> {
+  if (!this.selectedSupervisor) return;
+  this.esigUploading = true;
+ 
+  try {
+    // Delete old file if one exists
+    const oldFileId = this.selectedSupervisor.esig_file_id;
+    if (oldFileId) {
+      try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); }
+      catch { /* ignore — file may already be gone */ }
+    }
+ 
+    // Upload new file
+    const { ID } = await import('appwrite');
+    const newFileId = ID.unique();
+    await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
+ 
+    // Save file ID to DB
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.SUPERVISORS_COL,
+      this.selectedSupervisor.$id,
+      { esig_file_id: newFileId }
+    );
+ 
+    // Update local object
+    this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: newFileId };
+    const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
+    if (idx !== -1) this.supervisors[idx].esig_file_id = newFileId;
+ 
+    // Show base64 preview immediately (no CORS issues — local file)
+    const reader = new FileReader();
+    reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
+    reader.readAsDataURL(file);
+ 
+    // Show success toast
+    const Swal = (await import('sweetalert2')).default;
+    Swal.fire({
+      icon: 'success', title: 'E-Signature Saved!',
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 2000, timerProgressBar: true
+    });
+ 
+  } catch (err: any) {
+    console.error('E-sig upload failed:', err);
+    const Swal = (await import('sweetalert2')).default;
+    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#2563eb' });
+  } finally {
+    this.esigUploading = false;
+  }
+}
+ 
+// ── Remove e-sig ──
+async removeEsig(): Promise<void> {
+  if (!this.selectedSupervisor?.esig_file_id) return;
+ 
+  try {
+    await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.selectedSupervisor.esig_file_id);
+  } catch { /* ignore */ }
+ 
+  await this.appwrite.databases.updateDocument(
+    this.appwrite.DATABASE_ID,
+    this.SUPERVISORS_COL,
+    this.selectedSupervisor.$id,
+    { esig_file_id: '' }
+  );
+ 
+  this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: '' };
+  const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
+  if (idx !== -1) this.supervisors[idx].esig_file_id = '';
+  this.esigPreviewUrl = '';
+}
+private async loadEsigPreview(fileId: string): Promise<void> {
+  try {
+    const jwt = await this.appwrite.account.createJWT();
+    const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
+    const res = await fetch(url, {
+      headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID }
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
+      reader.readAsDataURL(blob);
+    }
+  } catch (err) {
+    console.warn('Could not load esig preview:', err);
+  }
+}
+ 
 }

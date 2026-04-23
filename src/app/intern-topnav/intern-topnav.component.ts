@@ -8,7 +8,6 @@ import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-// ── Mirrors the CertTemplate interface in the admin component ────────────────
 interface CertTemplate {
   requiredHours:     number;
   republic:          string;
@@ -56,9 +55,9 @@ const DEFAULT_TEMPLATE: CertTemplate = {
   issuedLocation:    'Olongapo City Elementary School',
   primaryColor:      '#1e3a8a',
   accentColor:       '#c9a84c',
-  depedLogoUrl:      'assets/images/Deped_logo.png',
-  schoolLogoUrl:     'assets/images/OCES_logo.png',
-  watermarkUrl:      'assets/images/OCES_logo.png',
+  depedLogoUrl:      '',
+  schoolLogoUrl:     '',
+  watermarkUrl:      '',
   leftSigUrl:        '',
   rightSigUrl:       '',
 };
@@ -75,6 +74,7 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
   menuOpen          = false;
   showPasswordModal = false;
   showCertModal     = false;
+  isDownloading     = false;
 
   showCurrent = false;
   showNew     = false;
@@ -91,16 +91,18 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
 
   profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
 
-  // DateTime
   currentDayDate = '';
   currentTime    = '';
   private clockInterval: any;
 
-  // ── Whether the admin has actually sent the cert for this intern ──────────
   certSentByAdmin = false;
 
-  // ── Template loaded from localStorage (same key the admin saves to) ───────
   certTemplate: CertTemplate = { ...DEFAULT_TEMPLATE };
+
+  // ── Per-intern supervisor e-sig (base64) loaded from Appwrite Storage ──
+  supervisorRightSigBase64 = '';
+  supervisorName           = '';
+  supervisorPos            = '';
 
   certData = {
     studentName:    '',
@@ -109,7 +111,7 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     hoursCompleted: 0,
     requiredHours:  500,
     startDate:      '',
-    endDate:        '',   // ← last attendance date
+    endDate:        '',
     dateIssued:     '',
   };
 
@@ -127,68 +129,108 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
-  this.appwrite.photoUrl$.subscribe(url => {
-    this.profilePhotoUrl = url;
-  });
+    this.appwrite.photoUrl$.subscribe(url => {
+      this.profilePhotoUrl = url;
+    });
 
-  await this.loadCertTemplate();   // ← now awaited
-  await this.loadInternData();
+    await this.loadCertTemplate();
+    await this.loadInternData();
 
-  this.updateClock();
-  this.clockInterval = setInterval(() => this.updateClock(), 1000);
-}
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+  }
 
   ngOnDestroy() {
     if (this.clockInterval) clearInterval(this.clockInterval);
   }
 
-  // ── Load the same localStorage key the admin writes to ───────────────────
-  private async loadCertTemplate(): Promise<void> {
-  try {
-    const user = await this.appwrite.account.get();
+  // ── Download an Appwrite Storage file as base64 using JWT (no CORS issues) ──
+  private async appwriteFileToBase64(fileId: string): Promise<string> {
+    if (!fileId) return '';
+    if (fileId.startsWith('data:')) return fileId;
 
-    let adminDoc: any = null;
+    try {
+      const jwt = await this.appwrite.account.createJWT();
+      const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Appwrite-JWT':     jwt.jwt,
+          'X-Appwrite-Project': this.PROJECT_ID,
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`appwriteFileToBase64: ${response.status} for fileId=${fileId}`);
+        return '';
+      }
+
+      const blob = await response.blob();
+      return await this.blobToBase64(blob);
+
+    } catch (err) {
+      console.warn('appwriteFileToBase64 failed:', err);
+      return '';
+    }
+  }
+
+  // ── Convert any Blob/File to base64 data URL ──
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror   = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // ── Load cert template from DB, converting file IDs → base64 ──
+  private async loadCertTemplate(): Promise<void> {
     try {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
         this.appwrite.ADMINS_COL,
-        [Query.equal('auth_user_id', user.$id)]
+        [Query.limit(1)]
       );
-      if (res.documents.length > 0) adminDoc = res.documents[0];
-    } catch { /* ignore */ }
 
-    // Can't filter by admin's auth_user_id from intern side — just get first admin doc
-    if (!adminDoc) {
-      try {
-        const res = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ADMINS_COL,
-          []
-        );
-        if (res.documents.length > 0) adminDoc = res.documents[0];
-      } catch { /* ignore */ }
+      const adminDoc: any = res.documents[0] ?? null;
+
+      if (adminDoc?.cert_template_json) {
+        const parsed = JSON.parse(adminDoc.cert_template_json);
+
+        const depedFileId     = adminDoc.cert_deped_logo_url  || '';
+        const schoolFileId    = adminDoc.cert_school_logo_url || '';
+        const watermarkFileId = adminDoc.cert_watermark_url   || '';
+        const leftSigFileId   = adminDoc.cert_left_sig_url    || '';
+        // NOTE: rightSigUrl in the template is the GLOBAL supervisor sig.
+        //       The per-intern supervisor sig is loaded in loadInternData().
+        const rightSigFileId  = adminDoc.cert_right_sig_url   || '';
+
+        const [depedB64, schoolB64, watermarkB64, leftSigB64, rightSigB64] = await Promise.all([
+          this.appwriteFileToBase64(depedFileId),
+          this.appwriteFileToBase64(schoolFileId),
+          this.appwriteFileToBase64(watermarkFileId),
+          this.appwriteFileToBase64(leftSigFileId),
+          this.appwriteFileToBase64(rightSigFileId),
+        ]);
+
+        parsed.depedLogoUrl  = depedB64;
+        parsed.schoolLogoUrl = schoolB64;
+        parsed.watermarkUrl  = watermarkB64;
+        parsed.leftSigUrl    = leftSigB64;
+        parsed.rightSigUrl   = rightSigB64;
+
+        this.certTemplate = { ...DEFAULT_TEMPLATE, ...parsed };
+        return;
+      }
+    } catch (err) {
+      console.warn('Could not load cert template from DB:', err);
     }
 
-    if (adminDoc?.cert_template_json) {
-      const parsed = JSON.parse(adminDoc.cert_template_json);
-      if (adminDoc.cert_deped_logo_url)   parsed.depedLogoUrl  = adminDoc.cert_deped_logo_url;
-      if (adminDoc.cert_school_logo_url)  parsed.schoolLogoUrl = adminDoc.cert_school_logo_url;
-      if (adminDoc.cert_watermark_url)    parsed.watermarkUrl  = adminDoc.cert_watermark_url;
-      if (adminDoc.cert_left_sig_url)     parsed.leftSigUrl    = adminDoc.cert_left_sig_url;
-      if (adminDoc.cert_right_sig_url)    parsed.rightSigUrl   = adminDoc.cert_right_sig_url;
-      this.certTemplate = { ...DEFAULT_TEMPLATE, ...parsed };
-      localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
-      return;
-    }
-  } catch (err) {
-    console.warn('Could not load cert template from DB:', err);
+    this.certTemplate = { ...DEFAULT_TEMPLATE };
   }
-  const saved = localStorage.getItem('admin_cert_template');
-  if (saved) {
-    try { this.certTemplate = { ...DEFAULT_TEMPLATE, ...JSON.parse(saved) }; }
-    catch { this.certTemplate = { ...DEFAULT_TEMPLATE }; }
-  }
-}
+
   private updateClock(): void {
     const now = new Date();
     const shortDays   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -206,10 +248,6 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     this.currentTime = `${hours}:${mins} ${ampm}`;
   }
 
-  /**
-   * 1. Load student document → cert_sent, hours, name, etc.
-   * 2. Fetch last attendance record → use its date as the cert end date.
-   */
   async loadInternData() {
     try {
       const user = await this.appwrite.account.get();
@@ -222,7 +260,7 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
       const doc  = docs.find(d => d.$id === user.$id);
 
       if (doc) {
-        // ── Profile photo ─────────────────────────────────────────────────
+        // ── Profile photo ──
         if (doc.profile_photo_id) {
           const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
           this.profilePhotoUrl = url;
@@ -233,18 +271,19 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
           this.appwrite.updateProfilePhoto(defaultUrl);
         }
 
-        // ── Full name ─────────────────────────────────────────────────────
+        // ── Full name ──
         const firstName  = (doc.first_name  ?? '').trim();
         const middleName = (doc.middle_name ?? '').trim();
         const lastName   = (doc.last_name   ?? '').trim();
         const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || user.name || 'Intern';
 
-        // ── cert_sent from DB ─────────────────────────────────────────────
         this.certSentByAdmin = doc.cert_sent === true;
 
-        // ── Last attendance date (used as end date on the cert) ───────────
-        // attendance.student_id stores the student's string ID (e.g. "202211168")
+        // ── Last attendance date ──
         const lastAttDate = await this.fetchLastAttendanceDate(doc.student_id ?? '');
+
+        // ── Load supervisor info + e-sig ──
+        await this.loadSupervisorData(doc.supervisor_id ?? '');
 
         this.certData = {
           studentName:    fullName,
@@ -253,10 +292,9 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
           hoursCompleted: Number(doc.completed_hours ?? 0),
           requiredHours:  Number(doc.required_hours  ?? this.certTemplate.requiredHours),
           startDate:      this.formatDate(doc.start_date ?? ''),
-          // Priority: last attendance date → doc.end_date → cert_sent_date
           endDate:        lastAttDate
-                            || this.formatDate(doc.end_date        ?? '')
-                            || this.formatDate(doc.cert_sent_date  ?? ''),
+                            || this.formatDate(doc.end_date       ?? '')
+                            || this.formatDate(doc.cert_sent_date ?? ''),
           dateIssued:     this.formatDate(doc.cert_sent_date ?? ''),
         };
       }
@@ -266,18 +304,48 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Returns the formatted date string of the intern's most recent attendance,
-   * or '' if none is found.
-   */
+  // ── Fetch supervisor document and load their e-sig as base64 ──
+  private async loadSupervisorData(supervisorId: string): Promise<void> {
+    if (!supervisorId) return;
+
+    try {
+      const supDoc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        supervisorId
+      ) as any;
+
+      const supFirstName = (supDoc.first_name ?? '').trim();
+      const supLastName  = (supDoc.last_name  ?? '').trim();
+      this.supervisorName = [supFirstName, supLastName].filter(Boolean).join(' ')
+                            || this.certTemplate.supervisorName;
+      this.supervisorPos  = supDoc.grade_level ?? this.certTemplate.supervisorPos;
+
+      // ── Download e-sig as base64 ──
+      if (supDoc.esig_file_id) {
+        this.supervisorRightSigBase64 = await this.appwriteFileToBase64(supDoc.esig_file_id);
+      } else {
+        this.supervisorRightSigBase64 = '';
+      }
+
+    } catch (err) {
+      console.warn('Could not load supervisor data:', err);
+      // Fallback to template defaults
+      this.supervisorName           = this.certTemplate.supervisorName;
+      this.supervisorPos            = this.certTemplate.supervisorPos;
+      this.supervisorRightSigBase64 = this.certTemplate.rightSigUrl;
+    }
+  }
+
   private async fetchLastAttendanceDate(studentId: string): Promise<string> {
     if (!studentId) return '';
     try {
       const attRes = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        'attendance',
+        this.appwrite.ATTENDANCE_COL,
         [
           Query.equal('student_id', studentId),
+          Query.equal('status', 'Present'),
           Query.orderDesc('date'),
           Query.limit(1),
         ]
@@ -292,7 +360,6 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  // ── Body text with token replacement (mirrors admin) ──────────────────────
   getBodyText(): string {
     const raw = this.certTemplate.bodyText || '';
     const escaped = raw
@@ -307,7 +374,6 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
       .replace(/\{host\}/g,   `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`);
   }
 
-  // ── Given / closing line with token replacement ───────────────────────────
   getGivenText(): string {
     const date = this.certData.endDate || this.certData.dateIssued
       || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -364,42 +430,60 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     this.menuOpen = false;
     if (!this.certSentByAdmin) {
       if (this.certData.hoursCompleted < this.certData.requiredHours) {
-        Swal.fire({ icon: 'info', title: 'Not Yet Available', text: `You need to complete ${this.certData.requiredHours} hours first. You currently have ${this.certData.hoursCompleted} hrs.`, confirmButtonColor: '#2563eb' });
+        Swal.fire({
+          icon: 'info', title: 'Not Yet Available',
+          text: `You need to complete ${this.certData.requiredHours} hours first. You currently have ${this.certData.hoursCompleted} hrs.`,
+          confirmButtonColor: '#2563eb'
+        });
       } else {
-        Swal.fire({ icon: 'info', title: 'Certificate Pending', text: 'You have completed your required hours! Your certificate will be available once the admin issues it.', confirmButtonColor: '#2563eb' });
+        Swal.fire({
+          icon: 'info', title: 'Certificate Pending',
+          text: 'You have completed your required hours! Your certificate will be available once the admin issues it.',
+          confirmButtonColor: '#2563eb'
+        });
       }
       return;
     }
-    // Reload template in case admin updated it since page load
-    this.loadCertTemplate();
     this.showCertModal = true;
   }
 
- async downloadCertificate() {
-  const certEl = document.getElementById('certificate-preview');
-  if (!certEl) return;
+  // ── Download certificate as PDF ──
+  async downloadCertificate(): Promise<void> {
+    const certEl = document.getElementById('certificate-preview');
+    if (!certEl || this.isDownloading) return;
 
-  try {
-    const canvas = await html2canvas(certEl, {
-      scale: 3,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-    });
+    this.isDownloading = true;
 
-    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    try {
+      const canvas = await html2canvas(certEl, {
+        scale:           3,
+        useCORS:         false,
+        allowTaint:      false,
+        backgroundColor: '#ffffff',
+        windowWidth:     certEl.scrollWidth,
+        windowHeight:    certEl.scrollHeight,
+        x: 0, y: 0, scrollX: 0, scrollY: 0,
+      });
 
-    // A4 landscape in mm
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = pdf.internal.pageSize.getHeight();
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf     = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pdfW    = pdf.internal.pageSize.getWidth();
+      const pdfH    = pdf.internal.pageSize.getHeight();
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
-    pdf.save(`Certificate_${this.certData.studentName.replace(/\s+/g, '_')}.pdf`);
-  } catch (err) {
-    console.error('PDF generation failed:', err);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+      pdf.save(`Certificate_${this.certData.studentName.replace(/\s+/g, '_')}.pdf`);
+
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      Swal.fire({
+        icon: 'error', title: 'Download Failed',
+        text: 'Could not generate the PDF. Please try again.',
+        confirmButtonColor: '#2563eb'
+      });
+    } finally {
+      this.isDownloading = false;
+    }
   }
-}
 
   async updatePassword() {
     this.pwError = ''; this.pwSuccess = '';
@@ -422,14 +506,23 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
       this.currentPassword = ''; this.newPassword = ''; this.confirmPassword = '';
       setTimeout(() => {
         this.closeModal();
-        Swal.fire({ icon: 'success', title: 'Password Updated!', text: 'Your password has been changed successfully.', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+        Swal.fire({
+          icon: 'success', title: 'Password Updated!',
+          text: 'Your password has been changed successfully.',
+          toast: true, position: 'top-end',
+          showConfirmButton: false, timer: 3000, timerProgressBar: true
+        });
       }, 1200);
     } catch (error: any) {
       const msg: string = error.message ?? '';
       if (msg.toLowerCase().includes('invalid credentials') || msg.toLowerCase().includes('current') || error.code === 401) {
         this.pwFieldErrors.current = 'Current password is incorrect.';
-      } else { this.pwError = 'Failed to update password. Please try again.'; }
-    } finally { this.passwordLoading = false; }
+      } else {
+        this.pwError = 'Failed to update password. Please try again.';
+      }
+    } finally {
+      this.passwordLoading = false;
+    }
   }
 
   get greeting(): string {

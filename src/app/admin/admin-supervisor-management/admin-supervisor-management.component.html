@@ -193,6 +193,46 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+
+          <!-- E-SIGNATURE UPLOAD -->
+<div class="esig-section">
+  <div class="esig-section-label">
+    <i class="fa-solid fa-signature"></i> E-Signature
+    <span class="esig-hint">Used on OJT Certificates</span>
+  </div>
+ 
+  <div class="esig-upload-box"
+       (click)="esigInput.click()"
+       (dragover)="$event.preventDefault()"
+       (drop)="onEsigDrop($event)">
+ 
+    <input #esigInput type="file" accept="image/*" style="display:none"
+           (change)="onEsigChange($event)">
+ 
+    <!-- No signature yet -->
+    <div *ngIf="!esigPreviewUrl && !esigUploading" class="esig-placeholder">
+      <i class="fa-solid fa-cloud-arrow-up"></i>
+      <span>Upload Signature</span>
+      <span class="esig-hint-small">PNG with transparent bg recommended</span>
+    </div>
+ 
+    <!-- Uploading spinner -->
+    <div *ngIf="esigUploading" class="esig-placeholder">
+      <i class="fa fa-spinner fa-spin"></i>
+      <span>Uploading...</span>
+    </div>
+ 
+    <!-- Preview -->
+    <div *ngIf="esigPreviewUrl && !esigUploading" class="esig-preview">
+      <img [src]="esigPreviewUrl" alt="E-Signature">
+      <button class="esig-remove-btn"
+              (click)="$event.stopPropagation(); removeEsig()"
+              title="Remove signature">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+</div>
         </ng-container>
   
         <ng-container *ngIf="activeTab === 'students'">
