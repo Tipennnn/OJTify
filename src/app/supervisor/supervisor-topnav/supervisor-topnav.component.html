@@ -28,7 +28,161 @@
   </div>
 </header>
 
-<!-- CHANGE PASSWORD MODAL -->
+<!-- ===================== PROFILE MODAL ===================== -->
+<div class="modal-overlay" *ngIf="showProfileModal" (click)="closeProfileModal()">
+  <div class="profile-modal-box" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="pm-header">
+      <div class="pm-header-left">
+        <div class="pm-header-icon">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="pm-header-text">
+          <h3>My Profile</h3>
+          <p>View and update your information</p>
+        </div>
+      </div>
+      <button class="pm-close-btn" (click)="closeProfileModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div class="pm-divider"></div>
+
+    <!-- Loading -->
+    <div class="pm-loading" *ngIf="profileLoading">
+      <i class="fa fa-spinner fa-spin"></i>
+      <span>Loading profile...</span>
+    </div>
+
+    <!-- Body -->
+    <div class="pm-body" *ngIf="!profileLoading">
+
+      <!-- Hero Section -->
+      <div class="pm-hero">
+        <div class="pm-avatar-wrapper">
+          <img [src]="photoPreviewUrl || profilePhotoUrl" class="pm-avatar" alt="Profile Photo">
+          <button class="pm-avatar-edit-btn" (click)="photoInput.click()" [disabled]="photoUploading">
+            <i class="fa-solid" [ngClass]="photoUploading ? 'fa-spinner fa-spin' : 'fa-camera'"></i>
+          </button>
+          <input #photoInput type="file" accept="image/jpeg,image/jpg,image/png,image/webp" style="display:none" (change)="onPhotoChange($event)">
+        </div>
+        <div class="pm-hero-info">
+          <div class="pm-hero-name">
+            {{ profileForm.first_name || 'Supervisor' }} {{ profileForm.last_name }}
+          </div>
+          <div class="pm-hero-empid">
+            <i class="fa-solid fa-id-badge"></i>
+            {{ profileForm.employee_id || '—' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Error / Success -->
+      <div class="pm-error-box" *ngIf="profileError">
+        <i class="fa fa-circle-exclamation"></i> {{ profileError }}
+      </div>
+      <div class="pm-success-box" *ngIf="profileSuccess">
+        <i class="fa fa-circle-check"></i> {{ profileSuccess }}
+      </div>
+
+      <!-- Name Row -->
+      <div class="pm-form-row">
+        <div class="pm-form-group">
+          <label>First Name <span class="pm-req">*</span></label>
+          <div class="pm-input-wrap">
+            <i class="fa-solid fa-user pm-input-icon"></i>
+            <input type="text" placeholder="Juan" [(ngModel)]="profileForm.first_name">
+          </div>
+        </div>
+        <div class="pm-form-group">
+          <label>Last Name <span class="pm-req">*</span></label>
+          <div class="pm-input-wrap">
+            <i class="fa-solid fa-user pm-input-icon"></i>
+            <input type="text" placeholder="Dela Cruz" [(ngModel)]="profileForm.last_name">
+          </div>
+        </div>
+      </div>
+
+      <!-- Email + Employee ID -->
+      <div class="pm-form-row">
+        <div class="pm-form-group">
+          <label>Email Address</label>
+          <div class="pm-input-wrap pm-input-disabled">
+            <i class="fa-solid fa-envelope pm-input-icon"></i>
+            <input type="email" [value]="profileForm.email" disabled placeholder="email@example.com">
+          </div>
+          <span class="pm-field-hint"><i class="fa-solid fa-lock"></i> Email cannot be changed here</span>
+        </div>
+        <div class="pm-form-group">
+          <label>Employee ID</label>
+          <div class="pm-input-wrap">
+            <i class="fa-solid fa-id-badge pm-input-icon"></i>
+            <input type="text" placeholder="EMP-0001" [(ngModel)]="profileForm.employee_id" (input)="onEmployeeIdInput($event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- E-Signature Section -->
+      <div class="pm-esig-section">
+        <div class="pm-esig-label">
+          <i class="fa-solid fa-signature"></i> E-Signature
+          <span class="pm-esig-hint">PNG with transparent background only · Used on OJT Certificates</span>
+        </div>
+
+        <div class="pm-esig-upload-box"
+             (click)="esigInput.click()"
+             (dragover)="$event.preventDefault()"
+             (drop)="onEsigDrop($event)">
+
+          <input #esigInput type="file" accept="image/png" style="display:none"
+                 (change)="onEsigChange($event)">
+
+          <!-- No signature yet -->
+          <div *ngIf="!esigPreviewUrl && !esigUploading" class="pm-esig-placeholder">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Upload Signature</span>
+            <span class="pm-esig-hint-small">PNG files only (transparent background recommended)</span>
+          </div>
+
+          <!-- Uploading spinner -->
+          <div *ngIf="esigUploading" class="pm-esig-placeholder">
+            <i class="fa fa-spinner fa-spin"></i>
+            <span>Uploading...</span>
+          </div>
+
+          <!-- Preview -->
+          <div *ngIf="esigPreviewUrl && !esigUploading" class="pm-esig-preview">
+            <img [src]="esigPreviewUrl" alt="E-Signature">
+            <button class="pm-esig-remove-btn"
+                    (click)="$event.stopPropagation(); removeEsig()"
+                    title="Remove signature">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="pm-footer" *ngIf="!profileLoading">
+      <button class="pm-cancel-btn" (click)="closeProfileModal()" [disabled]="profileSaving">
+        Cancel
+      </button>
+      <button class="pm-save-btn" (click)="saveProfile()" [disabled]="profileSaving">
+        <i class="fa fa-spinner fa-spin" *ngIf="profileSaving"></i>
+        <i class="fa-solid fa-floppy-disk" *ngIf="!profileSaving"></i>
+        {{ profileSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== CHANGE PASSWORD MODAL ===================== -->
 <div class="modal-overlay" *ngIf="showPasswordModal">
   <div class="password-modal">
 
