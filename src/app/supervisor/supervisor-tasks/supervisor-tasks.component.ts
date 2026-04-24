@@ -68,6 +68,95 @@ interface Submission {
   _scoreSaving?: boolean;
 }
 
+interface CourseOption {
+  abbr: string;
+  full: string;
+}
+
+const COURSE_LIST: CourseOption[] = [
+  { abbr: 'BSIT',     full: 'Bachelor of Science in Information Technology' },
+  { abbr: 'BSCS',     full: 'Bachelor of Science in Computer Science' },
+  { abbr: 'BSCE',     full: 'Bachelor of Science in Computer Engineering' },
+  { abbr: 'BSIS',     full: 'Bachelor of Science in Information Systems' },
+  { abbr: 'BSDA',     full: 'Bachelor of Science in Data Analytics' },
+  { abbr: 'BSAI',     full: 'Bachelor of Science in Artificial Intelligence' },
+  { abbr: 'BSCPE',    full: 'Bachelor of Science in Computer Engineering' },
+  { abbr: 'BSEMC',    full: 'Bachelor of Science in Entertainment and Multimedia Computing' },
+  { abbr: 'BSEE',     full: 'Bachelor of Science in Electrical Engineering' },
+  { abbr: 'BSECE',    full: 'Bachelor of Science in Electronics and Communications Engineering' },
+  { abbr: 'BSME',     full: 'Bachelor of Science in Mechanical Engineering' },
+  { abbr: 'BSCIVIL',  full: 'Bachelor of Science in Civil Engineering' },
+  { abbr: 'BSIE',     full: 'Bachelor of Science in Industrial Engineering' },
+  { abbr: 'BSAE',     full: 'Bachelor of Science in Aeronautical Engineering' },
+  { abbr: 'BSCHE',    full: 'Bachelor of Science in Chemical Engineering' },
+  { abbr: 'BSGE',     full: 'Bachelor of Science in Geodetic Engineering' },
+  { abbr: 'BSBA',     full: 'Bachelor of Science in Business Administration' },
+  { abbr: 'BSBA-MM',  full: 'Bachelor of Science in Business Administration major in Marketing Management' },
+  { abbr: 'BSBA-FM',  full: 'Bachelor of Science in Business Administration major in Financial Management' },
+  { abbr: 'BSBA-HRM', full: 'Bachelor of Science in Business Administration major in Human Resource Management' },
+  { abbr: 'BSBA-OM',  full: 'Bachelor of Science in Business Administration major in Operations Management' },
+  { abbr: 'BSMA',     full: 'Bachelor of Science in Management Accounting' },
+  { abbr: 'BSA',      full: 'Bachelor of Science in Accountancy' },
+  { abbr: 'BSAIS',    full: 'Bachelor of Science in Accounting Information Systems' },
+  { abbr: 'BSENT',    full: 'Bachelor of Science in Entrepreneurship' },
+  { abbr: 'BSHRM',    full: 'Bachelor of Science in Hotel and Restaurant Management' },
+  { abbr: 'BSTM',     full: 'Bachelor of Science in Tourism Management' },
+  { abbr: 'BEED',     full: 'Bachelor of Elementary Education' },
+  { abbr: 'BSED',     full: 'Bachelor of Secondary Education' },
+  { abbr: 'BSED-ENG', full: 'Bachelor of Secondary Education major in English' },
+  { abbr: 'BSED-MATH',full: 'Bachelor of Secondary Education major in Mathematics' },
+  { abbr: 'BSED-SCI', full: 'Bachelor of Secondary Education major in Science' },
+  { abbr: 'BSED-FIL', full: 'Bachelor of Secondary Education major in Filipino' },
+  { abbr: 'BSED-SS',  full: 'Bachelor of Secondary Education major in Social Studies' },
+  { abbr: 'BPED',     full: 'Bachelor of Physical Education' },
+  { abbr: 'BSPE',     full: 'Bachelor of Science in Physical Education' },
+  { abbr: 'BSN',      full: 'Bachelor of Science in Nursing' },
+  { abbr: 'BSMT',     full: 'Bachelor of Science in Medical Technology' },
+  { abbr: 'BSPT',     full: 'Bachelor of Science in Physical Therapy' },
+  { abbr: 'BSOT',     full: 'Bachelor of Science in Occupational Therapy' },
+  { abbr: 'BSND',     full: 'Bachelor of Science in Nutrition and Dietetics' },
+  { abbr: 'BSPHAR',   full: 'Bachelor of Science in Pharmacy' },
+  { abbr: 'BSRT',     full: 'Bachelor of Science in Radiologic Technology' },
+  { abbr: 'BSMLS',    full: 'Bachelor of Science in Medical Laboratory Science' },
+  { abbr: 'BSDENT',   full: 'Bachelor of Science in Dentistry' },
+  { abbr: 'MD',       full: 'Doctor of Medicine' },
+  { abbr: 'BSMATH',   full: 'Bachelor of Science in Mathematics' },
+  { abbr: 'BSSTAT',   full: 'Bachelor of Science in Statistics' },
+  { abbr: 'BSBIO',    full: 'Bachelor of Science in Biology' },
+  { abbr: 'BSCHEM',   full: 'Bachelor of Science in Chemistry' },
+  { abbr: 'BSPHYSICS',full: 'Bachelor of Science in Physics' },
+  { abbr: 'BSENVSCI', full: 'Bachelor of Science in Environmental Science' },
+  { abbr: 'BSAPMATH', full: 'Bachelor of Science in Applied Mathematics' },
+  { abbr: 'ABCOMM',   full: 'Bachelor of Arts in Communication' },
+  { abbr: 'ABENG',    full: 'Bachelor of Arts in English' },
+  { abbr: 'ABFIL',    full: 'Bachelor of Arts in Filipino' },
+  { abbr: 'ABSOCIO',  full: 'Bachelor of Arts in Sociology' },
+  { abbr: 'ABPOLSCI', full: 'Bachelor of Arts in Political Science' },
+  { abbr: 'ABPSYCH',  full: 'Bachelor of Arts in Psychology' },
+  { abbr: 'BSPSYCH',  full: 'Bachelor of Science in Psychology' },
+  { abbr: 'ABPHILO',  full: 'Bachelor of Arts in Philosophy' },
+  { abbr: 'ABHISTORY',full: 'Bachelor of Arts in History' },
+  { abbr: 'ABSOCWORK',full: 'Bachelor of Arts in Social Work' },
+  { abbr: 'BSARCH',   full: 'Bachelor of Science in Architecture' },
+  { abbr: 'BSID',     full: 'Bachelor of Science in Industrial Design' },
+  { abbr: 'BSFA',     full: 'Bachelor of Science in Fine Arts' },
+  { abbr: 'BSGD',     full: 'Bachelor of Science in Graphic Design' },
+  { abbr: 'BSINTDES', full: 'Bachelor of Science in Interior Design' },
+  { abbr: 'BSAGRI',   full: 'Bachelor of Science in Agriculture' },
+  { abbr: 'BSFOR',    full: 'Bachelor of Science in Forestry' },
+  { abbr: 'BSFISHERY',full: 'Bachelor of Science in Fisheries' },
+  { abbr: 'BSAGRIBIZ',full: 'Bachelor of Science in Agribusiness' },
+  { abbr: 'ABLAW',    full: 'Bachelor of Laws (Juris Doctor)' },
+  { abbr: 'BSCRIM',   full: 'Bachelor of Science in Criminology' },
+  { abbr: 'BSMC',     full: 'Bachelor of Science in Mass Communication' },
+  { abbr: 'BSJOURNALISM', full: 'Bachelor of Science in Journalism' },
+  { abbr: 'BSADVCOMM',full: 'Bachelor of Science in Advertising Communication' },
+  { abbr: 'BSCUL',    full: 'Bachelor of Science in Culinary Arts' },
+  { abbr: 'BSHOSP',   full: 'Bachelor of Science in Hospitality Management' },
+  { abbr: 'BECED',    full: 'Bachelor of Early Childhood Education' },
+  { abbr: 'BCAE',     full: 'Bachelor of Culture and Arts Education' },
+];
+
 @Component({
   selector: 'app-supervisor-tasks',
   standalone: true,
@@ -83,6 +172,7 @@ interface Submission {
 export class SupervisorTasksComponent implements OnInit {
 
   readonly Math = Math;
+  readonly COURSE_LIST = COURSE_LIST;
 
   // ── Tabs ──────────────────────────────────────────────────
   activeTab: 'tasks' | 'logbook' = 'tasks';
@@ -117,19 +207,27 @@ export class SupervisorTasksComponent implements OnInit {
 
   selectedWeekMonday: string | null = null;
 
-  readonly courseOptions = [
-    { label: 'BEED',  full: 'Bachelor of Elementary Education' },
-    { label: 'BECED', full: 'Bachelor of Early Childhood Education' },
-    { label: 'BPEd',  full: 'Bachelor of Physical Education' },
-    { label: 'BCAE',  full: 'Bachelor of Culture and Arts Education' },
-    { label: 'BSED-English',      full: 'Bachelor of Secondary Education major in English' },
-    { label: 'BSED-Filipino',     full: 'Bachelor of Secondary Education major in Filipino' },
-    { label: 'BSED-Math',         full: 'Bachelor of Secondary Education major in Mathematics' },
-    { label: 'BSED-Social Studies', full: 'Bachelor of Secondary Education major in Social Studies' },
-    { label: 'BSED-Science',      full: 'Bachelor of Secondary Education major in Science' },
-  ];
-  selectedCourse     = '';
-  customCourseInput  = '';
+  // ── CREATE TASK: Course autocomplete ──────────────────────
+  courseSearch         = '';
+  filteredCourseList   : CourseOption[] = [];
+  showCourseDropdown   = false;
+  courseHighlightIndex = -1;
+  selectedCourseObj    : CourseOption | null = null;
+  selectedCourse       = '';   // ← FIXED: was missing
+  private courseSelected = false;
+
+  // ── EDIT TASK: Course autocomplete ────────────────────────
+  editCourseSearch         = '';
+  editFilteredCourseList   : CourseOption[] = [];
+  editShowCourseDropdown   = false;
+  editCourseHighlightIndex = -1;
+  editSelectedCourseObj    : CourseOption | null = null;
+  private editCourseSelected = false;
+
+  // ── FIXED: courseOptions getter (was missing) ─────────────
+  get courseOptions(): { label: string; full: string }[] {
+    return COURSE_LIST.map(c => ({ label: c.abbr, full: c.full }));
+  }
 
   taskSubmissionCountMap: { [taskId: string]: number } = {};
 
@@ -173,7 +271,7 @@ export class SupervisorTasksComponent implements OnInit {
   isEditModalOpen       = false;
   editLoading           = false;
   editTask              : Task        = this.emptyTask();
-  editTaskOriginal      : Task | null = null;   // keep reference to original
+  editTaskOriginal      : Task | null = null;
   editNewAttachmentFile : File | null = null;
   editNewAttachmentFileName           = '';
   editAssignMode        : 'all' | 'course' | 'specific' = 'specific';
@@ -190,7 +288,11 @@ export class SupervisorTasksComponent implements OnInit {
   get editCourseMatchedInterns(): Intern[] {
     const q = this.editEffectiveCourse.toLowerCase();
     if (!q) return [];
-    return this.allInterns.filter(i => i.course?.toLowerCase().includes(q));
+    return this.allInterns.filter(i =>
+      i.course?.toLowerCase().includes(q) ||
+      q.includes(i.course?.toLowerCase() ?? '') ||
+      i.course?.toLowerCase() === q
+    );
   }
 
   // ── Logbook state ─────────────────────────────────────────
@@ -358,28 +460,165 @@ export class SupervisorTasksComponent implements OnInit {
     };
   }
 
+  // ── Course matching helper ────────────────────────────────
+  private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
+    if (!searchTerm) return false;
+    const q       = searchTerm.toLowerCase().trim();
+    const iCourse = (intern.course ?? '').toLowerCase().trim();
+    if (!iCourse) return false;
+    return iCourse.includes(q) || q.includes(iCourse);
+  }
+
   get effectiveCourse(): string {
     if (this.assignMode !== 'course') return '';
-    if (this.selectedCourse === 'Other') return this.customCourseInput.trim();
-    return this.selectedCourse;
+    return this.selectedCourseObj?.full ?? this.courseSearch.trim();
   }
 
   get courseMatchedInterns(): Intern[] {
-    const q = this.effectiveCourse.toLowerCase();
-    if (!q) return [];
-    return this.allInterns.filter(i => i.course?.toLowerCase().includes(q));
+    const term = this.selectedCourseObj
+      ? this.selectedCourseObj.abbr
+      : this.courseSearch.trim();
+    if (!term) return [];
+    const q = term.toLowerCase();
+    return this.allInterns.filter(i => this.internMatchesCourse(i, q));
   }
 
-  onAssignModeChange() {
-    this.selectedCourse    = '';
-    this.customCourseInput = '';
-    this.selectedInterns   = [];
-    this.internSearchQuery = '';
-    this.filteredInterns   = [...this.allInterns];
+  // ── CREATE: Course autocomplete handlers ─────────────────
+  onCourseSearchInput() {
+    this.courseSelected    = false;
+    this.selectedCourseObj = null;
+    const q = this.courseSearch.trim().toLowerCase();
+    if (!q) {
+      this.filteredCourseList  = [];
+      this.showCourseDropdown  = false;
+      return;
+    }
+    this.filteredCourseList = COURSE_LIST.filter(c =>
+      c.abbr.toLowerCase().includes(q) || c.full.toLowerCase().includes(q)
+    ).slice(0, 8);
+    this.courseHighlightIndex = -1;
+    this.showCourseDropdown   = true;
+  }
+
+  onCourseSearchFocus() {
+    if (this.courseSearch.trim()) {
+      this.showCourseDropdown = this.filteredCourseList.length > 0;
+    }
+  }
+
+  onCourseSearchBlur() {
+    setTimeout(() => {
+      this.showCourseDropdown = false;
+    }, 180);
+  }
+
+  onCourseSearchKeydown(event: KeyboardEvent) {
+    if (!this.showCourseDropdown || !this.filteredCourseList.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.courseHighlightIndex = Math.min(this.courseHighlightIndex + 1, this.filteredCourseList.length - 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.courseHighlightIndex = Math.max(this.courseHighlightIndex - 1, 0);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.courseHighlightIndex >= 0) this.selectCourseOption(this.filteredCourseList[this.courseHighlightIndex]);
+    } else if (event.key === 'Escape') {
+      this.showCourseDropdown = false;
+    }
+  }
+
+  selectCourseOption(c: CourseOption) {
+    this.selectedCourseObj    = c;
+    this.courseSearch         = c.abbr;
+    this.selectedCourse       = c.full;   // ← keep selectedCourse in sync
+    this.courseSelected       = true;
+    this.showCourseDropdown   = false;
+    this.courseHighlightIndex = -1;
   }
 
   onCourseDropdownChange() {
-    this.customCourseInput = '';
+    // Sync selectedCourseObj when the legacy dropdown is used
+    const found = COURSE_LIST.find(c => c.full === this.selectedCourse);
+    this.selectedCourseObj = found ?? null;
+    if (found) this.courseSearch = found.abbr;
+  }
+
+  // ── EDIT: Course autocomplete handlers ───────────────────
+  onEditCourseSearchInput() {
+    this.editCourseSelected    = false;
+    this.editSelectedCourseObj = null;
+    const q = this.editCourseSearch.trim().toLowerCase();
+    if (!q) {
+      this.editFilteredCourseList  = [];
+      this.editShowCourseDropdown  = false;
+      return;
+    }
+    this.editFilteredCourseList = COURSE_LIST.filter(c =>
+      c.abbr.toLowerCase().includes(q) || c.full.toLowerCase().includes(q)
+    ).slice(0, 8);
+    this.editCourseHighlightIndex = -1;
+    this.editShowCourseDropdown   = true;
+  }
+
+  onEditCourseSearchFocus() {
+    if (this.editCourseSearch.trim()) {
+      this.editShowCourseDropdown = this.editFilteredCourseList.length > 0;
+    }
+  }
+
+  onEditCourseSearchBlur() {
+    setTimeout(() => { this.editShowCourseDropdown = false; }, 180);
+  }
+
+  onEditCourseSearchKeydown(event: KeyboardEvent) {
+    if (!this.editShowCourseDropdown || !this.editFilteredCourseList.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.editCourseHighlightIndex = Math.min(this.editCourseHighlightIndex + 1, this.editFilteredCourseList.length - 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.editCourseHighlightIndex = Math.max(this.editCourseHighlightIndex - 1, 0);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.editCourseHighlightIndex >= 0) this.selectEditCourseOption(this.editFilteredCourseList[this.editCourseHighlightIndex]);
+    } else if (event.key === 'Escape') {
+      this.editShowCourseDropdown = false;
+    }
+  }
+
+  selectEditCourseOption(c: CourseOption) {
+    this.editSelectedCourseObj    = c;
+    this.editCourseSearch         = c.abbr;
+    this.editSelectedCourse       = c.full;
+    this.editCourseSelected       = true;
+    this.editShowCourseDropdown   = false;
+    this.editCourseHighlightIndex = -1;
+  }
+
+  onEditCourseDropdownChange() {
+    const found = COURSE_LIST.find(c => c.full === this.editSelectedCourse);
+    this.editSelectedCourseObj = found ?? null;
+    if (found) this.editCourseSearch = found.abbr;
+  }
+
+  get editCourseMatchedInternsComputed(): Intern[] {
+    const obj  = this.editSelectedCourseObj;
+    const term = obj ? obj.abbr : this.editCourseSearch.trim();
+    if (!term) return [];
+    const q = term.toLowerCase();
+    return this.allInterns.filter(i => this.internMatchesCourse(i, q));
+  }
+
+  onAssignModeChange() {
+    this.courseSearch         = '';
+    this.selectedCourse       = '';
+    this.selectedCourseObj    = null;
+    this.filteredCourseList   = [];
+    this.showCourseDropdown   = false;
+    this.selectedInterns      = [];
+    this.internSearchQuery    = '';
+    this.filteredInterns      = [...this.allInterns];
   }
 
   // ══════════════════════════════════════════════
@@ -387,26 +626,27 @@ export class SupervisorTasksComponent implements OnInit {
   // ══════════════════════════════════════════════
 
   openEditModal(task: Task) {
-    // Deep-copy task into editTask so we don't mutate the original
-    this.editTask = { ...task };
-    this.editTaskOriginal       = task;
-    this.editNewAttachmentFile  = null;
+    this.editTask              = { ...task };
+    this.editTaskOriginal      = task;
+    this.editNewAttachmentFile = null;
     this.editNewAttachmentFileName = '';
-    this.editInternSearchQuery  = '';
-    this.editFilteredInterns    = [...this.allInterns];
+    this.editInternSearchQuery = '';
+    this.editFilteredInterns   = [...this.allInterns];
+    this.editCourseSearch      = '';
+    this.editSelectedCourseObj = null;
+    this.editFilteredCourseList = [];
+    this.editShowCourseDropdown = false;
 
-    // Pre-populate assign mode and selection from existing assigned_intern_ids
     const assignedIds = this.getAssignedIds(task);
     if (assignedIds.length === this.allInterns.length && this.allInterns.length > 0) {
-      this.editAssignMode = 'all';
+      this.editAssignMode      = 'all';
       this.editSelectedInterns = [...this.allInterns];
     } else {
-      this.editAssignMode = 'specific';
+      this.editAssignMode      = 'specific';
       this.editSelectedInterns = this.allInterns.filter(i => assignedIds.includes(i.$id));
     }
     this.editSelectedCourse = '';
-
-    this.isEditModalOpen = true;
+    this.isEditModalOpen    = true;
     document.body.style.overflow = 'hidden';
   }
 
@@ -414,6 +654,8 @@ export class SupervisorTasksComponent implements OnInit {
     this.isEditModalOpen           = false;
     this.editNewAttachmentFile     = null;
     this.editNewAttachmentFileName = '';
+    this.editCourseSearch          = '';
+    this.editSelectedCourseObj     = null;
     document.body.style.overflow   = '';
   }
 
@@ -425,13 +667,15 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   onEditAssignModeChange() {
-    this.editSelectedCourse   = '';
-    this.editSelectedInterns  = [];
-    this.editInternSearchQuery = '';
-    this.editFilteredInterns   = [...this.allInterns];
+    this.editSelectedCourse       = '';
+    this.editCourseSearch         = '';
+    this.editSelectedCourseObj    = null;
+    this.editFilteredCourseList   = [];
+    this.editShowCourseDropdown   = false;
+    this.editSelectedInterns      = [];
+    this.editInternSearchQuery    = '';
+    this.editFilteredInterns      = [...this.allInterns];
   }
-
-  onEditCourseDropdownChange() { /* handled by ngModel */ }
 
   onEditInternSearch() {
     const q = this.editInternSearchQuery.toLowerCase();
@@ -454,24 +698,20 @@ export class SupervisorTasksComponent implements OnInit {
 
   async onSaveEditTask() {
     if (!this.editTask.title?.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Missing title', text: 'Please enter a task title.', confirmButtonColor: '#0818A8' });
-      return;
+      Swal.fire({ icon: 'warning', title: 'Missing title', text: 'Please enter a task title.', confirmButtonColor: '#0818A8' }); return;
     }
     if (!this.editTask.due) {
-      Swal.fire({ icon: 'warning', title: 'Missing due date', text: 'Please set a due date.', confirmButtonColor: '#0818A8' });
-      return;
+      Swal.fire({ icon: 'warning', title: 'Missing due date', text: 'Please set a due date.', confirmButtonColor: '#0818A8' }); return;
     }
-    if (this.editAssignMode === 'course' && !this.editEffectiveCourse) {
-      Swal.fire({ icon: 'warning', title: 'No course selected', text: 'Please select a course.', confirmButtonColor: '#0818A8' });
-      return;
+    const editMatched = this.editCourseMatchedInternsComputed;
+    if (this.editAssignMode === 'course' && !this.editCourseSearch.trim()) {
+      Swal.fire({ icon: 'warning', title: 'No course selected', text: 'Please search and select a course.', confirmButtonColor: '#0818A8' }); return;
     }
-    if (this.editAssignMode === 'course' && this.editCourseMatchedInterns.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'No matching interns', text: `No interns found for "${this.editEffectiveCourse}".`, confirmButtonColor: '#0818A8' });
-      return;
+    if (this.editAssignMode === 'course' && editMatched.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'No matching interns', text: 'No interns found for that course.', confirmButtonColor: '#0818A8' }); return;
     }
     if (this.editAssignMode === 'specific' && this.editSelectedInterns.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'No interns selected', text: 'Please select at least one intern.', confirmButtonColor: '#0818A8' });
-      return;
+      Swal.fire({ icon: 'warning', title: 'No interns selected', text: 'Please select at least one intern.', confirmButtonColor: '#0818A8' }); return;
     }
 
     this.editLoading = true;
@@ -479,9 +719,7 @@ export class SupervisorTasksComponent implements OnInit {
       let attachmentFileId   = this.editTask.attachment_file_id   ?? '';
       let attachmentFileName = this.editTask.attachment_file_name ?? '';
 
-      // If supervisor replaced the attachment
       if (this.editNewAttachmentFile) {
-        // Delete old file if exists
         if (attachmentFileId) {
           try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, attachmentFileId); } catch { }
         }
@@ -492,12 +730,11 @@ export class SupervisorTasksComponent implements OnInit {
         attachmentFileName = this.editNewAttachmentFile.name;
       }
 
-      // Build assigned_intern_ids string
       let assignedIds = '';
       if (this.editAssignMode === 'all') {
         assignedIds = this.allInterns.map(i => i.$id).join(',');
       } else if (this.editAssignMode === 'course') {
-        assignedIds = this.editCourseMatchedInterns.map(i => i.$id).join(',');
+        assignedIds = editMatched.map(i => i.$id).join(',');
       } else {
         assignedIds = this.editSelectedInterns.map(i => i.$id).join(',');
       }
@@ -514,7 +751,6 @@ export class SupervisorTasksComponent implements OnInit {
         }
       );
 
-      // Update local task list
       const idx = this.tasks.findIndex(t => t.$id === this.editTask.$id);
       if (idx !== -1) {
         this.tasks[idx] = {
@@ -636,37 +872,29 @@ export class SupervisorTasksComponent implements OnInit {
   async saveTaskScore() {
     if (this.taskScoreInput === null || this.taskScoreInput === undefined) return;
     if (this.taskScoreInput < 0 || this.taskScoreInput > 100) {
-      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' });
-      return;
+      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' }); return;
     }
     if (!this.selectedTask.$id) return;
     this.taskScoreSaving = true;
     try {
       const submissionsToScore = this.taskSubmissions.filter(s => s.task_id === this.selectedTask.$id);
       if (submissionsToScore.length === 0) {
-        Swal.fire({ icon: 'warning', title: 'No submissions yet', text: 'There are no submissions to score for this task.', confirmButtonColor: '#0818A8' });
-        return;
+        Swal.fire({ icon: 'warning', title: 'No submissions yet', text: 'There are no submissions to score for this task.', confirmButtonColor: '#0818A8' }); return;
       }
       await Promise.all(
         submissionsToScore.map(sub =>
           this.appwrite.databases.updateDocument(
-            this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!,
-            { score: this.taskScoreInput }
+            this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!, { score: this.taskScoreInput }
           )
         )
       );
       this.taskSubmissions.forEach(sub => {
-        if (sub.task_id === this.selectedTask.$id) {
-          sub.score = this.taskScoreInput;
-          sub._scoreInput = this.taskScoreInput;
-        }
+        if (sub.task_id === this.selectedTask.$id) { sub.score = this.taskScoreInput; sub._scoreInput = this.taskScoreInput; }
       });
       Swal.fire({ icon: 'success', title: 'Submission score(s) saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
     } catch (error: any) {
       Swal.fire({ icon: 'error', title: 'Failed to save score', text: error.message });
-    } finally {
-      this.taskScoreSaving = false;
-    }
+    } finally { this.taskScoreSaving = false; }
   }
 
   getScoreDisplay(score: number | null | undefined): { label: string; cls: string; icon: string } {
@@ -1006,16 +1234,19 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   openModal() {
-    this.selectedTask      = this.emptyTask();
-    this.selectedFile      = null;
+    this.selectedTask       = this.emptyTask();
+    this.selectedFile       = null;
     this.attachmentFileName = '';
-    this.selectedInterns   = [];
-    this.internSearchQuery = '';
-    this.filteredInterns   = [...this.allInterns];
-    this.assignMode        = 'specific';
-    this.selectedCourse    = '';
-    this.customCourseInput = '';
-    this.isModalOpen       = true;
+    this.selectedInterns    = [];
+    this.internSearchQuery  = '';
+    this.filteredInterns    = [...this.allInterns];
+    this.assignMode         = 'specific';
+    this.courseSearch       = '';
+    this.selectedCourse     = '';
+    this.selectedCourseObj  = null;
+    this.filteredCourseList = [];
+    this.showCourseDropdown = false;
+    this.isModalOpen        = true;
     document.body.style.overflow = 'hidden';
   }
 
@@ -1051,12 +1282,11 @@ export class SupervisorTasksComponent implements OnInit {
       Swal.fire({ icon: 'warning', title: 'Missing fields', text: 'Please fill in the title and due date.', confirmButtonColor: '#0818A8' }); return;
     }
     if (this.assignMode === 'course') {
-      const q = this.effectiveCourse;
-      if (!q) {
-        Swal.fire({ icon: 'warning', title: 'No course selected', text: 'Please select or type a course to assign to.', confirmButtonColor: '#0818A8' }); return;
+      if (!this.courseSearch.trim()) {
+        Swal.fire({ icon: 'warning', title: 'No course entered', text: 'Please search and select a course.', confirmButtonColor: '#0818A8' }); return;
       }
       if (this.courseMatchedInterns.length === 0) {
-        Swal.fire({ icon: 'warning', title: 'No matching interns', text: `No interns found with course containing "${q}".`, confirmButtonColor: '#0818A8' }); return;
+        Swal.fire({ icon: 'warning', title: 'No matching interns', text: `No interns found for that course.`, confirmButtonColor: '#0818A8' }); return;
       }
     }
     if (this.assignMode === 'specific' && this.selectedInterns.length === 0) {
@@ -1104,8 +1334,7 @@ export class SupervisorTasksComponent implements OnInit {
   async deleteTask(task: Task, event: Event) {
     event.stopPropagation();
     const result = await Swal.fire({
-      title: 'Delete task?',
-      text: `"${task.title}" will be permanently deleted.`,
+      title: 'Delete task?', text: `"${task.title}" will be permanently deleted.`,
       icon: 'warning', showCancelButton: true,
       confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel',
       confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280'
@@ -1154,8 +1383,7 @@ export class SupervisorTasksComponent implements OnInit {
   async saveSubmissionScore(sub: Submission) {
     if (sub._scoreInput === null || sub._scoreInput === undefined) return;
     if (sub._scoreInput < 0 || sub._scoreInput > 100) {
-      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' });
-      return;
+      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' }); return;
     }
     sub._scoreSaving = true;
     try {
@@ -1317,7 +1545,7 @@ export class SupervisorTasksComponent implements OnInit {
     });
   }
 
-  onWeekFilterChange() { /* ngModel handles it */ }
+  onWeekFilterChange() {}
 
   private getMondayOf(dateStr: string): string {
     const [year, month, day] = dateStr.split('-').map(Number);

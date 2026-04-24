@@ -182,15 +182,46 @@
           </div>
 
           <div class="input-row">
-            <div class="input-wrapper" [class.has-error]="fieldErrors['course']">
+
+            <!-- ── COURSE AUTOCOMPLETE ── -->
+            <div class="input-wrapper course-autocomplete-wrapper" [class.has-error]="fieldErrors['course']">
               <span class="icon"><i class="fa fa-graduation-cap"></i></span>
-              <input type="text" [(ngModel)]="course" name="course" placeholder=" " required
-                     (blur)="onBlur('course')">
+              <input
+                type="text"
+                [(ngModel)]="courseSearch"
+                name="course"
+                placeholder=" "
+                autocomplete="off"
+                (input)="onCourseInput()"
+                (focus)="onCourseFocus()"
+                (blur)="onCourseBlur()"
+                (keydown)="onCourseKeydown($event)">
               <label>Course</label>
+
+              <!-- Dropdown suggestions -->
+              <div class="course-dropdown" *ngIf="showCourseDropdown && filteredCourses.length > 0">
+                <div
+                  class="course-option"
+                  *ngFor="let c of filteredCourses; let i = index"
+                  [class.highlighted]="i === courseHighlightIndex"
+                  (mousedown)="selectCourse(c)">
+                  <span class="course-option-abbr">{{ c.abbr }}</span>
+                  <span class="course-option-full">{{ c.full }}</span>
+                </div>
+              </div>
+
+              <!-- No results -->
+              <div class="course-dropdown" *ngIf="showCourseDropdown && courseSearch.trim().length > 0 && filteredCourses.length === 0">
+                <div class="course-option-empty">
+                  <i class="fa fa-search"></i> No matching course found
+                </div>
+              </div>
+
               <span class="field-error" *ngIf="fieldErrors['course']">
                 <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['course'] }}
               </span>
             </div>
+
             <div class="input-wrapper" [class.has-error]="fieldErrors['yearLevel']">
               <span class="icon"><i class="fa fa-layer-group"></i></span>
               <select [(ngModel)]="yearLevel" name="yearLevel" required

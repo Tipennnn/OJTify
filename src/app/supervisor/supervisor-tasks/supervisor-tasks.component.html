@@ -61,7 +61,7 @@
                 </div>
               </div>
 
-              <!-- EDIT & DELETE BUTTONS (left side, hidden on hover) -->
+              <!-- EDIT & DELETE BUTTONS -->
               <div class="task-card-actions" (click)="$event.stopPropagation()">
                 <button class="task-action-btn edit-btn" (click)="openEditModal(task)" title="Edit task">
                   <i class="fas fa-pen"></i>
@@ -71,7 +71,7 @@
                 </button>
               </div>
 
-              <!-- SUBMISSION INDICATOR (right side) -->
+              <!-- SUBMISSION INDICATOR -->
               <div class="task-badge-wrap">
                 <span class="submission-badge"
                       [class.all-done]="getTaskSubmittedCount(task) >= getTaskAssignedCount(task) && getTaskAssignedCount(task) > 0"
@@ -358,41 +358,76 @@
           </button>
         </div>
 
-        <div *ngIf="assignMode === 'all'" class="assign-info-banner">
-          <i class="fas fa-circle-info"></i>
-          This task will be assigned to all <strong>{{ allInterns.length }}</strong> intern{{ allInterns.length !== 1 ? 's' : '' }}.
-        </div>
-
+        <!-- ── BY COURSE (autocomplete search only) ── -->
         <div *ngIf="assignMode === 'course'" class="course-assign-wrap">
           <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">Select Course</label>
-            <div class="course-select-wrap">
-              <select [(ngModel)]="selectedCourse" (change)="onCourseDropdownChange()" class="course-select">
-                <option value="" disabled>— Choose a course —</option>
-                <option *ngFor="let c of courseOptions" [value]="c.label">{{ c.label }} — {{ c.full }}</option>
-              </select>
-              <i class="fas fa-chevron-down course-select-arrow"></i>
+            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">
+              Search Course
+            </label>
+            <div style="position:relative;">
+              <div style="display:flex; align-items:center; background:#fff; border:1px solid #d1d5db; border-radius:9px; padding:0 12px; gap:8px;">
+                <i class="fas fa-search" style="color:#9ca3af; font-size:13px; flex-shrink:0;"></i>
+                <input
+                  type="text"
+                  [(ngModel)]="courseSearch"
+                  name="courseSearchCreate"
+                  placeholder="Type course name or abbreviation…"
+                  autocomplete="off"
+                  style="flex:1; border:none; outline:none; padding:10px 0; font-size:13px; font-family:'Poppins',sans-serif; background:transparent;"
+                  (input)="onCourseSearchInput()"
+                  (focus)="onCourseSearchFocus()"
+                  (blur)="onCourseSearchBlur()"
+                  (keydown)="onCourseSearchKeydown($event)">
+                <i class="fas fa-times"
+                   *ngIf="courseSearch"
+                   style="color:#9ca3af; cursor:pointer; font-size:12px;"
+                   (mousedown)="courseSearch=''; selectedCourse=''; selectedCourseObj=null; filteredCourseList=[]; showCourseDropdown=false;">
+                </i>
+              </div>
+              <!-- Autocomplete Dropdown -->
+              <div *ngIf="showCourseDropdown && filteredCourseList.length > 0"
+                   style="position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1); z-index:999; overflow:hidden;">
+                <div *ngFor="let c of filteredCourseList; let i = index"
+                     (mousedown)="selectCourseOption(c)"
+                     style="display:flex; flex-direction:column; gap:2px; padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9;"
+                     [style.background]="i === courseHighlightIndex ? '#eff6ff' : 'white'">
+                  <span style="font-size:11px; font-weight:700; color:#0818A8; text-transform:uppercase; letter-spacing:0.5px;">{{ c.abbr }}</span>
+                  <span style="font-size:12px; color:#374151; line-height:1.4;">{{ c.full }}</span>
+                </div>
+              </div>
+              <!-- No results -->
+              <div *ngIf="showCourseDropdown && courseSearch.trim().length > 0 && filteredCourseList.length === 0"
+                   style="position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1); z-index:999; padding:14px; text-align:center; font-size:12px; color:#9ca3af;">
+                <i class="fas fa-search"></i> No matching course found
+              </div>
             </div>
           </div>
-          <div *ngIf="effectiveCourse" class="course-match-preview">
+
+          <!-- Matched interns preview -->
+          <div *ngIf="courseSearch.trim()" class="course-match-preview">
             <div class="course-match-header">
               <i class="fas fa-users" style="color:#0818A8; font-size:11px;"></i>
               <span *ngIf="courseMatchedInterns.length > 0">
                 <strong>{{ courseMatchedInterns.length }}</strong> intern{{ courseMatchedInterns.length !== 1 ? 's' : '' }} matched
+                <span style="color:#6b7280; font-weight:400; font-size:11px; margin-left:4px;">· will be assigned</span>
               </span>
               <span *ngIf="courseMatchedInterns.length === 0" style="color:#dc2626;">
-                No interns found for "{{ effectiveCourse }}"
+                No interns found for "{{ courseSearch }}"
               </span>
             </div>
             <div class="course-match-list" *ngIf="courseMatchedInterns.length > 0">
               <div class="course-match-chip" *ngFor="let i of courseMatchedInterns">
                 <div class="cmc-avatar">{{ i.first_name[0] }}{{ i.last_name[0] }}</div>
-                <span>{{ i.first_name }} {{ i.last_name }}</span>
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                  <span>{{ i.first_name }} {{ i.last_name }}</span>
+                  <span style="font-size:10px; color:#9ca3af;">{{ i.course }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- ── SPECIFIC INTERNS ── -->
         <ng-container *ngIf="assignMode === 'specific'">
           <div class="search-box">
             <input type="text" placeholder="Search intern name…" [(ngModel)]="internSearchQuery" (input)="onInternSearch()">
@@ -503,41 +538,76 @@
           </button>
         </div>
 
-        <div *ngIf="editAssignMode === 'all'" class="assign-info-banner">
-          <i class="fas fa-circle-info"></i>
-          This task will be assigned to all <strong>{{ allInterns.length }}</strong> intern{{ allInterns.length !== 1 ? 's' : '' }}.
-        </div>
-
+        <!-- ── BY COURSE (edit — autocomplete search only) ── -->
         <div *ngIf="editAssignMode === 'course'" class="course-assign-wrap">
           <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">Select Course</label>
-            <div class="course-select-wrap">
-              <select [(ngModel)]="editSelectedCourse" (change)="onEditCourseDropdownChange()" class="course-select">
-                <option value="" disabled>— Choose a course —</option>
-                <option *ngFor="let c of courseOptions" [value]="c.label">{{ c.label }} — {{ c.full }}</option>
-              </select>
-              <i class="fas fa-chevron-down course-select-arrow"></i>
+            <label style="font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; display:block;">
+              Search Course
+            </label>
+            <div style="position:relative;">
+              <div style="display:flex; align-items:center; background:#fff; border:1px solid #d1d5db; border-radius:9px; padding:0 12px; gap:8px;">
+                <i class="fas fa-search" style="color:#9ca3af; font-size:13px; flex-shrink:0;"></i>
+                <input
+                  type="text"
+                  [(ngModel)]="editCourseSearch"
+                  name="courseSearchEdit"
+                  placeholder="Type course name or abbreviation…"
+                  autocomplete="off"
+                  style="flex:1; border:none; outline:none; padding:10px 0; font-size:13px; font-family:'Poppins',sans-serif; background:transparent;"
+                  (input)="onEditCourseSearchInput()"
+                  (focus)="onEditCourseSearchFocus()"
+                  (blur)="onEditCourseSearchBlur()"
+                  (keydown)="onEditCourseSearchKeydown($event)">
+                <i class="fas fa-times"
+                   *ngIf="editCourseSearch"
+                   style="color:#9ca3af; cursor:pointer; font-size:12px;"
+                   (mousedown)="editCourseSearch=''; editSelectedCourse=''; editSelectedCourseObj=null; editFilteredCourseList=[]; editShowCourseDropdown=false;">
+                </i>
+              </div>
+              <!-- Autocomplete Dropdown -->
+              <div *ngIf="editShowCourseDropdown && editFilteredCourseList.length > 0"
+                   style="position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1); z-index:999; overflow:hidden;">
+                <div *ngFor="let c of editFilteredCourseList; let i = index"
+                     (mousedown)="selectEditCourseOption(c)"
+                     style="display:flex; flex-direction:column; gap:2px; padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9;"
+                     [style.background]="i === editCourseHighlightIndex ? '#eff6ff' : 'white'">
+                  <span style="font-size:11px; font-weight:700; color:#0818A8; text-transform:uppercase; letter-spacing:0.5px;">{{ c.abbr }}</span>
+                  <span style="font-size:12px; color:#374151; line-height:1.4;">{{ c.full }}</span>
+                </div>
+              </div>
+              <!-- No results -->
+              <div *ngIf="editShowCourseDropdown && editCourseSearch.trim().length > 0 && editFilteredCourseList.length === 0"
+                   style="position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1); z-index:999; padding:14px; text-align:center; font-size:12px; color:#9ca3af;">
+                <i class="fas fa-search"></i> No matching course found
+              </div>
             </div>
           </div>
-          <div *ngIf="editEffectiveCourse" class="course-match-preview">
+
+          <!-- Matched interns preview -->
+          <div *ngIf="editCourseSearch.trim()" class="course-match-preview">
             <div class="course-match-header">
               <i class="fas fa-users" style="color:#0818A8; font-size:11px;"></i>
-              <span *ngIf="editCourseMatchedInterns.length > 0">
-                <strong>{{ editCourseMatchedInterns.length }}</strong> intern{{ editCourseMatchedInterns.length !== 1 ? 's' : '' }} matched
+              <span *ngIf="editCourseMatchedInternsComputed.length > 0">
+                <strong>{{ editCourseMatchedInternsComputed.length }}</strong> intern{{ editCourseMatchedInternsComputed.length !== 1 ? 's' : '' }} matched
+                <span style="color:#6b7280; font-weight:400; font-size:11px; margin-left:4px;">· will be assigned</span>
               </span>
-              <span *ngIf="editCourseMatchedInterns.length === 0" style="color:#dc2626;">
-                No interns found for "{{ editEffectiveCourse }}"
+              <span *ngIf="editCourseMatchedInternsComputed.length === 0" style="color:#dc2626;">
+                No interns found for "{{ editCourseSearch }}"
               </span>
             </div>
-            <div class="course-match-list" *ngIf="editCourseMatchedInterns.length > 0">
-              <div class="course-match-chip" *ngFor="let i of editCourseMatchedInterns">
+            <div class="course-match-list" *ngIf="editCourseMatchedInternsComputed.length > 0">
+              <div class="course-match-chip" *ngFor="let i of editCourseMatchedInternsComputed">
                 <div class="cmc-avatar">{{ i.first_name[0] }}{{ i.last_name[0] }}</div>
-                <span>{{ i.first_name }} {{ i.last_name }}</span>
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                  <span>{{ i.first_name }} {{ i.last_name }}</span>
+                  <span style="font-size:10px; color:#9ca3af;">{{ i.course }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- ── SPECIFIC INTERNS (edit) ── -->
         <ng-container *ngIf="editAssignMode === 'specific'">
           <div class="search-box">
             <input type="text" placeholder="Search intern name…" [(ngModel)]="editInternSearchQuery" (input)="onEditInternSearch()">
@@ -710,8 +780,8 @@
       </div>
     </div>
 
-  </div><!-- ← closes .task-modal-modern -->
-</div><!-- ← closes .task-modal-overlay [isCardModalOpen] -->
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════ -->
 <!--  VIEW ALL SUBMISSIONS MODAL                   -->
@@ -988,12 +1058,12 @@
                 <i class="fa fa-spinner fa-spin" *ngIf="reportGenerating"></i>
                 <i class="fas fa-print" *ngIf="!reportGenerating"></i>
               </span>
-              <span>{{ reportGenerating ? 'Generating...' : 'Export & Print PDF' }}</span>
+              <span>{{ reportGenerating ? 'Generating...' : 'Export &amp; Print PDF' }}</span>
             </span>
           </button>
         </div>
       </ng-container>
 
     </div>
-  </div><!-- ← closes .task-modal-modern (logbook entry modal) -->
-</div><!-- ← closes .task-modal-overlay [isLogbookEntryModalOpen] -->
+  </div>
+</div>

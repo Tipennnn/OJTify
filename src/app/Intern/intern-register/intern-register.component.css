@@ -251,7 +251,6 @@ body {
   transition: all 0.25s ease;
 }
 
-/* Adjust label top when there's a field-error below */
 .input-wrapper.has-error label {
   background: #fff5f5;
 }
@@ -373,7 +372,6 @@ input::placeholder { color: transparent; }
   z-index: 1;
 }
 
-/* Shift icon up when there's a field-error message below the input */
 .input-wrapper.has-error .icon,
 .date-wrapper.has-error .icon {
   top: calc(50% - 10px);
@@ -623,6 +621,84 @@ input::placeholder { color: transparent; }
   font-size: 12px;
   margin-top: 10px;
   color: #9ca3af;
+}
+
+/* ======================================= */
+/* ── COURSE AUTOCOMPLETE DROPDOWN ──      */
+/* ======================================= */
+
+/* The wrapper needs relative + visible overflow for the dropdown */
+.course-autocomplete-wrapper {
+  position: relative;
+  overflow: visible !important;
+}
+
+/* The dropdown itself */
+.course-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  z-index: 999;
+  overflow: hidden;
+  /* Override global transition so dropdown doesn't animate weirdly */
+  transition: none;
+}
+
+/* Each suggestion row */
+.course-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.course-option:last-child {
+  border-bottom: none;
+}
+
+.course-option:hover,
+.course-option.highlighted {
+  background: #eff6ff;
+}
+
+/* Short abbreviation label (BSIT) */
+.course-option-abbr {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E40AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+/* Full course name */
+.course-option-full {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Empty state inside dropdown */
+.course-option-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: none;
 }
 
 /* ── TABLET (≤1024px) ── */

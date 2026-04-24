@@ -18,7 +18,7 @@ interface Supervisor {
   status          ?: string;
   assigned_students?: number;
   profile_photo_id ?: string;
-  esig_file_id    ?: string;   // ← NEW
+  esig_file_id    ?: string;
   $createdAt       : string;
 }
 
@@ -116,17 +116,17 @@ export class AdminSupervisorManagementComponent implements OnInit {
   assignedInterns : Intern[] = [];
 
   showAssignModal = false;
-allInterns: Intern[] = [];
-filteredInterns: Intern[] = [];
-internsSearchQuery = '';
-assigningIntern = false;
+  allInterns: Intern[] = [];
+  filteredInterns: Intern[] = [];
+  internsSearchQuery = '';
+  assigningIntern = false;
 
   currentPage = 1;
   pageSize    = 10;
   realTotalAssignedInterns = 0;
 
-  esigPreviewUrl   = '';   // base64 preview shown in the upload box
-esigUploading    = false;
+  esigPreviewUrl   = '';
+  esigUploading    = false;
 
   readonly BUCKET_ID       = '69baaf64002ceb2490df';
   readonly PROJECT_ID      = '69ba8d9c0027d10c447f';
@@ -137,22 +137,22 @@ esigUploading    = false;
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
-  await this.loadSupervisors();
-  await this.loadTotalAssignedCount(); // ← add this
-}
-
-async loadTotalAssignedCount() {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL
-    );
-    this.realTotalAssignedInterns = (res.documents as any[])
-      .filter(s => s.supervisor_id && s.supervisor_id !== '').length;
-  } catch (err: any) {
-    console.error('Failed to count assigned interns:', err.message);
+    await this.loadSupervisors();
+    await this.loadTotalAssignedCount();
   }
-}
+
+  async loadTotalAssignedCount() {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+      this.realTotalAssignedInterns = (res.documents as any[])
+        .filter(s => s.supervisor_id && s.supervisor_id !== '').length;
+    } catch (err: any) {
+      console.error('Failed to count assigned interns:', err.message);
+    }
+  }
 
   async loadSupervisors() {
     this.loading = true;
@@ -172,8 +172,8 @@ async loadTotalAssignedCount() {
   }
 
   get totalAssignedInterns(): number {
-  return this.supervisors.reduce((s, sup) => s + (sup.assigned_students || 0), 0);
-}
+    return this.supervisors.reduce((s, sup) => s + (sup.assigned_students || 0), 0);
+  }
 
   get avgInternsPerSupervisor(): string {
     if (!this.supervisors.length) return '0';
@@ -212,33 +212,32 @@ async loadTotalAssignedCount() {
     if (p >= 1 && p <= this.totalPages) this.currentPage = p;
   }
 
-openViewModal(sup: Supervisor) {
-  this.selectedSupervisor = sup;
-  this.isEditing          = false;
-  this.formError          = '';
-  this.showPassword       = false;
-  this.activeTab          = 'profile';
-  this.assignedInterns    = [];
-  this.isAccountActive    = (sup.status || 'Active') === 'Active';
-  this.form = {
-    first_name  : sup.first_name,
-    last_name   : sup.last_name,
-    employee_id : sup.employee_id  || '',
-    email       : sup.email,
-    password    : '',
-    grade_level : sup.grade_level  || '',
-  };
-  this.editingId = sup.$id;
-  this.showModal = true;
+  openViewModal(sup: Supervisor) {
+    this.selectedSupervisor = sup;
+    this.isEditing          = false;
+    this.formError          = '';
+    this.showPassword       = false;
+    this.activeTab          = 'profile';
+    this.assignedInterns    = [];
+    this.isAccountActive    = (sup.status || 'Active') === 'Active';
+    this.form = {
+      first_name  : sup.first_name,
+      last_name   : sup.last_name,
+      employee_id : sup.employee_id  || '',
+      email       : sup.email,
+      password    : '',
+      grade_level : sup.grade_level  || '',
+    };
+    this.editingId = sup.$id;
+    this.showModal = true;
 
-  // ✅ Load interns immediately so profile tab count is correct
-  this.loadAssignedInterns();
+    this.loadAssignedInterns();
 
-  this.esigPreviewUrl = '';
-  if (sup.esig_file_id) {
-   this.loadEsigPreview(sup.esig_file_id);
- }
-}
+    this.esigPreviewUrl = '';
+    if (sup.esig_file_id) {
+      this.loadEsigPreview(sup.esig_file_id);
+    }
+  }
 
   openAddModal() {
     this.selectedSupervisor = null;
@@ -267,46 +266,42 @@ openViewModal(sup: Supervisor) {
   }
 
   async switchToStudentsTab() {
-  this.activeTab = 'students';
-  // Always reload to get fresh data
-  await this.loadAssignedInterns();
-}
-
-async loadAssignedInterns() {
-  if (!this.selectedSupervisor) return;
-  this.internsLoading = true;
-  try {
-    const { Query } = await import('appwrite');
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      [Query.equal('supervisor_id', this.selectedSupervisor.$id)]
-    );
-    this.assignedInterns = res.documents as any[];
-
-    // ✅ Sync the real count back to the local supervisor object
-    const realCount = this.assignedInterns.length;
-    this.selectedSupervisor = { ...this.selectedSupervisor, assigned_students: realCount };
-
-    // ✅ Also update the supervisors list so table column reflects it
-    const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
-    if (idx !== -1) this.supervisors[idx].assigned_students = realCount;
-
-    // ✅ Persist to DB so it's correct next time
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.SUPERVISORS_COL,
-      this.selectedSupervisor.$id,
-      { assigned_students: realCount }
-    );
-
-  } catch (err: any) {
-    console.error('Failed to load assigned interns:', err.message);
-    this.assignedInterns = [];
-  } finally {
-    this.internsLoading = false;
+    this.activeTab = 'students';
+    await this.loadAssignedInterns();
   }
-}
+
+  async loadAssignedInterns() {
+    if (!this.selectedSupervisor) return;
+    this.internsLoading = true;
+    try {
+      const { Query } = await import('appwrite');
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        [Query.equal('supervisor_id', this.selectedSupervisor.$id)]
+      );
+      this.assignedInterns = res.documents as any[];
+
+      const realCount = this.assignedInterns.length;
+      this.selectedSupervisor = { ...this.selectedSupervisor, assigned_students: realCount };
+
+      const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
+      if (idx !== -1) this.supervisors[idx].assigned_students = realCount;
+
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.SUPERVISORS_COL,
+        this.selectedSupervisor.$id,
+        { assigned_students: realCount }
+      );
+
+    } catch (err: any) {
+      console.error('Failed to load assigned interns:', err.message);
+      this.assignedInterns = [];
+    } finally {
+      this.internsLoading = false;
+    }
+  }
 
   async toggleAccountStatus() {
     if (!this.selectedSupervisor) return;
@@ -332,60 +327,55 @@ async loadAssignedInterns() {
     }
   }
 
-async submitForm() {
-  this.formError = '';
+  async submitForm() {
+    this.formError = '';
 
-  // --- Basic field validation ---
-  if (!this.form.first_name.trim() || !this.form.last_name.trim() || !this.form.email.trim()) {
-    this.formError = 'First name, last name, and email are required.'; return;
-  }
-
-  // --- Email format validation ---
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(this.form.email.trim())) {
-    this.formError = 'Please enter a valid email address.'; return;
-  }
-
-  if (!this.selectedSupervisor && !this.form.password.trim()) {
-    this.formError = 'Password is required when creating a new account.'; return;
-  }
-
-  // --- Password strength (only on create) ---
-  if (!this.selectedSupervisor && this.form.password.trim().length < 8) {
-    this.formError = 'Password must be at least 8 characters.'; return;
-  }
-
-  this.submitting = true;
-
-   try {
-    const emailToCheck = this.form.email.trim().toLowerCase();
-
-    // --- Check if email already exists in supervisors collection ---
-    if (!this.selectedSupervisor) {
-      const { Query } = await import('appwrite');
-
-      const existingSupRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.SUPERVISORS_COL,
-        [Query.equal('email', emailToCheck)]
-      );
-      if (existingSupRes.documents.length > 0) {
-        this.formError = 'A supervisor with this email is already registered.';
-        this.submitting = false; return;
-      }
-
-      // --- Check if email belongs to an intern/student ---
-      const existingInternRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        [Query.equal('email', emailToCheck)]
-      );
-      if (existingInternRes.documents.length > 0) {
-        this.formError = 'This email is already registered as an OJT student account. Supervisors and students cannot share the same email.';
-        this.submitting = false; return;
-      }
+    if (!this.form.first_name.trim() || !this.form.last_name.trim() || !this.form.email.trim()) {
+      this.formError = 'First name, last name, and email are required.'; return;
     }
-    
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.form.email.trim())) {
+      this.formError = 'Please enter a valid email address.'; return;
+    }
+
+    if (!this.selectedSupervisor && !this.form.password.trim()) {
+      this.formError = 'Password is required when creating a new account.'; return;
+    }
+
+    if (!this.selectedSupervisor && this.form.password.trim().length < 8) {
+      this.formError = 'Password must be at least 8 characters.'; return;
+    }
+
+    this.submitting = true;
+
+    try {
+      const emailToCheck = this.form.email.trim().toLowerCase();
+
+      if (!this.selectedSupervisor) {
+        const { Query } = await import('appwrite');
+
+        const existingSupRes = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.SUPERVISORS_COL,
+          [Query.equal('email', emailToCheck)]
+        );
+        if (existingSupRes.documents.length > 0) {
+          this.formError = 'A supervisor with this email is already registered.';
+          this.submitting = false; return;
+        }
+
+        const existingInternRes = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          [Query.equal('email', emailToCheck)]
+        );
+        if (existingInternRes.documents.length > 0) {
+          this.formError = 'This email is already registered as an OJT student account. Supervisors and students cannot share the same email.';
+          this.submitting = false; return;
+        }
+      }
+
       const payload: any = {
         first_name  : this.form.first_name.trim(),
         last_name   : this.form.last_name.trim(),
@@ -405,12 +395,12 @@ async submitForm() {
         await this.appwrite.databases.createDocument(
           this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, account.$id,
           { ...payload, assigned_students: 0 });
-          
-            await this.sendSupervisorWelcomeEmail(
-    this.form.email.trim(),
-    `${this.form.first_name.trim()} ${this.form.last_name.trim()}`,
-    this.form.password
-  );
+
+        await this.sendSupervisorWelcomeEmail(
+          this.form.email.trim(),
+          `${this.form.first_name.trim()} ${this.form.last_name.trim()}`,
+          this.form.password
+        );
       }
       await this.loadSupervisors();
       this.closeModal();
@@ -467,222 +457,264 @@ async submitForm() {
   getStatusClass(status: string | undefined): string {
     return status === 'Inactive' ? 'status-inactive' : 'status-active';
   }
+
   async openAssignModal() {
-  this.showAssignModal = true;
-  this.internsSearchQuery = '';
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL
-    );
-    this.allInterns = res.documents as any[];
-    this.filteredInterns = [...this.allInterns];
-  } catch (err: any) {
-    console.error('Failed to load interns:', err.message);
-  }
-}
-onInternSearch(event: any) {
-  const q = event.target.value.toLowerCase();
-  this.internsSearchQuery = q;
-  this.filteredInterns = this.allInterns.filter(i =>
-    `${i.first_name} ${i.last_name}`.toLowerCase().includes(q) ||
-    (i.school_name || '').toLowerCase().includes(q) ||
-    (i.course || '').toLowerCase().includes(q)
-  );
-}
-
-getInternSupervisorLabel(intern: Intern): string {
-  const supId = (intern as any).supervisor_id;
-  if (!supId) return '';
-  if (supId === this.selectedSupervisor?.$id) return 'Already assigned to this supervisor';
-  const sup = this.supervisors.find(s => s.$id === supId);
-  return sup ? `Assigned to ${sup.first_name} ${sup.last_name}` : 'Assigned to another supervisor';
-}
-
-async assignIntern(intern: Intern) {
-  if (!this.selectedSupervisor) return;
-  const supId = (intern as any).supervisor_id;
-  if (supId === this.selectedSupervisor.$id) return; // already assigned
-
-  this.assigningIntern = true;
-  try {
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      intern.$id,
-      { supervisor_id: this.selectedSupervisor.$id }
-    );
-
-    // Refresh assigned interns & update count
-    await this.loadAssignedInterns();
-    await this.loadTotalAssignedCount();
-
-    // Update local intern object so label refreshes immediately
-    (intern as any).supervisor_id = this.selectedSupervisor.$id;
-  } catch (err: any) {
-    console.error('Failed to assign intern:', err.message);
-  } finally {
-    this.assigningIntern = false;
-  }
-}
-async unassignIntern(intern: Intern) {
-  if (!this.selectedSupervisor) return;
-  this.assigningIntern = true;
-  try {
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      intern.$id,
-      { supervisor_id: null }
-    );
-
-    // Refresh assigned interns & update count
-    await this.loadAssignedInterns();
-    await this.loadTotalAssignedCount();
-
-    // Update local allInterns list too if assign modal is open
-    const idx = this.allInterns.findIndex(i => i.$id === intern.$id);
-    if (idx !== -1) (this.allInterns[idx] as any).supervisor_id = null;
-
-  } catch (err: any) {
-    console.error('Failed to unassign intern:', err.message);
-  } finally {
-    this.assigningIntern = false;
-  }
-}
-async sendSupervisorWelcomeEmail(email: string, fullName: string, password: string) {
-  try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': environment.brevoApiKey
-      },
-      body: JSON.stringify({
-        sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-        to: [{ email, name: fullName }],
-        templateId: environment.brevoSupervisorWelcomeTid,
-        params: {
-          supervisor_name: fullName,
-          email:           email,
-          password:        password
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      console.error('Brevo error:', err);
-    } else {
-      console.log(`Welcome email sent to ${email}`);
+    this.showAssignModal = true;
+    this.internsSearchQuery = '';
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+      this.allInterns = res.documents as any[];
+      this.filteredInterns = [...this.allInterns];
+    } catch (err: any) {
+      console.error('Failed to load interns:', err.message);
     }
-  } catch (error) {
-    console.error('Failed to send supervisor welcome email:', error);
   }
-}
-async onEsigChange(event: Event): Promise<void> {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file || !this.selectedSupervisor) return;
-  await this.uploadEsig(file);
-}
- 
-// ── Called on drag-drop ──
-async onEsigDrop(event: DragEvent): Promise<void> {
-  event.preventDefault();
-  const file = event.dataTransfer?.files?.[0];
-  if (!file || !file.type.startsWith('image/') || !this.selectedSupervisor) return;
-  await this.uploadEsig(file);
-}
- 
-// ── Core upload logic ──
-private async uploadEsig(file: File): Promise<void> {
-  if (!this.selectedSupervisor) return;
-  this.esigUploading = true;
- 
-  try {
-    // Delete old file if one exists
-    const oldFileId = this.selectedSupervisor.esig_file_id;
-    if (oldFileId) {
-      try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); }
-      catch { /* ignore — file may already be gone */ }
+
+  onInternSearch(event: any) {
+    const q = event.target.value.toLowerCase();
+    this.internsSearchQuery = q;
+    this.filteredInterns = this.allInterns.filter(i =>
+      `${i.first_name} ${i.last_name}`.toLowerCase().includes(q) ||
+      (i.school_name || '').toLowerCase().includes(q) ||
+      (i.course || '').toLowerCase().includes(q)
+    );
+  }
+
+  getInternSupervisorLabel(intern: Intern): string {
+    const supId = (intern as any).supervisor_id;
+    if (!supId) return '';
+    if (supId === this.selectedSupervisor?.$id) return 'Already assigned to this supervisor';
+    const sup = this.supervisors.find(s => s.$id === supId);
+    return sup ? `Assigned to ${sup.first_name} ${sup.last_name}` : 'Assigned to another supervisor';
+  }
+
+  async assignIntern(intern: Intern) {
+    if (!this.selectedSupervisor) return;
+    const supId = (intern as any).supervisor_id;
+    if (supId === this.selectedSupervisor.$id) return;
+
+    this.assigningIntern = true;
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        intern.$id,
+        { supervisor_id: this.selectedSupervisor.$id }
+      );
+
+      await this.loadAssignedInterns();
+      await this.loadTotalAssignedCount();
+
+      (intern as any).supervisor_id = this.selectedSupervisor.$id;
+    } catch (err: any) {
+      console.error('Failed to assign intern:', err.message);
+    } finally {
+      this.assigningIntern = false;
     }
- 
-    // Upload new file
-    const { ID } = await import('appwrite');
-    const newFileId = ID.unique();
-    await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
- 
-    // Save file ID to DB
+  }
+
+  async unassignIntern(intern: Intern) {
+    if (!this.selectedSupervisor) return;
+    this.assigningIntern = true;
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        intern.$id,
+        { supervisor_id: null }
+      );
+
+      await this.loadAssignedInterns();
+      await this.loadTotalAssignedCount();
+
+      const idx = this.allInterns.findIndex(i => i.$id === intern.$id);
+      if (idx !== -1) (this.allInterns[idx] as any).supervisor_id = null;
+
+    } catch (err: any) {
+      console.error('Failed to unassign intern:', err.message);
+    } finally {
+      this.assigningIntern = false;
+    }
+  }
+
+  async sendSupervisorWelcomeEmail(email: string, fullName: string, password: string) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': environment.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+          to: [{ email, name: fullName }],
+          templateId: environment.brevoSupervisorWelcomeTid,
+          params: {
+            supervisor_name: fullName,
+            email:           email,
+            password:        password
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        console.error('Brevo error:', err);
+      } else {
+        console.log(`Welcome email sent to ${email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send supervisor welcome email:', error);
+    }
+  }
+
+  // ── Called on file input change ──
+  async onEsigChange(event: Event): Promise<void> {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file || !this.selectedSupervisor) return;
+
+    // ✅ PNG-only check
+    if (file.type !== 'image/png') {
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid File Type',
+        text: 'Only PNG files are accepted for e-signatures. Please upload a .png file.',
+        confirmButtonColor: '#2563eb'
+      });
+      // Reset the input so the same file can be re-selected after correction
+      (event.target as HTMLInputElement).value = '';
+      return;
+    }
+
+    await this.uploadEsig(file);
+  }
+
+  // ── Called on drag-drop ──
+  async onEsigDrop(event: DragEvent): Promise<void> {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file || !this.selectedSupervisor) return;
+
+    // ✅ PNG-only check for drag-and-drop
+    if (file.type !== 'image/png') {
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid File Type',
+        text: 'Only PNG files are accepted for e-signatures. Please drag a .png file.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    await this.uploadEsig(file);
+  }
+
+  // ── Core upload logic ──
+  private async uploadEsig(file: File): Promise<void> {
+    if (!this.selectedSupervisor) return;
+
+    // ✅ Final safety guard — PNG only (covers any edge cases)
+    if (file.type !== 'image/png') {
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid File Type',
+        text: 'Only PNG files are accepted for e-signatures.',
+        confirmButtonColor: '#2563eb'
+      });
+      return;
+    }
+
+    this.esigUploading = true;
+
+    try {
+      // Delete old file if one exists
+      const oldFileId = this.selectedSupervisor.esig_file_id;
+      if (oldFileId) {
+        try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); }
+        catch { /* ignore — file may already be gone */ }
+      }
+
+      // Upload new file
+      const { ID } = await import('appwrite');
+      const newFileId = ID.unique();
+      await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
+
+      // Save file ID to DB
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.SUPERVISORS_COL,
+        this.selectedSupervisor.$id,
+        { esig_file_id: newFileId }
+      );
+
+      // Update local object
+      this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: newFileId };
+      const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
+      if (idx !== -1) this.supervisors[idx].esig_file_id = newFileId;
+
+      // Show base64 preview immediately (no CORS issues — local file)
+      const reader = new FileReader();
+      reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
+      reader.readAsDataURL(file);
+
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'success', title: 'E-Signature Saved!',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 2000, timerProgressBar: true
+      });
+
+    } catch (err: any) {
+      console.error('E-sig upload failed:', err);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#2563eb' });
+    } finally {
+      this.esigUploading = false;
+    }
+  }
+
+  // ── Remove e-sig ──
+  async removeEsig(): Promise<void> {
+    if (!this.selectedSupervisor?.esig_file_id) return;
+
+    try {
+      await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.selectedSupervisor.esig_file_id);
+    } catch { /* ignore */ }
+
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID,
       this.SUPERVISORS_COL,
       this.selectedSupervisor.$id,
-      { esig_file_id: newFileId }
+      { esig_file_id: '' }
     );
- 
-    // Update local object
-    this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: newFileId };
+
+    this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: '' };
     const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
-    if (idx !== -1) this.supervisors[idx].esig_file_id = newFileId;
- 
-    // Show base64 preview immediately (no CORS issues — local file)
-    const reader = new FileReader();
-    reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
-    reader.readAsDataURL(file);
- 
-    // Show success toast
-    const Swal = (await import('sweetalert2')).default;
-    Swal.fire({
-      icon: 'success', title: 'E-Signature Saved!',
-      toast: true, position: 'top-end',
-      showConfirmButton: false, timer: 2000, timerProgressBar: true
-    });
- 
-  } catch (err: any) {
-    console.error('E-sig upload failed:', err);
-    const Swal = (await import('sweetalert2')).default;
-    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#2563eb' });
-  } finally {
-    this.esigUploading = false;
+    if (idx !== -1) this.supervisors[idx].esig_file_id = '';
+    this.esigPreviewUrl = '';
   }
-}
- 
-// ── Remove e-sig ──
-async removeEsig(): Promise<void> {
-  if (!this.selectedSupervisor?.esig_file_id) return;
- 
-  try {
-    await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.selectedSupervisor.esig_file_id);
-  } catch { /* ignore */ }
- 
-  await this.appwrite.databases.updateDocument(
-    this.appwrite.DATABASE_ID,
-    this.SUPERVISORS_COL,
-    this.selectedSupervisor.$id,
-    { esig_file_id: '' }
-  );
- 
-  this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: '' };
-  const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
-  if (idx !== -1) this.supervisors[idx].esig_file_id = '';
-  this.esigPreviewUrl = '';
-}
-private async loadEsigPreview(fileId: string): Promise<void> {
-  try {
-    const jwt = await this.appwrite.account.createJWT();
-    const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
-    const res = await fetch(url, {
-      headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID }
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      const reader = new FileReader();
-      reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
-      reader.readAsDataURL(blob);
+
+  private async loadEsigPreview(fileId: string): Promise<void> {
+    try {
+      const jwt = await this.appwrite.account.createJWT();
+      const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
+      const res = await fetch(url, {
+        headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID }
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
+        reader.readAsDataURL(blob);
+      }
+    } catch (err) {
+      console.warn('Could not load esig preview:', err);
     }
-  } catch (err) {
-    console.warn('Could not load esig preview:', err);
   }
-}
- 
 }
