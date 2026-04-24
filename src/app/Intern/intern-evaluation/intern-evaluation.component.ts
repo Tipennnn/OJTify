@@ -132,92 +132,138 @@ export class InternEvaluationComponent implements OnInit {
 
   // ── Load data ─────────────────────────────────────────────────────────────
   async loadData() {
-    this.loading = true;
+  this.loading = true;
+  try {
+    const account = await this.appwrite.account.get();
+
     try {
-      const account = await this.appwrite.account.get();
-
-      try {
-        const studentDoc = await this.appwrite.databases.getDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL,
-          account.$id
-        );
-        this.student = studentDoc as any;
-      } catch {
-        const sRes = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL
-        );
-        this.student = (sRes.documents as any[]).find(s => s.email === account.email) ?? null;
-      }
-
-      if (!this.student) {
-        this.hasEvaluation = false;
-        this.loading = false;
-        return;
-      }
-
-      const eRes = await this.appwrite.databases.listDocuments(
+      const studentDoc = await this.appwrite.databases.getDocument(
         this.appwrite.DATABASE_ID,
-        this.EVAL_COL
+        this.appwrite.STUDENTS_COL,
+        account.$id
       );
-      const ev = (eRes.documents as any[]).find(e => e.student_id_ref === this.student!.$id);
+      this.student = studentDoc as any;
+    } catch {
+      const sRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+      this.student = (sRes.documents as any[]).find(s => s.email === account.email) ?? null;
+    }
 
-      if (ev) {
-        this.evaluation    = ev as Evaluation;
-        this.hasEvaluation = true;
-        this.hasInternSig  = !!ev.intern_signature;
+    if (!this.student) {
+      this.hasEvaluation = false;
+      this.loading = false;
+      return;
+    }
 
-        // Parse scores
-        try {
-          this.scores = JSON.parse(ev.scores_json ?? '{}');
-        } catch {
-          this.scores = this.legacyScores(ev);
-        }
+    const eRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.EVAL_COL
+    );
+    const ev = (eRes.documents as any[]).find(e => e.student_id_ref === this.student!.$id);
 
-        // Rebuild display criteria from snapshot
-        try {
-          const snap = JSON.parse(ev.criteria_snapshot ?? '[]') as StoredCriterion[];
-          this.displayCriteria = snap.length ? snap : this.DEFAULT_CRITERIA;
-        } catch {
-          this.displayCriteria = this.DEFAULT_CRITERIA;
-        }
+    if (ev) {
+      this.evaluation    = ev as Evaluation;
+      this.hasEvaluation = true;
+      this.hasInternSig  = !!ev.intern_signature;
 
-        if (ev.supervisor_id) {
-          try {
-            const supDoc = await this.appwrite.databases.getDocument(
-              this.appwrite.DATABASE_ID,
-              this.SUP_COL,
-              ev.supervisor_id
-            );
-            this.supervisor = supDoc as any;
-          } catch {
-            this.buildSupervisorFromName(ev);
+      // ── Rebuild display criteria from snapshot ──────────────────
+      let criteriaSnap: any[] = [];
+      try {
+        criteriaSnap = JSON.parse(ev.criteria_snapshot ?? '[]');
+      } catch { criteriaSnap = []; }
+
+      if (criteriaSnap.length) {
+        // Convert EditableCriterion[] (supervisor format) → StoredCriterion[]
+        // Each EditableCriterion has multiple questions; flatten to one row per question
+        this.displayCriteria = [];
+        for (const c of criteriaSnap) {
+          if (c.questions?.length) {
+            for (const q of c.questions) {
+              this.displayCriteria.push({
+                key         : `${c.key}::${q.qkey}`,  // matches answers_json key
+                label       : c.label,
+                icon        : c.icon ?? 'fa-star',
+                question    : q.text,
+                numChoices  : q.numChoices ?? 5,
+                choiceLabels: q.choiceLabels ?? { 1:'Poor', 2:'Fair', 3:'Good', 4:'V.Good', 5:'Excellent' }
+              });
+            }
+          } else {
+            // Old flat format fallback
+            this.displayCriteria.push({
+              key         : c.key,
+              label       : c.label,
+              icon        : c.icon ?? 'fa-star',
+              question    : c.question ?? c.label,
+              numChoices  : c.numChoices ?? 5,
+              choiceLabels: c.choiceLabels ?? { 1:'Poor', 2:'Fair', 3:'Good', 4:'V.Good', 5:'Excellent' }
+            });
           }
-        } else if (ev.supervisor_name) {
+        }
+      } else {
+        this.displayCriteria = this.DEFAULT_CRITERIA;
+      }
+
+      // ── Parse scores from answers_json (supervisor format) ──────
+      try {
+        const raw = JSON.parse(ev.answers_json ?? '{}');
+        // answers_json keys are like "punctuality::q1" → value is a string number
+        this.scores = {};
+        for (const [key, val] of Object.entries(raw)) {
+          this.scores[key] = parseInt(val as string, 10) || 0;
+        }
+      } catch {
+        // Fallback to legacy flat fields
+        this.scores = this.legacyScores(ev);
+      }
+
+      // ── Parse remarks from remarks_sections_json ─────────────────
+      try {
+        const remarksMap = JSON.parse(ev.remarks_sections_json ?? '{}');
+        // Map to the flat fields the template uses
+        if (!ev.strengths)             (this.evaluation as any).strengths             = remarksMap['strengths']             ?? '';
+        if (!ev.areas_for_improvement) (this.evaluation as any).areas_for_improvement = remarksMap['areas_for_improvement'] ?? '';
+        if (!ev.remarks)               (this.evaluation as any).remarks               = remarksMap['overall_remarks']        ?? '';
+      } catch {}
+
+      // ── Load supervisor ──────────────────────────────────────────
+      if (ev.supervisor_id) {
+        try {
+          const supDoc = await this.appwrite.databases.getDocument(
+            this.appwrite.DATABASE_ID,
+            this.SUP_COL,
+            ev.supervisor_id
+          );
+          this.supervisor = supDoc as any;
+        } catch {
           this.buildSupervisorFromName(ev);
         }
-
-        setTimeout(() => {
-          this.initCanvas();
-          if (ev.intern_signature && this.ctx && this.canvas) {
-            const img = new Image();
-            img.onload = () => this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
-            img.src    = ev.intern_signature;
-          }
-        }, 300);
-
-      } else {
-        this.hasEvaluation = false;
+      } else if (ev.supervisor_name) {
+        this.buildSupervisorFromName(ev);
       }
 
-    } catch (err: any) {
-      console.error('loadData error:', err.message);
+      setTimeout(() => {
+        this.initCanvas();
+        if (ev.intern_signature && this.ctx && this.canvas) {
+          const img = new Image();
+          img.onload = () => this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
+          img.src    = ev.intern_signature;
+        }
+      }, 300);
+
+    } else {
       this.hasEvaluation = false;
-    } finally {
-      this.loading = false;
     }
+
+  } catch (err: any) {
+    console.error('loadData error:', err.message);
+    this.hasEvaluation = false;
+  } finally {
+    this.loading = false;
   }
+}
 
   /** Backward-compat: extract scores from old flat fields */
   private legacyScores(ev: any): Record<string, number> {
@@ -260,9 +306,8 @@ export class InternEvaluationComponent implements OnInit {
 
   // ── Rating helpers ────────────────────────────────────────────────────────
   getRating(key: string): number {
-    return this.scores[key] ?? 0;
-  }
-
+  return this.scores[key] ?? 0;
+}
   getChoiceLabel(c: StoredCriterion, v: number): string {
     return c.choiceLabels?.[v] ?? `Level ${v}`;
   }
@@ -290,14 +335,16 @@ export class InternEvaluationComponent implements OnInit {
   }
 
   getOverallAverage(): number {
-    if (!this.displayCriteria.length) return 0;
-    const normalized = this.displayCriteria.map(c => {
+  if (!this.displayCriteria.length) return 0;
+  const normalized = this.displayCriteria
+    .map(c => {
       const raw = this.scores[c.key] ?? 0;
       return raw > 0 ? (raw / c.numChoices) * 5 : 0;
-    }).filter(v => v > 0);
-    if (!normalized.length) return 0;
-    return parseFloat((normalized.reduce((a, b) => a + b, 0) / normalized.length).toFixed(2));
-  }
+    })
+    .filter(v => v > 0);
+  if (!normalized.length) return 0;
+  return parseFloat((normalized.reduce((a, b) => a + b, 0) / normalized.length).toFixed(2));
+}
 
   getOverallLabel(avg: number): string {
     if (avg >= 4.5) return 'Excellent';

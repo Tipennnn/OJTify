@@ -30,16 +30,17 @@
         <div class="table-container">
 
           <table class="applicants-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Course</th>
-                <th>Email</th>
-                <th>OJT Start Date</th>
-                <th>Hours Progress</th>
-              </tr>
-            </thead>
+           <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Student ID</th>
+                  <th>Course</th>
+                  <th>Email</th>
+                  <th>OJT Start Date</th>
+                  <th>Hours Progress</th>
+                  <th>Action</th>   <!-- ← add this -->
+                </tr>
+              </thead>
             <tbody>
               <tr *ngFor="let student of pagedStudents"
                   (click)="openProfile(student)"
@@ -66,6 +67,25 @@
                     ({{ getProgress(student) }}%)
                   </span>
                 </td>
+
+                 <td (click)="$event.stopPropagation()">
+    <button
+      (click)="archiveStudent($event, student)"
+      [disabled]="archivingId === student.$id"
+      [title]="getArchiveTooltip(student)"
+      [style.background]="canArchive(student) ? '#2563eb' : '#e5e7eb'"
+      [style.color]="canArchive(student) ? '#fff' : '#9ca3af'"
+      [style.cursor]="canArchive(student) ? 'pointer' : 'not-allowed'"
+      style="padding:6px 14px; border:none; border-radius:8px;
+             font-size:12px; font-family:'Poppins',sans-serif;
+             display:flex; align-items:center; gap:6px; white-space:nowrap;">
+      <i [class]="archivingId === student.$id
+            ? 'fa fa-spinner fa-spin'
+            : 'fa-solid fa-box-archive'"></i>
+      {{ archivingId === student.$id ? 'Archiving...' : 'Archive' }}
+    </button>
+  </td>
+
               </tr>
 
               <tr *ngIf="filteredStudents.length === 0">

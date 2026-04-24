@@ -88,7 +88,7 @@ export class InternTasksComponent implements OnInit {
 
   currentUserId   = '';
   currentUserName = '';
-
+  
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
@@ -96,6 +96,8 @@ export class InternTasksComponent implements OnInit {
   // Word limits
   readonly TASKS_DONE_WORD_LIMIT  = 150;
   readonly REFLECTION_WORD_LIMIT  = 80;
+
+  readonly MAX_PHOTOS = 5;
 
   internPhotoMap    : Record<string, string> = {};
   supervisorPhotoMap: Record<string, string> = {};
@@ -114,7 +116,7 @@ export class InternTasksComponent implements OnInit {
   logbookSaving = false;
 
   logbookPhotos  : LogbookPhoto[] = [];
-  selectedPhoto  : File | null    = null;
+  selectedPhotos : File[]         = [];
   photoUploading = false;
 
   reportGenerating = false;
@@ -549,7 +551,7 @@ export class InternTasksComponent implements OnInit {
     this.logbookModalMode = 'add';
     this.selectedLogbookEntry = null;
     this.logbookPhotos = [];
-    this.selectedPhoto = null;
+    this.selectedPhotos = [];
     this.logbookForm = { entry_date: new Date().toISOString().split('T')[0], tasks_done: '• ', reflection: '' };
     this.tasksDoneWordCount = 0;
     this.reflectionWordCount = 0;
@@ -561,7 +563,7 @@ export class InternTasksComponent implements OnInit {
     this.selectedLogbookEntry = entry;
     this.logbookForm = { entry_date: entry.entry_date, tasks_done: entry.tasks_done, reflection: entry.reflection };
     this.logbookPhotos = [];
-    this.selectedPhoto = null;
+    this.selectedPhotos = [];
     this.isLogbookModalOpen = true;
     if (entry.$id) await this.loadLogbookPhotos(entry.$id);
   }
@@ -582,7 +584,7 @@ export class InternTasksComponent implements OnInit {
     this.tasksDoneWordCount = this.countWords(entry.tasks_done);
     this.reflectionWordCount = this.countWords(entry.reflection);
     this.logbookPhotos = [];
-    this.selectedPhoto = null;
+    this.selectedPhotos = [];
     this.isLogbookModalOpen = true;
     if (entry.$id) await this.loadLogbookPhotos(entry.$id);
   }
@@ -591,7 +593,7 @@ export class InternTasksComponent implements OnInit {
     this.isLogbookModalOpen = false;
     this.selectedLogbookEntry = null;
     this.logbookPhotos = [];
-    this.selectedPhoto = null;
+    this.selectedPhotos = [];
     this.tasksDoneWordCount = 0;
     this.reflectionWordCount = 0;
   }
@@ -639,26 +641,32 @@ export class InternTasksComponent implements OnInit {
       );
       this.logbookEntries.unshift(doc as any);
 
-      if (this.selectedPhoto) {
-        try {
-          await this.uploadLogbookPhotoSilent((doc as any).$id, this.selectedPhoto);
-        } catch (photoErr: any) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Entry saved, photo failed',
-            text: 'Your entry was saved but the photo could not be uploaded. You can add it in Edit mode.',
-            confirmButtonColor: '#2563eb'
-          });
-          this.closeLogbookModal();
-          return;
-        }
-      }
+   if (this.selectedPhotos.length > 0) {
+  const failed: string[] = [];
+  for (const photo of this.selectedPhotos) {
+    try {
+      await this.uploadLogbookPhotoSilent((doc as any).$id, photo);
+    } catch {
+      failed.push(photo.name);
+    }
+  }
+  if (failed.length > 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Some photos failed',
+      text: `These photos could not be uploaded: ${failed.join(', ')}. You can add them in Edit mode.`,
+      confirmButtonColor: '#2563eb'
+    });
+    this.closeLogbookModal();
+    return;
+  }
+}
 
       this.closeLogbookModal();
       Swal.fire({
         icon: 'success',
         title: 'Entry Saved!',
-        text: this.selectedPhoto ? 'Your entry and photo have been saved.' : 'Your daily logbook entry has been recorded.',
+        text: this.selectedPhotos ? 'Your entry and photo have been saved.' : 'Your daily logbook entry has been recorded.',
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
@@ -708,9 +716,9 @@ export class InternTasksComponent implements OnInit {
           reflection: this.logbookForm.reflection.trim()
         };
       }
-      if (this.selectedPhoto) {
-        await this.uploadLogbookPhotoSilent(this.selectedLogbookEntry.$id, this.selectedPhoto);
-      }
+      for (const photo of this.selectedPhotos) {
+  await this.uploadLogbookPhotoSilent(this.selectedLogbookEntry.$id, photo);
+}
       this.closeLogbookModal();
       Swal.fire({ icon: 'success', title: 'Entry Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true });
     } catch (error: any) {
@@ -753,18 +761,52 @@ export class InternTasksComponent implements OnInit {
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
 
-  onPhotoSelected(event: any) { const file = event.target.files[0]; if (file) this.selectedPhoto = file; }
+  onPhotoSelected(event: any) {
+  const files: FileList = event.target.files;
+  if (!files || files.length === 0) return;
 
-  private async uploadLogbookPhotoSilent(entryId: string, file: File) {
-    const uploaded = await this.appwrite.storage.createFile(this.BUCKET_ID, ID.unique(), file);
-    const photoDoc = await this.appwrite.databases.createDocument(
-      this.appwrite.DATABASE_ID, 'logbook_photos', ID.unique(),
-      { entry_id: entryId, student_id: this.currentUserId, file_id: uploaded.$id, file_name: file.name, uploaded_at: new Date().toLocaleString() }
-    );
-    this.logbookPhotos.push(photoDoc as any);
-    this.selectedPhoto = null;
-    this.entryPhotoCounts[entryId] = (this.entryPhotoCounts[entryId] || 0) + 1;
+  const remaining = this.MAX_PHOTOS - this.logbookPhotos.length - this.selectedPhotos.length;
+  if (remaining <= 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Photo limit reached',
+      text: `You can only attach up to ${this.MAX_PHOTOS} photos per entry.`,
+      confirmButtonColor: '#2563eb'
+    });
+    event.target.value = '';
+    return;
   }
+
+  const toAdd = Array.from(files).slice(0, remaining);
+  const skipped = files.length - toAdd.length;
+
+  this.selectedPhotos.push(...toAdd);
+
+  if (skipped > 0) {
+    Swal.fire({
+      icon: 'info',
+      title: `${skipped} photo(s) skipped`,
+      text: `Only ${toAdd.length} photo(s) were added to stay within the ${this.MAX_PHOTOS}-photo limit.`,
+      confirmButtonColor: '#2563eb'
+    });
+  }
+
+  event.target.value = ''; // reset so same files can be re-selected if needed
+}
+
+ private async uploadLogbookPhotoSilent(entryId: string, file: File) {
+  if (this.logbookPhotos.length >= this.MAX_PHOTOS) {
+    throw new Error(`Photo limit of ${this.MAX_PHOTOS} reached for this entry.`);
+  }
+  const uploaded = await this.appwrite.storage.createFile(this.BUCKET_ID, ID.unique(), file);
+  const photoDoc = await this.appwrite.databases.createDocument(
+    this.appwrite.DATABASE_ID, 'logbook_photos', ID.unique(),
+    { entry_id: entryId, student_id: this.currentUserId, file_id: uploaded.$id, file_name: file.name, uploaded_at: new Date().toLocaleString() }
+  );
+  this.logbookPhotos.push(photoDoc as any);
+
+  this.entryPhotoCounts[entryId] = (this.entryPhotoCounts[entryId] || 0) + 1;
+}
 
   async uploadLogbookPhoto(entryId: string, file: File) {
     this.photoUploading = true;
@@ -1029,5 +1071,8 @@ export class InternTasksComponent implements OnInit {
   }
   get selectedTaskSubmissionScore(): number | null {
   return (this.selectedTask as any)?.submissionScore ?? null;
+}
+removePendingPhoto(index: number) {
+  this.selectedPhotos.splice(index, 1);
 }
 }

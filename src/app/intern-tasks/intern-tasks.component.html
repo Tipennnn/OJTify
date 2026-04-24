@@ -422,45 +422,53 @@
 
       <!-- Upload box: shown in ADD and EDIT mode -->
       <ng-container *ngIf="logbookModalMode === 'add' || logbookModalMode === 'edit'">
-        <label class="upload-box lb-upload-box">
-          <input type="file" accept="image/*" (change)="onPhotoSelected($event)">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px; color:#2563eb;"></i>
-          <span class="upload-title">Click to attach a photo</span>
-          <span class="upload-sub">
-            {{ logbookModalMode === 'add' ? 'Uploaded together when you Save' : 'Uploaded together when you Update' }}
-          </span>
-        </label>
+  <label class="upload-box lb-upload-box"
+         [class.lb-upload-disabled]="logbookPhotos.length >= MAX_PHOTOS">
+    <input type="file" accept="image/*" multiple
+       (change)="onPhotoSelected($event)"
+       [disabled]="logbookPhotos.length >= MAX_PHOTOS">
+    <i class="fa-solid fa-cloud-arrow-up" style="font-size:22px; color:#2563eb;"></i>
+    <span class="upload-title">
+      {{ logbookPhotos.length >= MAX_PHOTOS ? 'Photo limit reached' : 'Click to attach a photo' }}
+    </span>
+   <span class="upload-sub">
+  {{ logbookPhotos.length >= MAX_PHOTOS
+      ? 'Remove a photo to upload another'
+      : 'Select up to ' + (MAX_PHOTOS - logbookPhotos.length) + ' photo(s) — saved when you ' + (logbookModalMode === 'add' ? 'Save' : 'Update') }}
+</span>
+  </label>
 
         <!-- Pending photo preview -->
-        <div *ngIf="selectedPhoto" class="lb-pending-photo">
-          <div class="lb-pending-thumb-icon"><i class="fas fa-image"></i></div>
-          <div class="lb-pending-info">
-            <span class="lb-pending-name">{{ selectedPhoto.name }}</span>
-            <span class="lb-pending-size">{{ getFileSize(selectedPhoto.size) }}</span>
-          </div>
-          <div class="lb-pending-actions">
-            <button class="lb-discard-btn" (click)="selectedPhoto = null" title="Discard">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
+            <div *ngFor="let photo of selectedPhotos; let i = index" class="lb-pending-photo">
+      <div class="lb-pending-thumb-icon"><i class="fas fa-image"></i></div>
+      <div class="lb-pending-info">
+        <span class="lb-pending-name">{{ photo.name }}</span>
+        <span class="lb-pending-size">{{ getFileSize(photo.size) }}</span>
+      </div>
+      <div class="lb-pending-actions">
+        <button class="lb-discard-btn" (click)="removePendingPhoto(i)" title="Discard">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
       </ng-container>
 
-      <ng-container *ngIf="logbookPhotos.length > 0">
-        <div class="lb-photos-section-label">
-          <span class="lb-photos-count">
-            {{ logbookPhotos.length }} photo{{ logbookPhotos.length > 1 ? 's' : '' }} uploaded
-          </span>
-        </div>
-      </ng-container>
+     <ng-container *ngIf="logbookPhotos.length > 0">
+  <div class="lb-photos-section-label">
+    <span class="lb-photos-count">
+      {{ logbookPhotos.length }} / {{ MAX_PHOTOS }} photo{{ logbookPhotos.length > 1 ? 's' : '' }} uploaded
+    </span>
+  </div>
+</ng-container>
 
-      <ng-container *ngIf="logbookPhotos.length === 0 && !selectedPhoto">
+      <ng-container *ngIf="logbookPhotos.length === 0 && selectedPhotos.length === 0">
         <div class="lb-photos-section-label">
           <span class="lb-photos-count">Gallery</span>
         </div>
       </ng-container>
 
-      <div *ngIf="logbookPhotos.length === 0 && !selectedPhoto" class="lb-photos-empty">
+      <div *ngIf="logbookPhotos.length === 0 && selectedPhotos.length === 0" class="lb-photos-empty">
         <div class="lb-photos-empty-row">
           <i class="fas fa-images"></i>
           <p>No photos yet for this entry</p>

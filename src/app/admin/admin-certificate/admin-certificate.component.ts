@@ -132,6 +132,26 @@ export class AdminCertificateComponent implements OnInit {
 
   readonly monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  readonly FIELD_LIMITS = {
+  republic:          60,
+  department:        80,
+  division:          80,
+  schoolName:        60,
+  hostSchool:        60,
+  address:           80,
+  mainTitle:         40,
+  subtitleTag:       50,
+  awardedText:       60,
+  bodyText:          300,
+  givenText:         120,
+  leftSignatoryName: 40,
+  leftSignatoryPos:  40,
+  supervisorName:    40,
+  supervisorPos:     40,
+  issuedLocation:    60,
+};
+
+
   get availableYears(): number[] {
     const years = new Set<number>();
     const addDate = (raw?: string) => {
@@ -502,6 +522,15 @@ readonly OJT_FILES_BUCKET = '69baaf64002ceb2490df';  // ← same bucket, use the
   }
 
  async saveTemplate(): Promise<void> {
+  if (this.hasOverLimitFields()) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Fields Too Long',
+      text: 'Some fields exceed the character limit. Please shorten them to avoid a broken certificate layout.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
   // Strip image URLs from the JSON blob — they're stored separately
   const { depedLogoUrl, schoolLogoUrl, watermarkUrl, leftSigUrl, rightSigUrl, ...textFields } = this.certTemplate;
   const json = JSON.stringify(textFields);
@@ -1172,4 +1201,23 @@ private async fetchSupervisors(): Promise<Map<string, any>> {
   return map;
 }
  
+getCharCount(field: keyof typeof this.FIELD_LIMITS): number {
+  const val = (this.certTemplate as any)[field];
+  return typeof val === 'string' ? val.length : 0;
+}
+
+isNearLimit(field: keyof typeof this.FIELD_LIMITS): boolean {
+  return this.getCharCount(field) >= this.FIELD_LIMITS[field] * 0.85;
+}
+
+isOverLimit(field: keyof typeof this.FIELD_LIMITS): boolean {
+  return this.getCharCount(field) > this.FIELD_LIMITS[field];
+}
+
+hasOverLimitFields(): boolean {
+  return Object.keys(this.FIELD_LIMITS).some(k =>
+    this.isOverLimit(k as keyof typeof this.FIELD_LIMITS)
+  );
+}
+
 }

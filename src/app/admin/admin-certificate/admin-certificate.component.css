@@ -905,3 +905,23 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
 ========================= */
 @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
 @keyframes slideUp { from { opacity:0; transform:translateY(20px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+/* =========================
+   CHAR COUNTER
+========================= */
+.char-counter {
+  display: block;
+  font-size: 10.5px;
+  color: #9ca3af;
+  text-align: right;
+  margin-top: 3px;
+  font-family: 'Poppins', sans-serif;
+  transition: color .2s;
+}
+.char-counter.warn { color: #d97706; font-weight: 600; }
+.char-counter.over { color: #dc2626; font-weight: 700; }
+
+.input-wrap.warn { border-color: #fbbf24; background: #fffbeb; }
+.input-wrap.warn:focus-within { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,.1); }
+.input-wrap.over { border-color: #fca5a5; background: #fff1f2; }
+.input-wrap.over:focus-within { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.1); }

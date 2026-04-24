@@ -386,142 +386,199 @@
         <div class="settings-form-col">
   
           <div class="settings-section-label">General Info</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Required OJT Hours <span class="req">*</span></label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-clock input-icon"></i>
-                <input type="number" [(ngModel)]="certTemplate.requiredHours" min="1">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Issue Location</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-location-dot input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.issuedLocation">
-              </div>
-            </div>
-          </div>
-  
-          <div class="form-group">
-            <label>Republic Header</label>
-            <div class="input-wrap">
-              <i class="fa-solid fa-flag input-icon"></i>
-              <input type="text" [(ngModel)]="certTemplate.republic">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Department</label>
-            <div class="input-wrap">
-              <i class="fa-solid fa-building input-icon"></i>
-              <input type="text" [(ngModel)]="certTemplate.department">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Division</label>
-            <div class="input-wrap">
-              <i class="fa-solid fa-sitemap input-icon"></i>
-              <input type="text" [(ngModel)]="certTemplate.division">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>School Name</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-school input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.schoolName">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Host School / Company</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-building-columns input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.hostSchool">
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Address</label>
-            <div class="input-wrap">
-              <i class="fa-solid fa-map-pin input-icon"></i>
-              <input type="text" [(ngModel)]="certTemplate.address">
-            </div>
-          </div>
-  
-          <div class="settings-section-label" style="margin-top:16px;">Certificate Text</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Certificate Title</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-heading input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.mainTitle">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Subtitle Tag</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-tag input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.subtitleTag">
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Award Preamble</label>
-            <div class="input-wrap">
-              <i class="fa-solid fa-quote-left input-icon"></i>
-              <input type="text" [(ngModel)]="certTemplate.awardedText">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Body Text <span class="hint">use &#123;name&#125; &#123;hours&#125; &#123;course&#125; &#123;school&#125; &#123;host&#125;</span></label>
-            <div class="input-wrap textarea-wrap">
-              <i class="fa-solid fa-align-left input-icon" style="margin-top:10px;"></i>
-              <textarea rows="3" [(ngModel)]="certTemplate.bodyText"
-                        placeholder="e.g. for completing the &#123;hours&#125;-hour OJT..."></textarea>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Given / Closing Line</label>
-            <div class="input-wrap">
-              <i class="fa-solid fa-pen-nib input-icon"></i>
-              <input type="text" [(ngModel)]="certTemplate.givenText"
-                     placeholder="e.g. Given this &#123;date&#125;, &#123;location&#125;.">
-            </div>
-          </div>
-  
-          <div class="settings-section-label" style="margin-top:16px;">Signatories</div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Left Signatory Name</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-user input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.leftSignatoryName">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Left Signatory Position</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-id-badge input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.leftSignatoryPos">
-              </div>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Right Signatory Name</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-user input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.supervisorName">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Right Signatory Position</label>
-              <div class="input-wrap">
-                <i class="fa-solid fa-id-badge input-icon"></i>
-                <input type="text" [(ngModel)]="certTemplate.supervisorPos">
-              </div>
-            </div>
-          </div>
+<div class="form-row">
+  <div class="form-group">
+    <label>Required OJT Hours <span class="req">*</span></label>
+    <div class="input-wrap">
+      <i class="fa-solid fa-clock input-icon"></i>
+      <input type="number" [(ngModel)]="certTemplate.requiredHours" min="1">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Issue Location</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('issuedLocation')" [class.over]="isOverLimit('issuedLocation')">
+      <i class="fa-solid fa-location-dot input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.issuedLocation" [maxlength]="FIELD_LIMITS.issuedLocation">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('issuedLocation')" [class.over]="isOverLimit('issuedLocation')">
+      {{ getCharCount('issuedLocation') }}/{{ FIELD_LIMITS.issuedLocation }}
+    </span>
+  </div>
+</div>
+
+<div class="form-group">
+  <label>Republic Header</label>
+  <div class="input-wrap" [class.warn]="isNearLimit('republic')" [class.over]="isOverLimit('republic')">
+    <i class="fa-solid fa-flag input-icon"></i>
+    <input type="text" [(ngModel)]="certTemplate.republic" [maxlength]="FIELD_LIMITS.republic">
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('republic')" [class.over]="isOverLimit('republic')">
+    {{ getCharCount('republic') }}/{{ FIELD_LIMITS.republic }}
+  </span>
+</div>
+
+<div class="form-group">
+  <label>Department</label>
+  <div class="input-wrap" [class.warn]="isNearLimit('department')" [class.over]="isOverLimit('department')">
+    <i class="fa-solid fa-building input-icon"></i>
+    <input type="text" [(ngModel)]="certTemplate.department" [maxlength]="FIELD_LIMITS.department">
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('department')" [class.over]="isOverLimit('department')">
+    {{ getCharCount('department') }}/{{ FIELD_LIMITS.department }}
+  </span>
+</div>
+
+<div class="form-group">
+  <label>Division</label>
+  <div class="input-wrap" [class.warn]="isNearLimit('division')" [class.over]="isOverLimit('division')">
+    <i class="fa-solid fa-sitemap input-icon"></i>
+    <input type="text" [(ngModel)]="certTemplate.division" [maxlength]="FIELD_LIMITS.division">
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('division')" [class.over]="isOverLimit('division')">
+    {{ getCharCount('division') }}/{{ FIELD_LIMITS.division }}
+  </span>
+</div>
+
+<div class="form-row">
+  <div class="form-group">
+    <label>School Name</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('schoolName')" [class.over]="isOverLimit('schoolName')">
+      <i class="fa-solid fa-school input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.schoolName" [maxlength]="FIELD_LIMITS.schoolName">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('schoolName')" [class.over]="isOverLimit('schoolName')">
+      {{ getCharCount('schoolName') }}/{{ FIELD_LIMITS.schoolName }}
+    </span>
+  </div>
+  <div class="form-group">
+    <label>Host School / Company</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('hostSchool')" [class.over]="isOverLimit('hostSchool')">
+      <i class="fa-solid fa-building-columns input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.hostSchool" [maxlength]="FIELD_LIMITS.hostSchool">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('hostSchool')" [class.over]="isOverLimit('hostSchool')">
+      {{ getCharCount('hostSchool') }}/{{ FIELD_LIMITS.hostSchool }}
+    </span>
+  </div>
+</div>
+
+<div class="form-group">
+  <label>Address</label>
+  <div class="input-wrap" [class.warn]="isNearLimit('address')" [class.over]="isOverLimit('address')">
+    <i class="fa-solid fa-map-pin input-icon"></i>
+    <input type="text" [(ngModel)]="certTemplate.address" [maxlength]="FIELD_LIMITS.address">
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('address')" [class.over]="isOverLimit('address')">
+    {{ getCharCount('address') }}/{{ FIELD_LIMITS.address }}
+  </span>
+</div>
+
+<div class="settings-section-label" style="margin-top:16px;">Certificate Text</div>
+<div class="form-row">
+  <div class="form-group">
+    <label>Certificate Title</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('mainTitle')" [class.over]="isOverLimit('mainTitle')">
+      <i class="fa-solid fa-heading input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.mainTitle" [maxlength]="FIELD_LIMITS.mainTitle">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('mainTitle')" [class.over]="isOverLimit('mainTitle')">
+      {{ getCharCount('mainTitle') }}/{{ FIELD_LIMITS.mainTitle }}
+    </span>
+  </div>
+  <div class="form-group">
+    <label>Subtitle Tag</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('subtitleTag')" [class.over]="isOverLimit('subtitleTag')">
+      <i class="fa-solid fa-tag input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.subtitleTag" [maxlength]="FIELD_LIMITS.subtitleTag">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('subtitleTag')" [class.over]="isOverLimit('subtitleTag')">
+      {{ getCharCount('subtitleTag') }}/{{ FIELD_LIMITS.subtitleTag }}
+    </span>
+  </div>
+</div>
+
+<div class="form-group">
+  <label>Award Preamble</label>
+  <div class="input-wrap" [class.warn]="isNearLimit('awardedText')" [class.over]="isOverLimit('awardedText')">
+    <i class="fa-solid fa-quote-left input-icon"></i>
+    <input type="text" [(ngModel)]="certTemplate.awardedText" [maxlength]="FIELD_LIMITS.awardedText">
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('awardedText')" [class.over]="isOverLimit('awardedText')">
+    {{ getCharCount('awardedText') }}/{{ FIELD_LIMITS.awardedText }}
+  </span>
+</div>
+
+<div class="form-group">
+  <label>Body Text <span class="hint">use &#123;name&#125; &#123;hours&#125; &#123;course&#125; &#123;school&#125; &#123;host&#125;</span></label>
+  <div class="input-wrap textarea-wrap" [class.warn]="isNearLimit('bodyText')" [class.over]="isOverLimit('bodyText')">
+    <i class="fa-solid fa-align-left input-icon" style="margin-top:10px;"></i>
+    <textarea rows="3" [(ngModel)]="certTemplate.bodyText"
+              [maxlength]="FIELD_LIMITS.bodyText"
+              placeholder="e.g. for completing the &#123;hours&#125;-hour OJT..."></textarea>
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('bodyText')" [class.over]="isOverLimit('bodyText')">
+    {{ getCharCount('bodyText') }}/{{ FIELD_LIMITS.bodyText }}
+  </span>
+</div>
+
+<div class="form-group">
+  <label>Given / Closing Line</label>
+  <div class="input-wrap" [class.warn]="isNearLimit('givenText')" [class.over]="isOverLimit('givenText')">
+    <i class="fa-solid fa-pen-nib input-icon"></i>
+    <input type="text" [(ngModel)]="certTemplate.givenText" [maxlength]="FIELD_LIMITS.givenText"
+           placeholder="e.g. Given this &#123;date&#125;, &#123;location&#125;.">
+  </div>
+  <span class="char-counter" [class.warn]="isNearLimit('givenText')" [class.over]="isOverLimit('givenText')">
+    {{ getCharCount('givenText') }}/{{ FIELD_LIMITS.givenText }}
+  </span>
+</div>
+
+<div class="settings-section-label" style="margin-top:16px;">Signatories</div>
+<div class="form-row">
+  <div class="form-group">
+    <label>Left Signatory Name</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('leftSignatoryName')" [class.over]="isOverLimit('leftSignatoryName')">
+      <i class="fa-solid fa-user input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.leftSignatoryName" [maxlength]="FIELD_LIMITS.leftSignatoryName">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('leftSignatoryName')" [class.over]="isOverLimit('leftSignatoryName')">
+      {{ getCharCount('leftSignatoryName') }}/{{ FIELD_LIMITS.leftSignatoryName }}
+    </span>
+  </div>
+  <div class="form-group">
+    <label>Left Signatory Position</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('leftSignatoryPos')" [class.over]="isOverLimit('leftSignatoryPos')">
+      <i class="fa-solid fa-id-badge input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.leftSignatoryPos" [maxlength]="FIELD_LIMITS.leftSignatoryPos">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('leftSignatoryPos')" [class.over]="isOverLimit('leftSignatoryPos')">
+      {{ getCharCount('leftSignatoryPos') }}/{{ FIELD_LIMITS.leftSignatoryPos }}
+    </span>
+  </div>
+</div>
+<div class="form-row">
+  <div class="form-group">
+    <label>Right Signatory Name</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('supervisorName')" [class.over]="isOverLimit('supervisorName')">
+      <i class="fa-solid fa-user input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.supervisorName" [maxlength]="FIELD_LIMITS.supervisorName">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('supervisorName')" [class.over]="isOverLimit('supervisorName')">
+      {{ getCharCount('supervisorName') }}/{{ FIELD_LIMITS.supervisorName }}
+    </span>
+  </div>
+  <div class="form-group">
+    <label>Right Signatory Position</label>
+    <div class="input-wrap" [class.warn]="isNearLimit('supervisorPos')" [class.over]="isOverLimit('supervisorPos')">
+      <i class="fa-solid fa-id-badge input-icon"></i>
+      <input type="text" [(ngModel)]="certTemplate.supervisorPos" [maxlength]="FIELD_LIMITS.supervisorPos">
+    </div>
+    <span class="char-counter" [class.warn]="isNearLimit('supervisorPos')" [class.over]="isOverLimit('supervisorPos')">
+      {{ getCharCount('supervisorPos') }}/{{ FIELD_LIMITS.supervisorPos }}
+    </span>
+  </div>
+</div>
+         
   
           <div class="settings-section-label" style="margin-top:16px;">Certificate Colors</div>
           <div class="form-row">
