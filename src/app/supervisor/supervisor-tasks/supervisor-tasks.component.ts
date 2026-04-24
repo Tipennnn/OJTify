@@ -64,11 +64,9 @@ interface Submission {
   submitted_at: string;
   student_name?: string;
   score?: number | null;
-  // local UI state
   _scoreInput?: number | null;
   _scoreSaving?: boolean;
 }
- 
 
 @Component({
   selector: 'app-supervisor-tasks',
@@ -84,7 +82,6 @@ interface Submission {
 })
 export class SupervisorTasksComponent implements OnInit {
 
-  // Expose Math for template
   readonly Math = Math;
 
   // ── Tabs ──────────────────────────────────────────────────
@@ -113,16 +110,13 @@ export class SupervisorTasksComponent implements OnInit {
   selectedInterns: Intern[] = [];
   internSearchQuery = '';
 
-  // ── Task scoring ──────────────────────────────────────────
   taskScoreInput  : number | null = null;
   taskScoreSaving = false;
 
-  // ── Assign mode: 'all' | 'course' | 'specific' ───────────
   assignMode: 'all' | 'course' | 'specific' = 'specific';
 
   selectedWeekMonday: string | null = null;
 
-  // ── Course filter ─────────────────────────────────────────
   readonly courseOptions = [
     { label: 'BEED',  full: 'Bachelor of Elementary Education' },
     { label: 'BECED', full: 'Bachelor of Early Childhood Education' },
@@ -175,6 +169,30 @@ export class SupervisorTasksComponent implements OnInit {
     return diff < 0 ? 0 : diff;
   }
 
+  // ── EDIT TASK STATE ───────────────────────────────────────
+  isEditModalOpen       = false;
+  editLoading           = false;
+  editTask              : Task        = this.emptyTask();
+  editTaskOriginal      : Task | null = null;   // keep reference to original
+  editNewAttachmentFile : File | null = null;
+  editNewAttachmentFileName           = '';
+  editAssignMode        : 'all' | 'course' | 'specific' = 'specific';
+  editSelectedCourse    = '';
+  editSelectedInterns   : Intern[] = [];
+  editInternSearchQuery = '';
+  editFilteredInterns   : Intern[] = [];
+
+  get editEffectiveCourse(): string {
+    if (this.editAssignMode !== 'course') return '';
+    return this.editSelectedCourse;
+  }
+
+  get editCourseMatchedInterns(): Intern[] {
+    const q = this.editEffectiveCourse.toLowerCase();
+    if (!q) return [];
+    return this.allInterns.filter(i => i.course?.toLowerCase().includes(q));
+  }
+
   // ── Logbook state ─────────────────────────────────────────
   logbookInterns     : Intern[] = [];
   selectedInternId   : string   = '';
@@ -203,7 +221,6 @@ export class SupervisorTasksComponent implements OnInit {
   logbookSearchQuery = '';
   filteredLogbookInterns: Intern[] = [];
 
-  // ── Logbook Interns Pagination ────────────────────────────
   logbookCurrentPage = 1;
   logbookPageSize    = 10;
 
@@ -236,12 +253,10 @@ export class SupervisorTasksComponent implements OnInit {
     await this.loadAllInternEntryCounts();
   }
 
-  // ── Tab switching ─────────────────────────────────────────
   switchTab(tab: 'tasks' | 'logbook') {
     this.activeTab = tab;
   }
 
-  // ── Get current supervisor ────────────────────────────────
   async getCurrentSupervisor() {
     try {
       const user = await this.appwrite.account.get();
@@ -255,7 +270,6 @@ export class SupervisorTasksComponent implements OnInit {
     }
   }
 
-  // ── Load interns assigned to this supervisor ──────────────
   async loadAssignedInterns() {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -273,7 +287,7 @@ export class SupervisorTasksComponent implements OnInit {
     }
   }
 
-   async loadAllInternEntryCounts() {
+  async loadAllInternEntryCounts() {
     try {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID, 'logbook_entries', [Query.limit(5000)]
@@ -295,7 +309,7 @@ export class SupervisorTasksComponent implements OnInit {
       });
     } catch { }
   }
-  
+
   onLogbookSearch() {
     const q = this.logbookSearchQuery.toLowerCase();
     this.filteredLogbookInterns = this.logbookInterns.filter(i =>
@@ -303,7 +317,7 @@ export class SupervisorTasksComponent implements OnInit {
     );
     this.logbookCurrentPage = 1;
   }
-  // ── Load tasks — FIX: use Query.limit to get all tasks ────
+
   async loadTasks() {
     try {
       const [tasksRes, subsRes] = await Promise.all([
@@ -326,7 +340,6 @@ export class SupervisorTasksComponent implements OnInit {
       Object.keys(taskSubMap).forEach(taskId => {
         this.taskSubmissionCountMap[taskId] = taskSubMap[taskId].size;
       });
-      // Sort newest first by $createdAt
       this.tasks = (tasksRes.documents as any[])
         .filter(task => task.supervisor_id === this.currentSupervisorId)
         .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
@@ -335,8 +348,7 @@ export class SupervisorTasksComponent implements OnInit {
     }
   }
 
-  // ── Due date badge parts ──────────────────────────────────
-   getDueDateParts(due: string) {
+  getDueDateParts(due: string) {
     const d = new Date(due);
     if (isNaN(d.getTime())) return { day: '', num: due, month: '' };
     return {
@@ -346,7 +358,6 @@ export class SupervisorTasksComponent implements OnInit {
     };
   }
 
-  // ── Course assign helpers ─────────────────────────────────
   get effectiveCourse(): string {
     if (this.assignMode !== 'course') return '';
     if (this.selectedCourse === 'Other') return this.customCourseInput.trim();
@@ -371,9 +382,169 @@ export class SupervisorTasksComponent implements OnInit {
     this.customCourseInput = '';
   }
 
+  // ══════════════════════════════════════════════
+  //  EDIT TASK METHODS
+  // ══════════════════════════════════════════════
+
+  openEditModal(task: Task) {
+    // Deep-copy task into editTask so we don't mutate the original
+    this.editTask = { ...task };
+    this.editTaskOriginal       = task;
+    this.editNewAttachmentFile  = null;
+    this.editNewAttachmentFileName = '';
+    this.editInternSearchQuery  = '';
+    this.editFilteredInterns    = [...this.allInterns];
+
+    // Pre-populate assign mode and selection from existing assigned_intern_ids
+    const assignedIds = this.getAssignedIds(task);
+    if (assignedIds.length === this.allInterns.length && this.allInterns.length > 0) {
+      this.editAssignMode = 'all';
+      this.editSelectedInterns = [...this.allInterns];
+    } else {
+      this.editAssignMode = 'specific';
+      this.editSelectedInterns = this.allInterns.filter(i => assignedIds.includes(i.$id));
+    }
+    this.editSelectedCourse = '';
+
+    this.isEditModalOpen = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen           = false;
+    this.editNewAttachmentFile     = null;
+    this.editNewAttachmentFileName = '';
+    document.body.style.overflow   = '';
+  }
+
+  onEditTaskFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0] ?? null;
+    this.editNewAttachmentFile     = file;
+    this.editNewAttachmentFileName = file?.name ?? '';
+  }
+
+  onEditAssignModeChange() {
+    this.editSelectedCourse   = '';
+    this.editSelectedInterns  = [];
+    this.editInternSearchQuery = '';
+    this.editFilteredInterns   = [...this.allInterns];
+  }
+
+  onEditCourseDropdownChange() { /* handled by ngModel */ }
+
+  onEditInternSearch() {
+    const q = this.editInternSearchQuery.toLowerCase();
+    this.editFilteredInterns = this.allInterns.filter(i =>
+      `${i.first_name} ${i.last_name}`.toLowerCase().includes(q)
+    );
+  }
+
+  isEditSelected(intern: Intern): boolean {
+    return this.editSelectedInterns.some(i => i.$id === intern.$id);
+  }
+
+  toggleEditIntern(intern: Intern) {
+    if (this.isEditSelected(intern)) {
+      this.editSelectedInterns = this.editSelectedInterns.filter(i => i.$id !== intern.$id);
+    } else {
+      this.editSelectedInterns.push(intern);
+    }
+  }
+
+  async onSaveEditTask() {
+    if (!this.editTask.title?.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Missing title', text: 'Please enter a task title.', confirmButtonColor: '#0818A8' });
+      return;
+    }
+    if (!this.editTask.due) {
+      Swal.fire({ icon: 'warning', title: 'Missing due date', text: 'Please set a due date.', confirmButtonColor: '#0818A8' });
+      return;
+    }
+    if (this.editAssignMode === 'course' && !this.editEffectiveCourse) {
+      Swal.fire({ icon: 'warning', title: 'No course selected', text: 'Please select a course.', confirmButtonColor: '#0818A8' });
+      return;
+    }
+    if (this.editAssignMode === 'course' && this.editCourseMatchedInterns.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'No matching interns', text: `No interns found for "${this.editEffectiveCourse}".`, confirmButtonColor: '#0818A8' });
+      return;
+    }
+    if (this.editAssignMode === 'specific' && this.editSelectedInterns.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'No interns selected', text: 'Please select at least one intern.', confirmButtonColor: '#0818A8' });
+      return;
+    }
+
+    this.editLoading = true;
+    try {
+      let attachmentFileId   = this.editTask.attachment_file_id   ?? '';
+      let attachmentFileName = this.editTask.attachment_file_name ?? '';
+
+      // If supervisor replaced the attachment
+      if (this.editNewAttachmentFile) {
+        // Delete old file if exists
+        if (attachmentFileId) {
+          try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, attachmentFileId); } catch { }
+        }
+        const uploaded = await this.appwrite.storage.createFile(
+          this.BUCKET_ID, ID.unique(), this.editNewAttachmentFile
+        );
+        attachmentFileId   = uploaded.$id;
+        attachmentFileName = this.editNewAttachmentFile.name;
+      }
+
+      // Build assigned_intern_ids string
+      let assignedIds = '';
+      if (this.editAssignMode === 'all') {
+        assignedIds = this.allInterns.map(i => i.$id).join(',');
+      } else if (this.editAssignMode === 'course') {
+        assignedIds = this.editCourseMatchedInterns.map(i => i.$id).join(',');
+      } else {
+        assignedIds = this.editSelectedInterns.map(i => i.$id).join(',');
+      }
+
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, this.editTask.$id!,
+        {
+          title: this.editTask.title.trim(),
+          description: this.editTask.description,
+          due: this.editTask.due,
+          assigned_intern_ids: assignedIds,
+          attachment_file_id: attachmentFileId,
+          attachment_file_name: attachmentFileName
+        }
+      );
+
+      // Update local task list
+      const idx = this.tasks.findIndex(t => t.$id === this.editTask.$id);
+      if (idx !== -1) {
+        this.tasks[idx] = {
+          ...this.tasks[idx],
+          title: this.editTask.title.trim(),
+          description: this.editTask.description,
+          due: this.editTask.due,
+          assigned_intern_ids: assignedIds,
+          attachment_file_id: attachmentFileId,
+          attachment_file_name: attachmentFileName
+        };
+        this.tasks = [...this.tasks];
+      }
+
+      this.closeEditModal();
+      Swal.fire({
+        icon: 'success', title: 'Task Updated!',
+        text: `"${this.editTask.title}" has been updated successfully.`,
+        toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message });
+    } finally {
+      this.editLoading = false;
+    }
+  }
+
   // ── Logbook methods ───────────────────────────────────────
-async openInternLogbook(intern: Intern) {
-  this.selectedWeekMonday = null;
+  async openInternLogbook(intern: Intern) {
+    this.selectedWeekMonday = null;
     this.selectedInternId  = intern.$id;
     this.selectedInternObj = intern;
     this.logbookLoading    = true;
@@ -387,31 +558,31 @@ async openInternLogbook(intern: Intern) {
     } catch (e: any) { console.error('loadLogbook:', e.message); }
     finally { this.logbookLoading = false; }
   }
- 
+
   closeInternLogbook() {
     this.selectedInternId = ''; this.selectedInternObj = null;
     this.internLogbookEntries = []; this.scoringEntryId = null; this.scoreInput = null;
   }
- async openLogbookEntryModal(entry: LogbookEntry) {
-  this.selectedLogbookEntry    = entry;
-  this.logbookEntryPhotos      = [];
-  this.logbookModalPanel       = 'entry';
-  this.scoreInput              = entry.score ?? null;
-  this.isLogbookEntryModalOpen = true;  // set AFTER other state is ready
 
-  if (entry.$id) {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, 'logbook_photos',
-        [Query.limit(500)]
-      );
-      this.logbookEntryPhotos = (res.documents as any[]).filter(p => p.entry_id === entry.$id);
-    } catch (e) { 
-      this.logbookEntryPhotos = [];
+  async openLogbookEntryModal(entry: LogbookEntry) {
+    this.selectedLogbookEntry    = entry;
+    this.logbookEntryPhotos      = [];
+    this.logbookModalPanel       = 'entry';
+    this.scoreInput              = entry.score ?? null;
+    this.isLogbookEntryModalOpen = true;
+
+    if (entry.$id) {
+      try {
+        const res = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID, 'logbook_photos', [Query.limit(500)]
+        );
+        this.logbookEntryPhotos = (res.documents as any[]).filter(p => p.entry_id === entry.$id);
+      } catch (e) {
+        this.logbookEntryPhotos = [];
+      }
     }
   }
-}
- 
+
   closeLogbookEntryModal() {
     this.isLogbookEntryModalOpen = false;
     this.selectedLogbookEntry    = null;
@@ -423,7 +594,6 @@ async openInternLogbook(intern: Intern) {
     await this.openLogbookEntryModal(entry);
   }
 
-  // ── Scoring (logbook) ─────────────────────────────────────
   startScoring(entry: LogbookEntry) {
     this.scoringEntryId = entry.$id ?? null;
     this.scoreInput     = entry.score ?? null;
@@ -434,103 +604,79 @@ async openInternLogbook(intern: Intern) {
     this.scoreInput     = null;
   }
 
-async saveScore(entry: LogbookEntry) {
-  if (this.scoreInput === null || this.scoreInput === undefined || this.scoreInput < 0 || this.scoreInput > 100) {
-    Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be 0–100.', confirmButtonColor: '#0818A8' }); 
-    return;
-  }
-  this.scoreSaving = true;
-  try {
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID, 'logbook_entries', entry.$id!, { score: this.scoreInput }
-    );
-
-    // Update in the entries table list
-    const idx = this.internLogbookEntries.findIndex(e => e.$id === entry.$id);
-    if (idx !== -1) {
-      this.internLogbookEntries[idx] = { 
-        ...this.internLogbookEntries[idx], 
-        score: this.scoreInput 
-      };
-      // Force array reference change for Angular CD
-      this.internLogbookEntries = [...this.internLogbookEntries];
+  async saveScore(entry: LogbookEntry) {
+    if (this.scoreInput === null || this.scoreInput === undefined || this.scoreInput < 0 || this.scoreInput > 100) {
+      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be 0–100.', confirmButtonColor: '#0818A8' });
+      return;
     }
-
-    // Update the selected entry in the modal
-    if (this.selectedLogbookEntry?.$id === entry.$id) {
-      this.selectedLogbookEntry = { 
-        ...this.selectedLogbookEntry, 
-        score: this.scoreInput 
-      } as LogbookEntry;
+    this.scoreSaving = true;
+    try {
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, 'logbook_entries', entry.$id!, { score: this.scoreInput }
+      );
+      const idx = this.internLogbookEntries.findIndex(e => e.$id === entry.$id);
+      if (idx !== -1) {
+        this.internLogbookEntries[idx] = { ...this.internLogbookEntries[idx], score: this.scoreInput };
+        this.internLogbookEntries = [...this.internLogbookEntries];
+      }
+      if (this.selectedLogbookEntry?.$id === entry.$id) {
+        this.selectedLogbookEntry = { ...this.selectedLogbookEntry, score: this.scoreInput } as LogbookEntry;
+      }
+      await this.loadAllInternEntryCounts();
+      Swal.fire({ icon: 'success', title: 'Score saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (e: any) {
+      Swal.fire({ icon: 'error', title: 'Failed', text: e.message });
+    } finally {
+      this.scoreSaving = false;
     }
-
-    // Refresh the avg score shown in the interns table
-    await this.loadAllInternEntryCounts();
-
-    Swal.fire({ icon: 'success', title: 'Score saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-  } catch (e: any) { 
-    Swal.fire({ icon: 'error', title: 'Failed', text: e.message }); 
-  } finally { 
-    this.scoreSaving = false; 
   }
-}
- 
 
   async saveScoreFromModal() { if (this.selectedLogbookEntry) await this.saveScore(this.selectedLogbookEntry); }
 
-  // ── Task scoring ──────────────────────────────────────────
   async saveTaskScore() {
-  if (this.taskScoreInput === null || this.taskScoreInput === undefined) return;
-  if (this.taskScoreInput < 0 || this.taskScoreInput > 100) {
-    Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' });
-    return;
-  }
-  if (!this.selectedTask.$id) return;
-
-  this.taskScoreSaving = true;
-  try {
-    // Score each submission for this task instead of the task itself
-    const submissionsToScore = this.taskSubmissions.filter(s => s.task_id === this.selectedTask.$id);
-    
-    if (submissionsToScore.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'No submissions yet', text: 'There are no submissions to score for this task.', confirmButtonColor: '#0818A8' });
+    if (this.taskScoreInput === null || this.taskScoreInput === undefined) return;
+    if (this.taskScoreInput < 0 || this.taskScoreInput > 100) {
+      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' });
       return;
     }
-
-    await Promise.all(
-      submissionsToScore.map(sub =>
-        this.appwrite.databases.updateDocument(
-          this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!,
-          { score: this.taskScoreInput }
-        )
-      )
-    );
-
-    // Update local state
-    this.taskSubmissions.forEach(sub => {
-      if (sub.task_id === this.selectedTask.$id) {
-        sub.score = this.taskScoreInput;
-        sub._scoreInput = this.taskScoreInput;
+    if (!this.selectedTask.$id) return;
+    this.taskScoreSaving = true;
+    try {
+      const submissionsToScore = this.taskSubmissions.filter(s => s.task_id === this.selectedTask.$id);
+      if (submissionsToScore.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'No submissions yet', text: 'There are no submissions to score for this task.', confirmButtonColor: '#0818A8' });
+        return;
       }
-    });
-
-    Swal.fire({ icon: 'success', title: 'Submission score(s) saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-  } catch (error: any) {
-    Swal.fire({ icon: 'error', title: 'Failed to save score', text: error.message });
-  } finally {
-    this.taskScoreSaving = false;
+      await Promise.all(
+        submissionsToScore.map(sub =>
+          this.appwrite.databases.updateDocument(
+            this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!,
+            { score: this.taskScoreInput }
+          )
+        )
+      );
+      this.taskSubmissions.forEach(sub => {
+        if (sub.task_id === this.selectedTask.$id) {
+          sub.score = this.taskScoreInput;
+          sub._scoreInput = this.taskScoreInput;
+        }
+      });
+      Swal.fire({ icon: 'success', title: 'Submission score(s) saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Failed to save score', text: error.message });
+    } finally {
+      this.taskScoreSaving = false;
+    }
   }
-}
 
-  // ── Score helpers ─────────────────────────────────────────
-   getScoreDisplay(score: number | null | undefined): { label: string; cls: string; icon: string } {
+  getScoreDisplay(score: number | null | undefined): { label: string; cls: string; icon: string } {
     if (score === null || score === undefined) return { label: 'Not scored', cls: 'score-pending', icon: 'fas fa-hourglass-half' };
     if (score >= 90) return { label: `${score}/100`, cls: 'score-excellent', icon: 'fas fa-star' };
     if (score >= 75) return { label: `${score}/100`, cls: 'score-good',      icon: 'fas fa-check-circle' };
     if (score >= 60) return { label: `${score}/100`, cls: 'score-average',   icon: 'fas fa-minus-circle' };
     return                  { label: `${score}/100`, cls: 'score-low',       icon: 'fas fa-exclamation-circle' };
   }
- 
+
   getAverageScore(entries: LogbookEntry[]): number | null {
     const s = entries.filter(e => e.score !== null && e.score !== undefined);
     return s.length ? Math.round(s.reduce((a, e) => a + (e.score ?? 0), 0) / s.length) : null;
@@ -542,7 +688,7 @@ async saveScore(entry: LogbookEntry) {
     const start = new Date(now); start.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); start.setHours(0,0,0,0);
     return entries.filter(e => new Date(e.entry_date) >= start).length;
   }
- 
+
   getBulletItems(text: string) {
     if (!text) return [];
     return text.split('\n').map(l => l.replace(/^•\s*/, '').trim()).filter(l => l.length > 0);
@@ -552,7 +698,7 @@ async saveScore(entry: LogbookEntry) {
     return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-    formatLongDate(dateStr: string) {
+  formatLongDate(dateStr: string) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -571,6 +717,7 @@ async saveScore(entry: LogbookEntry) {
     const words = first.split(' ');
     return words.length > 9 ? words.slice(0, 9).join(' ') + '…' : first;
   }
+
   // ── Weekly Report PDF ─────────────────────────────────────
   async generateWeeklyReport() {
     if (!this.selectedInternObj) {
@@ -956,7 +1103,13 @@ async saveScore(entry: LogbookEntry) {
 
   async deleteTask(task: Task, event: Event) {
     event.stopPropagation();
-    const result = await Swal.fire({ title: 'Delete task?', text: `"${task.title}" will be permanently deleted.`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
+    const result = await Swal.fire({
+      title: 'Delete task?',
+      text: `"${task.title}" will be permanently deleted.`,
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280'
+    });
     if (!result.isConfirmed) return;
     try {
       if (task.attachment_file_id) { try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, task.attachment_file_id); } catch { } }
@@ -971,33 +1124,33 @@ async saveScore(entry: LogbookEntry) {
   async loadTaskComments(taskId: string) {
     try {
       const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL,
-        [Query.limit(500)]
+        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, [Query.limit(500)]
       );
       this.taskComments = (res.documents as any[]).filter(c => c.task_id === taskId).sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
     } catch (error: any) { console.error('Failed to load comments:', error.message); }
   }
 
-async loadTaskSubmissions(taskId: string) {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, [Query.limit(500)]
-    );
-    this.taskSubmissions = (res.documents as any[])
-      .filter(s => s.task_id === taskId)
-      .map(sub => {
-        const intern = this.allInterns.find(i => i.$id === sub.student_id);
-        return {
-          ...sub,
-          student_name: intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown',
-          profile_photo_id: intern?.profile_photo_id ?? null,
-          score: sub.score ?? null,
-          _scoreInput: sub.score ?? null,
-          _scoreSaving: false
-        } as Submission;
-      });
-  } catch (e: any) { console.error('loadSubmissions:', e.message); }
-}
+  async loadTaskSubmissions(taskId: string) {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, [Query.limit(500)]
+      );
+      this.taskSubmissions = (res.documents as any[])
+        .filter(s => s.task_id === taskId)
+        .map(sub => {
+          const intern = this.allInterns.find(i => i.$id === sub.student_id);
+          return {
+            ...sub,
+            student_name: intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown',
+            profile_photo_id: intern?.profile_photo_id ?? null,
+            score: sub.score ?? null,
+            _scoreInput: sub.score ?? null,
+            _scoreSaving: false
+          } as Submission;
+        });
+    } catch (e: any) { console.error('loadSubmissions:', e.message); }
+  }
+
   async saveSubmissionScore(sub: Submission) {
     if (sub._scoreInput === null || sub._scoreInput === undefined) return;
     if (sub._scoreInput < 0 || sub._scoreInput > 100) {
@@ -1007,8 +1160,7 @@ async loadTaskSubmissions(taskId: string) {
     sub._scoreSaving = true;
     try {
       await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!,
-        { score: sub._scoreInput }
+        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!, { score: sub._scoreInput }
       );
       sub.score = sub._scoreInput;
       Swal.fire({ icon: 'success', title: 'Score saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
@@ -1082,8 +1234,7 @@ async loadTaskSubmissions(taskId: string) {
   async loadInternPhotos() {
     try {
       const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL,
-        [Query.limit(500)]
+        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, [Query.limit(500)]
       );
       (res.documents as any[]).forEach(s => { if (s.profile_photo_id) this.internPhotoMap[s.$id] = s.profile_photo_id; });
     } catch (error: any) { console.error('Failed to load intern photos:', error.message); }
@@ -1106,90 +1257,80 @@ async loadTaskSubmissions(taskId: string) {
     if (!intern.profile_photo_id) return null;
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${intern.profile_photo_id}/view?project=${this.PROJECT_ID}`;
   }
- getWeekRanges(entries: LogbookEntry[]): { label: string; monday: string; count: number }[] {
-  const weekMap: { [k: string]: number } = {};
-  entries.forEach(e => {
-    const key = this.getMondayOf(e.entry_date);
-    weekMap[key] = (weekMap[key] || 0) + 1;
-  });
-  return Object.entries(weekMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, count]) => {
-      const mon = new Date(key + 'T00:00:00');
-      const fri = new Date(mon);
-      fri.setDate(mon.getDate() + 4);
-      const label = mon.getMonth() === fri.getMonth()
-        ? `${mon.toLocaleDateString('en-US', { month: 'short' })} ${mon.getDate()}–${fri.getDate()}`
-        : `${mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${fri.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      return { label, monday: key, count };
+
+  getWeekRanges(entries: LogbookEntry[]): { label: string; monday: string; count: number }[] {
+    const weekMap: { [k: string]: number } = {};
+    entries.forEach(e => {
+      const key = this.getMondayOf(e.entry_date);
+      weekMap[key] = (weekMap[key] || 0) + 1;
     });
-}
+    return Object.entries(weekMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, count]) => {
+        const mon = new Date(key + 'T00:00:00');
+        const fri = new Date(mon);
+        fri.setDate(mon.getDate() + 4);
+        const label = mon.getMonth() === fri.getMonth()
+          ? `${mon.toLocaleDateString('en-US', { month: 'short' })} ${mon.getDate()}–${fri.getDate()}`
+          : `${mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${fri.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        return { label, monday: key, count };
+      });
+  }
 
-getWeekDays(monday: string): { date: string; dayName: string; dayNum: number; entry: LogbookEntry | null; isToday: boolean }[] {
-  const today = new Date().toISOString().slice(0, 10);
-  const eMap: { [d: string]: LogbookEntry } = {};
-  this.internLogbookEntries.forEach(e => eMap[e.entry_date] = e);
-  const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(monday + 'T00:00:00');
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    return {
-      date: key,
-      dayName: dayLabels[i],
-      dayNum: d.getDate(),
-      entry: eMap[key] ?? null,
-      isToday: key === today
-    };
-  });
-}
+  getWeekDays(monday: string): { date: string; dayName: string; dayNum: number; entry: LogbookEntry | null; isToday: boolean }[] {
+    const today = new Date().toISOString().slice(0, 10);
+    const eMap: { [d: string]: LogbookEntry } = {};
+    this.internLogbookEntries.forEach(e => eMap[e.entry_date] = e);
+    const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+    return Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(monday + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      return { date: key, dayName: dayLabels[i], dayNum: d.getDate(), entry: eMap[key] ?? null, isToday: key === today };
+    });
+  }
 
-getWeekLogged(monday: string): number {
-  return this.getWeekDays(monday).filter(d => d.entry).length;
-}
+  getWeekLogged(monday: string): number { return this.getWeekDays(monday).filter(d => d.entry).length; }
+  getWeekMissed(monday: string): number { return 5 - this.getWeekLogged(monday); }
 
-getWeekMissed(monday: string): number {
-  return 5 - this.getWeekLogged(monday);
-}
+  getWeekAvgScore(monday: string): number | null {
+    const scored = this.getWeekDays(monday).filter(d => d.entry?.score !== null && d.entry?.score !== undefined);
+    return scored.length ? Math.round(scored.reduce((a, d) => a + (d.entry!.score ?? 0), 0) / scored.length) : null;
+  }
 
-getWeekAvgScore(monday: string): number | null {
-  const scored = this.getWeekDays(monday).filter(d => d.entry?.score !== null && d.entry?.score !== undefined);
-  return scored.length ? Math.round(scored.reduce((a, d) => a + (d.entry!.score ?? 0), 0) / scored.length) : null;
-}
+  get filteredWeekEntries(): LogbookEntry[] {
+    if (!this.selectedWeekMonday) return this.internLogbookEntries;
+    const mon = new Date(this.selectedWeekMonday + 'T00:00:00');
+    const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
+    const fridayKey = fri.toISOString().slice(0, 10);
+    return this.internLogbookEntries.filter(e =>
+      e.entry_date >= this.selectedWeekMonday! && e.entry_date <= fridayKey
+    );
+  }
 
-get filteredWeekEntries(): LogbookEntry[] {
-  if (!this.selectedWeekMonday) return this.internLogbookEntries;
-  const mon = new Date(this.selectedWeekMonday + 'T00:00:00');
-  const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
-  const fridayKey = fri.toISOString().slice(0, 10);
-  return this.internLogbookEntries.filter(e =>
-    e.entry_date >= this.selectedWeekMonday! && e.entry_date <= fridayKey
-  );
-}
+  getDayEntries(monday: string): (LogbookEntry | null)[] {
+    return Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(monday + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      return this.internLogbookEntries.find(e => e.entry_date === key) ?? null;
+    });
+  }
 
-getDayEntries(monday: string): (LogbookEntry | null)[] {
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(monday + 'T00:00:00');
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    return this.internLogbookEntries.find(e => e.entry_date === key) ?? null;
-  });
-}
-onWeekFilterChange() { /* ngModel handles it, getter recalculates */ }
-private getMondayOf(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  const dow = d.getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  onWeekFilterChange() { /* ngModel handles it */ }
 
-  let diff = 0;
-  if (dow === 0) diff = 1;       // Sun → +1 → Mon
-  else if (dow === 6) diff = 2;  // Sat → +2 → Mon
-  else diff = 1 - dow;           // Mon=0, Tue=-1, Wed=-2, Thu=-3, Fri=-4
-
-  d.setDate(d.getDate() + diff);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
-}
+  private getMondayOf(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    const dow = d.getDay();
+    let diff = 0;
+    if (dow === 0) diff = 1;
+    else if (dow === 6) diff = 2;
+    else diff = 1 - dow;
+    d.setDate(d.getDate() + diff);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
 }

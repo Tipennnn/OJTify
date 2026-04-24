@@ -22,7 +22,7 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 /* ── HEADER ACTIONS ── */
 .header-actions { display: flex; align-items: center; gap: 10px; }
 
-/* ── SEARCH BOX (matches admin style) ── */
+/* ── SEARCH BOX ── */
 .search-box {
   display: flex;
   align-items: center;
@@ -52,9 +52,6 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 
 .search-box:hover { border-color: #9ca3af; }
 
-
-.lb-search-count { font-size: 12.5px; color: #9ca3af; white-space: nowrap; }
-
 /* ── TAB SWITCHER ── */
 .tab-header-row { margin-bottom: 22px; }
 .tab-switcher { display: flex; gap: 6px; background: white; padding: 5px; border-radius: 12px; border: 1px solid #e5e7eb; width: fit-content; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
@@ -63,7 +60,7 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 .tab-btn.active { background: #0818A8; color: white; box-shadow: 0 2px 8px rgba(8,24,168,0.25); }
 
 /* ══════════════════════════════════════════════
-   TASK CARDS — matching intern style
+   TASK CARDS — Improved UX
 ══════════════════════════════════════════════ */
 .tasks-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -127,6 +124,59 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 .task-card-meta  { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #9ca3af; margin-top: 1px; }
 .task-card-meta i { font-size: 9px; color: #c4b5fd; }
 
+/* ── EDIT & DELETE BUTTONS (hidden on hover) ── */
+.task-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.task-card:hover .task-card-actions {
+  opacity: 1;
+}
+
+.task-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+}
+
+.task-action-btn.edit-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+.task-action-btn.edit-btn:hover {
+  background: #2563eb;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.task-action-btn.delete-btn {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.task-action-btn.delete-btn:hover {
+  background: #dc2626;
+  color: #fff;
+  transform: scale(1.05);
+}
+
 /* Submission badge */
 .task-badge-wrap { flex-shrink: 0; margin-left: 4px; }
 .submission-badge {
@@ -166,7 +216,7 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 }
 
 /* ══════════════════════════════════════════════
-   PAGINATION  (matches admin applicants style)
+   PAGINATION
 ══════════════════════════════════════════════ */
 .pagination {
   display: flex;
@@ -789,7 +839,7 @@ textarea { resize: none; }
 }
 
 /* ══════════════════════════════════════════════
-   ASSIGN MODE TABS (replaces radio buttons)
+   ASSIGN MODE TABS
 ══════════════════════════════════════════════ */
 .assign-mode-tabs {
   display: flex;
@@ -891,24 +941,6 @@ textarea { resize: none; }
   pointer-events: none;
 }
 
-.course-custom-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 9px;
-  font-size: 13px;
-  font-family: 'Poppins', sans-serif;
-  color: #111827;
-  background: white;
-  outline: none;
-  transition: 0.2s;
-}
-
-.course-custom-input:focus {
-  border-color: #0818A8;
-  box-shadow: 0 0 0 3px rgba(8,24,168,0.12);
-}
-
 /* ── Matched interns preview ── */
 .course-match-preview {
   background: white;
@@ -963,52 +995,21 @@ textarea { resize: none; }
   justify-content: center;
   flex-shrink: 0;
 }
- 
-/* Large score badge variant (used in task modal) */
-.score-badge.lg {
-  padding: 7px 16px;
-  font-size: 13.5px;
-  flex-shrink: 0;
-}
 
-/* ══════════════════════════════════════════════
-   ADD TO supervisor-tasks.component.css
-   Submission scoring inside the All Submissions modal
-══════════════════════════════════════════════ */
- 
-/* Redesign subs-file-card to accommodate score input */
-.subs-file-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid #f0f0f0;
-  background: #fafafa;
-  transition: all 0.2s ease;
-  flex-wrap: wrap;         /* allow wrap on narrow screens */
-}
-.subs-file-card:hover {
-  background: #f0f2fd;
-  border-color: #c7cdf5;
-  box-shadow: 0 4px 12px rgba(8,24,168,0.06);
-}
- 
-/* Score badge area */
+/* Submission scoring */
 .subs-score-wrap {
   flex-shrink: 0;
   display: flex;
   align-items: center;
 }
- 
-/* Score input row inside each submission card */
+
 .subs-score-input-row {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
- 
+
 .subs-score-field {
   width: 68px;
   padding: 7px 10px;
@@ -1026,7 +1027,7 @@ textarea { resize: none; }
   border-color: #0818A8;
   box-shadow: 0 0 0 3px rgba(8,24,168,0.1);
 }
- 
+
 .subs-score-btn {
   width: 32px;
   height: 32px;
@@ -1052,27 +1053,7 @@ textarea { resize: none; }
   transform: none;
 }
 
-.sub-card-with-score {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  padding: 14px 16px;
-}
-.sub-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sub-card-score-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-  flex-wrap: wrap;
-}
+/* ── Week filter section ── */
 .lb-week-filter-section {
   margin-bottom: 20px;
 }
