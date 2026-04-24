@@ -1036,6 +1036,12 @@
 }
 .intern-sub-score-label i { color: #2563eb; }
 
+.lb-upload-box.lb-upload-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* ─── RESPONSIVE ─────────────────────────────── */
 @media (max-width: 1024px) {
   .dashboard-content { padding:20px; }
@@ -1089,3 +1095,4 @@
   .lb-action-edit-btn, .lb-action-delete-btn { width:100%; justify-content:center; }
   .lb-form-label-row { flex-wrap:wrap; }
 }
+
