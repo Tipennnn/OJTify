@@ -17,7 +17,9 @@ import { AdminOjtComponent } from './admin/admin-ojt/admin-ojt.component';
 import { AdminAttendanceComponent } from './admin/admin-attendance/admin-attendance.component';
 import { AdminOjtProfileComponent } from './admin/admin-ojt-profile/admin-ojt-profile.component';
 import { AdminAttendanceHistoryComponent } from './admin/admin-attendance-history/admin-attendance-history.component';
-import { AdminCompletedOjtComponent } from './admin/admin-completed-ojt/admin-completed-ojt.component'; // <-- NEW
+import { AdminCompletedOjtComponent } from './admin/admin-completed-ojt/admin-completed-ojt.component';
+import { AdminCertificateComponent } from './admin/admin-certificate/admin-certificate.component';
+import { AdminSupervisorManagementComponent } from './admin/admin-supervisor-management/admin-supervisor-management.component';
 import { SupervisorLoginComponent } from './supervisor/supervisor-login/supervisor-login.component';
 import { SupervisorSidenavComponent } from './supervisor/supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from './supervisor/supervisor-topnav/supervisor-topnav.component';
@@ -28,51 +30,74 @@ import { SupervisorAttendanceHistoryComponent } from './supervisor/supervisor-at
 import { SupervisorTasksComponent } from './supervisor/supervisor-tasks/supervisor-tasks.component';
 import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/supervisor-dashboard.component';
 import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluation/supervisor-evaluation.component';
-import { AdminSupervisorManagementComponent } from './admin/admin-supervisor-management/admin-supervisor-management.component';
 import { InternEvaluationComponent } from './Intern/intern-evaluation/intern-evaluation.component';
-import { AdminCertificateComponent } from './admin/admin-certificate/admin-certificate.component';
-
 
 import { authGuard } from './guards/auth.guard';
 
-
 export const routes: Routes = [
+
+  // ── Default ────────────────────────────────────────────
   { path: '', redirectTo: 'intern-login', pathMatch: 'full' },
-  { path: 'intern-login', component: InternLoginComponent },
+
+  // ── Public routes (no guard) ───────────────────────────
+  { path: 'intern-login',    component: InternLoginComponent },
   { path: 'intern-register', component: InternRegisterComponent },
-  { path: 'intern-sidenav', component: InternSidenavComponent }, 
-  { path: 'intern-profile', component: InternProfileComponent },
-  { path: 'intern-dashboard', component: InternDashboardComponent },
-  { path: 'intern-attendance', component: InternAttendanceComponent },
-  { path: 'intern-tasks', component: InternTasksComponent },
-  { path: 'intern-dashboard', component: InternDashboardComponent, canActivate: [authGuard] },
-  { path: 'reset-password', component: ResetPasswordComponent },
-  { path: 'intern-evaluation', component: InternEvaluationComponent },
+  { path: 'admin-login',     component: AdminLoginComponent },
+  { path: 'supervisor-login',component: SupervisorLoginComponent },
+  { path: 'reset-password',  component: ResetPasswordComponent },
 
-  // ADMIN
-  { path: 'admin-login', component: AdminLoginComponent },
-  { path: 'admin-dashboard', component: AdminDashboardComponent },
-  { path: 'admin-sidenav', component: AdminSidenavComponent },
-  { path: 'admin-topnav', component: AdminTopnavComponent },
-  { path: 'admin-applicants', component: AdminApplicantsComponent },
-  { path: 'admin-tasks', component: AdminTasksComponent },
-  { path: 'admin-ojt', component: AdminOjtComponent },
-  { path: 'admin-attendance', component: AdminAttendanceComponent },
-  { path: 'admin-ojt-profile/:id', component: AdminOjtProfileComponent },
-  { path: 'admin-attendance-history', component: AdminAttendanceHistoryComponent },
-  { path: 'admin-completed-ojt', component: AdminCompletedOjtComponent }, // <-- NEW
-  { path: 'admin-certificate', component: AdminCertificateComponent },
+  // ── Intern protected routes ────────────────────────────
+  {
+    path: '',
+    canActivate: [authGuard],
+    data: { role: 'intern' },
+    children: [
+      { path: 'intern-dashboard',  component: InternDashboardComponent },
+      { path: 'intern-profile',    component: InternProfileComponent },
+      { path: 'intern-attendance', component: InternAttendanceComponent },
+      { path: 'intern-tasks',      component: InternTasksComponent },
+      { path: 'intern-evaluation', component: InternEvaluationComponent },
+      { path: 'intern-sidenav',    component: InternSidenavComponent },
+    ]
+  },
 
+  // ── Admin protected routes ─────────────────────────────
+  {
+    path: '',
+    canActivate: [authGuard],
+    data: { role: 'admin' },
+    children: [
+      { path: 'admin-dashboard',            component: AdminDashboardComponent },
+      { path: 'admin-applicants',           component: AdminApplicantsComponent },
+      { path: 'admin-tasks',                component: AdminTasksComponent },
+      { path: 'admin-ojt',                  component: AdminOjtComponent },
+      { path: 'admin-attendance',           component: AdminAttendanceComponent },
+      { path: 'admin-ojt-profile/:id',      component: AdminOjtProfileComponent },
+      { path: 'admin-attendance-history',   component: AdminAttendanceHistoryComponent },
+      { path: 'admin-completed-ojt',        component: AdminCompletedOjtComponent },
+      { path: 'admin-certificate',          component: AdminCertificateComponent },
+      { path: 'admin-supervisor-management',component: AdminSupervisorManagementComponent },
+      { path: 'admin-sidenav',              component: AdminSidenavComponent },
+      { path: 'admin-topnav',               component: AdminTopnavComponent },
+    ]
+  },
 
-  { path: 'supervisor-login', component: SupervisorLoginComponent },   
-  { path: 'supervisor-sidenav', component: SupervisorSidenavComponent },
-  { path: 'supervisor-topnav', component: SupervisorTopnavComponent },
-  { path: 'supervisor-ojt', component: SupervisorOjtComponent },
-  { path: 'supervisor-ojt-profile/:id', component: SupervisorOjtProfileComponent },
-  { path: 'supervisor-attendance', component: SupervisorAttendanceComponent },
-  { path: 'supervisor-attendance-history', component: SupervisorAttendanceHistoryComponent },
-  { path: 'supervisor-tasks', component: SupervisorTasksComponent },   
-  { path: 'supervisor-dashboard', component: SupervisorDashboardComponent },
-  { path: 'supervisor-evaluation', component: SupervisorEvaluationComponent },
-  { path: 'admin-supervisor-management', component: AdminSupervisorManagementComponent },
+  // ── Supervisor protected routes ────────────────────────
+  {
+    path: '',
+    canActivate: [authGuard],
+    data: { role: 'supervisor' },
+    children: [
+      { path: 'supervisor-dashboard',          component: SupervisorDashboardComponent },
+      { path: 'supervisor-ojt',                component: SupervisorOjtComponent },
+      { path: 'supervisor-ojt-profile/:id',    component: SupervisorOjtProfileComponent },
+      { path: 'supervisor-attendance',         component: SupervisorAttendanceComponent },
+      { path: 'supervisor-attendance-history', component: SupervisorAttendanceHistoryComponent },
+      { path: 'supervisor-tasks',              component: SupervisorTasksComponent },
+      { path: 'supervisor-evaluation',         component: SupervisorEvaluationComponent },
+      { path: 'supervisor-sidenav',            component: SupervisorSidenavComponent },
+      { path: 'supervisor-topnav',             component: SupervisorTopnavComponent },
+    ]
+  },
+
 ];

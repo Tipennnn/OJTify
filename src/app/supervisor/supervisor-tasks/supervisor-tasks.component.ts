@@ -492,28 +492,44 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
   }
 
   // ── Course matching helper ────────────────────────────────
-  private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
-    if (!searchTerm) return false;
-    const q       = searchTerm.toLowerCase().trim();
-    const iCourse = (intern.course ?? '').toLowerCase().trim();
-    if (!iCourse) return false;
-    return iCourse.includes(q) || q.includes(iCourse);
-  }
+// AFTER
+private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
+  if (!searchTerm) return false;
+  const q       = searchTerm.toLowerCase().trim();
+  const iCourse = (intern.course ?? '').toLowerCase().trim();
+  if (!iCourse) return false;
 
+  // Direct substring match
+  if (iCourse.includes(q) || q.includes(iCourse)) return true;
+
+  // Match via COURSE_LIST: find all entries whose abbr or full matches the search,
+  // then check if the intern's stored course matches any of those entries' full names or abbrs
+  const matchedOptions = COURSE_LIST.filter(c =>
+    c.abbr.toLowerCase().includes(q) ||
+    c.full.toLowerCase().includes(q) ||
+    q.includes(c.abbr.toLowerCase()) ||
+    q === c.abbr.toLowerCase()
+  );
+  return matchedOptions.some(c =>
+    iCourse === c.full.toLowerCase() ||
+    iCourse === c.abbr.toLowerCase() ||
+    iCourse.includes(c.abbr.toLowerCase()) ||
+    c.full.toLowerCase().includes(iCourse)
+  );
+}
   get effectiveCourse(): string {
     if (this.assignMode !== 'course') return '';
     return this.selectedCourseObj?.full ?? this.courseSearch.trim();
   }
 
-  get courseMatchedInterns(): Intern[] {
-    const term = this.selectedCourseObj
-      ? this.selectedCourseObj.abbr
-      : this.courseSearch.trim();
-    if (!term) return [];
-    const q = term.toLowerCase();
-    return this.allInterns.filter(i => this.internMatchesCourse(i, q));
-  }
-
+ get courseMatchedInterns(): Intern[] {
+  const term = this.selectedCourseObj
+    ? this.selectedCourseObj.full   // ← use full name when selected from dropdown
+    : this.courseSearch.trim();
+  if (!term) return [];
+  const q = term.toLowerCase();
+  return this.allInterns.filter(i => this.internMatchesCourse(i, q));
+}
   // ── CREATE: Course autocomplete handlers ─────────────────
   onCourseSearchInput() {
     this.courseSelected    = false;
@@ -633,13 +649,13 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
     if (found) this.editCourseSearch = found.abbr;
   }
 
-  get editCourseMatchedInternsComputed(): Intern[] {
-    const obj  = this.editSelectedCourseObj;
-    const term = obj ? obj.abbr : this.editCourseSearch.trim();
-    if (!term) return [];
-    const q = term.toLowerCase();
-    return this.allInterns.filter(i => this.internMatchesCourse(i, q));
-  }
+ get editCourseMatchedInternsComputed(): Intern[] {
+  const obj  = this.editSelectedCourseObj;
+  const term = obj ? obj.full : this.editCourseSearch.trim();  // ← use full name
+  if (!term) return [];
+  const q = term.toLowerCase();
+  return this.allInterns.filter(i => this.internMatchesCourse(i, q));
+}
 
   onAssignModeChange() {
     this.courseSearch         = '';
