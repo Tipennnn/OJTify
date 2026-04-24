@@ -127,6 +127,8 @@ private fpCooldownTimer: any;
     }
 
     sessionStorage.removeItem('supervisorWelcomeShown');
+    sessionStorage.removeItem('role');
+    sessionStorage.setItem('role', 'supervisor'); 
     this.router.navigate(['/supervisor-dashboard']);
 
   } catch (error: any) {

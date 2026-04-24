@@ -357,6 +357,8 @@ verifyOtp() {
     }
 
     sessionStorage.removeItem('welcomeShown');
+    sessionStorage.removeItem('role');
+    sessionStorage.setItem('role', 'intern');
     this.router.navigate(['/intern-dashboard']);
 
   } catch (error: any) {

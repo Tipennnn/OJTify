@@ -116,6 +116,8 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
       }
 
       sessionStorage.removeItem('adminWelcomeShown');
+      sessionStorage.removeItem('role');
+      sessionStorage.setItem('role', 'admin');
       this.router.navigate(['/admin-dashboard']);
 
     } catch (error: any) {
