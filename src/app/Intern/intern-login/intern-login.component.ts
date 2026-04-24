@@ -358,6 +358,8 @@ verifyOtp() {
 
     sessionStorage.removeItem('welcomeShown');
     sessionStorage.removeItem('role');
+    sessionStorage.removeItem('profilePhotoReminderShown');
+sessionStorage.removeItem('profileAlertShown');
     sessionStorage.setItem('role', 'intern');
     this.router.navigate(['/intern-dashboard']);
 

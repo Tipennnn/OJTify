@@ -127,6 +127,7 @@ private fpCooldownTimer: any;
     }
 
     sessionStorage.removeItem('supervisorWelcomeShown');
+    sessionStorage.removeItem('esigReminderShown');
     sessionStorage.removeItem('role');
     sessionStorage.setItem('role', 'supervisor'); 
     this.router.navigate(['/supervisor-dashboard']);

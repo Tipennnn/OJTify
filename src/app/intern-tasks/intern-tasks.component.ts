@@ -242,11 +242,30 @@ export class InternTasksComponent implements OnInit {
       this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL,
       [Query.limit(500)]
     );
+
+    // Build a live supervisor name map for name resolution
+    const svNameMap: Record<string, string> = {};
+    try {
+      const svRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL
+      );
+      (svRes.documents as any[]).forEach(s => {
+        svNameMap[s.$id] = `${s.first_name} ${s.last_name}`.trim();
+      });
+    } catch { /* fall back to stored name */ }
+
     this.comments = (res.documents as any[])
       .filter(c =>
         c.task_id === taskId &&
         (c.user_id === this.currentUserId || c.role === 'supervisor' || c.role === 'admin')
       )
+      .map(c => {
+        // ← FIX: always show live supervisor name
+        if (c.role === 'supervisor' && svNameMap[c.user_id]) {
+          return { ...c, user_name: svNameMap[c.user_id] };
+        }
+        return c;
+      })
       .sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
   } catch (error: any) { console.error('Failed to load comments:', error.message); }
 }
@@ -330,11 +349,20 @@ export class InternTasksComponent implements OnInit {
   }
 
   async openModal(task: Task) {
-    console.log('supervisor_id:', task.supervisor_id);
-  console.log('supervisorPhotoMap:', this.supervisorPhotoMap);
-    this.selectedTask = task; this.selectedFile = null; this.comments = []; this.submissions = []; this.newComment = ''; this.isModalOpen = true;
-    if (task.$id) await Promise.all([this.loadSubmissions(task.$id), this.loadComments(task.$id)]);
+  // ← FIX: resolve supervisor name live from supervisorPhotoMap's source
+  const resolvedTask = { ...task };
+  if (task.supervisor_id) {
+    try {
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, task.supervisor_id
+      );
+      resolvedTask.supervisor_name = `${(doc as any).first_name} ${(doc as any).last_name}`.trim();
+    } catch { /* keep original supervisor_name if fetch fails */ }
   }
+  this.selectedTask = resolvedTask;
+  this.selectedFile = null; this.comments = []; this.submissions = []; this.newComment = ''; this.isModalOpen = true;
+  if (task.$id) await Promise.all([this.loadSubmissions(task.$id), this.loadComments(task.$id)]);
+}
 
   closeModal() { this.isModalOpen = false; this.selectedTask = null; this.selectedFile = null; this.comments = []; this.submissions = []; this.newComment = ''; }
 
@@ -855,225 +883,271 @@ export class InternTasksComponent implements OnInit {
   //  WEEKLY REPORT PDF
   // ════════════════════════════════════════════════════════
   async generateWeeklyReport() {
-    if (!this.reportWeekStart || !this.reportWeekEnd) {
-      Swal.fire({ icon: 'warning', title: 'Select a date range', text: 'Please enter the week start and end dates.', confirmButtonColor: '#2563eb' }); return;
+  if (!this.reportWeekStart || !this.reportWeekEnd) {
+    Swal.fire({ icon: 'warning', title: 'Select a date range', text: 'Please enter the week start and end dates.', confirmButtonColor: '#2563eb' }); return;
+  }
+  this.reportGenerating = true;
+  try {
+    const start = new Date(this.reportWeekStart);
+    const end   = new Date(this.reportWeekEnd);
+    end.setHours(23, 59, 59, 999);
+
+    const weekEntries = this.logbookEntries.filter(e => { const d = new Date(e.entry_date); return d >= start && d <= end; });
+    if (weekEntries.length === 0) {
+      Swal.fire({ icon: 'info', title: 'No entries found', text: 'There are no logbook entries for the selected date range.', confirmButtonColor: '#2563eb' });
+      this.reportGenerating = false; return;
     }
-    this.reportGenerating = true;
-    try {
-      const start = new Date(this.reportWeekStart);
-      const end   = new Date(this.reportWeekEnd);
-      end.setHours(23, 59, 59, 999);
 
-      const weekEntries = this.logbookEntries.filter(e => { const d = new Date(e.entry_date); return d >= start && d <= end; });
-      if (weekEntries.length === 0) {
-        Swal.fire({ icon: 'info', title: 'No entries found', text: 'There are no logbook entries for the selected date range.', confirmButtonColor: '#2563eb' });
-        this.reportGenerating = false; return;
-      }
+    const sortedEntries = [...weekEntries].sort((a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime());
 
-      const sortedEntries = [...weekEntries].sort((a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime());
+    const allPhotosRes = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_photos');
+    const allPhotos    = allPhotosRes.documents as any[];
+    const entryIds     = new Set(sortedEntries.map(e => e.$id));
+    const rangePhotos  = allPhotos.filter(p => entryIds.has(p.entry_id) && p.student_id === this.currentUserId);
 
-      const allPhotosRes = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_photos');
-      const allPhotos    = allPhotosRes.documents as any[];
-      const entryIds     = new Set(sortedEntries.map(e => e.$id));
-      const rangePhotos  = allPhotos.filter(p => entryIds.has(p.entry_id) && p.student_id === this.currentUserId);
-
-      const toBase64 = (url: string): Promise<string> =>
-        fetch(url).then(r => r.blob()).then(blob => new Promise((res, rej) => {
-          const reader = new FileReader();
-          reader.onload  = () => res(reader.result as string);
-          reader.onerror = rej;
-          reader.readAsDataURL(blob);
-        }));
-
-      interface PhotoItem { b64: string; name: string; entryDate: string; uploadedAt: string; }
-      const photoMap: Record<string, PhotoItem[]> = {};
-
-      await Promise.allSettled(rangePhotos.map(async (photo) => {
-        try {
-          const b64 = await toBase64(this.getPhotoUrl(photo.file_id));
-          const entry = sortedEntries.find(e => e.$id === photo.entry_id);
-          const entryDate = entry ? new Date(entry.entry_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
-          const uploadedAt = photo.uploaded_at || '';
-          if (!photoMap[photo.entry_id]) photoMap[photo.entry_id] = [];
-          photoMap[photo.entry_id].push({ b64, name: photo.file_name, entryDate, uploadedAt });
-        } catch { /* skip */ }
+    const toBase64 = (url: string): Promise<string> =>
+      fetch(url).then(r => r.blob()).then(blob => new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload  = () => res(reader.result as string);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
       }));
 
-      const totalEntries  = sortedEntries.length;
-      const weekLabel     = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
-      const generatedDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    interface PhotoItem { b64: string; name: string; entryDate: string; uploadedAt: string; }
+    const photoMap: Record<string, PhotoItem[]> = {};
 
-      const allPhotoItems: PhotoItem[] = [];
-      for (const entry of sortedEntries) {
-        allPhotoItems.push(...(photoMap[entry.$id!] || []));
-      }
+    await Promise.allSettled(rangePhotos.map(async (photo) => {
+      try {
+        const b64 = await toBase64(this.getPhotoUrl(photo.file_id));
+        const entry = sortedEntries.find(e => e.$id === photo.entry_id);
+        const entryDate = entry ? new Date(entry.entry_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
+        const uploadedAt = photo.uploaded_at || '';
+        if (!photoMap[photo.entry_id]) photoMap[photo.entry_id] = [];
+        photoMap[photo.entry_id].push({ b64, name: photo.file_name, entryDate, uploadedAt });
+      } catch { /* skip */ }
+    }));
 
-      const rows = sortedEntries.map(e => {
-        const photoCount = (photoMap[e.$id!] || []).length;
-        return `
-          <tr>
-            <td class="col-date">
-              <div class="date-day">${new Date(e.entry_date).toLocaleDateString('en-US', { weekday: 'long' })}</div>
-              <div class="date-full">${new Date(e.entry_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-              ${photoCount > 0 ? `<div style="font-size:9px;color:#2563eb;margin-top:4px;">📷 ${photoCount} photo${photoCount > 1 ? 's' : ''} — see Photo Evidence</div>` : ''}
-            </td>
-            <td class="col-tasks">${e.tasks_done.replace(/\n/g, '<br>')}</td>
-            <td class="col-reflect">${e.reflection ? e.reflection.replace(/\n/g, '<br>') : '<span style="color:#aaa;">—</span>'}</td>
-          </tr>
-        `;
-      }).join('');
+    const totalEntries  = sortedEntries.length;
+    const weekLabel     = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    const generatedDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-      const page1 = document.createElement('div');
-      page1.id = '__pdf-page1';
-      page1.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
-
-      page1.innerHTML = `
-        <div style="text-align:center; padding-bottom:14px; border-bottom:3px solid #2563eb; margin-bottom:4px;">
-          <div style="font-size:15px; font-weight:700; color:#1e293b; letter-spacing:0.2px;">Weekly OJT Accomplishment Report</div>
-          <div style="font-size:10px; color:#64748b; margin-top:3px;">On-the-Job Training Program &nbsp;·&nbsp; Digital Logbook Summary</div>
-        </div>
-        <div style="height:4px; background:linear-gradient(90deg,#2563eb 0%,#1d4ed8 50%,#60a5fa 100%); margin-bottom:14px; border-radius:0 0 4px 4px;"></div>
-        <div style="display:flex; margin-bottom:14px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
-          <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0; background:#2563eb;">
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#bfdbfe; margin-bottom:2px;">Intern Name</div>
-            <div style="font-size:11px; font-weight:600; color:#fff;">${this.currentUserName}</div>
-          </div>
-          <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0;">
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#94a3b8; margin-bottom:2px;">Report Period</div>
-            <div style="font-size:11px; font-weight:600; color:#1e293b;">${weekLabel}</div>
-          </div>
-          <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0;">
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#94a3b8; margin-bottom:2px;">Total Entries</div>
-            <div style="font-size:11px; font-weight:600; color:#1e293b;">${totalEntries} day${totalEntries !== 1 ? 's' : ''} logged</div>
-          </div>
-          <div style="flex:1; padding:8px 14px;">
-            <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#94a3b8; margin-bottom:2px;">Date Generated</div>
-            <div style="font-size:11px; font-weight:600; color:#1e293b;">${generatedDate}</div>
-          </div>
-        </div>
-        <div style="font-size:11px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Daily Accomplishments</div>
-        <table style="width:100%; border-collapse:collapse; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
-          <thead>
-            <tr style="background:#2563eb;">
-              <th style="width:20%; color:#fff; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; text-align:left;">Date</th>
-              <th style="width:48%; color:#fff; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; text-align:left;">Tasks / Accomplishments</th>
-              <th style="width:32%; color:#fff; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; text-align:left;">Reflections &amp; Learnings</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
-
-      const style1 = document.createElement('style');
-      style1.textContent = `
-        #__pdf-page1 table tbody tr { border-bottom:1px solid #e2e8f0; }
-        #__pdf-page1 table tbody tr:nth-child(even) { background:#f8fafc; }
-        #__pdf-page1 table tbody td { padding:8px 10px; vertical-align:top; line-height:1.5; }
-        #__pdf-page1 .date-day  { font-weight:700; font-size:10px; color:#2563eb; }
-        #__pdf-page1 .date-full { font-size:9px; color:#64748b; margin-top:2px; }
-      `;
-      page1.prepend(style1);
-      document.body.appendChild(page1);
-
-      Swal.fire({ title: 'Generating PDF…', html: '<p style="font-size:13px;color:#6b7280;">Please wait while your report is being prepared.</p>', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
-      await new Promise(r => setTimeout(r, 200));
-
-      const canvas1 = await html2canvas(page1, {
-        scale: 2, useCORS: true, allowTaint: true,
-        backgroundColor: '#ffffff', logging: false,
-        width: 794, height: page1.scrollHeight, windowWidth: 794
-      });
-
-      const A4_W = 210; const A4_H = 297;
-      const MARGIN_TOP = 15; const MARGIN_BOT = 5;
-      const CONTENT_H  = A4_H - MARGIN_TOP - MARGIN_BOT;
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-
-      const addCanvasWithMargins = (canvas: HTMLCanvasElement, isFirstPage: boolean) => {
-        const pxPerMm = canvas.width / A4_W;
-        const slicePx = Math.round(CONTENT_H * pxPerMm);
-        const mTopPx  = Math.round(MARGIN_TOP * pxPerMm);
-        let srcY = 0; let first = isFirstPage;
-        while (srcY < canvas.height) {
-          if (!first) pdf.addPage();
-          first = false;
-          const pageCanvas = document.createElement('canvas');
-          pageCanvas.width  = canvas.width;
-          pageCanvas.height = Math.round(A4_H * pxPerMm);
-          const ctx = pageCanvas.getContext('2d')!;
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-          const srcH = Math.min(slicePx, canvas.height - srcY);
-          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, mTopPx, canvas.width, srcH);
-          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, A4_W, A4_H);
-          srcY += srcH;
-        }
-      };
-
-      addCanvasWithMargins(canvas1, true);
-
-      if (allPhotoItems.length > 0) {
-        const photoRowsHtml = (() => {
-          let html = '';
-          for (let i = 0; i < allPhotoItems.length; i += 2) {
-            const a = allPhotoItems[i];
-            const b = allPhotoItems[i + 1];
-            html += `<div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;">`;
-            html += `<div style="flex:1;min-width:0;"><img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${a.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>${a.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>` : ''}</div>`;
-            if (b) { html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}</div>`; }
-            else { html += `<div style="flex:1;"></div>`; }
-            html += `</div>`;
-          }
-          return html;
-        })();
-
-        const page2 = document.createElement('div');
-        page2.id = '__pdf-page2';
-        page2.style.cssText = 'position:fixed;left:-9999px;top:0;width:714px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
-        page2.innerHTML = `<div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:14px;"><div style="font-size:13px; font-weight:700; color:#1e293b;">Photo Evidence</div><div style="font-size:10px; color:#64748b; margin-top:2px;">Visual documentation of daily OJT activities</div></div>${photoRowsHtml}`;
-        document.body.appendChild(page2);
-
-        const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 714, height: page2.scrollHeight, windowWidth: 714 });
-        addCanvasWithMargins(canvas2, false);
-        document.body.removeChild(page2);
-      }
-
-      const pageSig = document.createElement('div');
-      pageSig.id = '__pdf-pagesig';
-      pageSig.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 60px 20px 60px;box-sizing:border-box;';
-      pageSig.innerHTML = `
-        <div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:12px; margin-bottom:40px;">
-          <div style="font-size:13px; font-weight:700; color:#1e293b;">Certification &amp; Approval</div>
-          <div style="font-size:10px; color:#64748b; margin-top:2px;">Authorized signatories for this accomplishment report</div>
-        </div>
-        <div style="display:flex; justify-content:space-between; gap:80px; margin-bottom:60px;">
-          <div style="flex:1; text-align:center;"><div style="height:48px; border-bottom:1.5px solid #1e293b; margin-bottom:8px;"></div><div style="font-size:11px; font-weight:700; color:#1e293b;">OJT Supervisor</div><div style="font-size:9px; color:#64748b; margin-top:3px;">Immediate Supervisor</div></div>
-          <div style="flex:1; text-align:center;"><div style="height:48px; border-bottom:1.5px solid #1e293b; margin-bottom:8px;"></div><div style="font-size:11px; font-weight:700; color:#1e293b;">OCES Admin</div><div style="font-size:9px; color:#64748b; margin-top:3px;">School OJT Coordinator</div></div>
-        </div>
-        <div style="margin-top:32px; padding-top:10px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:9px; color:#94a3b8;">Generated on ${generatedDate} &nbsp;·&nbsp; Confidential – For Official Use Only</div>
-          <div style="font-size:9px; color:#2563eb; font-weight:600;">OJTify · Olongapo City Elementary School</div>
-        </div>`;
-      document.body.appendChild(pageSig);
-
-      const canvasSig = await html2canvas(pageSig, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 794, height: pageSig.scrollHeight, windowWidth: 794 });
-      addCanvasWithMargins(canvasSig, false);
-      document.body.removeChild(pageSig);
-      document.body.removeChild(page1);
-
-      const fileName = `OJT-Logbook-${this.currentUserName.replace(/\s+/g, '-')}-${this.reportWeekStart}.pdf`;
-      pdf.save(fileName);
-      Swal.fire({ icon: 'success', title: 'Downloaded!', text: `Saved as ${fileName}`, confirmButtonColor: '#2563eb', timer: 2500, showConfirmButton: false });
-
-    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Report failed', text: error.message }); }
-    finally {
-      this.reportGenerating = false;
-      document.getElementById('__pdf-page1')?.remove();
-      document.getElementById('__pdf-page2')?.remove();
-      document.getElementById('__pdf-pagesig')?.remove();
+    const allPhotoItems: PhotoItem[] = [];
+    for (const entry of sortedEntries) {
+      allPhotoItems.push(...(photoMap[entry.$id!] || []));
     }
+
+    const rows = sortedEntries.map(e => {
+      const photoCount = (photoMap[e.$id!] || []).length;
+      return `
+        <tr>
+          <td class="col-date">
+            <div class="date-day">${new Date(e.entry_date).toLocaleDateString('en-US', { weekday: 'long' })}</div>
+            <div class="date-full">${new Date(e.entry_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+            ${photoCount > 0 ? `<div style="font-size:9px;color:#2563eb;margin-top:4px;">📷 ${photoCount} photo${photoCount > 1 ? 's' : ''} — see Photo Evidence</div>` : ''}
+          </td>
+          <td class="col-tasks">${e.tasks_done.replace(/\n/g, '<br>')}</td>
+          <td class="col-reflect">${e.reflection ? e.reflection.replace(/\n/g, '<br>') : '<span style="color:#aaa;">—</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const page1 = document.createElement('div');
+    page1.id = '__pdf-page1';
+    page1.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
+
+    page1.innerHTML = `
+      <div style="text-align:center; padding-bottom:14px; border-bottom:3px solid #2563eb; margin-bottom:4px;">
+        <div style="font-size:15px; font-weight:700; color:#1e293b; letter-spacing:0.2px;">Weekly OJT Accomplishment Report</div>
+        <div style="font-size:10px; color:#64748b; margin-top:3px;">On-the-Job Training Program &nbsp;·&nbsp; Digital Logbook Summary</div>
+      </div>
+      <div style="height:4px; background:linear-gradient(90deg,#2563eb 0%,#1d4ed8 50%,#60a5fa 100%); margin-bottom:14px; border-radius:0 0 4px 4px;"></div>
+      <div style="display:flex; margin-bottom:14px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+        <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0; background:#2563eb;">
+          <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#bfdbfe; margin-bottom:2px;">Intern Name</div>
+          <div style="font-size:11px; font-weight:600; color:#fff;">${this.currentUserName}</div>
+        </div>
+        <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0;">
+          <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#94a3b8; margin-bottom:2px;">Report Period</div>
+          <div style="font-size:11px; font-weight:600; color:#1e293b;">${weekLabel}</div>
+        </div>
+        <div style="flex:1; padding:8px 14px; border-right:1px solid #e2e8f0;">
+          <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#94a3b8; margin-bottom:2px;">Total Entries</div>
+          <div style="font-size:11px; font-weight:600; color:#1e293b;">${totalEntries} day${totalEntries !== 1 ? 's' : ''} logged</div>
+        </div>
+        <div style="flex:1; padding:8px 14px;">
+          <div style="font-size:9px; text-transform:uppercase; letter-spacing:0.6px; color:#94a3b8; margin-bottom:2px;">Date Generated</div>
+          <div style="font-size:11px; font-weight:600; color:#1e293b;">${generatedDate}</div>
+        </div>
+      </div>
+      <div style="font-size:11px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; border-bottom:1px solid #e2e8f0; padding-bottom:5px;">Daily Accomplishments</div>
+      <table style="width:100%; border-collapse:collapse; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
+        <thead>
+          <tr style="background:#2563eb;">
+            <th style="width:20%; color:#fff; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; text-align:left;">Date</th>
+            <th style="width:48%; color:#fff; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; text-align:left;">Tasks / Accomplishments</th>
+            <th style="width:32%; color:#fff; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:8px 10px; text-align:left;">Reflections &amp; Learnings</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+    const style1 = document.createElement('style');
+    style1.textContent = `
+      #__pdf-page1 table tbody tr { border-bottom:1px solid #e2e8f0; }
+      #__pdf-page1 table tbody tr:nth-child(even) { background:#f8fafc; }
+      #__pdf-page1 table tbody td { padding:8px 10px; vertical-align:top; line-height:1.5; }
+      #__pdf-page1 .date-day  { font-weight:700; font-size:10px; color:#2563eb; }
+      #__pdf-page1 .date-full { font-size:9px; color:#64748b; margin-top:2px; }
+    `;
+    page1.prepend(style1);
+    document.body.appendChild(page1);
+
+    Swal.fire({ title: 'Generating PDF…', html: '<p style="font-size:13px;color:#6b7280;">Please wait while your report is being prepared.</p>', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    await new Promise(r => setTimeout(r, 200));
+
+    const canvas1 = await html2canvas(page1, {
+      scale: 2, useCORS: true, allowTaint: true,
+      backgroundColor: '#ffffff', logging: false,
+      width: 794, height: page1.scrollHeight, windowWidth: 794
+    });
+
+    const A4_W = 210; const A4_H = 297;
+    const MARGIN_TOP = 15; const MARGIN_BOT = 5;
+    const CONTENT_H  = A4_H - MARGIN_TOP - MARGIN_BOT;
+
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+
+    const addCanvasWithMargins = (canvas: HTMLCanvasElement, isFirstPage: boolean) => {
+      const pxPerMm = canvas.width / A4_W;
+      const slicePx = Math.round(CONTENT_H * pxPerMm);
+      const mTopPx  = Math.round(MARGIN_TOP * pxPerMm);
+      let srcY = 0; let first = isFirstPage;
+      while (srcY < canvas.height) {
+        if (!first) pdf.addPage();
+        first = false;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width  = canvas.width;
+        pageCanvas.height = Math.round(A4_H * pxPerMm);
+        const ctx = pageCanvas.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        const srcH = Math.min(slicePx, canvas.height - srcY);
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, mTopPx, canvas.width, srcH);
+        pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, A4_W, A4_H);
+        srcY += srcH;
+      }
+    };
+
+    addCanvasWithMargins(canvas1, true);
+
+    if (allPhotoItems.length > 0) {
+      const photoRowsHtml = (() => {
+        let html = '';
+        for (let i = 0; i < allPhotoItems.length; i += 2) {
+          const a = allPhotoItems[i];
+          const b = allPhotoItems[i + 1];
+          html += `<div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;">`;
+          html += `<div style="flex:1;min-width:0;"><img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${a.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>${a.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>` : ''}</div>`;
+          if (b) { html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}</div>`; }
+          else { html += `<div style="flex:1;"></div>`; }
+          html += `</div>`;
+        }
+        return html;
+      })();
+
+      const page2 = document.createElement('div');
+      page2.id = '__pdf-page2';
+      page2.style.cssText = 'position:fixed;left:-9999px;top:0;width:714px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
+      page2.innerHTML = `<div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:14px;"><div style="font-size:13px; font-weight:700; color:#1e293b;">Photo Evidence</div><div style="font-size:10px; color:#64748b; margin-top:2px;">Visual documentation of daily OJT activities</div></div>${photoRowsHtml}`;
+      document.body.appendChild(page2);
+
+      const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 714, height: page2.scrollHeight, windowWidth: 714 });
+      addCanvasWithMargins(canvas2, false);
+      document.body.removeChild(page2);
+    }
+
+    // ── Fetch supervisor info for signature ───────────────
+    let svName    = '';
+    let svEsigB64 : string | null = null;
+
+    try {
+      const svRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL
+      );
+      const svDoc = (svRes.documents as any[])[0];
+      if (svDoc) {
+        svName = `${svDoc.first_name || ''} ${svDoc.last_name || ''}`.trim();
+        if (svDoc.esig_file_id) {
+          try {
+            const jwt = await this.appwrite.account.createJWT();
+            const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${svDoc.esig_file_id}/view?project=${this.PROJECT_ID}`;
+            const res = await fetch(url, {
+              headers: {
+                'X-Appwrite-JWT': jwt.jwt,
+                'X-Appwrite-Project': this.PROJECT_ID
+              }
+            });
+            if (res.ok) {
+              const blob = await res.blob();
+              svEsigB64  = await new Promise<string>((resolve, reject) => {
+                const reader     = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror   = reject;
+                reader.readAsDataURL(blob);
+              });
+            }
+          } catch { svEsigB64 = null; }
+        }
+      }
+    } catch { /* signature block will render blank */ }
+
+    const esigImgHtml = svEsigB64
+      ? `<img src="${svEsigB64}" style="height:48px; max-width:160px; object-fit:contain; display:block; margin:0 auto;">`
+      : `<div style="height:48px;"></div>`;
+
+    const pageSig = document.createElement('div');
+    pageSig.id = '__pdf-pagesig';
+    pageSig.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 60px 20px 60px;box-sizing:border-box;';
+    pageSig.innerHTML = `
+      <div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:12px; margin-bottom:40px;">
+        <div style="font-size:13px; font-weight:700; color:#1e293b;">Certification &amp; Approval</div>
+        <div style="font-size:10px; color:#64748b; margin-top:2px;">Authorized signatory for this accomplishment report</div>
+      </div>
+      <div style="display:flex; justify-content:center; margin-bottom:60px;">
+        <div style="width:240px; text-align:center;">
+          ${esigImgHtml}
+          <div style="font-size:11px; font-weight:700; color:#1e293b; margin-top:4px;">
+            ${svName || '________________________'}
+          </div>
+          <div style="border-bottom:1.5px solid #1e293b; margin:4px 0 8px;"></div>
+          <div style="font-size:9px; color:#64748b;">OJT Coordinator</div>
+        </div>
+      </div>
+      <div style="margin-top:32px; padding-top:10px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:9px; color:#94a3b8;">Generated on ${generatedDate} &nbsp;·&nbsp; Confidential – For Official Use Only</div>
+        <div style="font-size:9px; color:#2563eb; font-weight:600;">OJTify · Olongapo City Elementary School</div>
+      </div>`;
+    document.body.appendChild(pageSig);
+
+    const canvasSig = await html2canvas(pageSig, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 794, height: pageSig.scrollHeight, windowWidth: 794 });
+    addCanvasWithMargins(canvasSig, false);
+    document.body.removeChild(pageSig);
+    document.body.removeChild(page1);
+
+    const fileName = `OJT-Logbook-${this.currentUserName.replace(/\s+/g, '-')}-${this.reportWeekStart}.pdf`;
+    pdf.save(fileName);
+    Swal.fire({ icon: 'success', title: 'Downloaded!', text: `Saved as ${fileName}`, confirmButtonColor: '#2563eb', timer: 2500, showConfirmButton: false });
+
+  } catch (error: any) { Swal.fire({ icon: 'error', title: 'Report failed', text: error.message }); }
+  finally {
+    this.reportGenerating = false;
+    document.getElementById('__pdf-page1')?.remove();
+    document.getElementById('__pdf-page2')?.remove();
+    document.getElementById('__pdf-pagesig')?.remove();
   }
+}
 
   formatEntryDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });

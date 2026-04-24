@@ -89,22 +89,24 @@
       </div>
 
       <!-- Name Row -->
-      <div class="pm-form-row">
-        <div class="pm-form-group">
-          <label>First Name <span class="pm-req">*</span></label>
-          <div class="pm-input-wrap">
-            <i class="fa-solid fa-user pm-input-icon"></i>
-            <input type="text" placeholder="Juan" [(ngModel)]="profileForm.first_name">
-          </div>
-        </div>
-        <div class="pm-form-group">
-          <label>Last Name <span class="pm-req">*</span></label>
-          <div class="pm-input-wrap">
-            <i class="fa-solid fa-user pm-input-icon"></i>
-            <input type="text" placeholder="Dela Cruz" [(ngModel)]="profileForm.last_name">
-          </div>
-        </div>
-      </div>
+      <!-- Name Row -->
+<div class="pm-form-row">
+  <div class="pm-form-group">
+    <label>First Name</label>
+    <div class="pm-input-wrap pm-input-disabled">
+      <i class="fa-solid fa-user pm-input-icon"></i>
+      <input type="text" [value]="profileForm.first_name" disabled placeholder="Juan">
+    </div>
+    <span class="pm-field-hint"><i class="fa-solid fa-lock"></i> Name cannot be changed here</span>
+  </div>
+  <div class="pm-form-group">
+    <label>Last Name</label>
+    <div class="pm-input-wrap pm-input-disabled">
+      <i class="fa-solid fa-user pm-input-icon"></i>
+      <input type="text" [value]="profileForm.last_name" disabled placeholder="Dela Cruz">
+    </div>
+  </div>
+</div>
 
       <!-- Email + Employee ID -->
       <div class="pm-form-row">

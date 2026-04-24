@@ -242,6 +242,7 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
 
   currentSupervisorId = '';
   supervisorName      = '';
+  supervisorPhotoUrl: string | null = null;
 
   // ── Tasks Pagination ──────────────────────────────────────
   currentPage = 1;
@@ -361,18 +362,23 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
     this.activeTab = tab;
   }
 
-  async getCurrentSupervisor() {
-    try {
-      const user = await this.appwrite.account.get();
-      this.currentSupervisorId = user.$id;
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id
-      );
-      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
-    } catch (error: any) {
-      console.error('Failed to get supervisor:', error.message);
+async getCurrentSupervisor() {
+  try {
+    const user = await this.appwrite.account.get();
+    this.currentSupervisorId = user.$id;
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id
+    );
+    this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+    
+    // Add this:
+    if ((doc as any).profile_photo_id) {
+      this.supervisorPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${(doc as any).profile_photo_id}/view?project=${this.PROJECT_ID}`;
     }
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
   }
+}
 
   async loadAssignedInterns() {
   try {
@@ -1299,21 +1305,26 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
 
   closeModal() { this.isModalOpen = false; document.body.style.overflow = ''; }
 
-  openCardModal(task: Task) {
-    const assignedIds     = this.getAssignedIds(task);
-    const assignedInterns = assignedIds.map(id => {
-      const intern = this.allInterns.find(i => i.$id === id);
-      return { name: intern ? `${intern.first_name} ${intern.last_name}` : id, img: '' };
-    });
-    this.selectedTask = { ...task, assignedInterns, comments: [], submissions: [] };
-    this.taskScoreInput = task.score ?? null;
-    this.editAttachmentFile = null; this.editAttachmentFileName = '';
-    this.newSupervisorComment = ''; this.taskComments = []; this.taskSubmissions = [];
-    this.editingCommentId = null; this.editingMessage = ''; this.isCardModalOpen = true;
-    document.body.style.overflow = 'hidden';
-    if (task.$id) { this.loadTaskComments(task.$id); this.loadTaskSubmissions(task.$id); }
-  }
+openCardModal(task: Task) {
+  const assignedIds     = this.getAssignedIds(task);
+  const assignedInterns = assignedIds.map(id => {
+    const intern = this.allInterns.find(i => i.$id === id);
+    return { name: intern ? `${intern.first_name} ${intern.last_name}` : id, img: '' };
+  });
 
+  // ← FIX: use current supervisor's live name if this task belongs to them
+  const resolvedSupervisorName = (task as any).supervisor_id === this.currentSupervisorId
+    ? this.supervisorName
+    : (task.supervisor_name || 'Supervisor');
+
+  this.selectedTask = { ...task, supervisor_name: resolvedSupervisorName, assignedInterns, comments: [], submissions: [] };
+  this.taskScoreInput = task.score ?? null;
+  this.editAttachmentFile = null; this.editAttachmentFileName = '';
+  this.newSupervisorComment = ''; this.taskComments = []; this.taskSubmissions = [];
+  this.editingCommentId = null; this.editingMessage = ''; this.isCardModalOpen = true;
+  document.body.style.overflow = 'hidden';
+  if (task.$id) { this.loadTaskComments(task.$id); this.loadTaskSubmissions(task.$id); }
+}
   closeCardModal() {
     this.isCardModalOpen = false; this.editAttachmentFile = null; this.editAttachmentFileName = '';
     this.newSupervisorComment = ''; this.taskComments = []; this.taskSubmissions = [];
@@ -1397,7 +1408,7 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
 
- async loadTaskComments(taskId: string) {
+async loadTaskComments(taskId: string) {
   try {
     const res = await this.appwrite.databases.listDocuments(
       this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL,
@@ -1408,7 +1419,14 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
       .filter(c => c.task_id === taskId)
       .filter(c => {
         if (c.role === 'supervisor') return true;
-        return this.allInterns.some(i => i.$id === c.user_id); // ← only active interns
+        return this.allInterns.some(i => i.$id === c.user_id);
+      })
+      .map(c => {
+        // ← FIX: always show current live name for own comments
+        if (c.role === 'supervisor' && c.user_id === this.currentSupervisorId) {
+          return { ...c, user_name: this.supervisorName };
+        }
+        return c;
       })
       .sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
 
@@ -1545,10 +1563,13 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
 }
 
   getCommentPhotoUrl(userId: string): string | null {
-    const photoId = this.internPhotoMap[userId];
-    if (!photoId) return null;
-    return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
+  if (userId === this.currentSupervisorId && this.supervisorPhotoUrl) {
+    return this.supervisorPhotoUrl;
   }
+  const photoId = this.internPhotoMap[userId];
+  if (!photoId) return null;
+  return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
+}
 
   getTaskAssignedCount(task: Task): number { return this.getAssignedIds(task).length; }
   getTaskSubmittedCount(task: Task): number { return this.taskSubmissionCountMap[task.$id ?? ''] ?? 0; }

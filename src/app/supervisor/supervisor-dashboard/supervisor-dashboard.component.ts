@@ -79,28 +79,77 @@ export class SupervisorDashboardComponent implements OnInit {
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
-    await this.getCurrentSupervisor();
-    await this.loadAssignedStudents();
+  await this.getCurrentSupervisor();
+  await this.loadAssignedStudents();
 
-    this.loadTodayStats();
-    this.loadRecentAttendance();
-    this.loadRecentTasks();
+  this.loadTodayStats();
+  this.loadRecentAttendance();
+  this.loadRecentTasks();
 
-    // Welcome toast
-    if (!sessionStorage.getItem('supervisorWelcomeShown')) {
-      sessionStorage.setItem('supervisorWelcomeShown', 'true');
-      Swal.fire({
-        icon: 'success',
-        title: `Welcome back, ${this.supervisorName || 'Supervisor'}!`,
-        text: 'You are logged in as a supervisor.',
-        timer: 3000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end',
-      });
-    }
+  // Welcome toast
+  if (!sessionStorage.getItem('supervisorWelcomeShown')) {
+    sessionStorage.setItem('supervisorWelcomeShown', 'true');
+    Swal.fire({
+      icon: 'success',
+      title: `Welcome back, ${this.supervisorName || 'Supervisor'}!`,
+      text: 'You are logged in as a supervisor.',
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end',
+    });
   }
+
+  // ← ADD THIS: E-signature reminder (every login, only if no esig)
+  await this.checkEsigReminder();
+}
+
+private async checkEsigReminder(): Promise<void> {
+  // ← Only show once per login session
+  if (sessionStorage.getItem('esigReminderShown')) return;
+
+  try {
+    const user = await this.appwrite.account.get();
+    const doc  = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      user.$id
+    );
+
+    const hasEsig = !!(doc as any).esig_file_id;
+    
+    // ← Mark as shown regardless of whether they have esig or not
+    sessionStorage.setItem('esigReminderShown', 'true');
+    
+    if (hasEsig) return;
+
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'E-Signature Missing',
+      html: `
+        <p style="font-size:14px; color:#374151; margin:0 0 8px;">
+          You haven't uploaded your e-signature yet.
+        </p>
+        <p style="font-size:13px; color:#6b7280; margin:0;">
+          Your e-signature is required for signing OJT certificates and weekly reports.
+        </p>
+      `,
+      confirmButtonText: '<i class="fas fa-signature"></i>&nbsp; Upload E-Signature',
+      confirmButtonColor: '#0818A8',
+      showCancelButton: true,
+      cancelButtonText: 'Remind me later',
+      cancelButtonColor: '#6b7280',
+      allowOutsideClick: false,
+      focusConfirm: false,
+    });
+
+    if (result.isConfirmed) {
+      window.dispatchEvent(new CustomEvent('open-esig-upload'));
+    }
+  } catch { /* silently fail */ }
+}
+
 
   // ── Get logged-in supervisor ──────────────────────────────
   async getCurrentSupervisor() {

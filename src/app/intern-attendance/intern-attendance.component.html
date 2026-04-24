@@ -181,12 +181,6 @@
           <option *ngFor="let m of months" [value]="m">{{ m }}</option>
         </select>
 
-        <label>Year</label>
-        <select [(ngModel)]="reportFilterYear" (change)="applyReportFilters()">
-          <option value="">All Years</option>
-          <option *ngFor="let y of years" [value]="y">{{ y }}</option>
-        </select>
-
         <label>Status</label>
         <select [(ngModel)]="reportFilterStatus" (change)="applyReportFilters()">
           <option value="">All Status</option>

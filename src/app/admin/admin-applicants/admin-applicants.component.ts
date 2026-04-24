@@ -6,7 +6,7 @@ import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component'
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 
 
 interface Applicant {

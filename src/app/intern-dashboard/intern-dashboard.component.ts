@@ -196,61 +196,96 @@ export class InternDashboardComponent implements OnInit {
   }
 
   async checkAndShowAlerts() {
-    try {
-      const user      = await this.appwrite.account.get();
-      const firstName = user.name?.split(' ')[0] || user.email || 'Student';
+  try {
+    const user      = await this.appwrite.account.get();
+    const firstName = user.name?.split(' ')[0] || user.email || 'Student';
 
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      const docs = res.documents as any[];
-      const doc  = docs.find(d => d.$id === this.currentUserId);
+    const res  = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+    const docs = res.documents as any[];
+    const doc  = docs.find(d => d.$id === this.currentUserId);
 
-      const missingFields: string[] = [];
-      if (doc) {
-        if (!doc.profile_photo_id?.trim()) missingFields.push('Profile photo');
-        if (!doc.contact_number?.trim())   missingFields.push('Contact number');
-        if (!doc.home_address?.trim())     missingFields.push('Home address');
+    const missingFields: string[] = [];
+    if (doc) {
+      if (!doc.profile_photo_id?.trim()) missingFields.push('Profile photo');
+      if (!doc.contact_number?.trim())   missingFields.push('Contact number');
+      if (!doc.home_address?.trim())     missingFields.push('Home address');
+    }
+
+    this.profileIncomplete = missingFields.length > 0;
+
+    if (!sessionStorage.getItem('welcomeShown')) {
+      sessionStorage.setItem('welcomeShown', 'true');
+      await Swal.fire({
+        icon: 'success',
+        title: `Welcome back, ${firstName}!`,
+        text: 'You have successfully logged in.',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+    }
+
+    if (this.profileIncomplete && !sessionStorage.getItem('profileAlertShown')) {
+      sessionStorage.setItem('profileAlertShown', 'true');
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Profile Incomplete!',
+        html: `Please complete the following in your profile:<br><br>
+               <b style="color:#d97706;">${missingFields.join(', ')}</b>`,
+        showCancelButton: true,
+        confirmButtonText: 'Complete Now',
+        cancelButtonText: 'Later',
+        confirmButtonColor: '#d97706',
+        cancelButtonColor: '#6b7280',
+      });
+      if (result.isConfirmed) {
+        this.router.navigate(['/intern-profile']);
       }
+    }
 
-      this.profileIncomplete = missingFields.length > 0;
+    // ← ADD THIS: Profile photo reminder (every login, only if no photo)
+    await this.checkProfilePhotoReminder(doc);
 
-      if (!sessionStorage.getItem('welcomeShown')) {
-        sessionStorage.setItem('welcomeShown', 'true');
-        await Swal.fire({
-          icon: 'success',
-          title: `Welcome back, ${firstName}!`,
-          text: 'You have successfully logged in.',
-          timer: 3000,
-          timerProgressBar: true,
-          showConfirmButton: false,
-          toast: true,
-          position: 'top-end',
-        });
-      }
+  } catch { }
+}
 
-      if (this.profileIncomplete && !sessionStorage.getItem('profileAlertShown')) {
-        sessionStorage.setItem('profileAlertShown', 'true');
-        const result = await Swal.fire({
-          icon: 'warning',
-          title: 'Profile Incomplete!',
-          html: `Please complete the following in your profile:<br><br>
-                 <b style="color:#d97706;">${missingFields.join(', ')}</b>`,
-          showCancelButton: true,
-          confirmButtonText: 'Complete Now',
-          cancelButtonText: 'Later',
-          confirmButtonColor: '#d97706',
-          cancelButtonColor: '#6b7280',
-        });
-        if (result.isConfirmed) {
-          this.router.navigate(['/intern-profile']);
-        }
-      }
+private async checkProfilePhotoReminder(doc: any): Promise<void> {
+  if (sessionStorage.getItem('profilePhotoReminderShown')) return;
 
-    } catch { }
+  sessionStorage.setItem('profilePhotoReminderShown', 'true');
+
+  const hasPhoto = !!doc?.profile_photo_id?.trim();
+  if (hasPhoto) return;
+
+  const result = await Swal.fire({
+    icon: 'info',
+    title: 'No Profile Photo',
+    html: `
+      <p style="font-size:14px; color:#374151; margin:0 0 8px;">
+        You haven't uploaded a profile photo yet.
+      </p>
+      <p style="font-size:13px; color:#6b7280; margin:0;">
+        A profile photo helps your supervisor identify you easily.
+      </p>
+    `,
+    confirmButtonText: '<i class="fas fa-camera"></i>&nbsp; Upload Photo',
+    confirmButtonColor: '#2563eb',
+    showCancelButton: true,
+    cancelButtonText: 'Remind me later',
+    cancelButtonColor: '#6b7280',
+    allowOutsideClick: false,
+    focusConfirm: false,
+  });
+
+  if (result.isConfirmed) {
+    this.router.navigate(['/intern-profile']);
   }
-
+}
   // ── Load recent tasks (3 latest, columns: Task / Date Assigned / Due Date / Status) ──
   async loadRecentTasks() {
     this.tasksLoading = true;

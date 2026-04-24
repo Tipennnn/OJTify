@@ -71,14 +71,19 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
-    await this.loadProfilePhoto();
-    this.updateClock();
-    this.clockInterval = setInterval(() => this.updateClock(), 1000);
-  }
+  await this.loadProfilePhoto();
+  this.updateClock();
+  this.clockInterval = setInterval(() => this.updateClock(), 1000);
+  // ← ADD THIS
+  window.addEventListener('open-esig-upload', this.esigUploadListener);
+}
 
-  ngOnDestroy() {
-    if (this.clockInterval) clearInterval(this.clockInterval);
-  }
+ngOnDestroy() {
+  if (this.clockInterval) clearInterval(this.clockInterval);
+  // ← ADD THIS
+  window.removeEventListener('open-esig-upload', this.esigUploadListener);
+}
+
 
   private updateClock(): void {
     const now = new Date();
@@ -227,43 +232,36 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
 }
 
   async saveProfile() {
-    this.profileError   = '';
-    this.profileSuccess = '';
+  this.profileError   = '';
+  this.profileSuccess = '';
 
-    if (!this.profileForm.first_name.trim() || !this.profileForm.last_name.trim()) {
-      this.profileError = 'First name and last name are required.';
-      return;
-    }
+  this.profileSaving = true;
+  try {
+    const user = await this.appwrite.account.get();
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      user.$id,
+      {
+        employee_id : this.profileForm.employee_id.trim(),
+        grade_level : this.profileForm.grade_level,
+      }
+    );
 
-    this.profileSaving = true;
-    try {
-      const user = await this.appwrite.account.get();
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL,
-        user.$id,
-        {
-          first_name  : this.profileForm.first_name.trim(),
-          last_name   : this.profileForm.last_name.trim(),
-          employee_id : this.profileForm.employee_id.trim(),
-          grade_level : this.profileForm.grade_level,
-        }
-      );
+    await this.loadProfilePhoto();
+    this.profileSuccess = 'Profile updated successfully!';
 
-      await this.loadProfilePhoto();
-      this.profileSuccess = 'Profile updated successfully!';
+    setTimeout(() => {
+      this.closeProfileModal();
+      Swal.fire({ icon: 'success', title: 'Profile Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+    }, 1200);
 
-      setTimeout(() => {
-        this.closeProfileModal();
-        Swal.fire({ icon: 'success', title: 'Profile Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-      }, 1200);
-
-    } catch (err: any) {
-      this.profileError = err.message || 'Failed to save profile.';
-    } finally {
-      this.profileSaving = false;
-    }
+  } catch (err: any) {
+    this.profileError = err.message || 'Failed to save profile.';
+  } finally {
+    this.profileSaving = false;
   }
+}
 
   // ── E-Signature ──
   async onEsigChange(event: Event): Promise<void> {
@@ -416,4 +414,15 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
     if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password)) return 'Password must contain at least one special character.';
     return '';
   }
+  private esigUploadListener = () => this.goProfileAndOpenEsig();
+  
+  private async goProfileAndOpenEsig(): Promise<void> {
+  await this.goProfile(); // opens the profile modal with all data loaded
+  // Give it a moment to render, then trigger the esig input click
+  setTimeout(() => {
+    const esigInput = document.querySelector('input[accept="image/png"]') as HTMLInputElement;
+    if (esigInput) esigInput.click();
+  }, 600);
+}
+
 }
