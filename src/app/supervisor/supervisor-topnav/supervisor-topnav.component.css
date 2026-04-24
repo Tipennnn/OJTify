@@ -887,4 +887,14 @@
   0%, 100% { transform: translateX(0); }
   30%       { transform: translateX(-4px); }
   70%       { transform: translateX(4px); }
+}/* PM SELECT — grade level dropdown arrow */
+.pm-select-wrap::after {
+  content: '\f078';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  right: 12px;
+  font-size: 11px;
+  color: #9ca3af;
+  pointer-events: none;
 }

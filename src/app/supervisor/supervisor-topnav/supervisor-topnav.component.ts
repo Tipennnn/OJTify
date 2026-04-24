@@ -48,6 +48,7 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
     last_name   : '',
     email       : '',
     employee_id : '',
+    grade_level : '',
   };
 
   // E-Signature
@@ -136,6 +137,7 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
         last_name   : doc?.last_name    || user.name?.split(' ')[1] || '',
         email       : doc?.email        || user.email || '',
         employee_id : doc?.employee_id  || '',
+        grade_level : doc?.grade_level  || '',
       };
 
       this.photoPreviewUrl = this.profilePhotoUrl;
@@ -242,6 +244,7 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
           first_name  : this.profileForm.first_name.trim(),
           last_name   : this.profileForm.last_name.trim(),
           employee_id : this.profileForm.employee_id.trim(),
+          grade_level : this.profileForm.grade_level,
         }
       );
 
