@@ -156,11 +156,17 @@ export class InternTasksComponent implements OnInit {
   }
 
   async loadSupervisorPhotos() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL);
-      (res.documents as any[]).forEach(s => { if (s.profile_photo_id) this.supervisorPhotoMap[s.$id] = s.profile_photo_id; });
-    } catch (error: any) { console.warn('Could not load supervisor photos:', error.message); }
-  }
+  try {
+    const res = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL);
+    (res.documents as any[]).forEach(s => {
+      // Key by both $id AND employee_id to cover both cases
+      if (s.profile_photo_id) {
+        this.supervisorPhotoMap[s.$id] = s.profile_photo_id;
+        if (s.employee_id) this.supervisorPhotoMap[s.employee_id] = s.profile_photo_id;
+      }
+    });
+  } catch (error: any) { console.warn('Could not load supervisor photos:', error.message); }
+}
 
   getCommentPhotoUrl(comment: Comment): string | null {
     const map = comment.role === 'supervisor' ? this.supervisorPhotoMap : this.internPhotoMap;
@@ -201,14 +207,15 @@ export class InternTasksComponent implements OnInit {
       mySubScoreMap[s.task_id] = s.score ?? null;
     });
  
-    this.tasks = allTasks
-      .filter(task => task.assigned_intern_ids?.split(',').map((id: string) => id.trim()).includes(this.currentUserId))
-      .map(task => ({
-        ...task,
-        status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending',
-        submissionScore: mySubScoreMap[task.$id] ?? null    // ← score from their submission
-      }))
-      .sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime());
+   this.tasks = allTasks
+  .filter(task => task.assigned_intern_ids?.split(',').map((id: string) => id.trim()).includes(this.currentUserId))
+  .map(task => ({
+    ...task,
+    status: mySubmittedTaskIds.has(task.$id) ? 'completed' : 'pending',
+    submissionScore: mySubScoreMap[task.$id] ?? null,
+    supervisor_id: task.supervisor_id ?? undefined
+  }))
+  .sort((a, b) => new Date(b.posted).getTime() - new Date(a.posted).getTime());
  
   } catch (error: any) { console.error('Failed to load tasks:', error.message); }
   finally { this.loading = false; }
@@ -323,6 +330,8 @@ export class InternTasksComponent implements OnInit {
   }
 
   async openModal(task: Task) {
+    console.log('supervisor_id:', task.supervisor_id);
+  console.log('supervisorPhotoMap:', this.supervisorPhotoMap);
     this.selectedTask = task; this.selectedFile = null; this.comments = []; this.submissions = []; this.newComment = ''; this.isModalOpen = true;
     if (task.$id) await Promise.all([this.loadSubmissions(task.$id), this.loadComments(task.$id)]);
   }
@@ -1074,5 +1083,11 @@ export class InternTasksComponent implements OnInit {
 }
 removePendingPhoto(index: number) {
   this.selectedPhotos.splice(index, 1);
+}
+getSupervisorPhotoUrl(supervisorId: string | undefined): string | null {
+  if (!supervisorId) return null;
+  const photoId = this.supervisorPhotoMap[supervisorId];
+  if (!photoId) return null;
+  return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
 }
 }

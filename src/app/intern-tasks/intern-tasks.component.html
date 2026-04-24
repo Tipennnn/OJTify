@@ -319,7 +319,17 @@
       <div class="right-divider"></div>
       <div class="task-author-meta">
         <div class="author-left">
-          <div class="author-avatar">{{ getInitials(selectedTask?.supervisor_name || 'Supervisor') }}</div>
+        <div class="author-avatar"
+     [style.backgroundImage]="getSupervisorPhotoUrl(selectedTask?.supervisor_id) 
+       ? 'url(' + getSupervisorPhotoUrl(selectedTask?.supervisor_id) + ')' 
+       : 'none'"
+     [style.backgroundSize]="'cover'"
+     [style.backgroundPosition]="'center'"
+     [style.backgroundColor]="getSupervisorPhotoUrl(selectedTask?.supervisor_id) ? 'transparent' : '#0818A8'">
+  <span *ngIf="!getSupervisorPhotoUrl(selectedTask?.supervisor_id)">
+    {{ getInitials(selectedTask?.supervisor_name || 'Supervisor') }}
+  </span>
+</div>
           <div class="author-info">
             <span class="author-name">{{ selectedTask?.supervisor_name || 'Supervisor' }}</span>
             <span class="author-role">Supervisor</span>

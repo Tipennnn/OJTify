@@ -171,58 +171,60 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
 
   // ── Profile Photo Upload ──
   async onPhotoChange(event: Event): Promise<void> {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
 
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a JPG, PNG, or WEBP image.', confirmButtonColor: '#0818A8' });
-      (event.target as HTMLInputElement).value = '';
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      Swal.fire({ icon: 'error', title: 'File Too Large', text: 'Profile photo must be less than 5MB.', confirmButtonColor: '#0818A8' });
-      (event.target as HTMLInputElement).value = '';
-      return;
-    }
-
-    this.photoUploading = true;
-    try {
-      const user = await this.appwrite.account.get();
-
-      const oldPhotoId = this.currentDoc?.profile_photo_id;
-      if (oldPhotoId) {
-        try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldPhotoId); } catch {}
-      }
-
-      const { ID } = await import('appwrite');
-      const newFileId = ID.unique();
-      await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
-
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL,
-        user.$id,
-        { profile_photo_id: newFileId }
-      );
-
-      if (this.currentDoc) this.currentDoc.profile_photo_id = newFileId;
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        this.photoPreviewUrl = reader.result as string;
-        this.profilePhotoUrl = reader.result as string;
-      };
-      reader.readAsDataURL(file);
-
-      Swal.fire({ icon: 'success', title: 'Photo Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-
-    } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
-    } finally {
-      this.photoUploading = false;
-    }
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) {
+    Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a JPG, PNG, or WEBP image.', confirmButtonColor: '#0818A8' });
+    (event.target as HTMLInputElement).value = '';
+    return;
   }
+  if (file.size > 5 * 1024 * 1024) {
+    Swal.fire({ icon: 'error', title: 'File Too Large', text: 'Profile photo must be less than 5MB.', confirmButtonColor: '#0818A8' });
+    (event.target as HTMLInputElement).value = '';
+    return;
+  }
+
+  this.photoUploading = true;
+  try {
+    const user = await this.appwrite.account.get();
+
+    // Delete old photo if exists
+    const oldPhotoId = this.currentDoc?.profile_photo_id;
+    if (oldPhotoId) {
+      try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldPhotoId); } catch {}
+    }
+
+    const { ID } = await import('appwrite');
+    const newFileId = ID.unique();
+    await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
+
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      user.$id,
+      { profile_photo_id: newFileId }
+    );
+
+    if (this.currentDoc) this.currentDoc.profile_photo_id = newFileId;
+
+    // Build the Appwrite URL directly (more reliable than FileReader for topnav)
+    const newPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${newFileId}/view?project=${this.PROJECT_ID}`;
+    this.profilePhotoUrl = newPhotoUrl;
+    this.photoPreviewUrl = newPhotoUrl;
+
+    // Reset file input
+    (event.target as HTMLInputElement).value = '';
+
+    Swal.fire({ icon: 'success', title: 'Photo Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+
+  } catch (err: any) {
+    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
+  } finally {
+    this.photoUploading = false;
+  }
+}
 
   async saveProfile() {
     this.profileError   = '';
