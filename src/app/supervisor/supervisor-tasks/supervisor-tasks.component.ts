@@ -116,6 +116,8 @@ export class SupervisorTasksComponent implements OnInit {
   assignMode: 'all' | 'course' | 'specific' = 'specific';
 
   selectedWeekMonday: string | null = null;
+  // Add this property
+allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
 
   readonly courseOptions = [
     { label: 'BEED',  full: 'Bachelor of Elementary Education' },
@@ -271,22 +273,51 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   async loadAssignedInterns() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
+  try {
+    const [studentsRes, archivesRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL,
         [Query.limit(500)]
-      );
-      this.allInterns = (res.documents as any[]).filter(
-        s => s.supervisor_id === this.currentSupervisorId
-      );
-      this.filteredInterns        = [...this.allInterns];
-      this.logbookInterns         = [...this.allInterns];
-      this.filteredLogbookInterns = [...this.allInterns];
-    } catch (error: any) {
-      console.error('Failed to load interns:', error.message);
-    }
-  }
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.ARCHIVES_COL,
+        [Query.limit(500)]
+      )
+    ]);
 
+    // Active interns for task assignment
+    this.allInterns = (studentsRes.documents as any[]).filter(
+      s => s.supervisor_id === this.currentSupervisorId
+    );
+    this.filteredInterns        = [...this.allInterns];
+    this.logbookInterns         = [...this.allInterns];
+    this.filteredLogbookInterns = [...this.allInterns];
+
+    // Build a combined map (active + archived) for name/photo resolution
+    this.allInternsMap = {};
+
+    (studentsRes.documents as any[]).forEach(s => {
+      this.allInternsMap[s.$id] = {
+        name : `${s.first_name} ${s.last_name}`,
+        photo: s.profile_photo_id ?? null
+      };
+    });
+
+    // Archived interns — keyed by student_doc_id (their original $id)
+    (archivesRes.documents as any[]).forEach(s => {
+      const key = s.student_doc_id || s.$id;
+      if (!this.allInternsMap[key]) {
+        this.allInternsMap[key] = {
+          name : `${s.first_name} ${s.last_name}`,
+          photo: s.profile_photo_id ?? null
+        };
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Failed to load interns:', error.message);
+  }
+}
   async loadAllInternEntryCounts() {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -1121,35 +1152,65 @@ export class SupervisorTasksComponent implements OnInit {
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
 
-  async loadTaskComments(taskId: string) {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, [Query.limit(500)]
-      );
-      this.taskComments = (res.documents as any[]).filter(c => c.task_id === taskId).sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
-    } catch (error: any) { console.error('Failed to load comments:', error.message); }
+ async loadTaskComments(taskId: string) {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL,
+      [Query.limit(500)]
+    );
+
+    this.taskComments = (res.documents as any[])
+      .filter(c => c.task_id === taskId)
+      .filter(c => {
+        if (c.role === 'supervisor') return true;
+        return this.allInterns.some(i => i.$id === c.user_id); // ← only active interns
+      })
+      .sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
+
+  } catch (error: any) {
+    console.error('Failed to load comments:', error.message);
   }
+}
 
   async loadTaskSubmissions(taskId: string) {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, [Query.limit(500)]
-      );
-      this.taskSubmissions = (res.documents as any[])
-        .filter(s => s.task_id === taskId)
-        .map(sub => {
-          const intern = this.allInterns.find(i => i.$id === sub.student_id);
-          return {
-            ...sub,
-            student_name: intern ? `${intern.first_name} ${intern.last_name}` : 'Unknown',
-            profile_photo_id: intern?.profile_photo_id ?? null,
-            score: sub.score ?? null,
-            _scoreInput: sub.score ?? null,
-            _scoreSaving: false
-          } as Submission;
-        });
-    } catch (e: any) { console.error('loadSubmissions:', e.message); }
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL,
+      [Query.limit(500)]
+    );
+
+    this.taskSubmissions = (res.documents as any[])
+      .filter(s => s.task_id === taskId)
+      .map(sub => {
+        // Check active interns first, then archived map
+        const internFromActive = this.allInterns.find(i => i.$id === sub.student_id);
+        const internFromMap    = this.allInternsMap[sub.student_id];
+
+        const studentName    = internFromActive
+          ? `${internFromActive.first_name} ${internFromActive.last_name}`
+          : internFromMap?.name ?? null;
+
+        const profilePhotoId = internFromActive?.profile_photo_id
+          ?? (internFromMap?.photo ?? null);
+
+        // Skip submissions from fully unknown interns (not in any collection)
+        if (!studentName) return null;
+
+        return {
+          ...sub,
+          student_name    : studentName,
+          profile_photo_id: profilePhotoId,
+          score           : sub.score ?? null,
+          _scoreInput     : sub.score ?? null,
+          _scoreSaving    : false
+        } as Submission;
+      })
+      .filter(Boolean); // ← removes null (unknown/deleted interns)
+
+  } catch (e: any) {
+    console.error('loadSubmissions:', e.message);
   }
+} 
 
   async saveSubmissionScore(sub: Submission) {
     if (sub._scoreInput === null || sub._scoreInput === undefined) return;
@@ -1231,14 +1292,13 @@ export class SupervisorTasksComponent implements OnInit {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
 
-  async loadInternPhotos() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, [Query.limit(500)]
-      );
-      (res.documents as any[]).forEach(s => { if (s.profile_photo_id) this.internPhotoMap[s.$id] = s.profile_photo_id; });
-    } catch (error: any) { console.error('Failed to load intern photos:', error.message); }
-  }
+ async loadInternPhotos() {
+  // internPhotoMap is now built from allInternsMap — no extra query needed
+  this.internPhotoMap = {};
+  Object.entries(this.allInternsMap).forEach(([id, data]) => {
+    if (data.photo) this.internPhotoMap[id] = data.photo;
+  });
+}
 
   getCommentPhotoUrl(userId: string): string | null {
     const photoId = this.internPhotoMap[userId];

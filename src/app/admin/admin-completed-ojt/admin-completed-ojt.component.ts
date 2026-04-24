@@ -27,6 +27,8 @@ interface Student {
   ojt_start: string;
   ojt_end: string;
   archived_at: string;
+  supervisor_id?: string;
+  supervisorName?: string;
 }
 
 interface AttendanceLog {
@@ -79,21 +81,26 @@ export class AdminCompletedOjtComponent implements OnInit {
     await this.loadCompletedStudents();
   }
 
-  async loadCompletedStudents() {
-    this.loading = true;
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL
-      );
-      this.students         = res.documents as any[];
-      this.filteredStudents = [...this.students];
-    } catch (error: any) {
-      console.error('Failed to load archived students:', error.message);
-    } finally {
-      this.loading = false;
-    }
+ async loadCompletedStudents() {
+  this.loading = true;
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ARCHIVES_COL,
+      [Query.limit(500)]
+    );
+    this.students         = res.documents as any[];
+    this.filteredStudents = [...this.students];
+
+    await this.loadSupervisorNames();
+    await this.fillMissingOjtDates(); // ← add this
+
+  } catch (error: any) {
+    console.error('Failed to load archived students:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   async loadAttendanceLogs(student: Student) {
     this.attendanceLoading = true;
@@ -208,4 +215,96 @@ export class AdminCompletedOjtComponent implements OnInit {
     this.showAttendanceLogsModal = false;
     this.attendanceLogs = [];
   }
+  async loadSupervisorNames() {
+  const supervisorIds = [...new Set(
+    this.students
+      .map(s => s.supervisor_id)
+      .filter(Boolean)
+  )];
+
+  const supervisorMap: Record<string, string> = {};
+
+  await Promise.all(supervisorIds.map(async (id) => {
+    try {
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        id!
+      );
+      supervisorMap[id!] = `${doc['first_name']} ${doc['last_name']}`;
+    } catch {
+      supervisorMap[id!] = 'Unknown';
+    }
+  }));
+
+  // Attach names to students
+  this.students = this.students.map(s => ({
+    ...s,
+    supervisorName: s.supervisor_id
+      ? supervisorMap[s.supervisor_id] ?? '—'
+      : '—'
+  }));
+  this.filteredStudents = [...this.students];
+}
+downloadAttendanceLogs() {
+  if (!this.attendanceLogs.length) return;
+
+  const name = this.getFullName(this.selectedStudent);
+  const headers = ['Date', 'Time In', 'Time Out', 'Status'];
+  const rows = this.attendanceLogs.map(log => [
+    this.formatDate(log.date),
+    log.time_in,
+    log.time_out,
+    log.status
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href     = url;
+  link.download = `${name.replace(/\s+/g, '_')}_attendance_logs.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+async fillMissingOjtDates() {
+  // Only process students where ojt_start or ojt_end is missing
+  const studentsNeedingDates = this.students.filter(
+    s => !s.ojt_start || !s.ojt_end
+  );
+
+  if (!studentsNeedingDates.length) return;
+
+  await Promise.all(studentsNeedingDates.map(async (student) => {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        [
+          Query.equal('student_id', student.student_doc_id),
+          Query.orderAsc('date'),
+          Query.limit(500)
+        ]
+      );
+
+      const dates = (res.documents as any[])
+        .map(d => d.date)
+        .filter(Boolean)
+        .sort();
+
+      if (dates.length > 0) {
+        student.ojt_start = student.ojt_start || dates[0];
+        student.ojt_end   = student.ojt_end   || dates[dates.length - 1];
+      }
+    } catch (e: any) {
+      console.warn(`Could not load attendance for ${student.student_doc_id}:`, e.message);
+    }
+  }));
+
+  // Refresh filtered list with updated dates
+  this.filteredStudents = [...this.students];
+}
 }

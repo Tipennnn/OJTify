@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { AdminSidenavComponent } from '../admin-sidenav/admin-sidenav.component';
 import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
+import Swal from 'sweetalert2';
 
 interface Student {
   $id: string;
@@ -17,6 +18,10 @@ interface Student {
   profile_photo_id?: string;
   required_hours?: number;
   completed_hours?: number;
+  cert_sent?: boolean;        // ← add
+  supervisor_id?: string;     // ← add
+  ojt_start?: string;         // ← add
+  ojt_end?: string;           // ← add
   $createdAt: string;
 }
 
@@ -39,6 +44,8 @@ export class AdminOjtComponent implements OnInit {
   loading         = false;
   searchQuery     = '';
   isCollapsed     = false;
+  archivingId: string | null = null; // tracks which student is being archived
+  evaluatedStudentIds: Set<string> = new Set();
 
   // PAGINATION
   currentPage  = 1;
@@ -49,6 +56,8 @@ export class AdminOjtComponent implements OnInit {
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
+  readonly APPWRITE_PAGE_SIZE = 100; // fetch 100 at a time from Appwrite
+
   constructor(
     private appwrite: AppwriteService,
     private router  : Router
@@ -58,25 +67,58 @@ export class AdminOjtComponent implements OnInit {
     await this.loadStudents();
   }
 
-  async loadStudents() {
-    this.loading = true;
-    try {
+ async loadStudents() {
+  this.loading = true;
+  try {
+    const { Query } = await import('appwrite');
+
+    // Fetch ALL students using pagination (handles 100+ interns)
+    let allStudents: any[] = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
+        this.appwrite.STUDENTS_COL,
+        [Query.limit(this.APPWRITE_PAGE_SIZE), Query.offset(offset)]
       );
-      this.students = (res.documents as any[]).filter(s => {
-        const completed = s.completed_hours || 0;
-        const required  = s.required_hours  || 500;
-        return completed < required;
-      });
-      this.filteredStudents = [...this.students];
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
-    } finally {
-      this.loading = false;
+      allStudents = [...allStudents, ...res.documents];
+      hasMore = res.documents.length === this.APPWRITE_PAGE_SIZE;
+      offset += this.APPWRITE_PAGE_SIZE;
     }
+
+    // Fetch archives and evaluations (same approach)
+    const [archiveRes, evalRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ARCHIVES_COL,
+        [Query.limit(500)]
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.EVALUATIONS_COL,
+        [Query.limit(500)]
+      )
+    ]);
+
+    const archivedIds = new Set(
+      archiveRes.documents.map((d: any) => d.student_doc_id)
+    );
+
+    this.evaluatedStudentIds = new Set(
+      evalRes.documents.map((e: any) => e.student_id_ref)
+    );
+
+    this.students = allStudents.filter(s => !archivedIds.has(s.$id));
+    this.filteredStudents = [...this.students];
+
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   // PAGINATION
   get pagedStudents(): Student[] {
@@ -147,4 +189,122 @@ export class AdminOjtComponent implements OnInit {
     const initials = `${student.first_name.charAt(0)} ${student.last_name.charAt(0)}`;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
   }
+ async archiveStudent(event: MouseEvent, student: Student) {
+  event.stopPropagation();
+
+  const required  = student.required_hours  || 500;
+  const completed = student.completed_hours || 0;
+
+  // Build missing requirements list for SweetAlert
+  const missing: string[] = [];
+  if (completed < required)
+    missing.push(`<li>❌ Hours not completed <b>(${completed}/${required} hrs)</b></li>`);
+  if (!student.cert_sent)
+    missing.push('<li>❌ Certificate not yet sent</li>');
+  if (!this.evaluatedStudentIds.has(student.$id))
+    missing.push('<li>❌ No evaluation submitted</li>');
+
+  // Show requirements not met
+  if (missing.length > 0) {
+    await Swal.fire({
+      icon: 'warning',
+      title: 'Cannot Archive Yet',
+      html: `
+        <p style="font-size:13px;color:#6b7280;margin-bottom:10px;">
+          <b>${this.getFullName(student)}</b> is missing the following requirements:
+        </p>
+        <ul style="text-align:left;font-size:13px;color:#374151;line-height:2;">
+          ${missing.join('')}
+        </ul>
+      `,
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
+  // All conditions met — confirm archive
+  const result = await Swal.fire({
+    icon: 'question',
+    title: 'Archive Intern?',
+    html: `
+      <p style="font-size:13px;color:#6b7280;">
+        Are you sure you want to archive <b>${this.getFullName(student)}</b>?
+      </p>
+      <div style="margin-top:12px;padding:12px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#374151;text-align:left;line-height:1.8;">
+        <div>✅ Hours completed (${completed}/${required} hrs)</div>
+        <div>✅ Certificate sent</div>
+        <div>✅ Evaluation submitted</div>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;margin-top:10px;">
+        This will move them to <b>Completed OJT</b>.
+      </p>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-box-archive"></i> Archive',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#2563eb',
+    cancelButtonColor: '#e5e7eb',
+    reverseButtons: true
+  });
+
+  if (!result.isConfirmed) return;
+
+  this.archivingId = student.$id;
+  try {
+    await this.appwrite.checkAndArchiveStudent(student.$id);
+    this.students         = this.students.filter(s => s.$id !== student.$id);
+    this.filteredStudents = this.filteredStudents.filter(s => s.$id !== student.$id);
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Archived!',
+      text: `${this.getFullName(student)} has been moved to Completed OJT.`,
+      confirmButtonColor: '#2563eb',
+      timer: 2500,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end',
+      timerProgressBar: true
+    });
+
+  } catch (e: any) {
+    await Swal.fire({
+      icon: 'error',
+      title: 'Archive Failed',
+      text: e.message,
+      confirmButtonColor: '#2563eb'
+    });
+  } finally {
+    this.archivingId = null;
+  }
+}
+
+canArchive(student: Student): boolean {
+  const completed = student.completed_hours || 0;
+  const required  = student.required_hours  || 500;
+  return completed >= required
+    && !!student.cert_sent
+    && this.evaluatedStudentIds.has(student.$id); // ← add this
+}
+getArchiveTooltip(student: Student): string {
+  const completed = student.completed_hours || 0;
+  const required  = student.required_hours  || 500;
+
+  const missing: string[] = [];
+
+  if (completed < required)
+    missing.push(`❌ Hours not completed (${completed}/${required} hrs)`);
+
+  if (!student.cert_sent)
+    missing.push('❌ Certificate not yet sent');
+
+  if (!this.evaluatedStudentIds.has(student.$id))
+    missing.push('❌ No evaluation submitted');
+
+  if (missing.length === 0)
+    return '✅ All requirements met — click to archive';
+
+  return 'Cannot archive yet:\n' + missing.join('\n');
+}
 }

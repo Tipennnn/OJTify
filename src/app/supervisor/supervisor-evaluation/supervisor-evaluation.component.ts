@@ -873,20 +873,42 @@ closeModal() {
     try {
       const sigData = this.canvas ? this.canvas.toDataURL('image/png') : '';
       const toISO   = (d?: string): string | null => d ? new Date(d).toISOString() : null;
-      const payload: Record<string, any> = {
-        student_id_ref           : this.selectedStudent.$id,
-        supervisor_id            : this.currentSupervisor?.$id ?? null,
-        supervisor_name          : this.supervisorFullName,
-        answers_json             : JSON.stringify(this.answers),
-        remarks_sections_json    : JSON.stringify(this.remarkAnswers),
-        criteria_snapshot        : JSON.stringify(this.CRITERIA),
-        remarks_sections_snapshot: JSON.stringify(this.REMARKS_SECTIONS),
-        recommendation           : this.evaluation.recommendation ?? null,
-        signature_data           : sigData,
-        evaluated_at             : new Date().toISOString(),
-        period_from              : toISO(this.evaluation.period_from),
-        period_to                : toISO(this.evaluation.period_to)
-      };
+      // Extract individual criterion averages for legacy columns
+const getCriterionAvg = (key: string): number => {
+  const criterion = this.CRITERIA.find(c => c.key === key);
+  if (!criterion) return 0;
+  const vals = criterion.questions
+    .map(q => this.getRatingValue(key, q.qkey))
+    .filter(v => v > 0);
+  if (!vals.length) return 0;
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+};
+
+const payload: Record<string, any> = {
+  student_id_ref            : this.selectedStudent.$id,
+  supervisor_id             : this.currentSupervisor?.$id        ?? null,
+  supervisor_name           : this.supervisorFullName,
+  answers_json              : JSON.stringify(this.answers),
+  remarks_sections_json     : JSON.stringify(this.remarkAnswers),
+  criteria_snapshot         : JSON.stringify(this.CRITERIA),
+  remarks_sections_snapshot : JSON.stringify(this.REMARKS_SECTIONS),
+  recommendation            : this.evaluation.recommendation     ?? null,
+  signature_data            : sigData,
+  evaluated_at              : new Date().toISOString(),
+  period_from               : toISO(this.evaluation.period_from),
+  period_to                 : toISO(this.evaluation.period_to),
+
+  // Individual legacy columns (all nullable in Appwrite)
+  punctuality               : getCriterionAvg('punctuality')      || null,
+  attendance                : getCriterionAvg('attendance')       || null,
+  quality_of_work           : getCriterionAvg('quality_of_work')  || null,
+  productivity              : getCriterionAvg('productivity')     || null,
+  initiative                : getCriterionAvg('initiative')       || null,
+  cooperation               : getCriterionAvg('cooperation')      || null,
+  communication             : getCriterionAvg('communication')    || null,
+  professionalism           : getCriterionAvg('professionalism')  || null,
+  dependability             : getCriterionAvg('dependability')    || null,
+};
       await this.appwrite.databases.createDocument(
         this.appwrite.DATABASE_ID, this.EVAL_COL, ID.unique(), payload
       );
