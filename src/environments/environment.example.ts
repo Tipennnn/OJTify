@@ -7,6 +7,7 @@ export const environment = {
     brevoApiKey: '',
     brevoApprovedTid: 1,
     brevoDeclinedTid: 2,
-    brevoOtpTid: 3
+  brevoOtpTid: 3,
+  brevoSupervisorWelcomeTid: 4
     
   }; 

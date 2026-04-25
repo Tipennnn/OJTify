@@ -42,4 +42,4 @@ testem.log
 Thumbs.db
 
 # Environment files (secrets)
-src/environments/environment.ts
+# Keep environment.ts tracked for CI/build; do not place secrets in frontend config.
