@@ -36,6 +36,8 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   showReportsModal    = false;
   showQRModal         = false;
 
+  certVerificationId = '';
+
   selectedDate  = '';
   timeIn        = '—';
   timeOut       = '—';
@@ -152,21 +154,22 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   }
 
   // ── Appwrite loaders ──────────────────────────────────
-  async loadStudentHours() {
-    try {
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
-      );
-      this.requiredHours  = (doc as any).required_hours  || 500;
-      this.completedHours = (doc as any).completed_hours || 0;
-      this.realStudentId  = (doc as any).student_id      || this.currentUserId;
-      if (!this.internName) this.internName = (doc as any).name || '';
-    } catch (error: any) {
-      console.error('Failed to load hours:', error.message);
-    }
+async loadStudentHours() {
+  try {
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
+    this.requiredHours        = (doc as any).required_hours  || 500;
+    this.completedHours       = (doc as any).completed_hours || 0;
+    this.realStudentId        = (doc as any).student_id      || this.currentUserId;
+    this.certVerificationId   = (doc as any).cert_verification_id || ''; // 👈 ADD THIS
+    if (!this.internName) this.internName = (doc as any).name || '';
+  } catch (error: any) {
+    console.error('Failed to load hours:', error.message);
   }
+}
 
   async loadTodayStatus() {
     try {
@@ -443,7 +446,9 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const ref   = this.generateRefCode();
-  const verifyUrl = `https://ojtify.com/verify?ref=${ref}&id=${this.realStudentId}`;
+  const verifyUrl = this.certVerificationId
+  ? `${window.location.origin}/verify/${this.certVerificationId}`
+  : `${window.location.origin}/verify/invalid`;
 
   type RGB = [number, number, number];
   const BLUE  : RGB = [37,  99,  235];

@@ -22,7 +22,7 @@
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@getbrevo/brevo": "^5.0.1",
     "@supabase/supabase-js": "^2.99.2",
-    "angularx-qrcode": "^21.0.5",
+    "angularx-qrcode": "^17.0.0",
     "appwrite": "^23.0.0",
     "chart.js": "^4.5.1",
     "html2canvas": "^1.4.1",
