@@ -328,15 +328,7 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     const now         = new Date();
     const dayOfWeek   = now.getDay();
 
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      Swal.fire({
-        icon: 'warning', title: 'Weekend!',
-        text: 'Attendance is not recorded on weekends.',
-        toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 3000
-      });
-      return;
-    }
+  
 
     const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
     if (isActiveStudent) {
@@ -661,17 +653,7 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
       const now         = new Date();
       const dayOfWeek   = now.getDay();
 
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        Swal.fire({
-          icon: 'warning', title: 'Weekend!',
-          text: 'Attendance is not recorded on weekends.',
-          toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
-        });
-        this.scanLoading = false;
-        setTimeout(() => { this.lastScanned = ''; }, 3000);
-        return;
-      }
+      
 
       const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
       if (isActiveStudent) {
