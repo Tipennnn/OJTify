@@ -236,8 +236,7 @@ verifyOtp() {
   this.fpLoading = true;
 
   try {
-
-    // ── Check if new password is same as current ──────────
+    // Check if new password is same as current
     try {
       await this.appwrite.account.createEmailPasswordSession(
         this.fpEmail,
@@ -250,24 +249,22 @@ verifyOtp() {
     } catch {
       // Passwords are different, safe to proceed
     }
-    // ─────────────────────────────────────────────────────
 
-    const response = await fetch(
-      `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type':       'application/json',
-          'X-Appwrite-Project': '69ba8d9c0027d10c447f',
-          'X-Appwrite-Key':     environment.appwriteApiKey
-        },
-        body: JSON.stringify({ password: this.fpNewPassword })
-      }
+    // Call Appwrite Function instead of direct API call
+    const execution = await this.appwrite.functions.createExecution(
+      '69e75aef0017bf366386',
+      JSON.stringify({
+        action:   'reset-password',
+        userId:   this.fpUserId,
+        password: this.fpNewPassword
+      }),
+      false
     );
 
-    if (!response.ok) {
-      const err = await response.json();
-      this.fpError = err.message || 'Failed to reset password.';
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      this.fpError = result.message || 'Failed to reset password.';
       return;
     }
 

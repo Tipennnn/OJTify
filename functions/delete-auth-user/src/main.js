@@ -79,4 +79,23 @@ export default async ({ req, res, log, error }) => {
     error('Failed to delete user ' + userId + ': ' + err.message);
     return res.json({ success: false, message: err.message }, 500);
   }
+
+  // ── ROUTE: Reset Password ─────────────────────────────────
+if (action === 'reset-password') {
+  const { userId, password } = body;
+
+  if (!userId || !password) {
+    return res.json({ success: false, message: 'userId and password are required' }, 400);
+  }
+
+  try {
+    await users.updatePassword(userId, password);
+    log('Password reset for user: ' + userId);
+    return res.json({ success: true });
+  } catch (err) {
+    error('Failed to reset password: ' + err.message);
+    return res.json({ success: false, message: err.message }, 500);
+  }
+}
+
 };
