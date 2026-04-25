@@ -10,6 +10,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as QRCode from 'qrcode';
 
+
+
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface Intern {

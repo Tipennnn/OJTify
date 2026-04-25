@@ -10,7 +10,6 @@
       <div class="dashboard-header header-flex">
         <div>
           <h2>Student Evaluation</h2>
-          <p class="header-sub">Interns who have completed their required OJT hours</p>
         </div>
         <div class="search-box">
           <i class="fa-solid fa-magnifying-glass"></i>
@@ -35,7 +34,7 @@
           </button>
         </div>
         <button class="btn-edit-criteria" (click)="openCriteriaEditor()">
-          <i class="fa-solid fa-pen-to-square"></i> Edit Questions
+          <i class="fa-solid fa-pen-to-square"></i> Manage Questions
         </button>
       </div>
 
@@ -48,89 +47,147 @@
       <!-- PENDING TABLE -->
       <div class="center-wrapper" *ngIf="!loading && activeTab === 'pending'">
         <div class="table-container">
+
           <table class="applicants-table">
+            <colgroup>
+              <col class="col-name">
+              <col class="col-sid">
+              <col class="col-course">
+              <col class="col-school">
+              <col class="col-progress">
+              <col class="col-action">
+            </colgroup>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Course</th>
-                <th>School</th>
-                <th>Hours Progress</th>
-                <th>Action</th>
+                <th class="col-name">Name</th>
+                <th class="col-sid">Student ID</th>
+                <th class="col-course">Course</th>
+                <th class="col-school">School</th>
+                <th class="col-progress">Hours Progress</th>
+                <th class="col-action"></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let student of pagedStudents">
-                <td class="profile-name">
-                  <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
-                  <span>{{ getFullName(student) }}</span>
-                </td>
-                <td class="plain-text">{{ student.student_id }}</td>
-                <td class="plain-text">{{ student.course }}</td>
-                <td class="plain-text">{{ student.school_name }}</td>
-                <td style="min-width:180px;">
-                  <div class="progress-bar">
-                    <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
+
+              <!-- Data rows -->
+              <tr *ngFor="let student of pagedStudents" class="data-row">
+                <td class="col-name">
+                  <div class="profile-name">
+                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
+                    <span>{{ getFullName(student) }}</span>
                   </div>
-                  <span class="progress-text">
-                    {{ student.completed_hours || 0 }} / {{ student.required_hours || 500 }} hrs
-                    &nbsp;({{ getProgress(student) }}%)
-                  </span>
                 </td>
-                <td>
-                  <button class="btn-evaluate" (click)="openEvaluate(student)">
-                    <i class="fa-solid fa-clipboard-check"></i> Evaluate
+                <td class="col-sid plain-text">{{ student.student_id }}</td>
+                <td class="col-course plain-text">{{ abbreviateCourse(student.course) }}</td>
+                <td class="col-school plain-text">{{ student.school_name }}</td>
+                <td class="col-progress">
+                  <div class="progress-wrap">
+                    <div class="progress-bar">
+                      <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
+                    </div>
+                    <span class="progress-text">
+                      {{ student.completed_hours || 0 }} / {{ student.required_hours || 500 }} hrs
+                      ({{ getProgress(student) }}%)
+                    </span>
+                  </div>
+                </td>
+                <td class="col-action">
+                  <button class="btn-action-icon" title="Evaluate student" (click)="openEvaluate(student)">
+                    <i class="fa-solid fa-clipboard-check"></i>
                   </button>
                 </td>
               </tr>
-              <tr *ngIf="filteredStudents.length === 0">
-                <td colspan="6">
-                  <div class="empty-state">
-                    <i class="fa-solid fa-clipboard-check" style="font-size:32px;margin-bottom:10px;display:block;opacity:.4;"></i>
-                    No pending students found.
-                  </div>
-                </td>
-              </tr>
+
+              <!-- Empty state -->
+              <ng-container *ngIf="filteredStudents.length === 0; else pendingGhostRows">
+                <tr class="empty-row">
+                  <td colspan="6" class="empty-state-cell">
+                    <div class="empty-state">
+                      <i class="fa-solid fa-clipboard-check"></i>
+                      <span>No pending students found.</span>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+
+              <!-- Ghost rows -->
+              <ng-template #pendingGhostRows>
+                <tr *ngFor="let ghost of ghostRowsPending" class="ghost-row">
+                  <td class="col-name"></td>
+                  <td class="col-sid"></td>
+                  <td class="col-course"></td>
+                  <td class="col-school"></td>
+                  <td class="col-progress"></td>
+                  <td class="col-action"></td>
+                </tr>
+              </ng-template>
+
             </tbody>
           </table>
-          <div class="pagination" *ngIf="totalPages > 1">
+
+          <div class="pagination">
+            <span class="page-info">
+              Showing {{ pendingRangeStart }}–{{ pendingRangeEnd }}
+              of {{ filteredStudents.length }}
+            </span>
             <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="page-numbers">
-              <span class="page" *ngFor="let p of pageNumbers" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</span>
+              <ng-container *ngFor="let p of visiblePageNumbersPending">
+                <span *ngIf="p !== -1"
+                      class="page"
+                      [class.active]="p === currentPage"
+                      (click)="goToPage(p)">{{ p }}</span>
+                <span *ngIf="p === -1" class="page" style="cursor:default;">…</span>
+              </ng-container>
             </div>
             <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+
         </div>
       </div>
 
       <!-- EVALUATED TABLE -->
       <div class="center-wrapper" *ngIf="!loading && activeTab === 'evaluated'">
         <div class="table-container">
-          <table class="applicants-table">
+
+          <table class="applicants-table evaluated-table">
+            <colgroup>
+              <col class="col-name">
+              <col class="col-sid">
+              <col class="col-course">
+              <col class="col-rating">
+              <col class="col-evalby">
+              <col class="col-date">
+              <col class="col-action">
+            </colgroup>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Course</th>
-                <th>Overall Rating</th>
-                <th>Evaluated By</th>
-                <th>Date</th>
-                <th>Action</th>
+                <th class="col-name">Name</th>
+                <th class="col-sid">Student ID</th>
+                <th class="col-course">Course</th>
+                <th class="col-rating">Overall Rating</th>
+                <th class="col-evalby">Evaluated By</th>
+                <th class="col-date">Date</th>
+                <th class="col-action"></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let student of pagedEvaluated">
-                <td class="profile-name">
-                  <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
-                  <span>{{ getFullName(student) }}</span>
+
+              <!-- Data rows -->
+              <tr *ngFor="let student of pagedEvaluated" class="data-row">
+                <td class="col-name">
+                  <div class="profile-name">
+                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
+                    <span>{{ getFullName(student) }}</span>
+                  </div>
                 </td>
-                <td class="plain-text">{{ student.student_id }}</td>
-                <td class="plain-text">{{ student.course }}</td>
-                <td>
+                <td class="col-sid plain-text">{{ student.student_id }}</td>
+                <td class="col-course plain-text">{{ abbreviateCourse(student.course) }}</td>
+                <td class="col-rating">
                   <span class="overall-pill"
                         [style.background]="getOverallColor(getEvalAverage(student)) + '18'"
                         [style.color]="getOverallColor(getEvalAverage(student))">
@@ -139,35 +196,65 @@
                     {{ getOverallLabel(getEvalAverage(student)) }}
                   </span>
                 </td>
-                <td class="plain-text">{{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}</td>
-                <td class="plain-text">{{ getEvalDate(student) }}</td>
-                <td>
-                  <button class="btn-view-action" (click)="viewEvaluation(student)">
-                    <i class="fa-solid fa-eye"></i> View
+                <td class="col-evalby plain-text">{{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}</td>
+                <td class="col-date plain-text">{{ getEvalDate(student) }}</td>
+                <td class="col-action">
+                  <button class="btn-action-icon" title="View evaluation" (click)="viewEvaluation(student)">
+                    <i class="fa-solid fa-magnifying-glass"></i>
                   </button>
                 </td>
               </tr>
-              <tr *ngIf="filteredEvaluated.length === 0">
-                <td colspan="7" style="padding:0;">
-                  <div class="empty-state-center">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <p>No evaluated students yet.</p>
-                  </div>
-                </td>
-              </tr>
+
+              <!-- Empty state -->
+              <ng-container *ngIf="filteredEvaluated.length === 0; else evaluatedGhostRows">
+                <tr class="empty-row">
+                  <td colspan="7" class="empty-state-cell">
+                    <div class="empty-state">
+                      <i class="fa-solid fa-circle-check"></i>
+                      <span>No evaluated students yet.</span>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+
+              <!-- Ghost rows -->
+              <ng-template #evaluatedGhostRows>
+                <tr *ngFor="let ghost of ghostRowsEvaluated" class="ghost-row">
+                  <td class="col-name"></td>
+                  <td class="col-sid"></td>
+                  <td class="col-course"></td>
+                  <td class="col-rating"></td>
+                  <td class="col-evalby"></td>
+                  <td class="col-date"></td>
+                  <td class="col-action"></td>
+                </tr>
+              </ng-template>
+
             </tbody>
           </table>
-          <div class="pagination" *ngIf="totalPagesEval > 1">
+
+          <div class="pagination">
+            <span class="page-info">
+              Showing {{ evalRangeStart }}–{{ evalRangeEnd }}
+              of {{ filteredEvaluated.length }}
+            </span>
             <button class="page-btn" (click)="prevPageEval()" [disabled]="currentPageEval === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="page-numbers">
-              <span class="page" *ngFor="let p of pageNumbersEval" [class.active]="p === currentPageEval" (click)="goToPageEval(p)">{{ p }}</span>
+              <ng-container *ngFor="let p of visiblePageNumbersEval">
+                <span *ngIf="p !== -1"
+                      class="page"
+                      [class.active]="p === currentPageEval"
+                      (click)="goToPageEval(p)">{{ p }}</span>
+                <span *ngIf="p === -1" class="page" style="cursor:default;">…</span>
+              </ng-container>
             </div>
             <button class="page-btn" (click)="nextPageEval()" [disabled]="currentPageEval === totalPagesEval">
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+
         </div>
       </div>
 
@@ -185,10 +272,10 @@
       <div>
         <div class="editor-title">
           <i class="fa-solid fa-pen-to-square" style="color:#0818A8;margin-right:7px;"></i>
-          Edit Evaluation Questions
+          Manage Evaluation Questions
         </div>
         <div class="editor-sub">
-          Manage criteria, questions, rating choices, and remarks sections. Each question has its own rating scale.
+          Customize criteria, questions, rating choices, and remarks sections for your evaluations.
         </div>
       </div>
       <button class="modal-close-btn" (click)="closeCriteriaEditor()">
@@ -198,7 +285,6 @@
 
     <div class="editor-body">
 
-      <!-- ── CRITERIA & QUESTIONS SECTION ── -->
       <div class="editor-section-heading">
         <i class="fa-solid fa-list-check"></i> Criteria &amp; Questions
         <span class="criteria-count-badge">{{ editableCriteria.length }} {{ editableCriteria.length === 1 ? 'criterion' : 'criteria' }}</span>
@@ -219,11 +305,9 @@
         <div class="editor-crit-header">
           <div class="editor-num">{{ i + 1 }}</div>
           <div class="editor-crit-name">
-            <!-- Icon prefix preview -->
             <ng-container *ngIf="c.prefixType === 'icon'">
               <i class="fa-solid {{ c.icon }}" style="color:#0818A8;font-size:11px;margin-right:4px;"></i>
             </ng-container>
-            <!-- Text prefix preview -->
             <ng-container *ngIf="c.prefixType === 'text' && c.prefixText">
               <span class="crit-text-prefix-preview">{{ c.prefixText }}</span>
             </ng-container>
@@ -236,7 +320,6 @@
           </div>
         </div>
 
-        <!-- Label + Prefix Type row -->
         <div class="editor-row-2col" style="margin-bottom:10px;">
           <div>
             <div class="editor-field-label">Criterion Label</div>
@@ -251,16 +334,15 @@
               <button class="prefix-type-btn" [class.active]="c.prefixType === 'text'" (click)="c.prefixType = 'text'">
                 <i class="fa-solid fa-font"></i> Text
               </button>
-              <button class="prefix-type-btn" 
-        [class.active]="c.prefixType !== 'icon' && c.prefixType !== 'text' || (!c.icon && !c.prefixText)" 
-        (click)="setPrefixTypeNone(c)">
-  <i class="fa-solid fa-ban"></i> None
-</button>
+              <button class="prefix-type-btn"
+                      [class.active]="c.prefixType !== 'icon' && c.prefixType !== 'text' || (!c.icon && !c.prefixText)"
+                      (click)="setPrefixTypeNone(c)">
+                <i class="fa-solid fa-ban"></i> None
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Icon selector (only when prefixType === icon) -->
         <div *ngIf="c.prefixType === 'icon'" style="margin-bottom:10px;">
           <div class="editor-field-label">Icon (Font Awesome)</div>
           <div class="icon-select-row">
@@ -271,13 +353,11 @@
           </div>
         </div>
 
-        <!-- Text prefix (only when prefixType === text) -->
         <div *ngIf="c.prefixType === 'text'" style="margin-bottom:10px;">
           <div class="editor-field-label">Bold Prefix Label <span class="field-hint">e.g. "Part 1", "Section A"</span></div>
           <input class="editor-input" [(ngModel)]="c.prefixText" placeholder="e.g. Part 1">
         </div>
 
-        <!-- Questions -->
         <div class="editor-field-label" style="margin-bottom:6px;">
           Questions
           <span class="field-hint">{{ c.questions.length }} question{{ c.questions.length !== 1 ? 's' : '' }}</span>
@@ -285,8 +365,6 @@
 
         <div class="editor-questions-list">
           <div class="editor-question-block" *ngFor="let q of c.questions; let qi = index">
-
-            <!-- Question text row -->
             <div class="eq-text-row">
               <span class="eq-num">{{ qi + 1 }}</span>
               <textarea class="editor-input eq-textarea" rows="2"
@@ -297,8 +375,6 @@
                 <i class="fa-solid fa-trash"></i>
               </button>
             </div>
-
-            <!-- Choices config row -->
             <div class="eq-choices-config">
               <div class="eq-choices-header">
                 <span class="editor-field-label" style="margin-bottom:0;">
@@ -324,7 +400,6 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -339,7 +414,6 @@
         No criteria configured. Add at least one criterion above.
       </div>
 
-      <!-- ── REMARKS SECTIONS ── -->
       <div class="editor-section-heading" style="margin-top:28px;">
         <i class="fa-solid fa-align-left"></i> Remarks Sections
         <span class="criteria-count-badge">{{ editableRemarksSections.length }} section{{ editableRemarksSections.length !== 1 ? 's' : '' }}</span>
@@ -415,7 +489,6 @@
 <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
   <div class="modal-box" (click)="$event.stopPropagation()">
 
-    <!-- HEADER -->
     <div class="modal-header">
       <div class="modal-student-info">
         <img [src]="getAvatarUrl(selectedStudent!)" class="modal-avatar" alt="">
@@ -432,7 +505,6 @@
       </button>
     </div>
 
-    <!-- Supervisor banner -->
     <div class="supervisor-eval-banner" *ngIf="!isViewMode() && currentSupervisor">
       <i class="fa-solid fa-user-tie"></i>
       <span>Submitting evaluation as <strong>{{ supervisorFullName }}</strong></span>
@@ -442,7 +514,6 @@
       <span>Evaluated by <strong>{{ evaluation.supervisor_name }}</strong> on {{ getEvalDate(selectedStudent!) }}</span>
     </div>
 
-    <!-- HOURS PROGRESS -->
     <div class="modal-hours-section">
       <div class="hours-row">
         <span class="hours-label"><i class="fa-regular fa-clock"></i> OJT Hours Progress</span>
@@ -457,7 +528,6 @@
       </div>
     </div>
 
-    <!-- TRAINING PERIOD (edit mode only) -->
     <div class="period-section" *ngIf="!isViewMode()">
       <div class="period-label"><i class="fa-solid fa-calendar-range"></i> Training Period</div>
       <div class="period-row">
@@ -472,30 +542,23 @@
       </div>
     </div>
 
-    <!-- Progress indicator (edit mode) -->
     <div class="criteria-info-banner" *ngIf="!isViewMode()">
       <i class="fa-solid fa-list-check"></i>
       <span>{{ getRatedCount() }} / {{ getTotalQuestions() }} questions rated</span>
       <span style="margin-left:auto;font-weight:600;color:#0818A8;">{{ CRITERIA.length }} criteria</span>
     </div>
 
-    <!-- BODY -->
     <div class="modal-body">
       <div class="section-title">Performance Appraisal</div>
 
-      <!-- Criteria -->
       <div class="criterion-card" *ngFor="let c of CRITERIA; let i = index">
-
-        <!-- Criterion header -->
         <div class="criterion-top">
           <div class="criterion-number">{{ i + 1 }}</div>
           <div class="criterion-info">
             <div class="criterion-name">
-              <!-- Icon prefix -->
               <ng-container *ngIf="c.prefixType === 'icon' && c.icon">
                 <i class="fa-solid {{ c.icon }}"></i>
               </ng-container>
-              <!-- Bold text prefix -->
               <ng-container *ngIf="c.prefixType === 'text' && c.prefixText">
                 <span class="crit-text-prefix">{{ c.prefixText }}</span>
               </ng-container>
@@ -504,16 +567,12 @@
           </div>
         </div>
 
-        <!-- Questions with rating buttons -->
         <div class="criterion-questions">
           <div class="cq-item" *ngFor="let q of c.questions; let qi = index">
-
             <div class="cq-label-row">
               <span class="cq-num">{{ qi + 1 }}</span>
               <span class="cq-text">{{ q.text }}</span>
             </div>
-
-            <!-- Rating buttons -->
             <div class="rating-row">
               <button *ngFor="let v of choiceRange(q)"
                       class="rating-btn"
@@ -525,8 +584,6 @@
                 <span class="rating-word">{{ getChoiceLabel(q, v) }}</span>
               </button>
             </div>
-
-            <!-- Selected label -->
             <div class="selected-label"
                  *ngIf="getRatingValue(c.key, q.qkey) > 0"
                  [style.color]="getRatingColor(getRatingValue(c.key, q.qkey), q.numChoices)">
@@ -537,13 +594,10 @@
                  *ngIf="getRatingValue(c.key, q.qkey) === 0 && !isViewMode()">
               <i class="fa-solid fa-circle-exclamation"></i> Not yet rated
             </div>
-
           </div>
         </div>
-
       </div>
 
-      <!-- OVERALL AVERAGE -->
       <div class="overall-summary" *ngIf="getNormalizedAverage() > 0">
         <div>
           <div class="overall-title">Overall Rating</div>
@@ -557,7 +611,6 @@
         </div>
       </div>
 
-      <!-- DYNAMIC REMARKS SECTIONS -->
       <ng-container *ngFor="let rs of REMARKS_SECTIONS">
         <div class="section-title" style="margin-top:20px;">
           <span>
@@ -572,7 +625,6 @@
                   rows="3"></textarea>
       </ng-container>
 
-      <!-- RECOMMENDATION -->
       <div class="section-title" style="margin-top:20px;">
         <span><i class="fa-solid fa-award" style="color:#0818A8;margin-right:6px;"></i>Recommendation</span>
         <span class="rec-required" *ngIf="!isViewMode() && !evaluation.recommendation">
@@ -598,7 +650,6 @@
         </span>
       </div>
 
-      <!-- SIGNATURE -->
       <div class="section-title sig-title-row" style="margin-top:22px;">
         <span>Supervisor E-Signature</span>
         <button *ngIf="!isViewMode() && signatureMode === 'draw' && hasSignature"
@@ -657,7 +708,6 @@
 
     </div>
 
-    <!-- FOOTER -->
     <div class="modal-footer">
       <button class="btn-cancel" (click)="closeModal()">
         {{ isViewMode() ? 'Close' : 'Cancel' }}
