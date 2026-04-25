@@ -175,7 +175,7 @@ app-supervisor-topnav {
 }
 
 /* =========================
-   TABLE
+   TABLE CONTAINER
 ========================= */
 .table-container {
   background: #ffffff;
@@ -183,18 +183,27 @@ app-supervisor-topnav {
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   width: 100%;
-  margin: 0 auto;
-  min-height: 600px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  box-sizing: border-box;
 }
 
+/* =========================
+   TABLE — fixed layout so
+   columns never shift
+========================= */
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
+
+/* Column widths */
+.col-name    { width: 26%; }
+.col-id      { width: 16%; }
+.col-time    { width: 13%; }
+.col-status  { width: 12%; }
+.col-scanned { width: 16%; }
 
 .applicants-table thead { background: #f9fafb; }
 
@@ -206,22 +215,43 @@ app-supervisor-topnav {
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.applicants-table tbody tr {
-  transition: all 0.2s ease;
+/* Data rows — fixed height */
+.applicants-table tbody .data-row {
+  height: 68px;
   border-bottom: 1px solid #f1f5f9;
+  transition: background 0.2s ease;
 }
 
-.applicants-table tbody tr:hover {
-  background: #f9fafb;
-  transform: scale(1.002);
+.applicants-table tbody .data-row:hover { background: #f9fafb; }
+
+/* Ghost / filler rows */
+.applicants-table tbody .ghost-row {
+  height: 68px;
+  border-bottom: 1px solid #f1f5f9;
+  pointer-events: none;
 }
+
+.applicants-table tbody .ghost-row:last-child { border-bottom: none; }
 
 .applicants-table td {
-  padding: 16px 14px;
+  padding: 10px 14px;
   font-size: 14px;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* Name column: allow wrap for long names */
+.applicants-table td.col-name {
+  white-space: normal;
+  word-break: break-word;
 }
 
 .profile-name {
@@ -237,6 +267,7 @@ app-supervisor-topnav {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .status-badge {
@@ -245,11 +276,107 @@ app-supervisor-topnav {
   font-size: 12px;
   font-weight: 500;
   text-transform: capitalize;
+  display: inline-block;
 }
 
 .badge-approved { background: #e8f7ee; color: #16a34a; }
 .badge-pending  { background: #fef3c7; color: #d97706; }
 .badge-declined { background: #fdeaea; color: #dc2626; }
+
+/* =========================
+   EMPTY STATE
+========================= */
+.empty-row {
+  pointer-events: none;
+}
+
+.empty-state-cell {
+  text-align: center !important;
+  border-bottom: none !important;
+  vertical-align: middle !important;
+  white-space: normal !important;
+  height: 520px !important;
+  padding: 0 !important;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #9ca3af;
+  height: 100%;
+}
+
+.empty-state i {
+  font-size: 32px;
+  display: block;
+}
+
+.empty-state span {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* =========================
+   PAGINATION — admin-ojt style
+========================= */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.page-info {
+  font-size: 13px;
+  color: #6b7280;
+  margin-right: 6px;
+}
+
+.page-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  color: #374151;
+}
+
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.page-numbers { display: flex; gap: 6px; }
+
+.page {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: 0.2s ease;
+  min-width: 32px;
+  text-align: center;
+}
+
+.page:hover { background: #e5e7eb; }
+
+.page.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 500;
+}
 
 /* =========================
    SCANNER OVERLAY
@@ -273,7 +400,6 @@ app-supervisor-topnav {
   to   { opacity: 1; }
 }
 
-/* Fixed-size modal — never grows or shrinks between tabs */
 .scanner-modal {
   background: #ffffff;
   border-radius: 20px;
@@ -285,7 +411,6 @@ app-supervisor-topnav {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* KEY: total modal height is fixed so tabs never shift size */
   height: 620px;
 }
 
@@ -398,7 +523,7 @@ app-supervisor-topnav {
 .mode-tab i { font-size: 13px; }
 
 /* =========================
-   PANEL BODY — flex: 1 so it fills remaining space
+   PANEL BODY
 ========================= */
 .modal-body {
   flex: 1;
@@ -614,7 +739,6 @@ app-supervisor-topnav {
 
 .manual-id-input::placeholder { color: #d1d5db; }
 
-/* Fixed-height results area — flex:1 fills remaining space, never expands modal */
 .manual-results-area {
   flex: 1;
   border: 1.5px solid #e5e7eb;
@@ -684,7 +808,6 @@ app-supervisor-topnav {
   flex-shrink: 0;
 }
 
-/* Selected student card */
 .selected-student-card {
   display: flex;
   align-items: center;
@@ -738,8 +861,6 @@ app-supervisor-topnav {
 
 /* =========================
    MODAL FOOTER
-   Always rendered — keeps modal height identical on both tabs.
-   Button visibility is controlled by *ngIf in the template.
 ========================= */
 .scanner-modal-footer {
   padding: 14px 24px 22px;
@@ -773,47 +894,6 @@ app-supervisor-topnav {
   background: #e5e7eb;
   color: #9ca3af;
   cursor: not-allowed;
-}
-
-/* =========================
-   PAGINATION
-========================= */
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.page-btn {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.page-btn:hover { background: #f3f4f6; }
-
-.page-numbers { display: flex; gap: 6px; }
-
-.page {
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  color: #374151;
-  transition: 0.2s ease;
-}
-
-.page:hover { background: #e5e7eb; }
-
-.page.active {
-  background: #2563eb;
-  color: #ffffff;
-  font-weight: 500;
 }
 
 /* =========================

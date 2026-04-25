@@ -7,13 +7,11 @@ body {
   background: #f3f4f6;
 }
 
-/* DASHBOARD WRAPPER */
 .dashboard-wrapper {
   display: flex;
   height: 100vh;
 }
 
-/* SIDENAV */
 .sidenav {
   width: 260px;
   height: 100vh;
@@ -33,14 +31,13 @@ body {
   width: 80px;
 }
 
-/* MAIN SECTION */
 .main-section {
   position: absolute;
   top: 0;
   left: 260px;
   right: 0;
   bottom: 0;
-  overflow-y: scroll;
+  overflow-y: auto;
   background: #f3f4f6;
   transition: left 0.3s ease;
 }
@@ -49,11 +46,6 @@ body {
   left: 80px;
 }
 
-html {
-  overflow-y: scroll;
-}
-
-/* TOP NAV */
 app-admin-topnav {
   position: fixed;
   top: 0;
@@ -67,7 +59,6 @@ app-admin-topnav {
   left: 80px;
 }
 
-/* DASHBOARD CONTENT */
 .dashboard-content {
   margin-top: 60px;
   padding: 20px;
@@ -76,7 +67,6 @@ app-admin-topnav {
   width: 100%;
 }
 
-/* DASHBOARD HEADER */
 .dashboard-header {
   margin-bottom: 10px;
   padding-left: 20px;
@@ -90,7 +80,6 @@ app-admin-topnav {
   margin-bottom: 14px;
 }
 
-/* FLEX HEADER */
 .header-flex {
   display: flex;
   justify-content: space-between;
@@ -98,7 +87,6 @@ app-admin-topnav {
   padding-right: 20px;
 }
 
-/* DIVIDER */
 .dashboard-divider {
   width: calc(100% - 20px);
   height: 1px;
@@ -147,11 +135,12 @@ app-admin-topnav {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 40px;
 }
 
 /* =========================
-   TABLE STYLING
+   TABLE CONTAINER
+   Fixed height so it never
+   shrinks on sparse pages
 ========================= */
 .table-container {
   background: #ffffff;
@@ -159,25 +148,28 @@ app-admin-topnav {
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   width: 100%;
-  margin: 0 auto;
-  height: 600px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;   /* ← table taas, pagination baba */
-  box-sizing: border-box;
-  overflow: hidden;                 /* ← dagdag ito */
 }
 
+/* =========================
+   TABLE — fixed layout so
+   columns never shift
+========================= */
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
-  flex: 1;                          /* ← dagdag ito, table mag-fill ng available space */
-  overflow: hidden;
+  table-layout: fixed;
 }
-.applicants-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+
+/* Column widths */
+.col-name     { width: 22%; }
+.col-course   { width: 8%;  }
+.col-email    { width: 22%; }
+.col-date     { width: 14%; }
+.col-progress { width: 24%; }
+.col-action   { width: 10%; }
 
 .applicants-table thead {
   background: #f9fafb;
@@ -186,67 +178,135 @@ app-admin-topnav {
 .applicants-table th {
   text-align: left;
   padding: 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.applicants-table tbody tr {
-  height: 72px;
+/* Data rows — fixed height */
+.applicants-table tbody .data-row {
+  height: 68px;
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.2s ease;
-}
-
-.applicants-table tbody tr:hover {
-  background: #f9fafb;
   cursor: pointer;
 }
 
+.applicants-table tbody .data-row:hover {
+  background: #f9fafb;
+}
+
+/* Ghost/filler rows — same height, no border, no hover */
+.applicants-table tbody .ghost-row {
+  height: 68px;
+  border-bottom: 1px solid #f1f5f9;
+  pointer-events: none;
+}
+
+.applicants-table tbody .ghost-row:last-child {
+  border-bottom: none;
+}
+
 .applicants-table td {
-  padding: 16px 14px;
-  font-size: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* Name column: allow text wrap for long names */
+.applicants-table td.col-name {
+  white-space: normal;
+  word-break: break-word;
 }
 
 .profile-name {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-weight: 500;
+  font-size: 13px;
 }
 
 .profile-pic {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 /* =========================
    HOURS PROGRESS
+   Constrained width so it
+   doesn't eat the whole cell
 ========================= */
+.progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 180px;   /* ← key fix: limits progress bar width */
+}
+
 .progress-bar {
   width: 100%;
-  height: 12px;
+  height: 8px;
   background: #e5e7eb;
   border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 4px;
 }
 
 .progress-fill {
   height: 100%;
-  background: #10b981;
+  background: #2563eb;  /* ← changed from #10b981 to blue */
   border-radius: 6px;
   transition: width 0.3s ease;
 }
 
 .progress-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #374151;
+  white-space: nowrap;
+}
+
+/* =========================
+   ARCHIVE BUTTON
+========================= */
+.btn-archive {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: 'Poppins', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.btn-archive-active {
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn-archive-active:hover {
+  background: #1e40af;
+}
+
+.btn-archive-disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* =========================
@@ -258,6 +318,9 @@ app-admin-topnav {
   align-items: center;
   gap: 10px;
   margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
 
 .page-info {

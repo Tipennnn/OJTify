@@ -1,9 +1,7 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-  <!-- SIDENAV -->
   <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
 
-  <!-- MAIN SECTION -->
   <div class="main-section">
     <app-admin-topnav></app-admin-topnav>
 
@@ -18,57 +16,53 @@
 
       <div class="dashboard-divider"></div>
 
-      <!-- FILTER BAR — label left, actions right via justify-content: space-between -->
-      <div class="filter-bar">
-        <div class="filter-label">
-          March 2026 - 10 interns
-        </div>
-
-        <!-- All buttons/dropdowns grouped in filter-actions, NO fixed margins -->
-        <div class="filter-actions">
-          <button class="filter-btn">All Completed</button>
-          <select class="filter-dropdown">
-            <option value="">Select Year</option>
-            <option *ngFor="let year of years" [value]="year">{{ year }}</option>
-          </select>
-          <select class="filter-dropdown">
-            <option value="">Select Month</option>
-            <option *ngFor="let month of months" [value]="month">{{ month }}</option>
-          </select>
-        </div>
-      </div>
-
       <div *ngIf="loading" style="text-align:center; padding:40px; color:#9ca3af;">
         <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
         <p style="margin-top:12px;">Loading archived interns...</p>
       </div>
 
-      <div class="center-wrapper">
+      <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
+
           <table class="applicants-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Email</th>
-                <th>OJT Start Date</th>
-                <th>OJT End Date</th>
+                <th class="col-name">Name</th>
+                <th class="col-course">Course</th>
+                <th class="col-email">Email</th>
+                <th class="col-date">OJT Start Date</th>
+                <th class="col-date">OJT End Date</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let student of filteredStudents" (click)="openModal(student)" style="cursor:pointer">
-                <td class="profile-name">
-                  <img [src]="getAvatarUrl(student)" class="profile-pic" alt="Profile">
-                  <span>{{ getFullName(student) }}</span>
-                </td>
-                <td>{{ student.student_id }}</td>
-                <td>{{ student.email }}</td>
-                <td>{{ getStartDate(student) }}</td>
-                <td>{{ getEndDate(student) }}</td>
-              </tr>
+              <ng-container *ngFor="let student of pagedStudents">
+                <tr class="data-row" (click)="openModal(student)">
+                  <td class="col-name">
+                    <div class="profile-name">
+                      <img [src]="getAvatarUrl(student)" class="profile-pic" alt="Profile">
+                      <span>{{ getFullName(student) }}</span>
+                    </div>
+                  </td>
+                  <td class="col-course">{{ abbreviateCourse(student.course || '') }}</td>
+                  <td class="col-email">{{ student.email }}</td>
+                  <td class="col-date">{{ getStartDate(student) }}</td>
+                  <td class="col-date">{{ getEndDate(student) }}</td>
+                </tr>
+              </ng-container>
 
-              <tr *ngIf="filteredStudents.length === 0">
-                <td colspan="5" style="text-align:center; color:#9ca3af; padding:30px;">
+              <ng-container *ngFor="let ghost of ghostRows">
+                <tr class="ghost-row">
+                  <td class="col-name"></td>
+                  <td class="col-course"></td>
+                  <td class="col-email"></td>
+                  <td class="col-date"></td>
+                  <td class="col-date"></td>
+                </tr>
+              </ng-container>
+
+              <tr *ngIf="filteredStudents.length === 0" class="ghost-row">
+                <td colspan="5"
+                    style="text-align:center;color:#9ca3af;padding:30px;border-bottom:none;">
                   No interns found.
                 </td>
               </tr>
@@ -76,46 +70,59 @@
           </table>
 
           <div class="pagination">
-            <button class="page-btn">
+            <span class="page-info">
+              Showing {{ rangeStart }}–{{ rangeEnd }} of {{ filteredStudents.length }}
+            </span>
+            <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="page-numbers">
-              <span class="page active">1</span>
-              <span class="page">2</span>
-              <span class="page">3</span>
+              <span class="page active">{{ currentPage }}</span>
             </div>
-            <button class="page-btn">
+            <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
 
-<!-- MODAL -->
-<div class="modal-backdrop" *ngIf="showModal">
-  <div class="modal profile-wrapper">
+<!-- ═══════════════════════════════════════
+     PROFILE MODAL
+════════════════════════════════════════ -->
+<div class="modal-backdrop"
+     *ngIf="showModal && !showAttendanceLogsModal"
+     (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
 
-    <div class="profile-header">
-      <div class="profile-circle">
-        <img [src]="getAvatarUrl(selectedStudent)" alt="Profile Picture" class="profile-pic">
+    <!-- Fixed Header -->
+    <div class="modal-header">
+      <div class="modal-profile-hero">
+        <div class="profile-avatar-ring">
+          <img [src]="getAvatarUrl(selectedStudent)" alt="Profile">
+        </div>
+        <div>
+          <h2 class="modal-name">{{ getFullName(selectedStudent) }}</h2>
+          <p class="modal-email">{{ selectedStudent?.email }}</p>
+        </div>
       </div>
-      <div class="profile-name-container">
-        <h2 class="profile-name">{{ getFullName(selectedStudent) }}</h2>
-        <p style="margin:4px 0 0; font-size:13px; color:#6b7280;">{{ selectedStudent?.email }}</p>
-      </div>
-      <button class="close-btn" (click)="closeModal()">×</button>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
-    <div class="info-container">
+    <!-- Scrollable Body -->
+    <div class="modal-body">
 
       <!-- PERSONAL INFORMATION -->
       <div class="info-section">
-        <div class="section-header">Personal Information</div>
+        <div class="section-header">
+          <i class="fa-solid fa-user"></i> Personal Information
+        </div>
         <div class="info-row three-col">
           <div class="info-item">
             <span class="info-label">First Name</span>
@@ -154,7 +161,9 @@
 
       <!-- ACADEMIC BACKGROUND -->
       <div class="info-section">
-        <div class="section-header">Academic Background</div>
+        <div class="section-header">
+          <i class="fa-solid fa-graduation-cap"></i> Academic Background
+        </div>
         <div class="info-row two-col">
           <div class="info-item">
             <span class="info-label">Student ID</span>
@@ -175,55 +184,71 @@
             <span class="info-value">{{ selectedStudent?.year_level || '—' }}</span>
           </div>
         </div>
+        <div class="info-item">
+          <span class="info-label">Assigned Supervisor</span>
+          <span class="info-value">{{ selectedStudent?.supervisorName || '—' }}</span>
+        </div>
       </div>
 
-      <div class="info-item">
-  <span class="info-label">Assigned Supervisor</span>
-  <span class="info-value">{{ selectedStudent?.supervisorName || '—' }}</span>
-</div>
-
       <!-- OJT HOURS -->
-      <div class="info-section ojt-hours-section">
-        <div class="section-header">OJT Hours</div>
-        <div class="info-item">
-          <span class="info-label">Required Hours</span>
-          <span class="info-value">{{ selectedStudent?.required_hours || 500 }} hrs</span>
+      <div class="info-section">
+        <div class="section-header">
+          <i class="fa-solid fa-clock"></i> OJT Hours
         </div>
-        <div class="info-item">
-          <span class="info-label">Completed Hours</span>
-          <span class="info-value">{{ selectedStudent?.completed_hours || 0 }} hrs</span>
+        <div class="info-row three-col">
+          <div class="info-item">
+            <span class="info-label">Required Hours</span>
+            <span class="info-value">{{ selectedStudent?.required_hours || 500 }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Completed Hours</span>
+            <span class="info-value">{{ selectedStudent?.completed_hours || 0 }} hrs</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Remaining Hours</span>
+            <span class="info-value">{{ getRemainingHours(selectedStudent) }} hrs</span>
+          </div>
         </div>
-        <div class="info-item">
-          <span class="info-label">Remaining Hours</span>
-          <span class="info-value">{{ getRemainingHours(selectedStudent) }} hrs</span>
-        </div>
+
         <div class="info-item">
           <span class="info-label">Progress</span>
-          <div class="progress-bar">
-            <div class="progress" style="width:100%"></div>
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:100%"></div>
+            </div>
+            <span class="progress-text">100% — Completed</span>
           </div>
-          <span class="progress-percent">100%</span>
         </div>
+
+        <div class="info-row two-col">
+          <div class="info-item">
+            <span class="info-label">OJT Start Date</span>
+            <span class="info-value">{{ getStartDate(selectedStudent) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">OJT End Date</span>
+            <span class="info-value">{{ getEndDate(selectedStudent) }}</span>
+          </div>
+        </div>
+
         <div class="info-item">
           <span class="info-label">Status</span>
-          <span class="info-value" style="color:#16a34a">✅ Completed</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">OJT Start Date</span>
-          <span class="info-value">{{ getStartDate(selectedStudent) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">OJT End Date</span>
-          <span class="info-value">{{ getEndDate(selectedStudent) }}</span>
+          <span class="completed-badge">
+            <i class="fa-solid fa-circle-check"></i>
+            Completed OJT
+          </span>
         </div>
       </div>
 
       <!-- ATTENDANCE LOGS -->
       <div class="info-section">
-        <div class="section-header">Attendance Logs</div>
+        <div class="section-header">
+          <i class="fa-solid fa-calendar-check"></i> Attendance Logs
+        </div>
         <button class="attendance-toggle-btn" (click)="openAttendanceLogsModal()">
-          <i class="fa-solid fa-calendar"></i>
+          <i class="fa-solid fa-calendar-days"></i>
           View Attendance Logs
+          <i class="fa-solid fa-arrow-right" style="margin-left:4px; font-size:11px;"></i>
         </button>
       </div>
 
@@ -232,60 +257,120 @@
 </div>
 
 
-<!-- ATTENDANCE LOGS MODAL -->
-<div class="modal-backdrop" *ngIf="showAttendanceLogsModal">
-  <div class="modal profile-wrapper" style="max-width:900px;">
+<!-- ═══════════════════════════════════════
+     ATTENDANCE LOGS MODAL
+════════════════════════════════════════ -->
+<div class="modal-backdrop"
+     *ngIf="showAttendanceLogsModal"
+     (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
 
-   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-  <h2 style="margin:0; font-size:22px; font-weight:700;">
-    Attendance Logs - {{ getFullName(selectedStudent) }}
-  </h2>
-  <div style="display:flex; gap:10px; align-items:center;">
-    <!-- Download button — only shows when logs are loaded -->
-    <button
-      *ngIf="!attendanceLoading && attendanceLogs.length > 0"
-      (click)="downloadAttendanceLogs()"
-      style="padding:8px 16px; background:#2563eb; color:#fff;
-             border:none; border-radius:8px; cursor:pointer;
-             font-size:13px; display:flex; align-items:center; gap:6px;">
-      <i class="fa-solid fa-download"></i> Download CSV
-    </button>
-    <button class="close-btn" (click)="closeAttendanceLogsModal()">×</button>
-  </div>
-</div>
-
-    <div *ngIf="attendanceLoading" style="text-align:center; padding:40px; color:#9ca3af;">
-      <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
-      <p style="margin-top:12px;">Loading attendance logs...</p>
+    <!-- Fixed Header -->
+    <div class="modal-header attendance-header">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <button class="back-btn" (click)="closeAttendanceLogsModal()" title="Back to profile">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div>
+          <h2 class="modal-name" style="font-size:17px;">Attendance Logs</h2>
+          <p class="modal-email">{{ getFullName(selectedStudent) }}</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
-    <table *ngIf="!attendanceLoading && attendanceLogs.length > 0"
-           class="applicants-table attendance-log-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Time In</th>
-          <th>Time Out</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let log of attendanceLogs">
-          <td>{{ formatDate(log.date) }}</td>
-          <td>{{ log.time_in }}</td>
-          <td>{{ log.time_out }}</td>
-          <td><span class="status-badge">{{ log.status }}</span></td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Filter Bar — fixed, never scrolls -->
+    <div class="attendance-filter-bar">
+      <div class="att-filter-group">
+        <label class="att-filter-label">Month</label>
+        <select class="att-filter-select"
+                [(ngModel)]="filterMonth"
+                (change)="applyAttendanceFilter()">
+          <option value="">All Months</option>
+          <option *ngFor="let m of months; let i = index" [value]="i + 1">{{ m }}</option>
+        </select>
+      </div>
 
-    <div *ngIf="!attendanceLoading && attendanceLogs.length === 0"
-         style="text-align:center; color:#9ca3af; padding:40px; font-size:14px;">
-      <i class="fas fa-calendar-times" style="font-size:32px; display:block; margin-bottom:12px;"></i>
-      No attendance records found.
+      <div class="att-filter-group">
+        <label class="att-filter-label">Year</label>
+        <select class="att-filter-select"
+                [(ngModel)]="filterYear"
+                (change)="applyAttendanceFilter()">
+          <option value="">All Years</option>
+          <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+        </select>
+      </div>
+
+      <button *ngIf="filterMonth || filterYear"
+              class="att-clear-btn"
+              (click)="clearAttendanceFilter()">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
+
+      <span class="att-count-badge">
+        <i class="fa-solid fa-list-check"></i>
+        {{ filteredLogs.length }} record{{ filteredLogs.length !== 1 ? 's' : '' }}
+      </span>
+
+      <!-- Download button in filter bar — icon only, blue -->
+      <button
+        *ngIf="!attendanceLoading && attendanceLogs.length > 0"
+        (click)="downloadAttendanceLogs()"
+        class="download-btn"
+        title="Download as CSV">
+        <i class="fa-solid fa-download"></i>
+      </button>
     </div>
 
-    
+    <!-- Scrollable Body -->
+    <div class="modal-body attendance-body">
 
+      <div *ngIf="attendanceLoading"
+           style="text-align:center; padding:60px 40px; color:#9ca3af;">
+        <i class="fa fa-spinner fa-spin" style="font-size:30px;"></i>
+        <p style="margin-top:14px; font-size:14px;">Loading attendance logs...</p>
+      </div>
+
+      <!-- No records empty state -->
+      <div *ngIf="!attendanceLoading && filteredLogs.length === 0"
+           class="empty-state">
+        <div class="empty-icon">
+          <i class="fa-solid fa-calendar-xmark"></i>
+        </div>
+        <p class="empty-title">No Records Found</p>
+        <p class="empty-sub" *ngIf="filterMonth || filterYear">
+          No attendance records for
+          <strong>{{ filterMonth ? months[+filterMonth - 1] : '' }}
+          {{ filterYear ? filterYear : '' }}</strong>.
+          Try a different filter or reset.
+        </p>
+        <p class="empty-sub" *ngIf="!filterMonth && !filterYear">
+          This intern has no attendance records yet.
+        </p>
+      </div>
+
+      <table *ngIf="!attendanceLoading && filteredLogs.length > 0"
+             class="applicants-table attendance-log-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of filteredLogs">
+            <td>{{ formatDate(log.date) }}</td>
+            <td>{{ log.time_in }}</td>
+            <td>{{ log.time_out }}</td>
+            <td><span class="status-badge">{{ log.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
   </div>
 </div>

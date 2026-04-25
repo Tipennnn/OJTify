@@ -17,6 +17,7 @@ interface Student {
   profile_photo_id?: string;
   required_hours?: number;
   completed_hours?: number;
+  ojt_start?: string;
   $createdAt: string;
 }
 
@@ -34,22 +35,150 @@ interface Student {
 })
 export class SupervisorOjtComponent implements OnInit {
 
-  students         : Student[] = [];
-  filteredStudents : Student[] = [];
-  loading          = false;
-  searchQuery      = '';
-  isCollapsed      = false;
+  students            : Student[] = [];
+  filteredStudents    : Student[] = [];
+  loading             = false;
+  searchQuery         = '';
+  isCollapsed         = false;
   currentSupervisorId = '';
 
-  // Pagination
-  currentPage  = 1;
-  pageSize     = 10;
-  totalPages   = 1;
-  pageNumbers  : number[] = [];
+  // PAGINATION
+  currentPage = 1;
+  pageSize    = 10;
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+
+  // ── Comprehensive course abbreviation map ──────────────────
+  private readonly COURSE_MAP: { [key: string]: string } = {
+    // Information Technology & Computing
+    'bachelor of science in information technology':              'BSIT',
+    'bachelor of science in computer science':                    'BSCS',
+    'bachelor of science in computer engineering':                'BSCpE',
+    'bachelor of science in information systems':                 'BSIS',
+    'bachelor of science in data science':                        'BSDS',
+    'bachelor of science in artificial intelligence':             'BSAI',
+    'bachelor of science in cybersecurity':                       'BSCySec',
+    'bachelor of science in software engineering':                'BSSE',
+
+    // Engineering
+    'bachelor of science in electronics engineering':             'BSECE',
+    'bachelor of science in electronics and communications engineering': 'BSECE',
+    'bachelor of science in electrical engineering':              'BSEE',
+    'bachelor of science in civil engineering':                   'BSCE',
+    'bachelor of science in mechanical engineering':              'BSME',
+    'bachelor of science in industrial engineering':              'BSIE',
+    'bachelor of science in chemical engineering':                'BSChE',
+    'bachelor of science in geodetic engineering':                'BSGE',
+    'bachelor of science in mining engineering':                  'BSMinE',
+    'bachelor of science in petroleum engineering':               'BSPetE',
+    'bachelor of science in sanitary engineering':                'BSSE',
+    'bachelor of science in marine engineering':                  'BSMarE',
+    'bachelor of science in marine transportation':               'BSMT',
+    'bachelor of science in naval architecture and marine engineering': 'BSNAME',
+    'bachelor of science in aeronautical engineering':            'BSAeroE',
+    'bachelor of science in agricultural engineering':            'BSAgriE',
+    'bachelor of science in environmental engineering':           'BSEnvE',
+    'bachelor of science in materials engineering':               'BSMatE',
+    'bachelor of science in metallurgical engineering':           'BSMetE',
+    'bachelor of science in mechatronics engineering':            'BSMechatronics',
+
+    // Business & Management
+    'bachelor of science in business administration':             'BSBA',
+    'bachelor of science in accountancy':                         'BSA',
+    'bachelor of science in management accounting':               'BSMA',
+    'bachelor of science in entrepreneurship':                    'BSEntrep',
+    'bachelor of science in real estate management':              'BSREM',
+    'bachelor of science in office administration':               'BSOA',
+    'bachelor of science in customs administration':              'BSCA',
+    'bachelor of science in public administration':               'BSPA',
+
+    // Health & Medical
+    'bachelor of science in nursing':                             'BSN',
+    'bachelor of science in pharmacy':                            'BSPharm',
+    'bachelor of science in medical technology':                  'BSMT',
+    'bachelor of science in physical therapy':                    'BSPT',
+    'bachelor of science in occupational therapy':                'BSOT',
+    'bachelor of science in radiologic technology':               'BSRT',
+    'bachelor of science in respiratory therapy':                 'BSRESPTH',
+    'bachelor of science in nutrition and dietetics':             'BSND',
+    'bachelor of science in midwifery':                           'BSMid',
+    'bachelor of science in dentistry':                           'BSD',
+    'doctor of medicine':                                         'MD',
+    'doctor of dental medicine':                                  'DMD',
+
+    // Sciences
+    'bachelor of science in biology':                             'BSBio',
+    'bachelor of science in chemistry':                           'BSChem',
+    'bachelor of science in physics':                             'BSPhysics',
+    'bachelor of science in mathematics':                         'BSMath',
+    'bachelor of science in statistics':                          'BSStat',
+    'bachelor of science in psychology':                          'BSPsych',
+    'bachelor of science in geology':                             'BSGeology',
+    'bachelor of science in meteorology':                         'BSMeteorology',
+    'bachelor of science in agriculture':                         'BSAgri',
+    'bachelor of science in agribusiness':                        'BSAgribus',
+    'bachelor of science in forestry':                            'BSF',
+    'bachelor of science in fisheries':                           'BSFisheries',
+    'bachelor of science in veterinary medicine':                 'BSVM',
+    'bachelor of science in environmental science':               'BSES',
+
+    // Education
+    'bachelor of secondary education':                            'BSEd',
+    'bachelor of elementary education':                           'BEEd',
+    'bachelor of physical education':                             'BPEd',
+    'bachelor of early childhood education':                      'BECED',
+    'bachelor of special needs education':                        'BSNED',
+    'bachelor of technical-vocational teacher education':         'BTVTED',
+    'bachelor of culture and arts education':                     'BCAED',
+
+    // Architecture & Design
+    'bachelor of science in architecture':                        'BSArch',
+    'bachelor of landscape architecture':                         'BLA',
+    'bachelor of interior design':                                'BID',
+    'bachelor of fine arts':                                      'BFA',
+    'bachelor of graphic technology':                             'BGT',
+
+    // Arts & Social Sciences
+    'bachelor of arts in communication':                          'BAComm',
+    'bachelor of arts in english':                                'BAEng',
+    'bachelor of arts in political science':                      'BAPol',
+    'bachelor of arts in sociology':                              'BASoc',
+    'bachelor of arts in philosophy':                             'BAPhil',
+    'bachelor of arts in history':                                'BAHist',
+    'bachelor of arts in economics':                              'BAEcon',
+    'bachelor of arts in anthropology':                           'BAAnthro',
+    'bachelor of arts in linguistics':                            'BALing',
+    'bachelor of arts in literature':                             'BALit',
+    'bachelor of arts in journalism':                             'BAJ',
+    'bachelor of arts in broadcasting':                           'BAB',
+    'bachelor of arts in film':                                   'BAFilm',
+    'bachelor of science in social work':                         'BSSW',
+    'bachelor of science in criminology':                         'BSCrim',
+    'bachelor of science in foreign service':                     'BSFS',
+
+    // Hospitality & Tourism
+    'bachelor of science in tourism management':                  'BSTM',
+    'bachelor of science in hospitality management':              'BSHM',
+    'bachelor of science in hotel and restaurant management':     'BSHRM',
+    'bachelor of science in travel management':                   'BSTRM',
+
+    // Law & Governance
+    'bachelor of laws':                                           'LLB',
+    'juris doctor':                                               'JD',
+    'bachelor of science in legal management':                    'BSLM',
+
+    // Technology & Vocational
+    'bachelor of technology':                                     'BTech',
+    'bachelor of science in industrial technology':               'BSIT',
+    'diploma in information technology':                          'DIT',
+
+    // Music & Performing Arts
+    'bachelor of music':                                          'BMus',
+    'bachelor of arts in music':                                  'BAMusic',
+    'bachelor of performing arts':                                'BPA',
+  };
 
   constructor(
     private appwrite: AppwriteService,
@@ -57,68 +186,96 @@ export class SupervisorOjtComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-  await this.getCurrentSupervisor();  // ← must finish first
-  await this.loadStudents();          // ← then this runs with the ID ready
-}
-
- async loadStudents() {
-  this.loading = true;
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL
-    );
-
-    // Only show students assigned to THIS supervisor
-    // AND who have NOT yet completed their hours
-    this.students = (res.documents as any[]).filter(s => {
-      const completed = s.completed_hours || 0;
-      const required  = s.required_hours  || 500;
-      return s.supervisor_id === this.currentSupervisorId && completed < required;
-    });
-
-    this.filteredStudents = [...this.students];
-    this.updatePagination();
-  } catch (error: any) {
-    console.error('Failed to load students:', error.message);
-  } finally {
-    this.loading = false;
-  }
-}
-
-  onSearch(event: any) {
-    this.searchQuery = event.target.value.toLowerCase();
-    this.filteredStudents = this.students.filter(s => {
-      const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
-      return fullName.includes(this.searchQuery)              ||
-             s.student_id.toLowerCase().includes(this.searchQuery) ||
-             s.course.toLowerCase().includes(this.searchQuery)     ||
-             s.email.toLowerCase().includes(this.searchQuery);
-    });
-    this.currentPage = 1;
-    this.updatePagination();
+    await this.getCurrentSupervisor();
+    await this.loadStudents();
   }
 
-  updatePagination() {
-    this.totalPages  = Math.max(1, Math.ceil(this.filteredStudents.length / this.pageSize));
-    this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  async getCurrentSupervisor() {
+    try {
+      const user = await this.appwrite.account.get();
+      this.currentSupervisorId = user.$id;
+    } catch (error: any) {
+      console.error('Failed to get supervisor:', error.message);
+    }
   }
 
-  goToPage(page: number) {
-    this.currentPage = page;
+  async loadStudents() {
+    this.loading = true;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
+
+      // Only show students assigned to THIS supervisor
+      // AND who have NOT yet completed their hours
+      const filtered = (res.documents as any[]).filter(s => {
+        const completed = s.completed_hours || 0;
+        const required  = s.required_hours  || 500;
+        return s.supervisor_id === this.currentSupervisorId && completed < required;
+      });
+
+      // Sort by OJT start date descending (latest first)
+      filtered.sort((a, b) => {
+        const dateA = new Date(a.ojt_start || a.$createdAt).getTime();
+        const dateB = new Date(b.ojt_start || b.$createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      this.students = filtered;
+
+      this.filteredStudents = [...this.students];
+    } catch (error: any) {
+      console.error('Failed to load students:', error.message);
+    } finally {
+      this.loading = false;
+    }
   }
 
-  prevPage() {
-    if (this.currentPage > 1) this.currentPage--;
-  }
-
-  nextPage() {
-    if (this.currentPage < this.totalPages) this.currentPage++;
-  }
-
+  // PAGINATION
   get pagedStudents(): Student[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredStudents.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredStudents.length / this.pageSize) || 1;
+  }
+
+  // Ghost rows to fill empty slots and keep table height fixed
+  get ghostRows(): null[] {
+    const filled = this.pagedStudents.length;
+    const empty  = this.pageSize - filled;
+    return empty > 0 ? Array(empty).fill(null) : [];
+  }
+
+  get rangeStart(): number {
+    if (this.filteredStudents.length === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredStudents.length);
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  prevPage() { this.goToPage(this.currentPage - 1); }
+  nextPage() { this.goToPage(this.currentPage + 1); }
+
+  onSearch(event: any) {
+    this.searchQuery = event.target.value.toLowerCase();
+    this.currentPage = 1;
+    this.filteredStudents = this.students.filter(s => {
+      const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+      return fullName.includes(this.searchQuery)                    ||
+             s.student_id.toLowerCase().includes(this.searchQuery)  ||
+             s.course.toLowerCase().includes(this.searchQuery)      ||
+             s.email.toLowerCase().includes(this.searchQuery);
+    });
   }
 
   onToggleSidebar(collapsed: boolean) {
@@ -127,6 +284,24 @@ export class SupervisorOjtComponent implements OnInit {
 
   openProfile(student: Student) {
     this.router.navigate(['/supervisor-ojt-profile', student.$id]);
+  }
+
+  abbreviateCourse(course: string): string {
+    if (!course) return '—';
+    const key = course.trim().toLowerCase();
+
+    // 1. Direct map lookup
+    if (this.COURSE_MAP[key]) return this.COURSE_MAP[key];
+
+    // 2. Fuzzy fallback: auto-abbreviate from words
+    const words = course.trim().split(/\s+/);
+    const skip  = new Set(['of', 'in', 'and', 'the', 'a', 'an', 'for', '&']);
+    const abbr  = words
+      .filter(w => !skip.has(w.toLowerCase()))
+      .map(w => w.charAt(0).toUpperCase() + (w.length > 3 ? w.charAt(1).toLowerCase() : ''))
+      .join('');
+
+    return abbr || course;
   }
 
   getFullName(s: Student): string {
@@ -152,16 +327,9 @@ export class SupervisorOjtComponent implements OnInit {
   }
 
   getStartDate(student: Student): string {
-    return new Date(student.$createdAt).toLocaleDateString('en-US', {
+    const raw = student.ojt_start || student.$createdAt;
+    return new Date(raw).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   }
-  async getCurrentSupervisor() {
-  try {
-    const user = await this.appwrite.account.get();
-    this.currentSupervisorId = user.$id;
-  } catch (error: any) {
-    console.error('Failed to get supervisor:', error.message);
-  }
-}
 }

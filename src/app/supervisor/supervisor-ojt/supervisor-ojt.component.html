@@ -1,103 +1,129 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-    <!-- SIDENAV -->
-    <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
-  
-    <!-- MAIN SECTION -->
-    <div class="main-section">
-      <app-supervisor-topnav></app-supervisor-topnav>
-  
-      <div class="dashboard-content">
-  
-        <div class="dashboard-header header-flex">
-          <div><h2>OJT Students</h2></div>
-          <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Search student..."
-                   (input)="onSearch($event)">
-          </div>
+  <!-- SIDENAV -->
+  <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
+
+  <!-- MAIN SECTION -->
+  <div class="main-section">
+    <app-supervisor-topnav></app-supervisor-topnav>
+
+    <div class="dashboard-content">
+
+      <div class="dashboard-header header-flex">
+        <div><h2>OJT Students</h2></div>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search student..."
+                 (input)="onSearch($event)">
         </div>
-  
-        <div class="dashboard-divider"></div>
-  
-        <!-- LOADING -->
-        <div *ngIf="loading"
-             style="text-align:center; padding:40px; color:#9ca3af;">
-          <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
-          <p style="margin-top:12px;">Loading students...</p>
-        </div>
-  
-        <!-- TABLE -->
-        <div class="center-wrapper" *ngIf="!loading">
-          <div class="table-container">
+      </div>
+
+      <div class="dashboard-divider"></div>
+
+      <div *ngIf="loading"
+           style="text-align:center; padding:40px; color:#9ca3af;">
+        <i class="fa fa-spinner fa-spin" style="font-size:28px;"></i>
+        <p style="margin-top:12px;">Loading students...</p>
+      </div>
+
+      <div class="center-wrapper" *ngIf="!loading">
+        <div class="table-container">
+
+          <!-- Only the table scrolls horizontally; pagination stays fixed below -->
+          <div class="table-scroll">
             <table class="applicants-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Student ID</th>
-                  <th>Course</th>
-                  <th>Email</th>
-                  <th>OJT Start Date</th>
-                  <th>Hours Progress</th>
+                  <th class="col-name">Name</th>
+                  <th class="col-id">Student ID</th>
+                  <th class="col-course">Course</th>
+                  <th class="col-email">Email</th>
+                  <th class="col-date">OJT Start Date</th>
+                  <th class="col-progress">Hours Progress</th>
                 </tr>
               </thead>
               <tbody>
-  
-                <tr *ngFor="let student of pagedStudents"
-                    (click)="openProfile(student)"
-                    style="cursor:pointer;">
-                  <td class="profile-name">
-                    <img [src]="getAvatarUrl(student)"
-                         class="profile-pic"
-                         alt="Profile">
-                    <span>{{ getFullName(student) }}</span>
-                  </td>
-                  <td>{{ student.student_id }}</td>
-                  <td>{{ student.course }}</td>
-                  <td>{{ student.email }}</td>
-                  <td>{{ getStartDate(student) }}</td>
-                  <td style="min-width:160px;">
-                    <div class="progress-bar">
-                      <div class="progress-fill"
-                           [style.width]="getProgress(student) + '%'">
+
+                <ng-container *ngFor="let student of pagedStudents">
+                  <tr (click)="openProfile(student)" class="data-row">
+
+                    <td class="col-name">
+                      <div class="profile-name">
+                        <img [src]="getAvatarUrl(student)"
+                             class="profile-pic"
+                             alt="Profile">
+                        <span class="name-text">{{ getFullName(student) }}</span>
                       </div>
-                    </div>
-                    <span class="progress-text">
-                      {{ student.completed_hours || 0 }} /
-                      {{ student.required_hours  || 500 }} hrs
-                      ({{ getProgress(student) }}%)
-                    </span>
-                  </td>
-                </tr>
-  
-                <tr *ngIf="filteredStudents.length === 0">
+                    </td>
+
+                    <td class="col-id">{{ student.student_id }}</td>
+
+                    <td class="col-course">{{ abbreviateCourse(student.course) }}</td>
+                    <td class="col-email">{{ student.email }}</td>
+                    <td class="col-date">{{ getStartDate(student) }}</td>
+
+                    <td class="col-progress">
+                      <div class="progress-wrap">
+                        <div class="progress-bar">
+                          <div class="progress-fill"
+                               [style.width]="getProgress(student) + '%'">
+                          </div>
+                        </div>
+                        <span class="progress-text">
+                          {{ student.completed_hours || 0 }} /
+                          {{ student.required_hours  || 500 }} hrs
+                          ({{ getProgress(student) }}%)
+                        </span>
+                      </div>
+                    </td>
+
+                  </tr>
+                </ng-container>
+
+                <!-- Ghost/filler rows to maintain fixed table height -->
+                <ng-container *ngFor="let ghost of ghostRows">
+                  <tr class="ghost-row">
+                    <td class="col-name"></td>
+                    <td class="col-id"></td>
+                    <td class="col-course"></td>
+                    <td class="col-email"></td>
+                    <td class="col-date"></td>
+                    <td class="col-progress"></td>
+                  </tr>
+                </ng-container>
+
+                <tr *ngIf="filteredStudents.length === 0" class="ghost-row">
                   <td colspan="6"
-                      style="text-align:center; color:#9ca3af; padding:30px;">
+                      style="text-align:center; color:#9ca3af; padding:30px; border-bottom:none;">
                     No students found.
                   </td>
                 </tr>
-  
+
               </tbody>
             </table>
-  
-            <!-- PAGINATION -->
-            <div class="pagination">
-              <button class="page-btn">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-  
-              <div class="page-numbers">
-                <span class="page active">1</span>
-                <span class="page">2</span>
-                <span class="page">3</span>
-              </div>
-  
-              <button class="page-btn">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
           </div>
+          <!-- END table-scroll -->
+
+          <!-- PAGINATION — outside scroll so it never moves -->
+          <div class="pagination">
+            <span class="page-info">
+              Showing {{ rangeStart }}–{{ rangeEnd }}
+              of {{ filteredStudents.length }}
+            </span>
+            <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="page-numbers">
+              <span class="page active">{{ currentPage }}</span>
+            </div>
+            <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
         </div>
       </div>
+
     </div>
   </div>
+</div>
