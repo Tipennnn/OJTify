@@ -911,5 +911,5 @@ app-supervisor-topnav {
 
 @media (max-width: 480px) {
   .applicants-table { font-size: 12px; }
-  .scanner-modal { height: 520px; }
+  .scanner-modal { height: 521px; }
 }
