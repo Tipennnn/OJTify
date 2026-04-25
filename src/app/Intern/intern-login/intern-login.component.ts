@@ -89,67 +89,78 @@ private fpCooldownTimer: any;
 
   // STEP 1 — Send OTP via Brevo
   async sendOtp() {
-  if (!this.fpEmail) {
-    this.fpError = 'Please enter your email address.';
-    return;
-  }
-
-  this.fpLoading = true;
-  this.fpError   = '';
-
-  try {
-    // Check if email exists in students table
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL
-    );
-
-    const student = (res.documents as any[])
-      .find(s => s.email === this.fpEmail);
-
-    if (!student) {
-      this.fpError   = 'No account found with this email address.';
-      this.fpLoading = false;
+    if (!this.fpEmail) {
+      this.fpError = 'Please enter your email address.';
       return;
     }
 
-    this.fpUserName = `${student.first_name} ${student.last_name}`;
-    this.fpUserId   = student.$id;
+    this.fpLoading = true;
+    this.fpError   = '';
 
-    // Generate 6-digit OTP
-    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000); // 10 minutes
+    try {
+      // Check if email exists in students table
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL
+      );
 
-    // Send OTP via Appwrite Function (no longer calls Brevo directly)
-    const execution = await this.appwrite.functions.createExecution(
-      '69e75aef0017bf366386',
-      JSON.stringify({
-        action:     'send-otp',
-        email:      this.fpEmail,
-        userName:   this.fpUserName,
-        otp:        this.fpOtp,
-        templateId: environment.brevoOtpTid
-      }),
-      false
-    );
+      const student = (res.documents as any[])
+        .find(s => s.email === this.fpEmail);
 
-    const result = JSON.parse(execution.responseBody);
+      if (!student) {
+        this.fpError   = 'No account found with this email address.';
+        this.fpLoading = false;
+        return;
+      }
 
-    if (!result.success) {
+      this.fpUserName = `${student.first_name} ${student.last_name}`;
+      this.fpUserId   = student.$id;
+
+      // Generate 6-digit OTP
+      this.fpOtp      = Math.floor(100000 + Math.random() * 900000).toString();
+      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000); // 10 minutes
+
+      // Send OTP via Brevo
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': environment.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: {
+            name:  'OJTify Admin',
+            email: 'adminojtify@gmail.com'
+          },
+          to: [{
+            email: this.fpEmail,
+            name:  this.fpUserName
+          }],
+          templateId: environment.brevoOtpTid,
+          params: {
+            user_name: this.fpUserName,
+            otp_code:  this.fpOtp
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        console.error('Brevo error:', err);
+        this.fpError = 'Failed to send OTP. Please try again.';
+        return;
+      }
+      
+      this.startResendCooldown();
+      this.forgotStep = 2;
+
+    } catch (error: any) {
       this.fpError = 'Failed to send OTP. Please try again.';
-      return;
+      console.error(error);
+    } finally {
+      this.fpLoading = false;
     }
-
-    this.startResendCooldown();
-    this.forgotStep = 2;
-
-  } catch (error: any) {
-    this.fpError = 'Failed to send OTP. Please try again.';
-    console.error(error);
-  } finally {
-    this.fpLoading = false;
   }
-}
 
   // STEP 2 — Verify OTP
 verifyOtp() {
@@ -175,43 +186,11 @@ verifyOtp() {
   this.forgotStep = 3;
 }
 
-  async resendOtp() {
-  this.fpEnteredOtp = '';
-  this.fpError      = '';
-  this.fpLoading    = true;
-
-  try {
-    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
-
-    const execution = await this.appwrite.functions.createExecution(
-      '69e75aef0017bf366386',
-      JSON.stringify({
-        action:     'send-otp',
-        email:      this.fpEmail,
-        userName:   this.fpUserName,
-        otp:        this.fpOtp,
-        templateId: environment.brevoOtpTid
-      }),
-      false
-    );
-
-    const result = JSON.parse(execution.responseBody);
-
-    if (!result.success) {
-      this.fpError = 'Failed to resend OTP. Please try again.';
-      return;
-    }
-
-    this.startResendCooldown();
-
-  } catch (error: any) {
-    this.fpError = 'Failed to resend OTP. Please try again.';
-    console.error(error);
-  } finally {
-    this.fpLoading = false;
+  resendOtp() {
+    this.fpEnteredOtp = '';
+    this.fpError      = '';
+    this.forgotStep   = 1;
   }
-}
 
   // STEP 3 — Reset Password via Appwrite recovery
  async resetPassword() {
@@ -236,7 +215,8 @@ verifyOtp() {
   this.fpLoading = true;
 
   try {
-    // Check if new password is same as current
+
+    // ── Check if new password is same as current ──────────
     try {
       await this.appwrite.account.createEmailPasswordSession(
         this.fpEmail,
@@ -249,22 +229,24 @@ verifyOtp() {
     } catch {
       // Passwords are different, safe to proceed
     }
+    // ─────────────────────────────────────────────────────
 
-    // Call Appwrite Function instead of direct API call
-    const execution = await this.appwrite.functions.createExecution(
-      '69e75aef0017bf366386',
-      JSON.stringify({
-        action:   'reset-password',
-        userId:   this.fpUserId,
-        password: this.fpNewPassword
-      }),
-      false
+    const response = await fetch(
+      `https://sgp.cloud.appwrite.io/v1/users/${this.fpUserId}/password`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type':       'application/json',
+          'X-Appwrite-Project': '69ba8d9c0027d10c447f',
+          'X-Appwrite-Key':     environment.appwriteApiKey
+        },
+        body: JSON.stringify({ password: this.fpNewPassword })
+      }
     );
 
-    const result = JSON.parse(execution.responseBody);
-
-    if (!result.success) {
-      this.fpError = result.message || 'Failed to reset password.';
+    if (!response.ok) {
+      const err = await response.json();
+      this.fpError = err.message || 'Failed to reset password.';
       return;
     }
 
