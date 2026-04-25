@@ -89,78 +89,67 @@ private fpCooldownTimer: any;
 
   // STEP 1 — Send OTP via Brevo
   async sendOtp() {
-    if (!this.fpEmail) {
-      this.fpError = 'Please enter your email address.';
+  if (!this.fpEmail) {
+    this.fpError = 'Please enter your email address.';
+    return;
+  }
+
+  this.fpLoading = true;
+  this.fpError   = '';
+
+  try {
+    // Check if email exists in students table
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL
+    );
+
+    const student = (res.documents as any[])
+      .find(s => s.email === this.fpEmail);
+
+    if (!student) {
+      this.fpError   = 'No account found with this email address.';
+      this.fpLoading = false;
       return;
     }
 
-    this.fpLoading = true;
-    this.fpError   = '';
+    this.fpUserName = `${student.first_name} ${student.last_name}`;
+    this.fpUserId   = student.$id;
 
-    try {
-      // Check if email exists in students table
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
+    // Generate 6-digit OTP
+    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000); // 10 minutes
 
-      const student = (res.documents as any[])
-        .find(s => s.email === this.fpEmail);
+    // Send OTP via Appwrite Function (no longer calls Brevo directly)
+    const execution = await this.appwrite.functions.createExecution(
+      '69e75aef0017bf366386',
+      JSON.stringify({
+        action:     'send-otp',
+        email:      this.fpEmail,
+        userName:   this.fpUserName,
+        otp:        this.fpOtp,
+        templateId: environment.brevoOtpTid
+      }),
+      false
+    );
 
-      if (!student) {
-        this.fpError   = 'No account found with this email address.';
-        this.fpLoading = false;
-        return;
-      }
+    const result = JSON.parse(execution.responseBody);
 
-      this.fpUserName = `${student.first_name} ${student.last_name}`;
-      this.fpUserId   = student.$id;
-
-      // Generate 6-digit OTP
-      this.fpOtp      = Math.floor(100000 + Math.random() * 900000).toString();
-      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000); // 10 minutes
-
-      // Send OTP via Brevo
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': environment.brevoApiKey
-        },
-        body: JSON.stringify({
-          sender: {
-            name:  'OJTify Admin',
-            email: 'adminojtify@gmail.com'
-          },
-          to: [{
-            email: this.fpEmail,
-            name:  this.fpUserName
-          }],
-          templateId: environment.brevoOtpTid,
-          params: {
-            user_name: this.fpUserName,
-            otp_code:  this.fpOtp
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        console.error('Brevo error:', err);
-        this.fpError = 'Failed to send OTP. Please try again.';
-        return;
-      }
-      
-      this.startResendCooldown();
-      this.forgotStep = 2;
-
-    } catch (error: any) {
+    if (!result.success) {
       this.fpError = 'Failed to send OTP. Please try again.';
-      console.error(error);
-    } finally {
-      this.fpLoading = false;
+      return;
     }
+
+    this.startResendCooldown();
+    this.forgotStep = 2;
+
+  } catch (error: any) {
+    this.fpError = 'Failed to send OTP. Please try again.';
+    console.error(error);
+  } finally {
+    this.fpLoading = false;
   }
+}
 
   // STEP 2 — Verify OTP
 verifyOtp() {
@@ -186,11 +175,43 @@ verifyOtp() {
   this.forgotStep = 3;
 }
 
-  resendOtp() {
-    this.fpEnteredOtp = '';
-    this.fpError      = '';
-    this.forgotStep   = 1;
+  async resendOtp() {
+  this.fpEnteredOtp = '';
+  this.fpError      = '';
+  this.fpLoading    = true;
+
+  try {
+    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+
+    const execution = await this.appwrite.functions.createExecution(
+      '69e75aef0017bf366386',
+      JSON.stringify({
+        action:     'send-otp',
+        email:      this.fpEmail,
+        userName:   this.fpUserName,
+        otp:        this.fpOtp,
+        templateId: environment.brevoOtpTid
+      }),
+      false
+    );
+
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      this.fpError = 'Failed to resend OTP. Please try again.';
+      return;
+    }
+
+    this.startResendCooldown();
+
+  } catch (error: any) {
+    this.fpError = 'Failed to resend OTP. Please try again.';
+    console.error(error);
+  } finally {
+    this.fpLoading = false;
   }
+}
 
   // STEP 3 — Reset Password via Appwrite recovery
  async resetPassword() {
