@@ -1,0 +1,59 @@
+<div class="verify-page">
+
+  <!-- Loading -->
+  <div class="verify-card" *ngIf="loading">
+    <div class="verify-spinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
+    <p class="verify-loading-text">Verifying certificate...</p>
+  </div>
+
+  <!-- Verified -->
+  <div class="verify-card verified" *ngIf="!loading && verified">
+    <div class="verify-icon-wrap success">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <h1 class="verify-title">Certificate Verified</h1>
+    <p class="verify-subtitle">This is an officially issued OJT certificate.</p>
+
+    <div class="verify-divider"></div>
+
+    <div class="verify-info-grid">
+      <div class="verify-info-item">
+        <span class="verify-label"><i class="fa-solid fa-user"></i> Intern Name</span>
+        <span class="verify-value">{{ internName }}</span>
+      </div>
+      <div class="verify-info-item">
+        <span class="verify-label"><i class="fa-solid fa-book"></i> Course</span>
+        <span class="verify-value">{{ course }}</span>
+      </div>
+      <div class="verify-info-item">
+        <span class="verify-label"><i class="fa-solid fa-school"></i> School</span>
+        <span class="verify-value">{{ school }}</span>
+      </div>
+      <div class="verify-info-item">
+        <span class="verify-label"><i class="fa-solid fa-clock"></i> Hours Completed</span>
+        <span class="verify-value">{{ hoursCompleted }} / {{ requiredHours }} hrs</span>
+      </div>
+      <div class="verify-info-item">
+        <span class="verify-label"><i class="fa-solid fa-calendar-check"></i> Date Issued</span>
+        <span class="verify-value">{{ issuedDate }}</span>
+      </div>
+    </div>
+
+    <div class="verify-badge">
+      <i class="fa-solid fa-shield-halved"></i> Issued by OJTify
+    </div>
+  </div>
+
+  <!-- Not found / Error -->
+  <div class="verify-card invalid" *ngIf="!loading && error">
+    <div class="verify-icon-wrap danger">
+      <i class="fa-solid fa-circle-xmark"></i>
+    </div>
+    <h1 class="verify-title">Certificate Not Found</h1>
+    <p class="verify-subtitle">This QR code is invalid or the certificate does not exist in our records.</p>
+    <div class="verify-badge danger">
+      <i class="fa-solid fa-triangle-exclamation"></i> Unverified
+    </div>
+  </div>
+
+</div>

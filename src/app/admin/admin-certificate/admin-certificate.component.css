@@ -925,3 +925,59 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
 .input-wrap.warn:focus-within { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,.1); }
 .input-wrap.over { border-color: #fca5a5; background: #fff1f2; }
 .input-wrap.over:focus-within { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+
+/* Expand button on mini preview label */
+.mini-expand-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 2px 7px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 11px;
+  margin-left: 8px;
+  transition: all 0.15s;
+  vertical-align: middle;
+}
+.mini-expand-btn:hover {
+  background: #f3f4f6;
+  color: #1e3a8a;
+  border-color: #1e3a8a;
+}
+
+/* Make the mini cert wrap show a pointer + subtle hover */
+.mini-cert-wrap {
+  cursor: pointer;
+}
+.mini-cert-wrap:hover .mini-cert-viewport {
+  box-shadow: 0 0 0 2px #1e3a8a44;
+  border-radius: 10px;
+}
+
+/* Expanded preview overlay sits on top of settings modal */
+.expanded-preview-overlay {
+  z-index: 1100 !important;
+}
+.cert-qr-wrap {
+  position: absolute;
+  bottom: 18px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.cert-qr-img {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px;
+  background: #fff;
+}
+.cert-qr-label {
+  font-size: 7px;
+  color: #6b7280;
+  text-align: center;
+  letter-spacing: 0.3px;
+}

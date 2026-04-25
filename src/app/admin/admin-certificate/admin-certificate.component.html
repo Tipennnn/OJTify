@@ -695,8 +695,14 @@
   
         <!-- MINI PREVIEW COL -->
         <div class="settings-preview-col">
-          <p class="mini-preview-label">Live Preview <span class="mini-hint">Drag to pan • Scroll to zoom</span></p>
-          <div class="mini-cert-wrap">
+          <p class="mini-preview-label">
+  Live Preview 
+  <span class="mini-hint">Drag to pan • Scroll to zoom</span>
+  <button class="mini-expand-btn" (click)="openExpandedPreview()" title="Expand preview">
+    <i class="fa-solid fa-expand"></i>
+  </button>
+</p>
+          <div class="mini-cert-wrap" (click)="openExpandedPreview()" style="cursor:pointer;" title="Click to expand">
             <div class="mini-zoom-controls">
               <button class="mini-zoom-btn" (click)="miniZoomIn()" title="Zoom in">+</button>
               <button class="mini-zoom-btn" (click)="miniZoomReset()" title="Reset" style="font-size:9px;">⟳</button>
@@ -764,6 +770,130 @@
           </div>
           <p class="mini-zoom-tip"><i class="fa-solid fa-hand"></i> Drag to pan · Scroll to zoom</p>
         </div>
+
+        <!-- ================================================
+     EXPANDED LIVE PREVIEW MODAL
+================================================ -->
+<div class="modal-overlay cert-overlay expanded-preview-overlay" 
+     *ngIf="showExpandedPreview" 
+     (click)="closeExpandedPreview()">
+  <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
+
+    <div class="cert-modal-topbar">
+      <div class="cert-modal-title-group">
+        <div class="cert-modal-icon-wrap"><i class="fa-solid fa-eye"></i></div>
+        <div>
+          <p class="cert-modal-label">Live Template Preview</p>
+          <p class="cert-modal-sub">Changes reflect in real time</p>
+        </div>
+      </div>
+      <div class="cert-modal-actions">
+        <span class="cert-hover-tip"><i class="fa-solid fa-hand"></i> Drag to pan · Scroll to zoom</span>
+        <button class="cert-close-btn" (click)="closeExpandedPreview()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="cert-scroll-area"
+         (mousedown)="expandStartDrag($event)"
+         (mousemove)="expandOnDrag($event)"
+         (mouseup)="expandStopDrag()"
+         (mouseleave)="expandStopDrag()"
+         (wheel)="expandOnWheel($event)">
+
+      <div class="cert-pan-transform"
+           [style.transform]="expandTransformStyle">
+        <div class="certificate">
+          <div class="cert-top-bar"      [style.background]="certTemplate.primaryColor"></div>
+          <div class="cert-top-bar-gold" [style.background]="certTemplate.accentColor"></div>
+          <div class="cert-body"
+               [style.border-left-color]="certTemplate.primaryColor"
+               [style.border-right-color]="certTemplate.primaryColor">
+            <div class="cert-watermark" *ngIf="certTemplate.watermarkUrl">
+              <img [src]="certTemplate.watermarkUrl" alt="Watermark">
+            </div>
+            <div class="cert-inner-border"></div>
+            <svg class="cert-corner-ornament tl" viewBox="0 0 28 28">
+              <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+              <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+            </svg>
+            <svg class="cert-corner-ornament tr" viewBox="0 0 28 28">
+              <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+              <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+            </svg>
+            <svg class="cert-corner-ornament bl" viewBox="0 0 28 28">
+              <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+              <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+            </svg>
+            <svg class="cert-corner-ornament br" viewBox="0 0 28 28">
+              <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
+              <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
+            </svg>
+            <div class="cert-content">
+              <div class="cert-header">
+                <div class="cert-header-logo">
+                  <img *ngIf="certTemplate.depedLogoUrl" [src]="certTemplate.depedLogoUrl" alt="Left Logo">
+                </div>
+                <div class="cert-header-text">
+                  <p class="cert-republic">{{ certTemplate.republic }}</p>
+                  <p class="cert-dept" [style.color]="certTemplate.primaryColor">{{ certTemplate.department }}</p>
+                  <p class="cert-division">{{ certTemplate.division }}</p>
+                  <p class="cert-school-name" [style.color]="certTemplate.primaryColor">{{ certTemplate.schoolName }}</p>
+                  <p class="cert-address">{{ certTemplate.address }}</p>
+                </div>
+                <div class="cert-header-logo">
+                  <img *ngIf="certTemplate.schoolLogoUrl" [src]="certTemplate.schoolLogoUrl" alt="Right Logo">
+                </div>
+              </div>
+              <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
+              <p class="cert-subtitle-tag">{{ certTemplate.subtitleTag }}</p>
+              <p class="cert-awarded-text">{{ certTemplate.awardedText }}</p>
+              <div class="cert-name-wrap">
+                <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">Sample Intern Name</p>
+                <div class="cert-name-line" [style.background]="certTemplate.primaryColor"></div>
+              </div>
+              <p class="cert-body-para" [innerHTML]="getPreviewBodyText()"></p>
+              <p class="cert-given-text">{{ getPreviewGivenText() }}</p>
+              <div class="cert-sig-row">
+                <div class="cert-sig-block">
+                  <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
+                  <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+                    {{ certTemplate.leftSignatoryName | uppercase }}
+                  </p>
+                  <div class="cert-sig-underline"></div>
+                  <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
+                  <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+                </div>
+                <div class="cert-sig-block">
+                  <img *ngIf="certTemplate.rightSigUrl" [src]="certTemplate.rightSigUrl" class="cert-sig-image">
+                  <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+                    {{ certTemplate.supervisorName | uppercase }}
+                  </p>
+                  <div class="cert-sig-underline"></div>
+                  <p class="cert-sig-pos">{{ certTemplate.supervisorPos }}</p>
+                  <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cert-bottom-bar-gold" [style.background]="certTemplate.accentColor"></div>
+          <div class="cert-bottom-bar"      [style.background]="certTemplate.primaryColor"></div>
+        </div>
+
+      </div>
+
+      <!-- zoom controls -->
+      <div class="cert-zoom-controls">
+        <button class="cert-zoom-ctrl-btn" (click)="expandZoomOut()" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
+        <span class="cert-zoom-label">{{ (expandScale * 100) | number:'1.0-0' }}%</span>
+        <button class="cert-zoom-ctrl-btn" (click)="expandZoomIn()" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
+        <button class="cert-zoom-reset" (click)="expandResetView()" title="Reset view">Reset</button>
+      </div>
+    </div>
+
+  </div>
+</div>
   
       </div><!-- /modal-body -->
   
@@ -1005,6 +1135,10 @@
                     <p class="cert-sig-pos">{{ selectedIntern.supervisorPos }}</p>
                     <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
                   </div>
+                   <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
+    <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
+    <p class="cert-qr-label">Scan to verify</p>
+  </div>
                 </div>
               </div>
             </div>

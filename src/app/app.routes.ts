@@ -31,6 +31,7 @@ import { SupervisorTasksComponent } from './supervisor/supervisor-tasks/supervis
 import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/supervisor-dashboard.component';
 import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluation/supervisor-evaluation.component';
 import { InternEvaluationComponent } from './Intern/intern-evaluation/intern-evaluation.component';
+import { CertVerifyComponent } from './cert-verify/cert-verify.component';
 
 import { authGuard } from './guards/auth.guard';
 
@@ -45,6 +46,7 @@ export const routes: Routes = [
   { path: 'admin-login',     component: AdminLoginComponent },
   { path: 'supervisor-login',component: SupervisorLoginComponent },
   { path: 'reset-password',  component: ResetPasswordComponent },
+  { path: 'verify/:id',      component: CertVerifyComponent },
 
   // ── Intern protected routes ────────────────────────────
   {

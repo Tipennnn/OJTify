@@ -8,6 +8,8 @@ import { ID, Query } from 'appwrite';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import * as QRCode from 'qrcode';
+
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface Intern {
@@ -26,12 +28,12 @@ export interface Intern {
   _rawStartDate?:   string;
   _rawEndDate?:     string;
   _rawSentDate?:    string;
-  // ── NEW: per-intern supervisor info ──
   supervisorName:   string;
   supervisorPos:    string;
   rightSigBase64:   string;
+  verificationId?:  string;   // 👈 ADD THIS LINE ONLY
 }
- 
+
 export interface CertTemplate {
   requiredHours:     number;
   republic:          string;
@@ -104,6 +106,9 @@ export interface SortOption {
 })
 export class AdminCertificateComponent implements OnInit {
 
+
+  certQrDataUrl = '';
+
   // ── Layout
   sidenavCollapsed = false;
 
@@ -129,6 +134,17 @@ export class AdminCertificateComponent implements OnInit {
   appliedMonth:    number | null = null;
   appliedHoursMin: number | null = null;
   appliedHoursMax: number | null = null;
+
+  showExpandedPreview = false;
+expandScale    = 0.75;
+expandTransX   = 0;
+expandTransY   = 0;
+expandDragging = false;
+expandDragStartX  = 0;
+expandDragStartY  = 0;
+expandDragOriginX = 0;
+expandDragOriginY = 0;
+
 
   readonly monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -514,70 +530,83 @@ export class AdminCertificateComponent implements OnInit {
   }
 
   async saveTemplate(): Promise<void> {
-    if (this.hasOverLimitFields()) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Fields Too Long',
-        text: 'Some fields exceed the character limit. Please shorten them before saving.',
-        confirmButtonColor: '#2563eb'
-      });
-      return;
-    }
+  if (this.hasOverLimitFields()) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Fields Too Long',
+      text: 'Some fields exceed the character limit. Please shorten them before saving.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
 
-    const { depedLogoUrl, schoolLogoUrl, watermarkUrl, leftSigUrl, rightSigUrl, ...textFields } = this.certTemplate;
-    const json = JSON.stringify(textFields);
+  const { depedLogoUrl, schoolLogoUrl, watermarkUrl, leftSigUrl, rightSigUrl, ...textFields } = this.certTemplate;
+  const json = JSON.stringify(textFields);
 
-    localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
-    this.saveFileIds();
+  localStorage.setItem('admin_cert_template', JSON.stringify(this.certTemplate));
+  this.saveFileIds();
 
+  try {
+    const user = await this.appwrite.account.get();
+
+    // Try to find existing admin doc by auth_user_id
+    let adminDocId: string | null = null;
     try {
-      const user = await this.appwrite.account.get();
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ADMINS_COL,
+        [Query.equal('auth_user_id', user.$id)]
+      );
+      if (res.documents.length > 0) adminDocId = res.documents[0].$id;
+    } catch { /* ignore */ }
 
-      let adminDocId: string | null = null;
-      try {
-        const res = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ADMINS_COL,
-          [Query.equal('auth_user_id', user.$id)]
-        );
-        if (res.documents.length > 0) adminDocId = res.documents[0].$id;
-      } catch { /* ignore */ }
+    const payload = {
+      cert_template_json:   json,
+      cert_deped_logo_url:  this.fileIdMap['deped']     || '',
+      cert_school_logo_url: this.fileIdMap['school']    || '',
+      cert_watermark_url:   this.fileIdMap['watermark'] || '',
+      cert_left_sig_url:    this.fileIdMap['leftSig']   || '',
+      cert_right_sig_url:   this.fileIdMap['rightSig']  || '',
+    };
 
-      if (!adminDocId) adminDocId = user.$id;
-
+    if (adminDocId) {
+      // Document exists — update it
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.ADMINS_COL,
         adminDocId,
-        {
-          cert_template_json:    json,
-          cert_deped_logo_url:   this.fileIdMap['deped']     || '',
-          cert_school_logo_url:  this.fileIdMap['school']    || '',
-          cert_watermark_url:    this.fileIdMap['watermark'] || '',
-          cert_left_sig_url:     this.fileIdMap['leftSig']   || '',
-          cert_right_sig_url:    this.fileIdMap['rightSig']  || '',
-        }
+        payload
       );
-    } catch (err) {
-      console.error('Could not save template to DB:', err);
-      Swal.fire({
-        icon: 'warning', title: 'Saved Locally Only',
-        text: 'Template saved to browser cache but failed to save to the database.',
-        confirmButtonColor: '#2563eb'
-      });
-      this.closeSettings();
-      this.splitInterns();
-      return;
+    } else {
+      // No document found — create one
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ADMINS_COL,
+        user.$id,          // use auth user ID as the document ID
+        { ...payload, auth_user_id: user.$id, email: user.email }
+      );
     }
 
+  } catch (err) {
+    console.error('Could not save template to DB:', err);
+    Swal.fire({
+      icon: 'warning', title: 'Saved Locally Only',
+      text: 'Template saved to browser cache but failed to save to the database.',
+      confirmButtonColor: '#2563eb'
+    });
     this.closeSettings();
     this.splitInterns();
-    Swal.fire({
-      icon: 'success', title: 'Template Saved!',
-      toast: true, position: 'top-end',
-      showConfirmButton: false, timer: 2500, timerProgressBar: true
-    });
+    return;
   }
+
+  this.closeSettings();
+  this.splitInterns();
+  Swal.fire({
+    icon: 'success', title: 'Template Saved!',
+    toast: true, position: 'top-end',
+    showConfirmButton: false, timer: 2500, timerProgressBar: true
+  });
+}
 
   resetTemplate(): void {
     Swal.fire({
@@ -688,29 +717,30 @@ export class AdminCertificateComponent implements OnInit {
         const supEsigFileId = sup?.esig_file_id ?? '';
         const supEsigBase64 = supEsigFileId ? (esigBase64Map.get(supEsigFileId) ?? '') : '';
 
-        return {
-          $id:            doc.$id,
-          name:           fullName,
-          studentId:      doc.student_id  ?? '',
-          course:         doc.course      ?? 'N/A',
-          school:         doc.school_name ?? 'N/A',
-          hoursCompleted,
-          requiredHours,
-          startDate:      this.formatDate(rawStart),
-          endDate:        this.formatDate(resolvedEndRaw),
-          photoUrl,
-          sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
-          _sortDate:      resolvedEndRaw
-                            ? new Date(resolvedEndRaw).getTime()
-                            : new Date(rawStart).getTime(),
-          _rawStartDate:  rawStart,
-          _rawEndDate:    resolvedEndRaw,
-          _rawSentDate:   rawSentDate,
-          _certSent:      doc.cert_sent === true,
-          supervisorName: supFullName,
-          supervisorPos:  supPos,
-          rightSigBase64: supEsigBase64,
-        } as any;
+       return {
+  $id:            doc.$id,
+  name:           fullName,
+  studentId:      doc.student_id  ?? '',
+  course:         doc.course      ?? 'N/A',
+  school:         doc.school_name ?? 'N/A',
+  hoursCompleted,
+  requiredHours,
+  startDate:      this.formatDate(rawStart),
+  endDate:        this.formatDate(resolvedEndRaw),
+  photoUrl,
+  sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
+  _sortDate:      resolvedEndRaw
+                    ? new Date(resolvedEndRaw).getTime()
+                    : new Date(rawStart).getTime(),
+  _rawStartDate:  rawStart,
+  _rawEndDate:    resolvedEndRaw,
+  _rawSentDate:   rawSentDate,
+  _certSent:      doc.cert_sent === true,
+  supervisorName: supFullName,
+  supervisorPos:  supPos,
+  rightSigBase64: supEsigBase64,
+  verificationId: doc.cert_verification_id ?? '',  // 👈 ADD THIS LINE ONLY
+} as any;
       });
 
       this.allInterns = mapped;
@@ -881,12 +911,16 @@ export class AdminCertificateComponent implements OnInit {
 
   // ── Preview ───────────────────────────────────────────────────────────────────
 
-  previewCert(intern: Intern): void {
-    this.certResetView();
-    this.selectedIntern  = intern;
-    this.showCertPreview = true;
+  async previewCert(intern: Intern): Promise<void> {
+  this.certResetView();
+  this.selectedIntern = intern;
+  if (intern.verificationId) {
+    this.certQrDataUrl = await this.generateQrCode(intern.verificationId);
+  } else {
+    this.certQrDataUrl = '';
   }
-
+  this.showCertPreview = true;
+}
   closeCertPreview(): void {
     this.showCertPreview = false;
     this.selectedIntern  = null;
@@ -905,50 +939,43 @@ export class AdminCertificateComponent implements OnInit {
   }
 
   async confirmSendCert(): Promise<void> {
-    if (!this.sendTarget) return;
-    const intern     = this.sendTarget;
-    const today      = new Date();
-    const todayIso   = today.toISOString();
-    const todayFmt   = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  if (!this.sendTarget) return;
+  const intern   = this.sendTarget;
+  const today    = new Date();
+  const todayIso = today.toISOString();
+  const todayFmt = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    try {
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        intern.$id,
-        { cert_sent: true, cert_sent_date: todayIso }
-      );
-    } catch (err) {
-      console.error('Failed to update cert_sent in DB:', err);
-      Swal.fire({
-        icon: 'error',
-        title: 'DB Error',
-        text: 'Could not save cert status to the database. Please try again.',
-        confirmButtonColor: '#2563eb'
-      });
-      return;
-    }
+  // Generate a unique verification ID
+  const verificationId = ID.unique();
 
-    const sentIntern: Intern = {
-      ...intern,
-      sentDate:     todayFmt,
-      _rawSentDate: todayIso,
-    };
-
-    this.sentCerts.unshift(sentIntern);
-    this.completedInterns = this.completedInterns.filter(i => i.$id !== intern.$id);
-
-    this.closeSendModal();
-
-    Swal.fire({
-      icon: 'success', title: 'Certificate Sent!',
-      html: `Certificate has been issued to <b>${intern.name}</b>.`,
-      toast: true, position: 'top-end', showConfirmButton: false,
-      timer: 3000, timerProgressBar: true,
-    });
-
-    this.downloadCert(intern);
+  try {
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      intern.$id,
+      { cert_sent: true, cert_sent_date: todayIso, cert_verification_id: verificationId }
+    );
+  } catch (err) {
+    console.error('Failed to update cert_sent in DB:', err);
+    Swal.fire({ icon: 'error', title: 'DB Error', text: 'Could not save cert status.', confirmButtonColor: '#2563eb' });
+    return;
   }
+
+  const sentIntern: Intern = { ...intern, sentDate: todayFmt, _rawSentDate: todayIso };
+  this.sentCerts.unshift(sentIntern);
+  this.completedInterns = this.completedInterns.filter(i => i.$id !== intern.$id);
+  this.closeSendModal();
+
+  Swal.fire({
+    icon: 'success', title: 'Certificate Sent!',
+    html: `Certificate has been issued to <b>${intern.name}</b>.`,
+    toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
+  });
+
+  // Generate QR then download
+  this.certQrDataUrl = await this.generateQrCode(verificationId);
+  this.downloadCert(intern);
+}
 
   // ── Download / Print ──────────────────────────────────────────────────────────
 
@@ -1192,4 +1219,68 @@ export class AdminCertificateComponent implements OnInit {
       this.isOverLimit(k as keyof typeof this.FIELD_LIMITS)
     );
   }
+  get expandTransformStyle(): string {
+  return `translate(${this.expandTransX}px, ${this.expandTransY}px) scale(${this.expandScale})`;
+}
+
+openExpandedPreview(): void {
+  this.expandResetView();
+  this.showExpandedPreview = true;
+}
+
+closeExpandedPreview(): void {
+  this.showExpandedPreview = false;
+}
+
+expandZoomIn():    void { this.expandScale = Math.min(2, this.expandScale + 0.1); }
+expandZoomOut():   void { this.expandScale = Math.max(0.25, this.expandScale - 0.1); }
+expandResetView(): void { this.expandScale = 0.75; this.expandTransX = 0; this.expandTransY = 0; }
+
+expandStartDrag(e: MouseEvent): void {
+  this.expandDragging    = true;
+  this.expandDragStartX  = e.clientX;
+  this.expandDragStartY  = e.clientY;
+  this.expandDragOriginX = this.expandTransX;
+  this.expandDragOriginY = this.expandTransY;
+  e.preventDefault();
+}
+expandOnDrag(e: MouseEvent): void {
+  if (!this.expandDragging) return;
+  this.expandTransX = this.expandDragOriginX + (e.clientX - this.expandDragStartX);
+  this.expandTransY = this.expandDragOriginY + (e.clientY - this.expandDragStartY);
+}
+expandStopDrag(): void { this.expandDragging = false; }
+expandOnWheel(e: WheelEvent): void {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.05 : 0.05;
+  this.expandScale = Math.min(2, Math.max(0.25, this.expandScale + delta));
+}
+
+getPreviewBodyText(): string {
+  const raw = this.certTemplate.bodyText || '';
+  const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return escaped
+    .replace(/\{name\}/g,   `<strong>Sample Intern Name</strong>`)
+    .replace(/\{hours\}/g,  `<strong>${this.certTemplate.requiredHours}</strong>`)
+    .replace(/\{course\}/g, `<strong>Bachelor of Science in Information Technology</strong>`)
+    .replace(/\{school\}/g, `<strong>Sample University</strong>`)
+    .replace(/\{host\}/g,   `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`);
+}
+
+getPreviewGivenText(): string {
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  return (this.certTemplate.givenText || '')
+    .replace(/\{date\}/g,     date)
+    .replace(/\{location\}/g, this.certTemplate.issuedLocation || this.certTemplate.schoolName);
+}
+private async generateQrCode(verificationId: string): Promise<string> {
+  const url = `${window.location.origin}/verify/${verificationId}`;
+  try {
+    return await QRCode.toDataURL(url, {
+      width: 160,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+  } catch { return ''; }
+}
 }
