@@ -131,7 +131,7 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
 
   // ── PAGINATION (matches admin-ojt pattern) ─────────────────
   currentPage = 1;
-  pageSize    = 9;
+  pageSize    = 10;
 
   get totalPages(): number {
     return Math.ceil(this.filteredLogs.length / this.pageSize) || 1;
