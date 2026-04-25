@@ -227,6 +227,12 @@
                 <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 
+
+                <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
+  <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
+  <p class="cert-qr-label">Scan to verify</p>
+</div>
+
             </div>
 
           </div><!-- /cert-content -->

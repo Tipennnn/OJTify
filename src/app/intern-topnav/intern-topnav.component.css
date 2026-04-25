@@ -530,3 +530,34 @@
 
 @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity:0; transform:translateY(20px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+.cert-body {
+  position: relative;
+}
+
+.cert-qr-wrap {
+  position: absolute;
+  bottom: 18px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  z-index: 2;
+}
+
+.cert-qr-img {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px;
+  background: #fff;
+}
+
+.cert-qr-label {
+  font-size: 7px;
+  color: #6b7280;
+  text-align: center;
+  letter-spacing: 0.3px;
+}

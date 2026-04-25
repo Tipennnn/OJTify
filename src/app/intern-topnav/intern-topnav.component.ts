@@ -7,6 +7,7 @@ import { Query } from 'appwrite';
 import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import * as QRCode from 'qrcode';
 
 interface CertTemplate {
   requiredHours:     number;
@@ -114,6 +115,9 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     endDate:        '',
     dateIssued:     '',
   };
+
+  certQrDataUrl = '';
+certVerificationId = '';
 
   get hoursReached(): boolean {
     return this.certSentByAdmin;
@@ -278,7 +282,10 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
         const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || user.name || 'Intern';
 
         this.certSentByAdmin = doc.cert_sent === true;
-
+        if (doc.cert_verification_id) {
+  this.certVerificationId = doc.cert_verification_id;
+  this.certQrDataUrl = await this.generateQrCode(doc.cert_verification_id);
+}
         // ── Last attendance date ──
         const lastAttDate = await this.fetchLastAttendanceDate(doc.student_id ?? '');
 
@@ -539,4 +546,14 @@ export class InternTopnavComponent implements OnInit, OnDestroy {
     if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password)) return 'Password must contain at least one special character.';
     return '';
   }
+  private async generateQrCode(verificationId: string): Promise<string> {
+  const url = `${window.location.origin}/verify/${verificationId}`;
+  try {
+    return await QRCode.toDataURL(url, {
+      width: 160,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+  } catch { return ''; }
+}
 }
