@@ -14,6 +14,7 @@ interface Intern {
   first_name: string;
   last_name: string;
   course: string;
+  student_id?: string;
   supervisor_id?: string;
   profile_photo_id?: string;
 }
@@ -62,10 +63,17 @@ interface Submission {
   file_id: string;
   file_name: string;
   submitted_at: string;
-  student_name?: string;
+  student_name: string;
   score?: number | null;
+  profile_photo_id?: string | null;
   _scoreInput?: number | null;
   _scoreSaving?: boolean;
+}
+
+interface SubmissionDisplayItem {
+  intern: Intern;
+  submission: Submission | null;
+  hasSubmission: boolean;
 }
 
 interface CourseOption {
@@ -157,6 +165,95 @@ const COURSE_LIST: CourseOption[] = [
   { abbr: 'BCAE',     full: 'Bachelor of Culture and Arts Education' },
 ];
 
+const COURSE_ABBR_MAP: { [key: string]: string } = {
+  'bachelor of science in information technology':              'BSIT',
+  'bachelor of science in computer science':                    'BSCS',
+  'bachelor of science in computer engineering':                'BSCpE',
+  'bachelor of science in information systems':                 'BSIS',
+  'bachelor of science in data science':                        'BSDS',
+  'bachelor of science in artificial intelligence':             'BSAI',
+  'bachelor of science in cybersecurity':                       'BSCySec',
+  'bachelor of science in software engineering':                'BSSE',
+  'bachelor of science in electronics engineering':             'BSECE',
+  'bachelor of science in electronics and communications engineering': 'BSECE',
+  'bachelor of science in electrical engineering':              'BSEE',
+  'bachelor of science in civil engineering':                   'BSCE',
+  'bachelor of science in mechanical engineering':              'BSME',
+  'bachelor of science in industrial engineering':              'BSIE',
+  'bachelor of science in chemical engineering':                'BSChE',
+  'bachelor of science in geodetic engineering':                'BSGE',
+  'bachelor of science in mining engineering':                  'BSMinE',
+  'bachelor of science in marine engineering':                  'BSMarE',
+  'bachelor of science in marine transportation':               'BSMT',
+  'bachelor of science in aeronautical engineering':            'BSAeroE',
+  'bachelor of science in agricultural engineering':            'BSAgriE',
+  'bachelor of science in environmental engineering':           'BSEnvE',
+  'bachelor of science in mechatronics engineering':            'BSMechatronics',
+  'bachelor of science in business administration':             'BSBA',
+  'bachelor of science in accountancy':                         'BSA',
+  'bachelor of science in management accounting':               'BSMA',
+  'bachelor of science in entrepreneurship':                    'BSEntrep',
+  'bachelor of science in office administration':               'BSOA',
+  'bachelor of science in public administration':               'BSPA',
+  'bachelor of science in nursing':                             'BSN',
+  'bachelor of science in pharmacy':                            'BSPharm',
+  'bachelor of science in medical technology':                  'BSMT',
+  'bachelor of science in physical therapy':                    'BSPT',
+  'bachelor of science in occupational therapy':                'BSOT',
+  'bachelor of science in radiologic technology':               'BSRT',
+  'bachelor of science in nutrition and dietetics':             'BSND',
+  'bachelor of science in midwifery':                           'BSMid',
+  'bachelor of science in dentistry':                           'BSD',
+  'doctor of medicine':                                         'MD',
+  'doctor of dental medicine':                                  'DMD',
+  'bachelor of science in biology':                             'BSBio',
+  'bachelor of science in chemistry':                           'BSChem',
+  'bachelor of science in physics':                             'BSPhysics',
+  'bachelor of science in mathematics':                         'BSMath',
+  'bachelor of science in statistics':                          'BSStat',
+  'bachelor of science in psychology':                          'BSPsych',
+  'bachelor of science in geology':                             'BSGeology',
+  'bachelor of science in agriculture':                         'BSAgri',
+  'bachelor of science in agribusiness':                        'BSAgribus',
+  'bachelor of science in forestry':                            'BSF',
+  'bachelor of science in fisheries':                           'BSFisheries',
+  'bachelor of science in environmental science':               'BSES',
+  'bachelor of secondary education':                            'BSEd',
+  'bachelor of elementary education':                           'BEEd',
+  'bachelor of physical education':                             'BPEd',
+  'bachelor of early childhood education':                      'BECED',
+  'bachelor of special needs education':                        'BSNED',
+  'bachelor of technical-vocational teacher education':         'BTVTED',
+  'bachelor of science in architecture':                        'BSArch',
+  'bachelor of landscape architecture':                         'BLA',
+  'bachelor of interior design':                                'BID',
+  'bachelor of fine arts':                                      'BFA',
+  'bachelor of arts in communication':                          'BAComm',
+  'bachelor of arts in english':                                'BAEng',
+  'bachelor of arts in political science':                      'BAPol',
+  'bachelor of arts in sociology':                              'BASoc',
+  'bachelor of arts in philosophy':                             'BAPhil',
+  'bachelor of arts in history':                                'BAHist',
+  'bachelor of arts in economics':                              'BAEcon',
+  'bachelor of arts in anthropology':                           'BAAnthro',
+  'bachelor of arts in linguistics':                            'BALing',
+  'bachelor of arts in literature':                             'BALit',
+  'bachelor of arts in journalism':                             'BAJ',
+  'bachelor of science in social work':                         'BSSW',
+  'bachelor of science in criminology':                         'BSCrim',
+  'bachelor of science in foreign service':                     'BSFS',
+  'bachelor of science in tourism management':                  'BSTM',
+  'bachelor of science in hospitality management':              'BSHM',
+  'bachelor of science in hotel and restaurant management':     'BSHRM',
+  'bachelor of science in travel management':                   'BSTRM',
+  'bachelor of laws':                                           'LLB',
+  'juris doctor':                                               'JD',
+  'bachelor of science in legal management':                    'BSLM',
+  'bachelor of science in mass communication':                  'BSMC',
+  'bachelor of science in journalism':                          'BSJ',
+  'bachelor of science in culinary arts':                       'BSCul',
+};
+
 @Component({
   selector: 'app-supervisor-tasks',
   standalone: true,
@@ -174,10 +271,8 @@ export class SupervisorTasksComponent implements OnInit {
   readonly Math = Math;
   readonly COURSE_LIST = COURSE_LIST;
 
-  // ── Tabs ──────────────────────────────────────────────────
   activeTab: 'tasks' | 'logbook' = 'tasks';
 
-  // ── Tasks state ───────────────────────────────────────────
   isModalOpen            = false;
   isCardModalOpen        = false;
   isSubmissionsModalOpen = false;
@@ -188,7 +283,8 @@ export class SupervisorTasksComponent implements OnInit {
   newSupervisorComment = '';
   supervisorCommentLoading = false;
   taskComments    : any[] = [];
-  taskSubmissions : any[] = [];
+  taskSubmissions : Submission[] = [];
+  submissionsDisplayList: SubmissionDisplayItem[] = [];
 
   editingCommentId : string | null = null;
   editingMessage                   = '';
@@ -203,22 +299,22 @@ export class SupervisorTasksComponent implements OnInit {
   taskScoreInput  : number | null = null;
   taskScoreSaving = false;
 
+  subsScoreError = '';
+  private subsScoreErrorTimer: any = null;
+
   assignMode: 'all' | 'course' | 'specific' = 'specific';
 
   selectedWeekMonday: string | null = null;
-  // Add this property
-allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
+  allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
 
-  // ── CREATE TASK: Course autocomplete ──────────────────────
   courseSearch         = '';
   filteredCourseList   : CourseOption[] = [];
   showCourseDropdown   = false;
   courseHighlightIndex = -1;
   selectedCourseObj    : CourseOption | null = null;
-  selectedCourse       = '';   // ← FIXED: was missing
+  selectedCourse       = '';
   private courseSelected = false;
 
-  // ── EDIT TASK: Course autocomplete ────────────────────────
   editCourseSearch         = '';
   editFilteredCourseList   : CourseOption[] = [];
   editShowCourseDropdown   = false;
@@ -226,7 +322,6 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
   editSelectedCourseObj    : CourseOption | null = null;
   private editCourseSelected = false;
 
-  // ── FIXED: courseOptions getter (was missing) ─────────────
   get courseOptions(): { label: string; full: string }[] {
     return COURSE_LIST.map(c => ({ label: c.abbr, full: c.full }));
   }
@@ -244,7 +339,6 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
   supervisorName      = '';
   supervisorPhotoUrl: string | null = null;
 
-  // ── Tasks Pagination ──────────────────────────────────────
   currentPage = 1;
   pageSize    = 5;
 
@@ -270,7 +364,6 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
     return diff < 0 ? 0 : diff;
   }
 
-  // ── EDIT TASK STATE ───────────────────────────────────────
   isEditModalOpen       = false;
   editLoading           = false;
   editTask              : Task        = this.emptyTask();
@@ -298,7 +391,6 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
     );
   }
 
-  // ── Logbook state ─────────────────────────────────────────
   logbookInterns     : Intern[] = [];
   selectedInternId   : string   = '';
   selectedInternObj  : Intern | null = null;
@@ -344,6 +436,21 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
     this.logbookCurrentPage = page;
   }
 
+  get logbookGhostRows(): null[] {
+    const filled = this.pagedLogbookInterns.length;
+    const empty  = this.logbookPageSize - filled;
+    return empty > 0 ? Array(empty).fill(null) : [];
+  }
+
+  get logbookRangeStart(): number {
+    if (this.filteredLogbookInterns.length === 0) return 0;
+    return (this.logbookCurrentPage - 1) * this.logbookPageSize + 1;
+  }
+
+  get logbookRangeEnd(): number {
+    return Math.min(this.logbookCurrentPage * this.logbookPageSize, this.filteredLogbookInterns.length);
+  }
+
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
@@ -362,70 +469,79 @@ allInternsMap: { [id: string]: { name: string; photo: string | null } } = {};
     this.activeTab = tab;
   }
 
-async getCurrentSupervisor() {
-  try {
-    const user = await this.appwrite.account.get();
-    this.currentSupervisorId = user.$id;
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id
-    );
-    this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
-    
-    // Add this:
-    if ((doc as any).profile_photo_id) {
-      this.supervisorPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${(doc as any).profile_photo_id}/view?project=${this.PROJECT_ID}`;
-    }
-  } catch (error: any) {
-    console.error('Failed to get supervisor:', error.message);
+  abbreviateCourse(course: string): string {
+    if (!course) return '—';
+    const key = course.trim().toLowerCase();
+    if (COURSE_ABBR_MAP[key]) return COURSE_ABBR_MAP[key];
+    const found = COURSE_LIST.find(c => c.full.toLowerCase() === key || c.abbr.toLowerCase() === key);
+    if (found) return found.abbr;
+    const skip  = new Set(['of', 'in', 'and', 'the', 'a', 'an', 'for', '&', 'major']);
+    const words = course.trim().split(/\s+/);
+    const abbr  = words
+      .filter(w => !skip.has(w.toLowerCase()))
+      .map(w => w.charAt(0).toUpperCase() + (w.length > 3 ? w.charAt(1).toLowerCase() : ''))
+      .join('');
+    return abbr || course;
   }
-}
+
+  async getCurrentSupervisor() {
+    try {
+      const user = await this.appwrite.account.get();
+      this.currentSupervisorId = user.$id;
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id
+      );
+      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+      if ((doc as any).profile_photo_id) {
+        this.supervisorPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${(doc as any).profile_photo_id}/view?project=${this.PROJECT_ID}`;
+      }
+    } catch (error: any) {
+      console.error('Failed to get supervisor:', error.message);
+    }
+  }
 
   async loadAssignedInterns() {
-  try {
-    const [studentsRes, archivesRes] = await Promise.all([
-      this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL,
-        [Query.limit(500)]
-      ),
-      this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.ARCHIVES_COL,
-        [Query.limit(500)]
-      )
-    ]);
+    try {
+      const [studentsRes, archivesRes] = await Promise.all([
+        this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL,
+          [Query.limit(500)]
+        ),
+        this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID, this.appwrite.ARCHIVES_COL,
+          [Query.limit(500)]
+        )
+      ]);
 
-    // Active interns for task assignment
-    this.allInterns = (studentsRes.documents as any[]).filter(
-      s => s.supervisor_id === this.currentSupervisorId
-    );
-    this.filteredInterns        = [...this.allInterns];
-    this.logbookInterns         = [...this.allInterns];
-    this.filteredLogbookInterns = [...this.allInterns];
+      this.allInterns = (studentsRes.documents as any[]).filter(
+        s => s.supervisor_id === this.currentSupervisorId
+      );
+      this.filteredInterns        = [...this.allInterns];
+      this.logbookInterns         = [...this.allInterns];
+      this.filteredLogbookInterns = [...this.allInterns];
 
-    // Build a combined map (active + archived) for name/photo resolution
-    this.allInternsMap = {};
-
-    (studentsRes.documents as any[]).forEach(s => {
-      this.allInternsMap[s.$id] = {
-        name : `${s.first_name} ${s.last_name}`,
-        photo: s.profile_photo_id ?? null
-      };
-    });
-
-    // Archived interns — keyed by student_doc_id (their original $id)
-    (archivesRes.documents as any[]).forEach(s => {
-      const key = s.student_doc_id || s.$id;
-      if (!this.allInternsMap[key]) {
-        this.allInternsMap[key] = {
+      this.allInternsMap = {};
+      (studentsRes.documents as any[]).forEach(s => {
+        this.allInternsMap[s.$id] = {
           name : `${s.first_name} ${s.last_name}`,
           photo: s.profile_photo_id ?? null
         };
-      }
-    });
+      });
+      (archivesRes.documents as any[]).forEach(s => {
+        const key = s.student_doc_id || s.$id;
+        if (!this.allInternsMap[key]) {
+          this.allInternsMap[key] = {
+            name : `${s.first_name} ${s.last_name}`,
+            photo: s.profile_photo_id ?? null
+          };
+        }
+      });
 
-  } catch (error: any) {
-    console.error('Failed to load interns:', error.message);
+    } catch (error: any) {
+      console.error('Failed to load interns:', error.message);
+    }
   }
-}
+
   async loadAllInternEntryCounts() {
     try {
       const res = await this.appwrite.databases.listDocuments(
@@ -497,55 +613,45 @@ async getCurrentSupervisor() {
     };
   }
 
-  // ── Course matching helper ────────────────────────────────
-// AFTER
-private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
-  if (!searchTerm) return false;
-  const q       = searchTerm.toLowerCase().trim();
-  const iCourse = (intern.course ?? '').toLowerCase().trim();
-  if (!iCourse) return false;
+  private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
+    if (!searchTerm) return false;
+    const q       = searchTerm.toLowerCase().trim();
+    const iCourse = (intern.course ?? '').toLowerCase().trim();
+    if (!iCourse) return false;
+    if (iCourse.includes(q) || q.includes(iCourse)) return true;
+    const matchedOptions = COURSE_LIST.filter(c =>
+      c.abbr.toLowerCase().includes(q) ||
+      c.full.toLowerCase().includes(q) ||
+      q.includes(c.abbr.toLowerCase()) ||
+      q === c.abbr.toLowerCase()
+    );
+    return matchedOptions.some(c =>
+      iCourse === c.full.toLowerCase() ||
+      iCourse === c.abbr.toLowerCase() ||
+      iCourse.includes(c.abbr.toLowerCase()) ||
+      c.full.toLowerCase().includes(iCourse)
+    );
+  }
 
-  // Direct substring match
-  if (iCourse.includes(q) || q.includes(iCourse)) return true;
-
-  // Match via COURSE_LIST: find all entries whose abbr or full matches the search,
-  // then check if the intern's stored course matches any of those entries' full names or abbrs
-  const matchedOptions = COURSE_LIST.filter(c =>
-    c.abbr.toLowerCase().includes(q) ||
-    c.full.toLowerCase().includes(q) ||
-    q.includes(c.abbr.toLowerCase()) ||
-    q === c.abbr.toLowerCase()
-  );
-  return matchedOptions.some(c =>
-    iCourse === c.full.toLowerCase() ||
-    iCourse === c.abbr.toLowerCase() ||
-    iCourse.includes(c.abbr.toLowerCase()) ||
-    c.full.toLowerCase().includes(iCourse)
-  );
-}
   get effectiveCourse(): string {
     if (this.assignMode !== 'course') return '';
     return this.selectedCourseObj?.full ?? this.courseSearch.trim();
   }
 
- get courseMatchedInterns(): Intern[] {
-  const term = this.selectedCourseObj
-    ? this.selectedCourseObj.full   // ← use full name when selected from dropdown
-    : this.courseSearch.trim();
-  if (!term) return [];
-  const q = term.toLowerCase();
-  return this.allInterns.filter(i => this.internMatchesCourse(i, q));
-}
-  // ── CREATE: Course autocomplete handlers ─────────────────
+  get courseMatchedInterns(): Intern[] {
+    const term = this.selectedCourseObj
+      ? this.selectedCourseObj.full
+      : this.courseSearch.trim();
+    if (!term) return [];
+    const q = term.toLowerCase();
+    return this.allInterns.filter(i => this.internMatchesCourse(i, q));
+  }
+
   onCourseSearchInput() {
     this.courseSelected    = false;
     this.selectedCourseObj = null;
     const q = this.courseSearch.trim().toLowerCase();
-    if (!q) {
-      this.filteredCourseList  = [];
-      this.showCourseDropdown  = false;
-      return;
-    }
+    if (!q) { this.filteredCourseList = []; this.showCourseDropdown = false; return; }
     this.filteredCourseList = COURSE_LIST.filter(c =>
       c.abbr.toLowerCase().includes(q) || c.full.toLowerCase().includes(q)
     ).slice(0, 8);
@@ -554,59 +660,41 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
   }
 
   onCourseSearchFocus() {
-    if (this.courseSearch.trim()) {
-      this.showCourseDropdown = this.filteredCourseList.length > 0;
-    }
+    if (this.courseSearch.trim()) this.showCourseDropdown = this.filteredCourseList.length > 0;
   }
 
   onCourseSearchBlur() {
-    setTimeout(() => {
-      this.showCourseDropdown = false;
-    }, 180);
+    setTimeout(() => { this.showCourseDropdown = false; }, 180);
   }
 
   onCourseSearchKeydown(event: KeyboardEvent) {
     if (!this.showCourseDropdown || !this.filteredCourseList.length) return;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.courseHighlightIndex = Math.min(this.courseHighlightIndex + 1, this.filteredCourseList.length - 1);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.courseHighlightIndex = Math.max(this.courseHighlightIndex - 1, 0);
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (this.courseHighlightIndex >= 0) this.selectCourseOption(this.filteredCourseList[this.courseHighlightIndex]);
-    } else if (event.key === 'Escape') {
-      this.showCourseDropdown = false;
-    }
+    if (event.key === 'ArrowDown') { event.preventDefault(); this.courseHighlightIndex = Math.min(this.courseHighlightIndex + 1, this.filteredCourseList.length - 1); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); this.courseHighlightIndex = Math.max(this.courseHighlightIndex - 1, 0); }
+    else if (event.key === 'Enter') { event.preventDefault(); if (this.courseHighlightIndex >= 0) this.selectCourseOption(this.filteredCourseList[this.courseHighlightIndex]); }
+    else if (event.key === 'Escape') { this.showCourseDropdown = false; }
   }
 
   selectCourseOption(c: CourseOption) {
     this.selectedCourseObj    = c;
     this.courseSearch         = c.abbr;
-    this.selectedCourse       = c.full;   // ← keep selectedCourse in sync
+    this.selectedCourse       = c.full;
     this.courseSelected       = true;
     this.showCourseDropdown   = false;
     this.courseHighlightIndex = -1;
   }
 
   onCourseDropdownChange() {
-    // Sync selectedCourseObj when the legacy dropdown is used
     const found = COURSE_LIST.find(c => c.full === this.selectedCourse);
     this.selectedCourseObj = found ?? null;
     if (found) this.courseSearch = found.abbr;
   }
 
-  // ── EDIT: Course autocomplete handlers ───────────────────
   onEditCourseSearchInput() {
     this.editCourseSelected    = false;
     this.editSelectedCourseObj = null;
     const q = this.editCourseSearch.trim().toLowerCase();
-    if (!q) {
-      this.editFilteredCourseList  = [];
-      this.editShowCourseDropdown  = false;
-      return;
-    }
+    if (!q) { this.editFilteredCourseList = []; this.editShowCourseDropdown = false; return; }
     this.editFilteredCourseList = COURSE_LIST.filter(c =>
       c.abbr.toLowerCase().includes(q) || c.full.toLowerCase().includes(q)
     ).slice(0, 8);
@@ -615,9 +703,7 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
   }
 
   onEditCourseSearchFocus() {
-    if (this.editCourseSearch.trim()) {
-      this.editShowCourseDropdown = this.editFilteredCourseList.length > 0;
-    }
+    if (this.editCourseSearch.trim()) this.editShowCourseDropdown = this.editFilteredCourseList.length > 0;
   }
 
   onEditCourseSearchBlur() {
@@ -626,18 +712,10 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
 
   onEditCourseSearchKeydown(event: KeyboardEvent) {
     if (!this.editShowCourseDropdown || !this.editFilteredCourseList.length) return;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.editCourseHighlightIndex = Math.min(this.editCourseHighlightIndex + 1, this.editFilteredCourseList.length - 1);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.editCourseHighlightIndex = Math.max(this.editCourseHighlightIndex - 1, 0);
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (this.editCourseHighlightIndex >= 0) this.selectEditCourseOption(this.editFilteredCourseList[this.editCourseHighlightIndex]);
-    } else if (event.key === 'Escape') {
-      this.editShowCourseDropdown = false;
-    }
+    if (event.key === 'ArrowDown') { event.preventDefault(); this.editCourseHighlightIndex = Math.min(this.editCourseHighlightIndex + 1, this.editFilteredCourseList.length - 1); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); this.editCourseHighlightIndex = Math.max(this.editCourseHighlightIndex - 1, 0); }
+    else if (event.key === 'Enter') { event.preventDefault(); if (this.editCourseHighlightIndex >= 0) this.selectEditCourseOption(this.editFilteredCourseList[this.editCourseHighlightIndex]); }
+    else if (event.key === 'Escape') { this.editShowCourseDropdown = false; }
   }
 
   selectEditCourseOption(c: CourseOption) {
@@ -655,28 +733,19 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
     if (found) this.editCourseSearch = found.abbr;
   }
 
- get editCourseMatchedInternsComputed(): Intern[] {
-  const obj  = this.editSelectedCourseObj;
-  const term = obj ? obj.full : this.editCourseSearch.trim();  // ← use full name
-  if (!term) return [];
-  const q = term.toLowerCase();
-  return this.allInterns.filter(i => this.internMatchesCourse(i, q));
-}
-
-  onAssignModeChange() {
-    this.courseSearch         = '';
-    this.selectedCourse       = '';
-    this.selectedCourseObj    = null;
-    this.filteredCourseList   = [];
-    this.showCourseDropdown   = false;
-    this.selectedInterns      = [];
-    this.internSearchQuery    = '';
-    this.filteredInterns      = [...this.allInterns];
+  get editCourseMatchedInternsComputed(): Intern[] {
+    const obj  = this.editSelectedCourseObj;
+    const term = obj ? obj.full : this.editCourseSearch.trim();
+    if (!term) return [];
+    const q = term.toLowerCase();
+    return this.allInterns.filter(i => this.internMatchesCourse(i, q));
   }
 
-  // ══════════════════════════════════════════════
-  //  EDIT TASK METHODS
-  // ══════════════════════════════════════════════
+  onAssignModeChange() {
+    this.courseSearch = ''; this.selectedCourse = ''; this.selectedCourseObj = null;
+    this.filteredCourseList = []; this.showCourseDropdown = false;
+    this.selectedInterns = []; this.internSearchQuery = ''; this.filteredInterns = [...this.allInterns];
+  }
 
   openEditModal(task: Task) {
     this.editTask              = { ...task };
@@ -720,14 +789,9 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
   }
 
   onEditAssignModeChange() {
-    this.editSelectedCourse       = '';
-    this.editCourseSearch         = '';
-    this.editSelectedCourseObj    = null;
-    this.editFilteredCourseList   = [];
-    this.editShowCourseDropdown   = false;
-    this.editSelectedInterns      = [];
-    this.editInternSearchQuery    = '';
-    this.editFilteredInterns      = [...this.allInterns];
+    this.editSelectedCourse = ''; this.editCourseSearch = ''; this.editSelectedCourseObj = null;
+    this.editFilteredCourseList = []; this.editShowCourseDropdown = false;
+    this.editSelectedInterns = []; this.editInternSearchQuery = ''; this.editFilteredInterns = [...this.allInterns];
   }
 
   onEditInternSearch() {
@@ -776,9 +840,7 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
         if (attachmentFileId) {
           try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, attachmentFileId); } catch { }
         }
-        const uploaded = await this.appwrite.storage.createFile(
-          this.BUCKET_ID, ID.unique(), this.editNewAttachmentFile
-        );
+        const uploaded = await this.appwrite.storage.createFile(this.BUCKET_ID, ID.unique(), this.editNewAttachmentFile);
         attachmentFileId   = uploaded.$id;
         attachmentFileName = this.editNewAttachmentFile.name;
       }
@@ -794,36 +856,17 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
 
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, this.editTask.$id!,
-        {
-          title: this.editTask.title.trim(),
-          description: this.editTask.description,
-          due: this.editTask.due,
-          assigned_intern_ids: assignedIds,
-          attachment_file_id: attachmentFileId,
-          attachment_file_name: attachmentFileName
-        }
+        { title: this.editTask.title.trim(), description: this.editTask.description, due: this.editTask.due, assigned_intern_ids: assignedIds, attachment_file_id: attachmentFileId, attachment_file_name: attachmentFileName }
       );
 
       const idx = this.tasks.findIndex(t => t.$id === this.editTask.$id);
       if (idx !== -1) {
-        this.tasks[idx] = {
-          ...this.tasks[idx],
-          title: this.editTask.title.trim(),
-          description: this.editTask.description,
-          due: this.editTask.due,
-          assigned_intern_ids: assignedIds,
-          attachment_file_id: attachmentFileId,
-          attachment_file_name: attachmentFileName
-        };
+        this.tasks[idx] = { ...this.tasks[idx], title: this.editTask.title.trim(), description: this.editTask.description, due: this.editTask.due, assigned_intern_ids: assignedIds, attachment_file_id: attachmentFileId, attachment_file_name: attachmentFileName };
         this.tasks = [...this.tasks];
       }
 
       this.closeEditModal();
-      Swal.fire({
-        icon: 'success', title: 'Task Updated!',
-        text: `"${this.editTask.title}" has been updated successfully.`,
-        toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
-      });
+      Swal.fire({ icon: 'success', title: 'Task Updated!', text: `"${this.editTask.title}" has been updated successfully.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
     } catch (error: any) {
       Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message });
     } finally {
@@ -831,7 +874,6 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
     }
   }
 
-  // ── Logbook methods ───────────────────────────────────────
   async openInternLogbook(intern: Intern) {
     this.selectedWeekMonday = null;
     this.selectedInternId  = intern.$id;
@@ -999,7 +1041,6 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
     return words.length > 9 ? words.slice(0, 9).join(' ') + '…' : first;
   }
 
-  // ── Weekly Report PDF ─────────────────────────────────────
   async generateWeeklyReport() {
     if (!this.selectedInternObj) {
       Swal.fire({ icon: 'warning', title: 'No intern selected', text: 'Please select an intern first.', confirmButtonColor: '#0818A8' }); return;
@@ -1214,7 +1255,6 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
     }
   }
 
-  // ── Task methods ──────────────────────────────────────────
   onInternSearch() {
     const q = this.internSearchQuery.toLowerCase();
     this.filteredInterns = this.allInterns.filter(i =>
@@ -1305,35 +1345,72 @@ private internMatchesCourse(intern: Intern, searchTerm: string): boolean {
 
   closeModal() { this.isModalOpen = false; document.body.style.overflow = ''; }
 
-openCardModal(task: Task) {
-  const assignedIds     = this.getAssignedIds(task);
-  const assignedInterns = assignedIds.map(id => {
-    const intern = this.allInterns.find(i => i.$id === id);
-    return { name: intern ? `${intern.first_name} ${intern.last_name}` : id, img: '' };
-  });
+  openCardModal(task: Task) {
+    const assignedIds     = this.getAssignedIds(task);
+    const assignedInterns = assignedIds.map(id => {
+      const intern = this.allInterns.find(i => i.$id === id);
+      return { name: intern ? `${intern.first_name} ${intern.last_name}` : id, img: '' };
+    });
 
-  // ← FIX: use current supervisor's live name if this task belongs to them
-  const resolvedSupervisorName = (task as any).supervisor_id === this.currentSupervisorId
-    ? this.supervisorName
-    : (task.supervisor_name || 'Supervisor');
+    const resolvedSupervisorName = (task as any).supervisor_id === this.currentSupervisorId
+      ? this.supervisorName
+      : (task.supervisor_name || 'Supervisor');
 
-  this.selectedTask = { ...task, supervisor_name: resolvedSupervisorName, assignedInterns, comments: [], submissions: [] };
-  this.taskScoreInput = task.score ?? null;
-  this.editAttachmentFile = null; this.editAttachmentFileName = '';
-  this.newSupervisorComment = ''; this.taskComments = []; this.taskSubmissions = [];
-  this.editingCommentId = null; this.editingMessage = ''; this.isCardModalOpen = true;
-  document.body.style.overflow = 'hidden';
-  if (task.$id) { this.loadTaskComments(task.$id); this.loadTaskSubmissions(task.$id); }
-}
+    this.selectedTask = { ...task, supervisor_name: resolvedSupervisorName, assignedInterns, comments: [], submissions: [] };
+    this.taskScoreInput = task.score ?? null;
+    this.editAttachmentFile = null; this.editAttachmentFileName = '';
+    this.newSupervisorComment = ''; this.taskComments = []; this.taskSubmissions = [];
+    this.submissionsDisplayList = [];
+    this.editingCommentId = null; this.editingMessage = ''; this.isCardModalOpen = true;
+    document.body.style.overflow = 'hidden';
+    if (task.$id) { this.loadTaskComments(task.$id); this.loadTaskSubmissions(task.$id); }
+  }
+
   closeCardModal() {
     this.isCardModalOpen = false; this.editAttachmentFile = null; this.editAttachmentFileName = '';
     this.newSupervisorComment = ''; this.taskComments = []; this.taskSubmissions = [];
+    this.submissionsDisplayList = [];
     this.editingCommentId = null; this.editingMessage = ''; document.body.style.overflow = '';
     this.taskScoreInput = null;
   }
 
-  openSubmissionsModal()  { this.isSubmissionsModalOpen = true; }
-  closeSubmissionsModal() { this.isSubmissionsModalOpen = false; }
+  openSubmissionsModal() {
+    this.subsScoreError = '';
+    this.buildSubmissionsDisplayList();
+    this.isSubmissionsModalOpen = true;
+  }
+
+  closeSubmissionsModal() {
+    this.isSubmissionsModalOpen = false;
+    this.subsScoreError = '';
+  }
+
+  buildSubmissionsDisplayList() {
+    const assignedIds = this.getAssignedIds(this.selectedTask);
+    this.submissionsDisplayList = assignedIds.map(id => {
+      const intern = this.allInterns.find(i => i.$id === id);
+      const fallback = this.allInternsMap[id];
+      const resolvedIntern: Intern = intern ?? {
+        $id: id,
+        first_name: fallback?.name?.split(' ')[0] ?? 'Unknown',
+        last_name: fallback?.name?.split(' ').slice(1).join(' ') ?? '',
+        course: '',
+        profile_photo_id: fallback?.photo ?? undefined
+      };
+      const submission = this.taskSubmissions.find(s => s.student_id === id) ?? null;
+      return {
+        intern: resolvedIntern,
+        submission,
+        hasSubmission: !!submission
+      };
+    });
+  }
+
+  private showSubsScoreError(msg: string) {
+    this.subsScoreError = msg;
+    if (this.subsScoreErrorTimer) clearTimeout(this.subsScoreErrorTimer);
+    this.subsScoreErrorTimer = setTimeout(() => { this.subsScoreError = ''; }, 4000);
+  }
 
   async onCreateTask() {
     if (!this.selectedTask.title || !this.selectedTask.due) {
@@ -1370,18 +1447,7 @@ openCardModal(task: Task) {
 
       const doc = await this.appwrite.databases.createDocument(
         this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, ID.unique(),
-        {
-          title: this.selectedTask.title,
-          description: this.selectedTask.description,
-          posted: new Date().toLocaleString(),
-          due: this.selectedTask.due,
-          status: 'pending',
-          assigned_intern_ids: assignedIds,
-          attachment_file_id: attachmentFileId,
-          attachment_file_name: attachmentFileName,
-          supervisor_id: this.currentSupervisorId,
-          supervisor_name: this.supervisorName
-        }
+        { title: this.selectedTask.title, description: this.selectedTask.description, posted: new Date().toLocaleString(), due: this.selectedTask.due, status: 'pending', assigned_intern_ids: assignedIds, attachment_file_id: attachmentFileId, attachment_file_name: attachmentFileName, supervisor_id: this.currentSupervisorId, supervisor_name: this.supervisorName }
       );
       this.tasks.unshift(doc as any); this.currentPage = 1; this.closeModal();
       Swal.fire({ icon: 'success', title: 'Task Created!', text: `"${doc['title']}" has been created successfully.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
@@ -1408,84 +1474,78 @@ openCardModal(task: Task) {
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
 
-async loadTaskComments(taskId: string) {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL,
-      [Query.limit(500)]
-    );
-
-    this.taskComments = (res.documents as any[])
-      .filter(c => c.task_id === taskId)
-      .filter(c => {
-        if (c.role === 'supervisor') return true;
-        return this.allInterns.some(i => i.$id === c.user_id);
-      })
-      .map(c => {
-        // ← FIX: always show current live name for own comments
-        if (c.role === 'supervisor' && c.user_id === this.currentSupervisorId) {
-          return { ...c, user_name: this.supervisorName };
-        }
-        return c;
-      })
-      .sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
-
-  } catch (error: any) {
-    console.error('Failed to load comments:', error.message);
+  async loadTaskComments(taskId: string) {
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, [Query.limit(500)]
+      );
+      this.taskComments = (res.documents as any[])
+        .filter(c => c.task_id === taskId)
+        .filter(c => {
+          if (c.role === 'supervisor') return true;
+          return this.allInterns.some(i => i.$id === c.user_id);
+        })
+        .map(c => {
+          if (c.role === 'supervisor' && c.user_id === this.currentSupervisorId) {
+            return { ...c, user_name: this.supervisorName };
+          }
+          return c;
+        })
+        .sort((a, b) => new Date(a.$createdAt).getTime() - new Date(b.$createdAt).getTime());
+    } catch (error: any) {
+      console.error('Failed to load comments:', error.message);
+    }
   }
-}
 
   async loadTaskSubmissions(taskId: string) {
-  try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL,
-      [Query.limit(500)]
-    );
-
-    this.taskSubmissions = (res.documents as any[])
-      .filter(s => s.task_id === taskId)
-      .map(sub => {
-        // Check active interns first, then archived map
-        const internFromActive = this.allInterns.find(i => i.$id === sub.student_id);
-        const internFromMap    = this.allInternsMap[sub.student_id];
-
-        const studentName    = internFromActive
-          ? `${internFromActive.first_name} ${internFromActive.last_name}`
-          : internFromMap?.name ?? null;
-
-        const profilePhotoId = internFromActive?.profile_photo_id
-          ?? (internFromMap?.photo ?? null);
-
-        // Skip submissions from fully unknown interns (not in any collection)
-        if (!studentName) return null;
-
-        return {
-          ...sub,
-          student_name    : studentName,
-          profile_photo_id: profilePhotoId,
-          score           : sub.score ?? null,
-          _scoreInput     : sub.score ?? null,
-          _scoreSaving    : false
-        } as Submission;
-      })
-      .filter(Boolean); // ← removes null (unknown/deleted interns)
-
-  } catch (e: any) {
-    console.error('loadSubmissions:', e.message);
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, [Query.limit(500)]
+      );
+      this.taskSubmissions = (res.documents as any[])
+        .filter(s => s.task_id === taskId)
+        .map(sub => {
+          const internFromActive = this.allInterns.find(i => i.$id === sub.student_id);
+          const internFromMap    = this.allInternsMap[sub.student_id];
+          const studentName    = internFromActive
+            ? `${internFromActive.first_name} ${internFromActive.last_name}`
+            : internFromMap?.name ?? null;
+          const profilePhotoId = internFromActive?.profile_photo_id ?? (internFromMap?.photo ?? null);
+          if (!studentName) return null;
+          return { ...sub, student_name: studentName, profile_photo_id: profilePhotoId, score: sub.score ?? null, _scoreInput: sub.score ?? null, _scoreSaving: false } as Submission;
+        })
+        .filter(Boolean) as Submission[];
+    } catch (e: any) {
+      console.error('loadSubmissions:', e.message);
+    }
   }
-} 
 
   async saveSubmissionScore(sub: Submission) {
     if (sub._scoreInput === null || sub._scoreInput === undefined) return;
     if (sub._scoreInput < 0 || sub._scoreInput > 100) {
-      Swal.fire({ icon: 'warning', title: 'Invalid score', text: 'Score must be between 0 and 100.', confirmButtonColor: '#0818A8' }); return;
+      Swal.fire({
+        icon: 'warning',
+        title: 'Invalid score',
+        text: 'Value must be between 0 and 100.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+      });
+      return;
     }
+    this.subsScoreError = '';
     sub._scoreSaving = true;
     try {
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, sub.$id!, { score: sub._scoreInput }
       );
       sub.score = sub._scoreInput;
+      const displayItem = this.submissionsDisplayList.find(item => item.submission?.$id === sub.$id);
+      if (displayItem?.submission) {
+        displayItem.submission.score = sub._scoreInput;
+      }
       Swal.fire({ icon: 'success', title: 'Score saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
     } catch (e: any) {
       Swal.fire({ icon: 'error', title: 'Failed to save score', text: e.message });
@@ -1554,22 +1614,19 @@ async loadTaskComments(taskId: string) {
     return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/${mode}?project=${this.PROJECT_ID}`;
   }
 
- async loadInternPhotos() {
-  // internPhotoMap is now built from allInternsMap — no extra query needed
-  this.internPhotoMap = {};
-  Object.entries(this.allInternsMap).forEach(([id, data]) => {
-    if (data.photo) this.internPhotoMap[id] = data.photo;
-  });
-}
+  async loadInternPhotos() {
+    this.internPhotoMap = {};
+    Object.entries(this.allInternsMap).forEach(([id, data]) => {
+      if (data.photo) this.internPhotoMap[id] = data.photo;
+    });
+  }
 
   getCommentPhotoUrl(userId: string): string | null {
-  if (userId === this.currentSupervisorId && this.supervisorPhotoUrl) {
-    return this.supervisorPhotoUrl;
+    if (userId === this.currentSupervisorId && this.supervisorPhotoUrl) return this.supervisorPhotoUrl;
+    const photoId = this.internPhotoMap[userId];
+    if (!photoId) return null;
+    return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
   }
-  const photoId = this.internPhotoMap[userId];
-  if (!photoId) return null;
-  return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
-}
 
   getTaskAssignedCount(task: Task): number { return this.getAssignedIds(task).length; }
   getTaskSubmittedCount(task: Task): number { return this.taskSubmissionCountMap[task.$id ?? ''] ?? 0; }

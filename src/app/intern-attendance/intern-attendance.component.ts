@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.component';
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
 import { AppwriteService } from '../services/appwrite.service';
-import { QRCodeComponent, QRCodeModule } from 'angularx-qrcode';
+import { QRCodeComponent } from 'angularx-qrcode';
 import { Query } from 'appwrite';
 
 interface AttendanceRecord {
@@ -25,7 +25,7 @@ interface AttendanceRecord {
     FormsModule,
     InternSidenavComponent,
     InternTopnavComponent,
-    QRCodeModule
+    QRCodeComponent   // ✅ correct
   ],
   templateUrl: './intern-attendance.component.html',
   styleUrls: ['./intern-attendance.component.css']
