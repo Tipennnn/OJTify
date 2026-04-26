@@ -7,48 +7,144 @@
 
     <div class="dashboard-content">
 
+      <!-- GREETING HEADER -->
       <div class="dashboard-header">
-        <h2>Dashboard</h2>
+        <div class="header-left">
+          <p class="greeting-sub">{{ greetingTime }}, {{ firstName }} 👋</p>
+          <h2>Dashboard</h2>
+          <p class="today-date">{{ todayDateFormatted }}</p>
+        </div>
         <div class="dashboard-divider"></div>
       </div>
 
-      <!-- TOP CARDS -->
+      <!-- TOP STAT CARDS -->
       <div class="top-cards">
 
-        <!-- TOTAL HOURS -->
+        <!-- TOTAL HOURS PROGRESS -->
         <div class="card progress-card">
-          <div class="progress-circle">
-            <div class="circle">
-              <span>{{ hoursProgress }}%</span>
-              <small>{{ hoursProgress >= 100 ? 'Completed' : 'In Progress' }}</small>
+          <div class="progress-ring-wrap">
+            <svg class="progress-ring" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="32" class="ring-bg"/>
+              <circle cx="40" cy="40" r="32" class="ring-fill"
+                [style.strokeDashoffset]="ringDashOffset"
+                [style.stroke]="hoursProgress >= 100 ? '#16a34a' : '#3b6fd8'"/>
+            </svg>
+            <div class="ring-label">
+              <span class="ring-pct">{{ hoursProgress }}%</span>
+              <small>{{ hoursProgress >= 100 ? 'Done!' : 'Progress' }}</small>
             </div>
           </div>
           <div class="progress-info">
-            <h4>Total Hours</h4>
-            <p>{{ completedHours }} of {{ requiredHours }} hours</p>
-            <div class="progress-bar">
-              <div class="progress-fill" [style.width]="hoursProgress + '%'"></div>
+            <div class="card-icon-row">
+              <i class="fa-solid fa-clock" style="color:#3b6fd8;"></i>
+              <h4>Total Hours</h4>
             </div>
-            <small style="color:#6b7280; font-size:12px;">
-              {{ remainingHours }} hrs remaining
-            </small>
+            <p class="hours-big">{{ completedHours }}<span> / {{ requiredHours }} hrs</span></p>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width]="hoursProgress + '%'"
+                   [style.background]="hoursProgress >= 100 ? '#16a34a' : '#3b6fd8'"></div>
+            </div>
+            <small class="muted">{{ remainingHours }} hrs remaining</small>
           </div>
         </div>
 
         <!-- TODAY ATTENDANCE -->
         <div class="card attendance-card"
-             [style.borderLeftColor]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
-          <div class="attendance-icon"
+             [class.present-card]="todayStatus === 'Present'"
+             [class.absent-card]="todayStatus !== 'Present'">
+          <div class="att-icon-wrap"
                [style.background]="todayStatus === 'Present' ? '#dcfce7' : '#fee2e2'"
                [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
             <i [class]="todayStatus === 'Present' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"
-               style="font-size:22px;"></i>
+               style="font-size:26px;"></i>
           </div>
-          <div>
+          <div class="att-info">
+            <div class="card-icon-row">
+              <i class="fa-solid fa-calendar-day" style="color:#6b7280; font-size:12px;"></i>
+              <small class="muted">Today's Attendance</small>
+            </div>
             <h4 [style.color]="todayStatus === 'Present' ? '#16a34a' : '#dc2626'">
               {{ todayStatus }}
             </h4>
-            <p>Today's Attendance</p>
+            <p class="muted" style="font-size:12px; margin-top:4px;">
+              {{ todayDateShort }}
+            </p>
+          </div>
+        </div>
+
+        <!-- SUPERVISOR CARD -->
+        <div class="card supervisor-card">
+          <div class="supervisor-avatar">
+            <ng-container *ngIf="supervisorPhotoUrl; else supervisorInitials">
+              <img [src]="supervisorPhotoUrl" alt="Supervisor" (error)="supervisorPhotoUrl=''"/>
+            </ng-container>
+            <ng-template #supervisorInitials>
+              <span>{{ supervisorInitial }}</span>
+            </ng-template>
+          </div>
+          <div class="supervisor-info">
+            <div class="card-icon-row">
+              <i class="fa-solid fa-user-tie" style="color:#7c3aed; font-size:12px;"></i>
+              <small class="muted">Your Supervisor</small>
+            </div>
+            <h4>{{ supervisorName || '—' }}</h4>
+            <p class="muted" style="font-size:12px; margin-top:2px;">
+              <i class="fa-solid fa-envelope" style="font-size:10px; margin-right:4px;"></i>
+              {{ supervisorEmail || 'Not assigned' }}
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- QUICK STATS ROW -->
+      <div class="quick-stats">
+
+        <div class="stat-pill">
+          <i class="fa-solid fa-list-check" style="color:#3b6fd8;"></i>
+          <div>
+            <span class="stat-num">{{ totalTasks }}</span>
+            <small>Total Tasks</small>
+          </div>
+        </div>
+
+        <div class="stat-pill">
+          <i class="fa-solid fa-circle-check" style="color:#16a34a;"></i>
+          <div>
+            <span class="stat-num" style="color:#16a34a;">{{ completedTasks }}</span>
+            <small>Completed</small>
+          </div>
+        </div>
+
+        <div class="stat-pill">
+          <i class="fa-solid fa-hourglass-half" style="color:#d97706;"></i>
+          <div>
+            <span class="stat-num" style="color:#d97706;">{{ pendingTasks }}</span>
+            <small>Pending</small>
+          </div>
+        </div>
+
+        <div class="stat-pill">
+          <i class="fa-solid fa-calendar-check" style="color:#0891b2;"></i>
+          <div>
+            <span class="stat-num" style="color:#0891b2;">{{ totalPresent }}</span>
+            <small>Days Present</small>
+          </div>
+        </div>
+
+        <div class="stat-pill">
+          <i class="fa-solid fa-calendar-xmark" style="color:#dc2626;"></i>
+          <div>
+            <span class="stat-num" style="color:#dc2626;">{{ totalAbsent }}</span>
+            <small>Days Absent</small>
+          </div>
+        </div>
+
+        <div class="stat-pill">
+          <i class="fa-solid fa-business-time" style="color:#7c3aed;"></i>
+          <div>
+            <span class="stat-num" style="color:#7c3aed;">{{ daysRemaining }}</span>
+            <small>Est. Days Left</small>
           </div>
         </div>
 
@@ -57,7 +153,10 @@
       <!-- APPLICATION INFORMATION -->
       <div class="table-card">
         <div class="table-header">
-          <h3>Application Information</h3>
+          <div class="th-left">
+            <i class="fa-solid fa-file-contract" style="color:#3b6fd8;"></i>
+            <h3>Application Information</h3>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -65,6 +164,7 @@
               <tr>
                 <th>Applied On</th>
                 <th>Accepted On</th>
+                <th>Required Hours</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -72,6 +172,7 @@
               <tr>
                 <td>{{ appliedOn }}</td>
                 <td>{{ acceptedOn }}</td>
+                <td>{{ requiredHours }} hrs</td>
                 <td>
                   <span class="status completed">{{ appStatus }}</span>
                 </td>
@@ -81,10 +182,13 @@
         </div>
       </div>
 
-      <!-- RECENT ATTENDANCE (3 records only) -->
+      <!-- RECENT ATTENDANCE -->
       <div class="table-card">
         <div class="table-header">
-          <h3>Recent Attendance</h3>
+          <div class="th-left">
+            <i class="fa-solid fa-calendar-days" style="color:#3b6fd8;"></i>
+            <h3>Recent Attendance</h3>
+          </div>
           <a routerLink="/intern-attendance">View all →</a>
         </div>
         <div class="table-wrap">
@@ -94,6 +198,7 @@
                 <th>Date</th>
                 <th>Time In</th>
                 <th>Time Out</th>
+                <th>Hours</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -102,6 +207,7 @@
                 <td>{{ record.date }}</td>
                 <td>{{ record.time_in }}</td>
                 <td>{{ record.time_out }}</td>
+                <td>{{ record.hours_rendered || '—' }}</td>
                 <td>
                   <span class="status"
                         [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
@@ -110,8 +216,7 @@
                 </td>
               </tr>
               <tr *ngIf="recentAttendance.length === 0">
-                <td colspan="4"
-                    style="text-align:center; color:#9ca3af; padding:20px;">
+                <td colspan="5" style="text-align:center; color:#9ca3af; padding:20px;">
                   No attendance records yet.
                 </td>
               </tr>
@@ -120,15 +225,17 @@
         </div>
       </div>
 
-      <!-- RECENT TASKS (3 tasks only, columns: Task / Date Assigned / Due Date / Status) -->
+      <!-- RECENT TASKS -->
       <div class="table-card">
         <div class="table-header">
-          <h3>Tasks</h3>
+          <div class="th-left">
+            <i class="fa-solid fa-clipboard-list" style="color:#3b6fd8;"></i>
+            <h3>Tasks</h3>
+          </div>
           <a routerLink="/intern-tasks">View all →</a>
         </div>
 
-        <div *ngIf="tasksLoading"
-             style="text-align:center; padding:20px; color:#9ca3af;">
+        <div *ngIf="tasksLoading" style="text-align:center; padding:20px; color:#9ca3af;">
           <i class="fa fa-spinner fa-spin"></i> Loading tasks...
         </div>
 
@@ -137,6 +244,7 @@
             <thead>
               <tr>
                 <th>Task</th>
+                <th>Assigned By</th>
                 <th>Date Assigned</th>
                 <th>Due Date</th>
                 <th>Status</th>
@@ -144,9 +252,17 @@
             </thead>
             <tbody>
               <tr *ngFor="let task of recentTasks">
-                <td>{{ task.title }}</td>
+                <td class="task-title-cell">
+                  <span class="task-dot" [ngClass]="task.status"></span>
+                  {{ task.title }}
+                </td>
+                <td>{{ task.supervisor_name || '—' }}</td>
                 <td>{{ task.posted }}</td>
-                <td>{{ task.due }}</td>
+                <td>
+                  <span [class.overdue]="isOverdue(task.due, task.status)">
+                    {{ task.due }}
+                  </span>
+                </td>
                 <td>
                   <span class="status" [ngClass]="task.status">
                     {{ task.status | titlecase }}
@@ -154,15 +270,13 @@
                 </td>
               </tr>
               <tr *ngIf="recentTasks.length === 0">
-                <td colspan="4"
-                    style="text-align:center; color:#9ca3af; padding:20px;">
+                <td colspan="5" style="text-align:center; color:#9ca3af; padding:20px;">
                   No tasks assigned yet.
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-
       </div>
 
     </div>

@@ -13,6 +13,7 @@ interface Task {
   posted: string;
   due: string;
   status: 'completed' | 'pending';
+  assignedNames: string;
 }
 
 interface AttendanceRecord {
@@ -23,6 +24,8 @@ interface AttendanceRecord {
   time_in: string;
   time_out: string;
   status: string;
+  hours_rendered?: string;
+  photoFailed?: boolean;
 }
 
 interface Student {
@@ -34,6 +37,13 @@ interface Student {
   required_hours?: number;
   completed_hours?: number;
   supervisor_id?: string;
+  school_name?: string;
+  course?: string;
+}
+
+interface InternProgress extends Student {
+  fullName: string;
+  photoFailed?: boolean;
 }
 
 @Component({
@@ -53,9 +63,16 @@ export class SupervisorDashboardComponent implements OnInit {
   isCollapsed = false;
 
   // ── Stat cards ────────────────────────────────────────────
-  totalInterns  = 0;
-  presentToday  = 0;
-  absentToday   = 0;
+  totalInterns   = 0;
+  presentToday   = 0;
+  absentToday    = 0;
+  totalTasks     = 0;
+  pendingTasks   = 0;
+  completedTasks = 0;
+
+  // ── Intern progress ───────────────────────────────────────
+  internProgress  : InternProgress[] = [];
+  studentsLoading = false;
 
   // ── Recent attendance ─────────────────────────────────────
   recentAttendance  : AttendanceRecord[] = [];
@@ -66,8 +83,9 @@ export class SupervisorDashboardComponent implements OnInit {
   tasksLoading = false;
 
   // ── Current supervisor ────────────────────────────────────
-  currentSupervisorId = '';
-  supervisorName      = '';
+  currentSupervisorId  = '';
+  supervisorName       = '';
+  supervisorFirstName  = '';
 
   // ── Local student map ─────────────────────────────────────
   private studentMap: Map<string, Student> = new Map();
@@ -79,97 +97,104 @@ export class SupervisorDashboardComponent implements OnInit {
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
-  await this.getCurrentSupervisor();
-  await this.loadAssignedStudents();
+    await this.getCurrentSupervisor();
+    await this.loadAssignedStudents();
 
-  this.loadTodayStats();
-  this.loadRecentAttendance();
-  this.loadRecentTasks();
+    this.loadTodayStats();
+    this.loadRecentAttendance();
+    this.loadRecentTasks();
+    this.loadAllTaskStats();
 
-  // Welcome toast
-  if (!sessionStorage.getItem('supervisorWelcomeShown')) {
-    sessionStorage.setItem('supervisorWelcomeShown', 'true');
-    Swal.fire({
-      icon: 'success',
-      title: `Welcome back, ${this.supervisorName || 'Supervisor'}!`,
-      text: 'You are logged in as a supervisor.',
-      timer: 3000,
-      timerProgressBar: true,
-      showConfirmButton: false,
-      toast: true,
-      position: 'top-end',
+    if (!sessionStorage.getItem('supervisorWelcomeShown')) {
+      sessionStorage.setItem('supervisorWelcomeShown', 'true');
+      Swal.fire({
+        icon: 'success',
+        title: `Welcome back, ${this.supervisorFirstName || 'Supervisor'}!`,
+        text: 'You are logged in as a supervisor.',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+    }
+
+    await this.checkEsigReminder();
+  }
+
+  // ── Greeting ──────────────────────────────────────────────
+  get greetingTime(): string {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  get todayDateFormatted(): string {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
 
-  // ← ADD THIS: E-signature reminder (every login, only if no esig)
-  await this.checkEsigReminder();
-}
+  // ── E-sig reminder ─────────────────────────────────────────
+  private async checkEsigReminder(): Promise<void> {
+    if (sessionStorage.getItem('esigReminderShown')) return;
+    try {
+      const user = await this.appwrite.account.get();
+      const doc  = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        user.$id
+      );
+      const hasEsig = !!(doc as any).esig_file_id;
+      sessionStorage.setItem('esigReminderShown', 'true');
+      if (hasEsig) return;
 
-private async checkEsigReminder(): Promise<void> {
-  // ← Only show once per login session
-  if (sessionStorage.getItem('esigReminderShown')) return;
-
-  try {
-    const user = await this.appwrite.account.get();
-    const doc  = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      user.$id
-    );
-
-    const hasEsig = !!(doc as any).esig_file_id;
-    
-    // ← Mark as shown regardless of whether they have esig or not
-    sessionStorage.setItem('esigReminderShown', 'true');
-    
-    if (hasEsig) return;
-
-    const result = await Swal.fire({
-      icon: 'warning',
-      title: 'E-Signature Missing',
-      html: `
-        <p style="font-size:14px; color:#374151; margin:0 0 8px;">
-          You haven't uploaded your e-signature yet.
-        </p>
-        <p style="font-size:13px; color:#6b7280; margin:0;">
-          Your e-signature is required for signing OJT certificates and weekly reports.
-        </p>
-      `,
-      confirmButtonText: '<i class="fas fa-signature"></i>&nbsp; Upload E-Signature',
-      confirmButtonColor: '#0818A8',
-      showCancelButton: true,
-      cancelButtonText: 'Remind me later',
-      cancelButtonColor: '#6b7280',
-      allowOutsideClick: false,
-      focusConfirm: false,
-    });
-
-    if (result.isConfirmed) {
-      window.dispatchEvent(new CustomEvent('open-esig-upload'));
-    }
-  } catch { /* silently fail */ }
-}
-
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: 'E-Signature Missing',
+        html: `
+          <p style="font-size:14px; color:#374151; margin:0 0 8px;">
+            You haven't uploaded your e-signature yet.
+          </p>
+          <p style="font-size:13px; color:#6b7280; margin:0;">
+            Your e-signature is required for signing OJT certificates and weekly reports.
+          </p>
+        `,
+        confirmButtonText: '<i class="fas fa-signature"></i>&nbsp; Upload E-Signature',
+        confirmButtonColor: '#0818A8',
+        showCancelButton: true,
+        cancelButtonText: 'Remind me later',
+        cancelButtonColor: '#6b7280',
+        allowOutsideClick: false,
+        focusConfirm: false,
+      });
+      if (result.isConfirmed) {
+        window.dispatchEvent(new CustomEvent('open-esig-upload'));
+      }
+    } catch { }
+  }
 
   // ── Get logged-in supervisor ──────────────────────────────
   async getCurrentSupervisor() {
     try {
       const user = await this.appwrite.account.get();
       this.currentSupervisorId = user.$id;
-
       const doc = await this.appwrite.databases.getDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.SUPERVISORS_COL,
         user.$id
       );
-      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+      this.supervisorFirstName = (doc as any).first_name || '';
+      this.supervisorName      = `${(doc as any).first_name} ${(doc as any).last_name}`;
     } catch (error: any) {
       console.error('Failed to get supervisor:', error.message);
     }
   }
 
-  // ── Load only students assigned to this supervisor ────────
+  // ── Load assigned students ────────────────────────────────
   async loadAssignedStudents() {
+    this.studentsLoading = true;
     try {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
@@ -181,8 +206,8 @@ private async checkEsigReminder(): Promise<void> {
       );
 
       this.totalInterns = assigned.length;
-
       this.studentMap.clear();
+
       assigned.forEach(s => {
         this.studentMap.set(s.$id, {
           $id:              s.$id,
@@ -190,17 +215,56 @@ private async checkEsigReminder(): Promise<void> {
           middle_name:      s.middle_name,
           last_name:        s.last_name,
           profile_photo_id: s.profile_photo_id,
-          required_hours:   s.required_hours,
-          completed_hours:  s.completed_hours,
+          required_hours:   s.required_hours  || 500,
+          completed_hours:  s.completed_hours || 0,
           supervisor_id:    s.supervisor_id,
+          school_name:      s.school_name,
+          course:           s.course,
         });
       });
+
+      // Build progress list
+      this.internProgress = assigned.map(s => ({
+        $id:              s.$id,
+        first_name:       s.first_name,
+        middle_name:      s.middle_name,
+        last_name:        s.last_name,
+        profile_photo_id: s.profile_photo_id,
+        required_hours:   s.required_hours  || 500,
+        completed_hours:  s.completed_hours || 0,
+        supervisor_id:    s.supervisor_id,
+        school_name:      s.school_name,
+        course:           s.course,
+        fullName:         this.buildFullName(s.first_name, s.middle_name, s.last_name),
+      }));
+
     } catch (error: any) {
       console.error('Failed to load assigned students:', error.message);
+    } finally {
+      this.studentsLoading = false;
     }
   }
 
-  // ── Today's present / absent ──────────────────────────────
+  // ── All task stats ────────────────────────────────────────
+  async loadAllTaskStats() {
+    try {
+      const res       = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.TASKS_COL
+      );
+      const internIds = Array.from(this.studentMap.keys());
+      const myTasks   = (res.documents as any[]).filter(task => {
+        if (!task.assigned_intern_ids) return false;
+        const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
+        return ids.some((id: string) => internIds.includes(id));
+      });
+      this.totalTasks     = myTasks.length;
+      this.completedTasks = myTasks.filter(t => t.status === 'completed').length;
+      this.pendingTasks   = myTasks.filter(t => t.status === 'pending').length;
+    } catch { }
+  }
+
+  // ── Today's stats ─────────────────────────────────────────
   async loadTodayStats() {
     try {
       const now   = new Date();
@@ -218,13 +282,12 @@ private async checkEsigReminder(): Promise<void> {
       const isWeekend   = now.getDay() === 0 || now.getDay() === 6;
       this.presentToday = todayRecords.filter(d => d.status === 'Present').length;
       this.absentToday  = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
-
     } catch (error: any) {
       console.error('Failed to load today stats:', error.message);
     }
   }
 
-  // ── Recent attendance (5 rows max) ───────────────────────
+  // ── Recent attendance ─────────────────────────────────────
   async loadRecentAttendance() {
     this.attendanceLoading = true;
     try {
@@ -233,35 +296,34 @@ private async checkEsigReminder(): Promise<void> {
         this.appwrite.ATTENDANCE_COL
       );
       const internIds = Array.from(this.studentMap.keys());
+      const allDocs   = (res.documents as any[]).filter(d => internIds.includes(d.student_id));
 
       const rows: AttendanceRecord[] = [];
-      const allDocs = (res.documents as any[]).filter(d => internIds.includes(d.student_id));
 
-      for (let i = 0; i < 5 && rows.length < 5; i++) {
+      for (let i = 0; i < 7 && rows.length < 5; i++) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
         const dayRecords = allDocs.filter(doc => doc.date === dateStr);
 
         dayRecords.forEach(doc => {
           if (rows.length < 5) {
             const student = this.studentMap.get(doc.student_id);
             rows.push({
-              intern_name:      student ? this.getFullName(student) : 'Unknown',
+              intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
               profile_photo_id: student?.profile_photo_id,
               student_id:       doc.student_id,
               date:             this.formatDate(dateStr),
               time_in:          doc.time_in  || '—',
               time_out:         doc.time_out || '—',
               status:           doc.status   || 'Absent',
+              hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
             });
           }
         });
       }
 
       this.recentAttendance = rows;
-
     } catch (error: any) {
       console.error('Failed to load attendance:', error.message);
     } finally {
@@ -269,7 +331,7 @@ private async checkEsigReminder(): Promise<void> {
     }
   }
 
-  // ── Recent tasks (3 max) ──────────────────────────────────
+  // ── Recent tasks ──────────────────────────────────────────
   async loadRecentTasks() {
     this.tasksLoading = true;
     try {
@@ -288,15 +350,25 @@ private async checkEsigReminder(): Promise<void> {
       this.recentTasks = myTasks
         .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
         .slice(0, 3)
-        .map(task => ({
-          $id:         task.$id,
-          title:       task.title       || '—',
-          description: task.description || '—',
-          posted:      this.formatDate(task.$createdAt.split('T')[0]),
-          due:         task.due_date ? this.formatDate(task.due_date) : '—',
-          status:      task.status      || 'pending',
-        }));
+        .map(task => {
+          // Resolve assigned intern names
+          const ids = (task.assigned_intern_ids || '').split(',').map((id: string) => id.trim());
+          const names = ids
+            .map((id: string) => this.studentMap.get(id))
+            .filter(Boolean)
+            .map((s: any) => s.first_name + ' ' + s.last_name)
+            .join(', ');
 
+          return {
+            $id:           task.$id,
+            title:         task.title       || '—',
+            description:   task.description || '—',
+            posted:        this.formatDate(task.$createdAt.split('T')[0]),
+            due:           task.due_date ? this.formatDate(task.due_date.split('T')[0]) : '—',
+            status:        task.status      || 'pending',
+            assignedNames: names            || '—',
+          };
+        });
     } catch (error: any) {
       console.error('Failed to load tasks:', error.message);
     } finally {
@@ -307,8 +379,37 @@ private async checkEsigReminder(): Promise<void> {
   // ── Helpers ───────────────────────────────────────────────
   onToggleSidebar(collapsed: boolean) { this.isCollapsed = collapsed; }
 
+  buildFullName(first: string, middle: string | undefined, last: string): string {
+    return `${first} ${middle ? middle + ' ' : ''}${last}`.trim();
+  }
+
   getFullName(s: Student): string {
-    return `${s.first_name} ${s.middle_name ? s.middle_name + ' ' : ''}${s.last_name}`;
+    return this.buildFullName(s.first_name, s.middle_name, s.last_name);
+  }
+
+  getHoursPercent(s: InternProgress): number {
+    const req  = s.required_hours  || 500;
+    const done = s.completed_hours || 0;
+    return Math.min(parseFloat(((done / req) * 100).toFixed(1)), 100);
+  }
+
+  isOverdue(dueDateStr: string, status: string): boolean {
+    if (status === 'completed' || !dueDateStr || dueDateStr === '—') return false;
+    try {
+      return new Date(dueDateStr) < new Date();
+    } catch { return false; }
+  }
+
+  calcHours(timeIn: string, timeOut: string): string {
+    if (!timeIn || !timeOut || timeIn === '—' || timeOut === '—') return '—';
+    try {
+      const parse = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      const diff  = parse(timeOut) - parse(timeIn);
+      if (diff <= 0) return '—';
+      const h = Math.floor(diff / 60);
+      const m = diff % 60;
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    } catch { return '—'; }
   }
 
   formatDate(dateStr: string): string {
@@ -316,18 +417,23 @@ private async checkEsigReminder(): Promise<void> {
     try {
       const parts = dateStr.split('-');
       const d     = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      return d.toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric'
-      });
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     } catch { return dateStr; }
   }
 
   getAvatarUrl(record: AttendanceRecord): string {
-    if (record.profile_photo_id) {
+    if (record.profile_photo_id && !record.photoFailed) {
       return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${record.profile_photo_id}/view?project=${this.PROJECT_ID}`;
     }
-    const initials = record.intern_name
-      .split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join(' ');
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=0818A8&color=fff&size=64`;
+    const initials = record.intern_name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('+');
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
+  }
+
+  getStudentAvatarUrl(s: InternProgress): string {
+    if (s.profile_photo_id && !s.photoFailed) {
+      return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${s.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+    }
+    const initials = `${s.first_name[0] || ''}${s.last_name[0] || ''}`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
   }
 }
