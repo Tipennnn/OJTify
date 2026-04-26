@@ -9,7 +9,18 @@
 
   <!-- LEFT PANEL -->
   <div class="login-left">
+
+    <!-- DOT GRID -->
     <div class="bg-pattern"></div>
+
+    <!-- FLOATING BUBBLES -->
+    <div class="bubbles">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
     <div class="login-left-content">
       <div class="brand hide-mobile">
         <img src="/assets/images/OJTify_logo.png">
@@ -24,6 +35,7 @@
         <span>OJT Management System with QR Attendance</span>
       </div>
     </div>
+
   </div>
 
   <!-- RIGHT PANEL -->
@@ -67,7 +79,6 @@
             </span>
           </div>
 
-          <!-- Password strength hint -->
           <p class="password-hint">
             Min. 8 characters with uppercase, number, and special character.
           </p>
@@ -115,7 +126,6 @@
           <!-- Birthday & Gender -->
           <div class="input-row">
 
-            <!-- BIRTHDAY -->
             <div class="date-wrapper" [class.has-error]="fieldErrors['birthday']">
               <span class="icon"><i class="fa fa-calendar"></i></span>
               <input
@@ -183,7 +193,7 @@
 
           <div class="input-row">
 
-            <!-- ── COURSE AUTOCOMPLETE ── -->
+            <!-- COURSE AUTOCOMPLETE -->
             <div class="input-wrapper course-autocomplete-wrapper" [class.has-error]="fieldErrors['course']">
               <span class="icon"><i class="fa fa-graduation-cap"></i></span>
               <input
@@ -198,7 +208,6 @@
                 (keydown)="onCourseKeydown($event)">
               <label>Course</label>
 
-              <!-- Dropdown suggestions -->
               <div class="course-dropdown" *ngIf="showCourseDropdown && filteredCourses.length > 0">
                 <div
                   class="course-option"
@@ -210,7 +219,6 @@
                 </div>
               </div>
 
-              <!-- No results -->
               <div class="course-dropdown" *ngIf="showCourseDropdown && courseSearch.trim().length > 0 && filteredCourses.length === 0">
                 <div class="course-option-empty">
                   <i class="fa fa-search"></i> No matching course found
@@ -237,6 +245,7 @@
                 <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['yearLevel'] }}
               </span>
             </div>
+
           </div>
 
           <!-- ── Required Documents ── -->

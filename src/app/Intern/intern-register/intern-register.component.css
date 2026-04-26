@@ -1,12 +1,29 @@
+/* ============================================================
+   INTERN REGISTER — FULLY RESPONSIVE CSS
+   Mobile-first approach with breakpoints:
+     Base  → < 480px   (small phones)
+     sm    → 480px+    (large phones)
+     md    → 640px+    (large phones / small tablets)
+     lg    → 1024px+   (tablets / laptops)
+     xl    → 1280px+   (full desktops)
+   ============================================================ */
+
 /* GOOGLE FONT */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
-* {
+/* ── RESET ───────────────────────────────────────────────── */
+
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   transition: all .35s ease;
+}
+
+/* FIX: prevent decorative circles & dropdowns from causing horizontal scroll */
+html, body {
+  overflow-x: hidden;
 }
 
 body {
@@ -14,144 +31,222 @@ body {
   background: #f5f7ff;
 }
 
-/* ── WRAPPER ── */
+/* ── WRAPPER ─────────────────────────────────────────────── */
+
 .login-wrapper {
   display: flex;
   min-height: 100vh;
   flex-wrap: wrap;
 }
 
-/* ── LEFT PANEL ── */
+/* ── LEFT PANEL ──────────────────────────────────────────── */
+
 .login-left {
   flex: 0 0 40%;
-  min-width: 420px;
   height: 100vh;
   position: sticky;
   top: 0;
   overflow: hidden;
   display: flex;
   align-items: center;
-  padding: 60px;
+  padding: clamp(28px, 4vw, 52px);
   color: white;
-  background: linear-gradient(rgba(28,103,221,0.95), rgba(28,103,221,1));
+  background: #1C67DD;
 }
 
-.login-left::before {
-  content: "";
-  position: absolute;
-  width: 350px;
-  height: 350px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 50%;
-  top: -80px;
-  right: -80px;
-}
-
+/* Remove old pseudo-element circles — replaced by .bubble divs below */
+.login-left::before,
 .login-left::after {
-  content: "";
-  position: absolute;
-  width: 250px;
-  height: 250px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 50%;
-  bottom: -60px;
-  left: -60px;
+  display: none;
 }
 
+/* ── DOT GRID PATTERN ── */
 .bg-pattern {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.18) 2px, transparent 0);
-  background-size: 40px 40px;
-  opacity: 0.4;
+  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.20) 2px, transparent 0);
+  background-size: 28px 28px;
+  opacity: 0.45;
 }
+
+/* ── FLOATING BUBBLES ──────────────────────────────────────
+   Add <div class="bubbles"> inside .login-left in your HTML
+   with 4 child <span> elements. Each span becomes one bubble.
+   ────────────────────────────────────────────────────────── */
+.bubbles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* All bubbles share base style */
+.bubbles span {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  display: block;
+}
+
+/* Bubble 1 — large, top-right, partially off-screen (matches screenshot) */
+.bubbles span:nth-child(1) {
+  width: clamp(220px, 30vw, 380px);
+  height: clamp(220px, 30vw, 380px);
+  top: clamp(-110px, -15vw, -190px);
+  right: clamp(-80px, -10vw, -140px);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+/* Bubble 2 — medium, bottom-left, partially off-screen */
+.bubbles span:nth-child(2) {
+  width: clamp(180px, 24vw, 300px);
+  height: clamp(180px, 24vw, 300px);
+  bottom: clamp(-90px, -12vw, -150px);
+  left: clamp(-70px, -9vw, -120px);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* Bubble 3 — small-medium, mid-right, fully visible floating */
+.bubbles span:nth-child(3) {
+  width: clamp(80px, 11vw, 140px);
+  height: clamp(80px, 11vw, 140px);
+  top: 55%;
+  right: clamp(10px, 4vw, 30px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Bubble 4 — small, upper-left area, fully visible floating */
+.bubbles span:nth-child(4) {
+  width: clamp(50px, 7vw, 90px);
+  height: clamp(50px, 7vw, 90px);
+  top: 18%;
+  left: clamp(16px, 5vw, 40px);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── LEFT CONTENT ────────────────────────────────────────── */
 
 .login-left-content {
   position: relative;
   z-index: 2;
-  max-width: 650px;
+  width: 100%;
+  /* FIX: was max-width: 650px — unnecessary inside a flex column that's already constrained */
+  max-width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
+/* ── BRAND ───────────────────────────────────────────────── */
+
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 60px;
+  margin-bottom: clamp(32px, 5vw, 60px);
 }
-.brand img { width: 95px; }
-.brand span { font-size: 34px; font-weight: 600; letter-spacing: 1px; }
 
-.welcome-text { max-width: 650px; }
-.welcome-text h1 {
-  font-size: 32px;
-  margin-bottom: 18px;
-  margin-left: 50px;
-  margin-top: 60px;
-  font-weight: 600;
+.brand img {
+  /* FIX: fluid logo */
+  width: clamp(52px, 6vw, 80px);
 }
+
+.brand span {
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* ── WELCOME TEXT ────────────────────────────────────────── */
+
+.welcome-text {
+  /* FIX: was max-width: 650px with margin-left: 50px — overflowed on smaller panels.
+     Replaced with fluid padding on the parent. */
+  width: 100%;
+  padding-left: clamp(0px, 2.5vw, 40px);
+  margin-top: clamp(20px, 4vw, 60px);
+}
+
+.welcome-text h1 {
+  font-size: clamp(18px, 2.2vw, 28px);
+  margin-bottom: clamp(10px, 1.5vw, 18px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
 .welcome-text p {
-  font-size: 16px;
-  margin-left: 50px;
+  font-size: clamp(12px, 1.2vw, 15px);
   line-height: 1.6;
   opacity: 0.95;
-  max-width: 650px;
+  max-width: 100%;
   text-wrap: balance;
 }
 
+/* ── SYSTEM INFO ─────────────────────────────────────────── */
+
 .system-info {
   margin-top: auto;
-  margin-left: 50px;
-  font-size: 12px;
+  padding-left: clamp(0px, 2.5vw, 40px);
+  font-size: clamp(10px, 1vw, 12px);
   opacity: 0.85;
   display: flex;
   flex-direction: column;
 }
 
-/* ── RIGHT PANEL ── */
+/* ── RIGHT PANEL ─────────────────────────────────────────── */
+
 .login-right {
   flex: 1;
-  min-width: 420px;
+  /* FIX: was min-width: 420px — breaks on phones; now 100% minimum */
+  min-width: min(420px, 100%);
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 50px;
+  /* FIX: fluid padding */
+  padding: clamp(20px, 4vw, 50px);
+  /* FIX: keep scrollable so long form doesn't clip */
   max-height: 100vh;
   overflow-y: auto;
 }
 
-/* ── LOGIN CARD ── */
+/* ── LOGIN CARD ──────────────────────────────────────────── */
+
 .login-card {
   width: 100%;
+  /* FIX: was fixed max-width: 520px — fine on desktop but causes cramping
+     on mid-range tablets. Kept same value but allow full-width on mobile. */
   max-width: 520px;
   background: #ffffff;
-  padding: 40px;
+  padding: clamp(24px, 4vw, 40px);
   border-radius: 20px;
   box-shadow: 0 25px 50px rgba(0,0,0,0.08);
 }
 
+/* ── CARD TITLE ──────────────────────────────────────────── */
+
 .login-card h2 {
   text-align: center;
   color: #1E40AF;
-  font-size: 26px;
-  margin-bottom: 30px;
+  font-size: clamp(20px, 2.4vw, 26px);
+  margin-bottom: clamp(18px, 2.5vw, 30px);
 }
 
-/* ── SECTION TITLES ── */
+/* ── SECTION TITLES ──────────────────────────────────────── */
+
 .form-section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: clamp(10px, 1.1vw, 12px);
   font-weight: 600;
   color: #1E40AF;
-  margin: 24px 0 14px;
+  margin: clamp(16px, 2.5vw, 24px) 0 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
 .form-section-title::before {
   content: '';
   width: 3px;
@@ -161,19 +256,24 @@ body {
   flex-shrink: 0;
 }
 
-/* ── INPUT ROW (2 columns) ── */
+/* ── INPUT ROW (2 columns) ───────────────────────────────── */
+
 .input-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* FIX: on very small screens the 2-col grid squishes inputs below usable width.
+     Auto-fit with min 140px collapses to 1 column gracefully. */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
+
 .input-row .input-wrapper,
 .input-row .date-wrapper {
   margin-bottom: 0;
 }
 
-/* ── INPUT WRAPPER ── */
+/* ── INPUT WRAPPER ───────────────────────────────────────── */
+
 .input-wrapper {
   position: relative;
   width: 100%;
@@ -183,10 +283,11 @@ body {
 .input-wrapper input,
 .input-wrapper select {
   width: 100%;
-  padding: 14px 42px 14px 40px;
+  /* FIX: fluid font and padding — was fixed 14px which overflows on 360px phones */
+  padding: clamp(12px, 1.5vw, 14px) 42px clamp(12px, 1.5vw, 14px) 40px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
-  font-size: 14px;
+  font-size: clamp(13px, 1.4vw, 14px);
   font-family: 'Poppins', sans-serif;
   outline: none;
   background: #f8fafc;
@@ -206,7 +307,8 @@ body {
   border-color: #93c5fd;
 }
 
-/* ── ERROR STATE ── */
+/* ── ERROR STATES ────────────────────────────────────────── */
+
 .input-wrapper.has-error input,
 .input-wrapper.has-error select,
 .date-wrapper.has-error input[type="date"] {
@@ -229,6 +331,7 @@ body {
   margin-top: 5px;
   padding-left: 4px;
   line-height: 1.4;
+  /* FIX: don't animate on every render cycle */
   transition: none;
 }
 
@@ -237,7 +340,8 @@ body {
   flex-shrink: 0;
 }
 
-/* ── FLOATING LABEL ── */
+/* ── FLOATING LABEL ──────────────────────────────────────── */
+
 .input-wrapper label {
   position: absolute;
   left: 40px;
@@ -248,7 +352,7 @@ body {
   pointer-events: none;
   background: #f8fafc;
   padding: 0 4px;
-  transition: all 0.25s ease;
+  transition: top 0.25s ease, font-size 0.25s ease, color 0.25s ease;
 }
 
 .input-wrapper.has-error label {
@@ -275,7 +379,8 @@ body {
 
 input::placeholder { color: transparent; }
 
-/* ── DATE WRAPPER ── */
+/* ── DATE WRAPPER ────────────────────────────────────────── */
+
 .date-wrapper {
   position: relative;
   width: 100%;
@@ -283,10 +388,10 @@ input::placeholder { color: transparent; }
 
 .date-wrapper input[type="date"] {
   width: 100%;
-  padding: 14px 42px 14px 40px;
+  padding: clamp(12px, 1.5vw, 14px) 42px clamp(12px, 1.5vw, 14px) 40px;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
-  font-size: 14px;
+  font-size: clamp(13px, 1.4vw, 14px);
   font-family: 'Poppins', sans-serif;
   outline: none;
   background: #f8fafc;
@@ -338,7 +443,7 @@ input::placeholder { color: transparent; }
   pointer-events: none;
   background: #f8fafc;
   padding: 0 4px;
-  transition: all 0.25s ease;
+  transition: top 0.25s ease, font-size 0.25s ease, color 0.25s ease;
   z-index: 2;
 }
 
@@ -360,7 +465,8 @@ input::placeholder { color: transparent; }
   background: #fff;
 }
 
-/* ── ICONS ── */
+/* ── ICONS ───────────────────────────────────────────────── */
+
 .input-wrapper .icon {
   position: absolute;
   left: 13px;
@@ -372,15 +478,20 @@ input::placeholder { color: transparent; }
   z-index: 1;
 }
 
+/* FIX: when field has error, icon shifts slightly because the field-error text
+   appears below and the total wrapper height grows. Use a fixed top instead. */
 .input-wrapper.has-error .icon,
 .date-wrapper.has-error .icon {
-  top: calc(50% - 10px);
+  top: clamp(18px, 2.2vw, 22px);
+  transform: none;
 }
 
-/* ── PASSWORD TOGGLE ── */
+/* ── PASSWORD TOGGLE ─────────────────────────────────────── */
+
 .input-wrapper.password-wrapper input {
   padding-right: 42px;
 }
+
 .input-wrapper .password-icon {
   position: absolute;
   right: 13px;
@@ -392,11 +503,14 @@ input::placeholder { color: transparent; }
   opacity: 0.75;
   z-index: 5;
 }
+
 .input-wrapper.has-error .password-icon {
-  top: calc(50% - 10px);
+  top: clamp(18px, 2.2vw, 22px);
+  transform: none;
 }
 
-/* ── PASSWORD HINT ── */
+/* ── PASSWORD HINT ───────────────────────────────────────── */
+
 .password-hint {
   font-size: 11px;
   color: #9ca3af;
@@ -404,27 +518,32 @@ input::placeholder { color: transparent; }
   line-height: 1.4;
 }
 
-/* ── REQUIRED STAR ── */
+/* ── REQUIRED STAR ───────────────────────────────────────── */
+
 .req-star {
   color: #dc2626;
   margin-left: 2px;
   font-size: 12px;
 }
 
-/* ── FILE UPLOAD CARDS ── */
+/* ── FILE UPLOAD CARDS ───────────────────────────────────── */
+
 .file-upload-card {
   border: 1.5px dashed #93c5fd;
   border-radius: 12px;
   background: #eff6ff;
-  padding: 14px 16px;
+  /* FIX: fluid padding for narrow phones */
+  padding: clamp(10px, 2vw, 14px) clamp(12px, 2.5vw, 16px);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: clamp(10px, 2vw, 14px);
   cursor: pointer;
   transition: all 0.25s ease;
   margin-bottom: 10px;
   position: relative;
   overflow: hidden;
+  /* FIX: prevent card from exceeding container on very small screens */
+  width: 100%;
 }
 
 .file-upload-card:hover {
@@ -451,14 +570,15 @@ input::placeholder { color: transparent; }
 }
 
 .file-icon-box {
-  width: 38px;
-  height: 38px;
+  /* FIX: slightly fluid so it doesn't feel cramped on 360px */
+  width: clamp(32px, 5vw, 38px);
+  height: clamp(32px, 5vw, 38px);
   background: #dbeafe;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: clamp(13px, 2vw, 16px);
   color: #1E40AF;
   flex-shrink: 0;
   transition: background 0.25s;
@@ -475,13 +595,15 @@ input::placeholder { color: transparent; }
 
 .file-text-wrap {
   flex: 1;
+  /* FIX: min-width: 0 prevents text from overflowing the flex container */
   min-width: 0;
 }
 
 .file-label-main {
-  font-size: 13px;
+  font-size: clamp(12px, 1.3vw, 13px);
   font-weight: 500;
   color: #1E40AF;
+  /* FIX: truncate long labels instead of wrapping and breaking layout */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -495,6 +617,10 @@ input::placeholder { color: transparent; }
   font-size: 11px;
   color: #6b7280;
   margin-top: 1px;
+  /* FIX: on 320px phones "PDF, DOC, DOCX · Max 5MB" can overflow */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-name-display {
@@ -513,42 +639,50 @@ input::placeholder { color: transparent; }
   margin-top: 2px;
 }
 
-/* ── ALERTS ── */
+/* ── ALERTS ──────────────────────────────────────────────── */
+
 .alert-error,
 .alert-info {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 10px 14px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: clamp(12px, 1.3vw, 13px);
   margin-bottom: 20px;
   line-height: 1.5;
 }
+
 .alert-error {
   background: #fef2f2;
   color: #b91c1c;
   border: 1px solid #fecaca;
 }
+
 .alert-info {
   background: #f0fdf4;
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
 
-/* ── SUBMIT BUTTON ── */
+/* ── SUBMIT BUTTON ───────────────────────────────────────── */
+
 .login-btn {
   width: 100%;
-  padding: 15px;
+  padding: clamp(13px, 2vw, 15px);
   border: none;
   border-radius: 12px;
   background: linear-gradient(135deg, #1E40AF, #2563EB);
   color: white;
-  font-size: 16px;
+  font-size: clamp(14px, 1.5vw, 16px);
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
   margin-top: 8px;
   transition: all 0.25s ease;
+  /* FIX: when used as <a> tag, ensure it doesn't have underline styling */
+  text-decoration: none;
+  display: block;
+  text-align: center;
 }
 
 .login-btn:hover {
@@ -563,18 +697,22 @@ input::placeholder { color: transparent; }
   box-shadow: none;
 }
 
+/* ── SIGNUP LINK ─────────────────────────────────────────── */
+
 .signup-link {
   text-align: center;
-  font-size: 13px;
+  font-size: clamp(12px, 1.2vw, 13px);
   margin-top: 16px;
 }
+
 .signup-link a {
   color: #1E40AF;
   text-decoration: none;
   font-weight: 500;
 }
 
-/* ── SUCCESS PANEL ── */
+/* ── SUCCESS PANEL ───────────────────────────────────────── */
+
 .success-panel {
   display: flex;
   flex-direction: column;
@@ -585,8 +723,8 @@ input::placeholder { color: transparent; }
 }
 
 .success-icon-wrap {
-  width: 72px;
-  height: 72px;
+  width: clamp(56px, 8vw, 72px);
+  height: clamp(56px, 8vw, 72px);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -594,15 +732,27 @@ input::placeholder { color: transparent; }
   margin-bottom: 6px;
 }
 
-.success-icon-wrap i { font-size: 32px; color: #fff; }
-.success-panel h2 { margin-bottom: 0; }
-.success-panel p { font-size: 14px; color: #555; margin: 0; }
+.success-icon-wrap i {
+  font-size: clamp(24px, 4vw, 32px);
+  color: #fff;
+}
 
-/* ── MOBILE HEADER ── */
+.success-panel h2 { margin-bottom: 0; }
+
+.success-panel p {
+  font-size: clamp(13px, 1.4vw, 14px);
+  color: #555;
+  margin: 0;
+}
+
+/* ── MOBILE HEADER ───────────────────────────────────────── */
+
 .mobile-reg-header {
+  /* FIX: was display:none without flex — now properly hidden by default */
   display: none;
   background: linear-gradient(135deg, #1C67DD, #2563EB);
-  padding: 36px 20px 54px;
+  /* FIX: fluid padding so content doesn't clip on small screens */
+  padding: clamp(28px, 5vw, 36px) 20px clamp(44px, 8vw, 54px);
   text-align: center;
   color: white;
   flex-direction: column;
@@ -611,9 +761,24 @@ input::placeholder { color: transparent; }
   width: 100%;
 }
 
-.mobile-reg-header img { width: 72px; margin-bottom: 6px; }
-.mobile-reg-header .mob-app-name { font-size: 22px; font-weight: 600; letter-spacing: 1px; }
-.mobile-reg-header .mob-app-sub { font-size: 12px; opacity: 0.85; }
+.mobile-reg-header img {
+  /* FIX: fluid size */
+  width: clamp(52px, 10vw, 72px);
+  margin-bottom: 6px;
+}
+
+.mobile-reg-header .mob-app-name {
+  font-size: clamp(18px, 4vw, 22px);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.mobile-reg-header .mob-app-sub {
+  font-size: clamp(11px, 1.5vw, 12px);
+  opacity: 0.85;
+}
+
+/* ── SYSTEM MOBILE TEXT ──────────────────────────────────── */
 
 .system-mobile {
   display: none;
@@ -623,17 +788,14 @@ input::placeholder { color: transparent; }
   color: #9ca3af;
 }
 
-/* ======================================= */
-/* ── COURSE AUTOCOMPLETE DROPDOWN ──      */
-/* ======================================= */
+/* ── COURSE AUTOCOMPLETE DROPDOWN ────────────────────────── */
 
-/* The wrapper needs relative + visible overflow for the dropdown */
+/* FIX: must be relative + overflow visible so dropdown can escape */
 .course-autocomplete-wrapper {
   position: relative;
   overflow: visible !important;
 }
 
-/* The dropdown itself */
 .course-dropdown {
   position: absolute;
   top: calc(100% + 4px);
@@ -645,11 +807,12 @@ input::placeholder { color: transparent; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   z-index: 999;
   overflow: hidden;
-  /* Override global transition so dropdown doesn't animate weirdly */
+  /* FIX: cap height and allow scroll so it doesn't go off-screen on short phones */
+  max-height: 220px;
+  overflow-y: auto;
   transition: none;
 }
 
-/* Each suggestion row */
 .course-option {
   display: flex;
   flex-direction: column;
@@ -669,7 +832,6 @@ input::placeholder { color: transparent; }
   background: #eff6ff;
 }
 
-/* Short abbreviation label (BSIT) */
 .course-option-abbr {
   font-size: 11px;
   font-weight: 700;
@@ -679,7 +841,6 @@ input::placeholder { color: transparent; }
   line-height: 1;
 }
 
-/* Full course name */
 .course-option-full {
   font-size: 12px;
   color: #374151;
@@ -688,7 +849,6 @@ input::placeholder { color: transparent; }
   word-break: break-word;
 }
 
-/* Empty state inside dropdown */
 .course-option-empty {
   padding: 14px;
   text-align: center;
@@ -701,8 +861,16 @@ input::placeholder { color: transparent; }
   transition: none;
 }
 
-/* ── TABLET (≤1024px) ── */
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================ */
+
+/* ── TABLET & BELOW  (≤ 1024px) ─────────────────────────── */
+
 @media (max-width: 1024px) {
+
+  /* FIX: hide the decorative left panel on tablets — there isn't
+     enough horizontal room for both a sidebar and a full form. */
   .login-left { display: none; }
 
   .login-wrapper {
@@ -711,33 +879,48 @@ input::placeholder { color: transparent; }
     background: #1C67DD;
   }
 
+  /* Right panel goes full-width, no height limit */
   .login-right {
     min-width: 100%;
     padding: 0;
     align-items: flex-start;
+    /* FIX: was max-height: 100vh which clipped form on tablets */
     max-height: none;
     overflow-y: visible;
   }
 
+  /* Show the mobile banner instead */
   .mobile-reg-header { display: flex; }
 
+  /* Card slides up over the blue header */
   .login-card {
     max-width: 100%;
     border-radius: 28px 28px 0 0;
-    padding: 28px 24px 48px;
+    /* FIX: fluid bottom padding for home-bar safe area */
+    padding: 28px 24px calc(48px + env(safe-area-inset-bottom));
     box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+    /* FIX: negative margin-top instead of absolute position — safer for long forms */
     margin-top: -24px;
-    min-height: calc(100vh - 130px);
+    /* FIX: min-height ensures white card fills viewport below banner */
+    min-height: calc(100vh - 110px);
   }
 
-  .login-card h2 { font-size: 22px; margin-bottom: 20px; }
+  .login-card h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
   .hide-mobile { display: none; }
   .system-mobile { display: block; }
 }
 
-/* ── MOBILE (≤640px) ── */
+/* ── LARGE PHONES / PHABLETS  (≤ 640px) ─────────────────── */
+
 @media (max-width: 640px) {
-  .login-card { padding: 22px 16px 40px; }
+
+  .login-card {
+    padding: 22px 18px calc(40px + env(safe-area-inset-bottom));
+  }
 
   .input-wrapper input,
   .input-wrapper select,
@@ -747,27 +930,98 @@ input::placeholder { color: transparent; }
   }
 
   .input-wrapper label,
-  .date-wrapper .date-label { font-size: 12px; }
-  .login-btn { font-size: 15px; padding: 14px; }
-  .form-section-title { font-size: 11px; }
-}
+  .date-wrapper .date-label {
+    font-size: 12px;
+  }
 
-/* ── SMALL PHONES (≤420px) ── */
-@media (max-width: 420px) {
-  .mobile-reg-header img { width: 60px; }
-  .mobile-reg-header .mob-app-name { font-size: 20px; }
+  .login-btn {
+    font-size: 15px;
+    padding: 14px;
+  }
 
-  .login-card { padding: 20px 14px 36px; }
+  .form-section-title {
+    font-size: 11px;
+  }
 
+  /* FIX: 2-col grid on mid phones can still be too narrow (e.g. 380px).
+     Collapse to single column below this breakpoint. */
   .input-row {
     grid-template-columns: 1fr;
     gap: 0;
     margin-bottom: 0;
   }
-  .input-row .input-wrapper,
-  .input-row .date-wrapper { margin-bottom: 16px; }
 
-  .file-upload-card { padding: 12px 14px; }
-  .file-icon-box { width: 34px; height: 34px; font-size: 14px; }
+  .input-row .input-wrapper,
+  .input-row .date-wrapper {
+    margin-bottom: 16px;
+  }
+}
+
+/* ── SMALL PHONES  (≤ 420px) ────────────────────────────── */
+
+@media (max-width: 420px) {
+
+  .mobile-reg-header img { width: 54px; }
+  .mobile-reg-header .mob-app-name { font-size: 18px; }
+
+  .login-card {
+    padding: 20px 14px calc(36px + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 0 0;
+  }
+
+  .login-card h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .file-upload-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .file-icon-box {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+
   .file-label-main { font-size: 12px; }
+  .file-label-sub  { font-size: 10px; }
+
+  /* Dropdown slightly shorter on very small screens */
+  .course-dropdown { max-height: 180px; }
+}
+
+/* ── EXTRA SMALL  (≤ 360px) — covers lowest-end Androids ── */
+
+@media (max-width: 360px) {
+
+  .login-card {
+    padding: 18px 12px calc(32px + env(safe-area-inset-bottom));
+  }
+
+  .login-card h2 { font-size: 16px; }
+
+  .input-wrapper input,
+  .input-wrapper select,
+  .date-wrapper input[type="date"] {
+    padding: 11px 36px 11px 34px;
+    font-size: 12px;
+  }
+
+  .input-wrapper .icon,
+  .date-wrapper .icon {
+    left: 10px;
+    font-size: 13px;
+  }
+
+  .input-wrapper label,
+  .date-wrapper .date-label {
+    left: 34px;
+    font-size: 11px;
+  }
+
+  .login-btn { font-size: 14px; padding: 12px; }
+
+  .file-label-sub { display: none; } /* too small to fit — hide sub text */
 }

@@ -1,8 +1,14 @@
+/* ═══════════════════════════════════════════════════════════
+   INTERN ATTENDANCE — RESPONSIVE CSS
+   Mobile-first approach | Breakpoints: 480 / 640 / 768 / 1024
+   ═══════════════════════════════════════════════════════════ */
+
 /* ─── LAYOUT ─────────────────────────────────────── */
 .dashboard-wrapper {
   display: flex;
   height: 100vh;
   background: #f6f8fc;
+  overflow: hidden;
 }
 
 .dashboard-right {
@@ -15,24 +21,28 @@
 
 .dashboard-content {
   flex: 1;
-  padding: 30px;
+  padding: clamp(12px, 3vw, 30px);
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ─── HEADER ─────────────────────────────────────── */
 .dashboard-header {
-  margin-bottom: 24px;
+  margin-bottom: clamp(14px, 2.5vw, 24px);
 }
 
 .header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
 .dashboard-header h2 {
-  font-size: 22px;
+  font-size: clamp(16px, 3vw, 22px);
   font-weight: 600;
   color: #1f2937;
   margin: 0;
@@ -44,7 +54,7 @@
   background: #e5e7eb;
 }
 
-/* ─── QR BUTTON (shared — QR Code + Attendance Reports + Download DTR) ── */
+/* ─── QR BUTTON (shared) ─────────────────────────── */
 .qr-btn {
   padding: 7px 14px;
   background: #2563eb;
@@ -53,12 +63,13 @@
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: 0.2s;
+  transition: background 0.2s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .qr-btn:hover { background: #0b47b3; }
@@ -66,21 +77,22 @@
 /* ─── TOP CARDS ──────────────────────────────────── */
 .top-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: clamp(10px, 2vw, 16px);
+  margin-bottom: clamp(14px, 2.5vw, 24px);
 }
 
 .stat-card {
   background: #ffffff;
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: clamp(12px, 2vw, 18px);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border: 1px solid #e5e7eb;
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-  transition: 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-width: 0;
 }
 
 .stat-card:hover {
@@ -88,24 +100,29 @@
   box-shadow: 0 6px 14px rgba(0,0,0,0.06);
 }
 
+.stat-left { min-width: 0; }
+
 .stat-left h3 {
-  font-size: 20px;
+  font-size: clamp(16px, 2.5vw, 20px);
   font-weight: 700;
   color: #111827;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.stat-left span { font-size: 12px; color: #6b7280; }
-.stat-right     { text-align: right; }
+.stat-left span { font-size: clamp(11px, 1.5vw, 12px); color: #6b7280; }
+.stat-right     { text-align: right; flex-shrink: 0; }
 
 .percent {
-  font-size: 16px;
+  font-size: clamp(13px, 2vw, 16px);
   font-weight: 600;
   color: #2563eb;
 }
 
 .mini-bar {
-  width: 90px;
+  width: clamp(60px, 10vw, 90px);
   height: 5px;
   background: #e5e7eb;
   border-radius: 20px;
@@ -120,11 +137,12 @@
 }
 
 .status {
-  font-size: 12px;
+  font-size: clamp(11px, 1.5vw, 12px);
   padding: 3px 10px;
   border-radius: 12px;
   font-weight: 600;
   display: inline-block;
+  white-space: nowrap;
 }
 
 .status.complete { background: #dcfce7; color: #16a34a; }
@@ -137,19 +155,20 @@
 .absent-card    { border-left: 3px solid #dc2626; }
 
 .attendance-status-icon {
-  width: 38px;
-  height: 38px;
+  width: clamp(32px, 5vw, 38px);
+  height: clamp(32px, 5vw, 38px);
   border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 18px;
+  font-size: clamp(14px, 2vw, 18px);
+  flex-shrink: 0;
 }
 
-/* ─── CALENDAR ───────────────────────────────────── */
+/* ─── CALENDAR CONTAINER ─────────────────────────── */
 .attendance-container {
   background: white;
-  padding: 24px;
+  padding: clamp(14px, 3vw, 24px);
   border-radius: 14px;
   box-shadow: 0 3px 8px rgba(0,0,0,0.05);
 }
@@ -160,7 +179,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: clamp(12px, 2vw, 20px);
 }
 
 .calendar-nav {
@@ -170,10 +189,10 @@
 }
 
 .calendar-nav h3 {
-  font-size: 15px;
+  font-size: clamp(13px, 2vw, 15px);
   font-weight: 600;
   color: #1f2937;
-  min-width: 130px;
+  min-width: 120px;
   text-align: center;
 }
 
@@ -188,7 +207,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
+  transition: background 0.2s;
+  flex-shrink: 0;
 }
 
 .calendar-nav button:hover { background: #e5e7eb; }
@@ -197,6 +217,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .calendar-days {
@@ -204,7 +225,7 @@
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
   font-weight: 600;
-  font-size: 13px;
+  font-size: clamp(10px, 1.8vw, 13px);
   color: #6b7280;
   margin-bottom: 10px;
 }
@@ -212,20 +233,20 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
+  gap: clamp(4px, 1vw, 10px);
 }
 
 .day {
   height: 70px;
-  border-radius: 10px;
+  border-radius: clamp(6px, 1.5vw, 10px);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   background: #f5f7fb;
   font-weight: 500;
-  font-size: 13px;
-  transition: .2s;
+  font-size: clamp(10px, 1.8vw, 13px);
+  transition: transform 0.2s;
 }
 
 .day:hover       { transform: scale(1.05); }
@@ -238,9 +259,9 @@
 .attendance-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 20px;
-  font-size: 13px;
+  gap: clamp(10px, 2vw, 16px);
+  margin-top: clamp(12px, 2vw, 20px);
+  font-size: clamp(11px, 1.5vw, 13px);
   color: #374151;
 }
 
@@ -250,8 +271,12 @@
 .absent-box    { background: #dc2626; }
 .no-record-box { background: #9ca3af; }
 
-/* ─── ATTENDANCE MODAL ───────────────────────────── */
-.attendance-modal {
+/* ═══════════════════════════════════════════════════
+   MODALS — Common base
+   ═══════════════════════════════════════════════════ */
+.attendance-modal,
+.reports-modal,
+.qr-modal {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.45);
@@ -259,30 +284,38 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 16px;
+  padding: clamp(10px, 3vw, 20px);
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
+/* ─── ATTENDANCE MODAL ───────────────────────────── */
 .attendance-box {
   width: 100%;
   max-width: 380px;
-  max-height: 90vh;
+  /* FIX: fixed height so modal never shrinks when content is empty */
+  height: min(90vh, 420px);
+  min-height: 420px;
   background: white;
   border-radius: 16px;
-  padding: 24px;
+  padding: clamp(16px, 3vw, 24px);
   box-shadow: 0 20px 40px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .attendance-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .title     { display: flex; align-items: center; gap: 8px; }
 .title i   { color: #2563eb; }
-.title h3  { color: #2563eb; font-weight: 600; font-size: 15px; }
+.title h3  { color: #2563eb; font-weight: 600; font-size: clamp(13px, 2vw, 15px); }
 
 .close-btn {
   border: none;
@@ -290,18 +323,19 @@
   font-size: 15px;
   cursor: pointer;
   color: #6b7280;
-  transition: 0.2s;
+  transition: color 0.2s, background 0.2s;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .close-btn:hover { color: #dc2626; background: #fee2e2; }
 
-.divider { height: 1px; background: #e5e7eb; margin: 12px 0; }
+.divider { height: 1px; background: #e5e7eb; margin: 12px 0; flex-shrink: 0; }
 
 .attendance-info {
   display: flex;
@@ -314,7 +348,10 @@
 .info-row {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: clamp(12px, 1.8vw, 14px);
 }
 
 .label { color: #6b7280; }
@@ -326,82 +363,86 @@
 
 /* ─── REPORTS MODAL ──────────────────────────────── */
 .reports-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(33,33,33,0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding: 16px;
+  align-items: flex-start;
+  padding: clamp(10px, 3vw, 20px);
 }
 
 .reports-box {
   width: 100%;
-  max-width: 1100px;
-  height: 85vh;
+  max-width: min(1100px, 100%);
+  height: min(88vh, 860px);
   background: #ffffff;
   border-radius: 20px;
-  padding: 28px;
+  padding: clamp(16px, 2.5vw, 28px);
   box-shadow: 0 20px 40px rgba(0,0,0,0.2);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: auto;
 }
 
 .reports-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .reports-title { display: flex; align-items: center; gap: 12px; }
 
 .reports-title h3 {
   font-weight: 700;
-  font-size: 18px;
+  font-size: clamp(14px, 2.5vw, 18px);
   color: #2563eb;
 }
 
 .qr-icon {
-  width: 42px;
-  height: 42px;
+  width: clamp(34px, 5vw, 42px);
+  height: clamp(34px, 5vw, 42px);
   border-radius: 10px;
   background: #2563eb;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 18px;
+  font-size: clamp(15px, 2.5vw, 18px);
   box-shadow: 0 4px 12px rgba(37,99,235,0.4);
   flex-shrink: 0;
 }
 
 .qr-icon i { color: white; }
 
-.modal-divider { height: 1px; background: #e5e7eb; margin: 12px 0 16px; }
+.modal-divider { height: 1px; background: #e5e7eb; margin: 12px 0 16px; flex-shrink: 0; }
 
 .reports-body {
   display: flex;
-  gap: 20px;
+  gap: clamp(12px, 2vw, 20px);
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
+/* ─── FILTERS PANEL (desktop sidebar) ───────────── */
 .filters-panel {
-  flex: 0 0 200px;
+  flex: 0 0 160px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 18px;
+  padding: clamp(12px, 2vw, 18px);
   background: #f3f4f6;
   border-radius: 14px;
   align-self: flex-start;
   position: sticky;
   top: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .filters-panel label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   color: #111827;
 }
 
@@ -409,11 +450,12 @@
   padding: 9px 11px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   color: #111827;
   background: #ffffff;
   width: 100%;
-  transition: 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .filters-panel select:focus {
@@ -422,7 +464,7 @@
   box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
 }
 
-/* ─── DOWNLOAD DTR BUTTON — matches qr-btn style ── */
+/* ─── DOWNLOAD DTR BUTTON ────────────────────────── */
 .dl-pdf-btn {
   padding: 7px 14px;
   background: #2563eb;
@@ -431,18 +473,20 @@
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: 0.2s;
-  width: 100%;
   justify-content: center;
+  gap: 6px;
+  transition: background 0.2s;
+  width: 100%;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .dl-pdf-btn:hover { background: #0b47b3; }
 
+/* ─── TABLE PANEL ────────────────────────────────── */
 .table-panel {
   flex: 1;
   min-width: 0;
@@ -452,11 +496,13 @@
 }
 
 .table-wrap {
-  width: 100%;
-  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-x: auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
 }
 
 .table-wrap::-webkit-scrollbar       { width: 5px; height: 5px; }
@@ -465,7 +511,7 @@
 .table-panel table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 480px;
+  min-width: 520px;
 }
 
 .table-panel thead th {
@@ -474,9 +520,9 @@
   background: #f3f4f6;
   z-index: 10;
   font-weight: 600;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   color: #111827;
-  padding: 12px;
+  padding: clamp(8px, 1.5vw, 12px);
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
   white-space: nowrap;
@@ -484,9 +530,9 @@
 
 .table-panel td {
   background: #ffffff;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   color: #374151;
-  padding: 12px;
+  padding: clamp(8px, 1.5vw, 12px);
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
 }
@@ -497,67 +543,131 @@
 .table-panel td.no-record { color: #9ca3af; font-weight: 600; }
 
 .no-records-msg {
-  text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 30px;
   color: #6b7280;
   font-size: 14px;
+  text-align: center;
+  min-height: 200px;
+}
+
+/* ─── REPORTS PAGINATION ─────────────────────────── */
+.report-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 4px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.report-page-info {
+  font-size: clamp(10px, 1.5vw, 12px);
+  color: #6b7280;
+  margin-right: 4px;
+}
+
+.report-page-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #374151;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-page-btn:hover:not(:disabled) { background: #f3f4f6; }
+
+.report-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.report-page-numbers { display: flex; gap: 4px; }
+
+.report-page {
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #374151;
+  transition: background 0.2s;
+  min-width: 28px;
+  text-align: center;
+}
+
+.report-page:hover { background: #e5e7eb; }
+
+.report-page.active {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 /* ─── QR MODAL ───────────────────────────────────── */
-.qr-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding: 16px;
-}
-
 .qr-box {
   width: 100%;
-  max-width: 400px;
+  max-width: min(400px, 100%);
   border-radius: 20px;
-  padding: 26px;
+  padding: clamp(16px, 4vw, 26px);
   background: #ffffff;
   box-shadow: 0 25px 60px rgba(0,0,0,0.2);
   display: flex;
   flex-direction: column;
   gap: 14px;
   animation: fadeIn 0.25s ease;
+  box-sizing: border-box;
+  max-height: min(90vh, 600px);
+  overflow-y: auto;
 }
 
-.qr-header { display: flex; justify-content: space-between; align-items: center; }
+.qr-header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .qr-title  { display: flex; align-items: center; gap: 12px; }
 
-.qr-title h3 { font-size: 15px; font-weight: 700; color: #2563eb; }
-.qr-title p  { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.qr-title h3 { font-size: clamp(13px, 2vw, 15px); font-weight: 700; color: #2563eb; }
+.qr-title p  { font-size: clamp(10px, 1.5vw, 12px); color: #6b7280; margin-top: 2px; }
 
-.qr-divider { width: 100%; height: 1px; background: #e5e7eb; }
+.qr-divider { width: 100%; height: 1px; background: #e5e7eb; flex-shrink: 0; }
 
 .qr-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: clamp(10px, 2vw, 16px);
 }
 
 .qr-wrapper {
-  padding: 16px;
+  padding: clamp(10px, 3vw, 16px);
   border-radius: 16px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   box-shadow: 0 8px 20px rgba(0,0,0,0.07);
-  transition: 0.3s;
+  transition: transform 0.3s;
 }
 
 .qr-wrapper:hover { transform: scale(1.03); }
 
-.qr-note { font-size: 12px; color: #6b7280; text-align: center; }
+.qr-wrapper qrcode,
+.qr-wrapper canvas,
+.qr-wrapper img {
+  max-width: min(200px, 55vw) !important;
+  height: auto !important;
+}
+
+.qr-note { font-size: clamp(10px, 1.5vw, 12px); color: #6b7280; text-align: center; }
 
 .qr-countdown-wrap {
-  width: 200px;
+  width: min(200px, 60vw);
   height: 4px;
   background: #e5e7eb;
   border-radius: 4px;
@@ -579,13 +689,13 @@
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: clamp(11px, 1.5vw, 13px);
   font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: 0.2s;
+  transition: background 0.2s;
   color: #374151;
 }
 
@@ -597,111 +707,191 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ─── RESPONSIVE ─────────────────────────────────── */
-@media (max-width: 1024px) {
-  .dashboard-content { padding: 20px; }
-  .reports-box       { padding: 20px; }
-}
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ═══════════════════════════════════════════════════ */
 
+/* ── Tablet + Mobile (≤ 768px) ───────────────────── */
 @media (max-width: 768px) {
-  .dashboard-content    { padding: 16px; }
-  .top-cards            { grid-template-columns: 1fr; }
-  .attendance-container { padding: 16px; }
-  .calendar-header      { flex-direction: column; align-items: flex-start; }
-  .calendar-grid        { gap: 5px; }
-  .calendar-days        { font-size: 11px; }
 
+  .reports-modal {
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .reports-box {
+    /* FIX: fixed height even when empty — never shrinks */
+    height: 88vh;
+    max-height: 88vh;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* Stack filters on top of table */
+  .reports-body {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 10px;
+  }
+
+  /*
+   * FIX: Compact 3-column filter bar
+   * [Month label+select] | [Status label+select] | [Download DTR]
+   * This prevents filters from eating too much vertical space
+   */
+  .filters-panel {
+    flex: none;
+    width: 100%;
+    position: relative;
+    top: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: end;
+    gap: 4px 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+
+  /* Month label: row 1 col 1 */
+  .filters-panel > label:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 11px;
+    margin: 0;
+  }
+  /* Month select: row 2 col 1 */
+  .filters-panel > select:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 12px;
+    padding: 7px 6px;
+  }
+  /* Status label: row 1 col 2 */
+  .filters-panel > label:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 11px;
+    margin: 0;
+  }
+  /* Status select: row 2 col 2 */
+  .filters-panel > select:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 12px;
+    padding: 7px 6px;
+  }
+
+  /*
+   * FIX: Download DTR button spans both rows in col 3
+   * Compact size but still shows full "Download DTR" label
+   */
+  .dl-pdf-btn {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    width: auto;
+    min-width: 86px;
+    height: 100%;
+    min-height: 58px;
+    padding: 8px 10px;
+    font-size: 11px;
+    flex-direction: column;
+    gap: 3px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
+    border-radius: 8px;
+  }
+
+  .table-panel {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* FIX: pagination stays right-aligned on mobile */
+  .report-pagination {
+    justify-content: flex-end;
+  }
+
+  .report-page-info {
+    width: auto;
+    text-align: right;
+  }
+
+  /* Calendar adjustments */
+  .calendar-header { flex-direction: column; align-items: flex-start; }
+  .calendar-actions { flex-wrap: wrap; }
+  .calendar-grid { gap: 5px; }
+  .calendar-days { font-size: 11px; }
   .day {
     height: auto;
     aspect-ratio: 1;
     font-size: 11px;
     border-radius: 7px;
   }
+}
 
-  .reports-box   { height: 92vh; padding: 16px; border-radius: 16px; }
-  .reports-body  { flex-direction: column; overflow-y: auto; }
+/* ── Small phones (≤ 480px) ──────────────────────── */
+@media (max-width: 480px) {
+  .reports-modal { padding: 8px; }
+  .reports-box   { padding: 12px; border-radius: 12px; }
+  .qr-box        { padding: 14px; border-radius: 16px; gap: 10px; }
+  .attendance-box { padding: 14px; border-radius: 14px; min-height: 420px; }
+}
+
+/* ── Very small phones (≤ 360px) ─────────────────── */
+@media (max-width: 360px) {
+  .reports-modal  { padding: 6px; }
+  .reports-box    { padding: 10px; max-height: 95vh; }
+  .qr-modal       { padding: 6px; }
+  .qr-box         { padding: 12px; }
+  .attendance-modal { padding: 6px; }
+  .attendance-box { padding: 12px; min-height: 380px; }
+
+  /* On very tiny screens, stack the filter bar vertically */
+  .filters-panel {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .dl-pdf-btn {
+    grid-column: 1 / 3;
+    grid-row: 3;
+    flex-direction: row;
+    min-height: auto;
+    padding: 8px 14px;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+}
+
+/* ── Large screens (≥ 1280px) ────────────────────── */
+@media (min-width: 1280px) {
+  .reports-box { height: 85vh; }
 
   .filters-panel {
-    position: relative;
-    flex: none;
+    flex: 0 0 160px;
+    flex-direction: column;
+    align-items: stretch;
+    display: flex;
+  }
+
+  .filters-panel > label,
+  .filters-panel > select {
+    grid-column: unset;
+    grid-row: unset;
     width: 100%;
   }
 
-  .table-panel { flex: 1; min-height: 200px; }
-  .btn-label   { display: none; }
-  .calendar-actions { flex-wrap: wrap; }
-}
-
-@media (max-width: 480px) {
-  .dashboard-content   { padding: 12px; }
-  .dashboard-header h2 { font-size: 18px; }
-  .stat-left h3        { font-size: 16px; }
-  .mini-bar            { width: 60px; }
-  .attendance-container{ padding: 12px; }
-  .calendar-days       { font-size: 10px; }
-  .day                 { font-size: 10px; border-radius: 6px; }
-  .reports-box         { padding: 12px; }
-  .qr-btn              { font-size: 12px; padding: 6px 10px; }
-  .dl-pdf-btn          { font-size: 12px; padding: 6px 10px; }
-}/* ─── REPORTS PAGINATION ─────────────────────────── */
-.report-pagination {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0 4px;
-  flex-shrink: 0;
-}
-
-.report-page-info {
-  font-size: 12px;
-  color: #6b7280;
-  margin-right: 4px;
-}
-
-.report-page-btn {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s ease;
-  color: #374151;
-  font-size: 12px;
-}
-
-.report-page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-}
-
-.report-page-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.report-page-numbers {
-  display: flex;
-  gap: 4px;
-}
-
-.report-page {
-  padding: 5px 9px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  color: #374151;
-  transition: 0.2s ease;
-  min-width: 28px;
-  text-align: center;
-}
-
-.report-page:hover {
-  background: #e5e7eb;
-}
-
-.report-page.active {
-  background: #2563eb;
-  color: #ffffff;
-  font-weight: 600;
+  .dl-pdf-btn {
+    grid-column: unset;
+    grid-row: unset;
+    width: 100%;
+    min-height: auto;
+    flex-direction: row;
+    white-space: nowrap;
+    font-size: clamp(11px, 1.5vw, 13px);
+    padding: 7px 14px;
+  }
 }

@@ -4,6 +4,7 @@
   </div>
   <div class="topnav-right">
 
+    <!-- Date + Time — hidden on small phones, visible on sm+ -->
     <div class="datetime-display">
       <i class="fa-regular fa-calendar datetime-icon"></i>
       <span class="datetime-date">{{ currentDayDate }}</span>
@@ -14,9 +15,9 @@
     <div class="topnav-divider"></div>
 
     <div class="profile" (click)="toggleMenu()">
-      <img [src]="profilePhotoUrl" alt="Profile Picture"
-           style="width:38px;height:38px;border-radius:50%;object-fit:cover;">
+      <img [src]="profilePhotoUrl" alt="Profile Picture">
     </div>
+
     <div class="dropdown" *ngIf="menuOpen">
       <div class="dropdown-item" (click)="goProfile()">
         <i class="fa-solid fa-user"></i> Profile
@@ -104,9 +105,7 @@
 </div>
 
 
-<!-- ================================================
-     CERTIFICATE MODAL
-================================================= -->
+<!-- CERTIFICATE MODAL -->
 <div class="modal-overlay cert-overlay" *ngIf="showCertModal" (click)="closeCertModal()">
   <div class="cert-modal-wrapper" (click)="$event.stopPropagation()">
 
@@ -122,7 +121,7 @@
         <button class="cert-dl-btn" (click)="downloadCertificate()" [disabled]="isDownloading">
           <i class="fa-solid fa-spinner fa-spin" *ngIf="isDownloading"></i>
           <i class="fa-solid fa-download" *ngIf="!isDownloading"></i>
-          {{ isDownloading ? 'Generating...' : 'Download' }}
+          <span class="cert-dl-label">{{ isDownloading ? 'Generating...' : 'Download' }}</span>
         </button>
         <button class="cert-close-btn" (click)="closeCertModal()">
           <i class="fa-solid fa-xmark"></i>
@@ -133,7 +132,6 @@
     <div class="cert-scroll-area">
       <div id="certificate-preview" class="certificate">
 
-        <!-- Bars -->
         <div class="cert-top-bar"      [style.background]="certTemplate.primaryColor"></div>
         <div class="cert-top-bar-gold" [style.background]="certTemplate.accentColor"></div>
 
@@ -141,14 +139,12 @@
              [style.border-left-color]="certTemplate.primaryColor"
              [style.border-right-color]="certTemplate.primaryColor">
 
-          <!-- Watermark -->
           <div class="cert-watermark" *ngIf="certTemplate.watermarkUrl">
             <img [src]="certTemplate.watermarkUrl" alt="Watermark">
           </div>
 
           <div class="cert-inner-border"></div>
 
-          <!-- Corner ornaments -->
           <svg class="cert-corner-ornament tl" viewBox="0 0 28 28">
             <path d="M2 2 L13 2 L13 4 L4 4 L4 13 L2 13 Z" [attr.fill]="certTemplate.accentColor"/>
             <path d="M2 2 L9 2 L9 3.5 L3.5 3.5 L3.5 9 L2 9 Z" [attr.fill]="certTemplate.primaryColor"/>
@@ -167,8 +163,6 @@
           </svg>
 
           <div class="cert-content">
-
-            <!-- Header -->
             <div class="cert-header">
               <div class="cert-header-logo cert-header-logo--left">
                 <img *ngIf="certTemplate.depedLogoUrl" [src]="certTemplate.depedLogoUrl" alt="Left Logo">
@@ -185,27 +179,19 @@
               </div>
             </div>
 
-            <!-- Title -->
             <h1 class="cert-main-title" [style.color]="certTemplate.primaryColor">{{ certTemplate.mainTitle }}</h1>
             <p class="cert-subtitle-tag">{{ certTemplate.subtitleTag }}</p>
             <p class="cert-awarded-text">{{ certTemplate.awardedText }}</p>
 
-            <!-- Name -->
             <div class="cert-name-wrap">
               <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">{{ certData.studentName }}</p>
               <div class="cert-name-line"  [style.background]="certTemplate.primaryColor"></div>
             </div>
 
-            <!-- Body paragraph -->
             <p class="cert-body-para" [innerHTML]="getBodyText()"></p>
-
-            <!-- Given / closing line -->
             <p class="cert-given-text">{{ getGivenText() }}</p>
 
-            <!-- Signatories -->
             <div class="cert-sig-row">
-
-              <!-- LEFT signatory — School Principal (from template) -->
               <div class="cert-sig-block">
                 <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
                 <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
@@ -216,7 +202,6 @@
                 <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 
-              <!-- RIGHT signatory — per-intern supervisor with their own e-sig -->
               <div class="cert-sig-block">
                 <img *ngIf="supervisorRightSigBase64" [src]="supervisorRightSigBase64" class="cert-sig-image">
                 <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
@@ -227,22 +212,20 @@
                 <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
               </div>
 
-
-                <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
-  <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
-  <p class="cert-qr-label">Scan to verify</p>
-</div>
-
+              <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
+                <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
+                <p class="cert-qr-label">Scan to verify</p>
+              </div>
             </div>
 
-          </div><!-- /cert-content -->
-        </div><!-- /cert-body -->
+          </div>
+        </div>
 
         <div class="cert-bottom-bar-gold" [style.background]="certTemplate.accentColor"></div>
         <div class="cert-bottom-bar"      [style.background]="certTemplate.primaryColor"></div>
 
-      </div><!-- /certificate -->
-    </div><!-- /cert-scroll-area -->
+      </div>
+    </div>
 
   </div>
 </div>

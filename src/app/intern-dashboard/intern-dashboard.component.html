@@ -7,12 +7,10 @@
 
     <div class="dashboard-content">
 
-      <!-- GREETING HEADER -->
+      <!-- HEADER — matches attendance style -->
       <div class="dashboard-header">
-        <div class="header-left">
-          <p class="greeting-sub">{{ greetingTime }}, {{ firstName }} 👋</p>
+        <div class="header-top">
           <h2>Dashboard</h2>
-          <p class="today-date">{{ todayDateFormatted }}</p>
         </div>
         <div class="dashboard-divider"></div>
       </div>
@@ -27,7 +25,7 @@
               <circle cx="40" cy="40" r="32" class="ring-bg"/>
               <circle cx="40" cy="40" r="32" class="ring-fill"
                 [style.strokeDashoffset]="ringDashOffset"
-                [style.stroke]="hoursProgress >= 100 ? '#16a34a' : '#3b6fd8'"/>
+                [style.stroke]="hoursProgress >= 100 ? '#16a34a' : '#2563eb'"/>
             </svg>
             <div class="ring-label">
               <span class="ring-pct">{{ hoursProgress }}%</span>
@@ -36,13 +34,13 @@
           </div>
           <div class="progress-info">
             <div class="card-icon-row">
-              <i class="fa-solid fa-clock" style="color:#3b6fd8;"></i>
+              <i class="fa-solid fa-clock" style="color:#2563eb;"></i>
               <h4>Total Hours</h4>
             </div>
             <p class="hours-big">{{ completedHours }}<span> / {{ requiredHours }} hrs</span></p>
             <div class="progress-bar">
               <div class="progress-fill" [style.width]="hoursProgress + '%'"
-                   [style.background]="hoursProgress >= 100 ? '#16a34a' : '#3b6fd8'"></div>
+                   [style.background]="hoursProgress >= 100 ? '#16a34a' : '#2563eb'"></div>
             </div>
             <small class="muted">{{ remainingHours }} hrs remaining</small>
           </div>
@@ -84,7 +82,7 @@
           </div>
           <div class="supervisor-info">
             <div class="card-icon-row">
-              <i class="fa-solid fa-user-tie" style="color:#7c3aed; font-size:12px;"></i>
+              <i class="fa-solid fa-user-tie" style="color:#2563eb; font-size:12px;"></i>
               <small class="muted">Your Supervisor</small>
             </div>
             <h4>{{ supervisorName || '—' }}</h4>
@@ -101,7 +99,7 @@
       <div class="quick-stats">
 
         <div class="stat-pill">
-          <i class="fa-solid fa-list-check" style="color:#3b6fd8;"></i>
+          <i class="fa-solid fa-list-check" style="color:#2563eb;"></i>
           <div>
             <span class="stat-num">{{ totalTasks }}</span>
             <small>Total Tasks</small>
@@ -154,7 +152,7 @@
       <div class="table-card">
         <div class="table-header">
           <div class="th-left">
-            <i class="fa-solid fa-file-contract" style="color:#3b6fd8;"></i>
+            <i class="fa-solid fa-file-contract" style="color:#2563eb;"></i>
             <h3>Application Information</h3>
           </div>
         </div>
@@ -186,7 +184,7 @@
       <div class="table-card">
         <div class="table-header">
           <div class="th-left">
-            <i class="fa-solid fa-calendar-days" style="color:#3b6fd8;"></i>
+            <i class="fa-solid fa-calendar-days" style="color:#2563eb;"></i>
             <h3>Recent Attendance</h3>
           </div>
           <a routerLink="/intern-attendance">View all →</a>
@@ -227,7 +225,7 @@
       <div class="table-card">
         <div class="table-header">
           <div class="th-left">
-            <i class="fa-solid fa-clipboard-list" style="color:#3b6fd8;"></i>
+            <i class="fa-solid fa-clipboard-list" style="color:#2563eb;"></i>
             <h3>Tasks</h3>
           </div>
           <a routerLink="/intern-tasks">View all →</a>
@@ -257,8 +255,8 @@
                 <td>{{ task.supervisor_name || '—' }}</td>
                 <td>{{ task.posted }}</td>
                 <td>
-  <span [class.overdue]="isOverdue(task.due, task.status)">{{ task.due }}</span>
-</td>
+                  <span [class.overdue]="isOverdue(task.due, task.status)">{{ task.due }}</span>
+                </td>
                 <td>
                   <span class="status" [ngClass]="task.status">
                     {{ task.status | titlecase }}
