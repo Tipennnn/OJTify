@@ -28,6 +28,32 @@
             ],
             "deploymentRetention": 0,
             "path": "functions/delete-auth-user"
+        },
+        {
+            "$id": "69edb8fb00176781c74b",
+            "name": "send-otp-email",
+            "runtime": "node-18.0",
+            "buildSpecification": "s-0.5vcpu-512mb",
+            "runtimeSpecification": "s-0.5vcpu-512mb",
+            "execute": [
+                "any"
+            ],
+            "events": [],
+            "scopes": [
+                "users.read"
+            ],
+            "schedule": "",
+            "timeout": 15,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "ignore": [
+                "node_modules",
+                ".npm"
+            ],
+            "deploymentRetention": 0,
+            "path": "functions/send-otp-email"
         }
     ]
 }

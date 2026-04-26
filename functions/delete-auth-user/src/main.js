@@ -8,6 +8,8 @@ export default async ({ req, res, log, error }) => {
 
   const users = new Users(client);
 
+  // ── Parse body safely ────────────────────────────────────
+  // Appwrite Functions can pass body as a string OR already-parsed object
   let body = {};
   try {
     body = typeof req.body === 'string'
@@ -20,50 +22,6 @@ export default async ({ req, res, log, error }) => {
 
   log('Received body: ' + JSON.stringify(body));
 
-  const action = body?.action || 'delete-user';
-
-  // ── ROUTE: Send OTP Email ─────────────────────────────────
-  if (action === 'send-otp') {
-    const { email, userName, otp, templateId } = body;
-
-    if (!email || !otp) {
-      return res.json({ success: false, message: 'email and otp are required' }, 400);
-    }
-
-    const BREVO_API_KEY = process.env.BREVO_API_KEY;
-
-    try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': BREVO_API_KEY
-        },
-        body: JSON.stringify({
-          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-          to: [{ email, name: userName || 'Student' }],
-          templateId: templateId,
-          params: { user_name: userName || 'Student', otp_code: otp }
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        error('Brevo error: ' + JSON.stringify(data));
-        return res.json({ success: false, message: 'Failed to send email' }, 400);
-      }
-
-      log('OTP sent to ' + email);
-      return res.json({ success: true });
-
-    } catch (err) {
-      error('Fetch error: ' + err.message);
-      return res.json({ success: false, message: err.message }, 500);
-    }
-  }
-
-  // ── ROUTE: Delete Auth User ───────────────────────────────
   const userId = body?.userId;
 
   if (!userId) {
@@ -79,23 +37,4 @@ export default async ({ req, res, log, error }) => {
     error('Failed to delete user ' + userId + ': ' + err.message);
     return res.json({ success: false, message: err.message }, 500);
   }
-
-  // ── ROUTE: Reset Password ─────────────────────────────────
-if (action === 'reset-password') {
-  const { userId, password } = body;
-
-  if (!userId || !password) {
-    return res.json({ success: false, message: 'userId and password are required' }, 400);
-  }
-
-  try {
-    await users.updatePassword(userId, password);
-    log('Password reset for user: ' + userId);
-    return res.json({ success: true });
-  } catch (err) {
-    error('Failed to reset password: ' + err.message);
-    return res.json({ success: false, message: err.message }, 500);
-  }
-}
-
 };
