@@ -79,6 +79,7 @@ export class AdminApplicantsComponent implements OnInit {
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+  private readonly OTP_FUNCTION_ID = '69edb8fb00176781c74b';
 
   // Course abbreviation map
   private readonly COURSE_MAP: { [key: string]: string } = {
@@ -405,44 +406,41 @@ await this.appwrite.databases.createDocument(
   }
 
   // ── Send email via Brevo ──────────────────────────────────
-  async sendEmail(
-    applicant: Applicant,
-    type: 'approved' | 'declined',
-    extraParams: Record<string, string> = {}
-  ) {
-    try {
-      const templateId = type === 'approved'
-        ? environment.brevoApprovedTid
-        : environment.brevoDeclinedTid;
+ async sendEmail(
+  applicant: Applicant,
+  type: 'approved' | 'declined',
+  extraParams: Record<string, string> = {}
+) {
+  try {
+    const action     = type === 'approved' ? 'send-approval' : 'send-decline';
+    const templateId = type === 'approved'
+      ? environment.brevoApprovedTid
+      : environment.brevoDeclinedTid;
 
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': environment.brevoApiKey
-        },
-        body: JSON.stringify({
-          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-          to: [{ email: applicant.email, name: `${applicant.first_name} ${applicant.last_name}` }],
-          templateId,
-          params: {
-            applicant_name: `${applicant.first_name} ${applicant.last_name}`,
-            first_name:     applicant.first_name,
-            ...extraParams
-          }
-        })
-      });
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action,
+        email:          applicant.email,
+        applicantName:  `${applicant.first_name} ${applicant.last_name}`,
+        firstName:      applicant.first_name,
+        templateId,
+        ...extraParams
+      }),
+      false
+    );
 
-      if (!response.ok) {
-        const err = await response.json();
-        console.error('Brevo error:', err);
-      } else {
-        console.log(`Email sent to ${applicant.email}`);
-      }
-    } catch (error) {
-      console.error('Failed to send email:', error);
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      console.error('Email send failed:', result.message);
+    } else {
+      console.log(`Email sent to ${applicant.email}`);
     }
+  } catch (error) {
+    console.error('Failed to send email:', error);
   }
+}
 
   // ── Kept for template backward-compatibility ──────────────
   approveApplicant(applicant: Applicant, event: Event) {
