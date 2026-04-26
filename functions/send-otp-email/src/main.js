@@ -77,4 +77,64 @@ export default async ({ req, res, log, error }) => {
   }
 
   return res.json({ success: false, message: 'Unknown action' }, 400);
+
+  // ── ROUTE: Send OTP for Admin (looks up admin from DB) ────
+if (action === 'send-otp-admin') {
+  const { email, templateId, databaseId, collectionId } = body;
+
+  if (!email) {
+    return res.json({ success: false, message: 'email is required' }, 400);
+  }
+
+  try {
+    // Look up admin using server-side SDK
+    const { Databases, Query } = await import('node-appwrite');
+    const databases = new Databases(client);
+
+    const res = await databases.listDocuments(
+      databaseId,
+      collectionId,
+      [Query.equal('email', email), Query.limit(1)]
+    );
+
+    if (res.total === 0) {
+      return res.json({ success: false, message: 'No admin account found with this email.' }, 404);
+    }
+
+    const adminDoc  = res.documents[0];
+    const userId    = adminDoc.auth_user_id;
+    const userName  = 'Admin';
+    const otp       = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Send email via Brevo
+    const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
+      },
+      body: JSON.stringify({
+        sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+        to: [{ email, name: userName }],
+        templateId: templateId,
+        params: { user_name: userName, otp_code: otp }
+      })
+    });
+
+    const emailData = await emailResponse.json();
+
+    if (!emailResponse.ok) {
+      error('Brevo error: ' + JSON.stringify(emailData));
+      return res.json({ success: false, message: 'Failed to send email' }, 400);
+    }
+
+    log('Admin OTP sent to ' + email);
+    // Return otp and userId back to Angular so it can verify locally
+    return res.json({ success: true, userId, userName, otp });
+
+  } catch (err) {
+    error('send-otp-admin error: ' + err.message);
+    return res.json({ success: false, message: err.message }, 500);
+  }
+}
 };

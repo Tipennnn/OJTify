@@ -166,7 +166,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   }
 
   // STEP 1 — Send OTP via Appwrite Function
-  async sendOtp() {
+ async sendOtp() {
   if (!this.fpEmail) {
     this.fpError = 'Please enter your email address.';
     return;
@@ -176,46 +176,16 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   this.fpError   = '';
 
   try {
-    // Use direct fetch with API key since user is not logged in
-    const url = `https://sgp.cloud.appwrite.io/v1/databases/${this.appwrite.DATABASE_ID}/collections/${this.appwrite.ADMINS_COL}/documents?queries[]=equal("email","${this.fpEmail}")&limit=1`;
-
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type':       'application/json',
-        'X-Appwrite-Project': '69ba8d9c0027d10c447f',
-        'X-Appwrite-Key':     environment.appwriteApiKey
-      }
-    });
-
-    if (!res.ok) {
-      this.fpError = 'Failed to verify email. Please try again.';
-      return;
-    }
-
-    const data     = await res.json();
-    const adminDoc = (data.documents as any[])[0];
-
-    if (!adminDoc) {
-      this.fpError = 'No admin account found with this email.';
-      return;
-    }
-
-    this.fpUserId   = adminDoc.auth_user_id;
-    this.fpUserName = 'Admin';
-
-    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
-
-    // Send via Appwrite Function
+    // Send everything to the function — it will look up the admin and send OTP
     const execution = await this.appwrite.functions.createExecution(
       this.OTP_FUNCTION_ID,
       JSON.stringify({
-        action:     'send-otp',
+        action:     'send-otp-admin',
         email:      this.fpEmail,
-        userName:   this.fpUserName,
-        otp:        this.fpOtp,
-        templateId: environment.brevoOtpTid
+        templateId: environment.brevoOtpTid,
+        // Pass DB info so function can look up the admin
+        databaseId:   this.appwrite.DATABASE_ID,
+        collectionId: this.appwrite.ADMINS_COL,
       }),
       false
     );
@@ -223,9 +193,15 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     const result = JSON.parse(execution.responseBody);
 
     if (!result.success) {
-      this.fpError = 'Failed to send OTP. Please try again.';
+      this.fpError = result.message || 'Failed to send OTP. Please try again.';
       return;
     }
+
+    // Store values returned from function
+    this.fpUserId   = result.userId;
+    this.fpUserName = result.userName;
+    this.fpOtp       = result.otp;
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
 
     this.startResendCooldown();
     this.forgotStep = 2;
@@ -237,7 +213,6 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     this.fpLoading = false;
   }
 }
-
   // STEP 2 — Verify OTP
   verifyOtp() {
     this.fpError = '';
