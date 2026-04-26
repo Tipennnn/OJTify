@@ -364,7 +364,7 @@ export class SupervisorDashboardComponent implements OnInit {
             title:         task.title       || '—',
             description:   task.description || '—',
             posted:        this.formatDate(task.$createdAt.split('T')[0]),
-            due:           task.due_date ? this.formatDate(task.due_date.split('T')[0]) : '—',
+            due:           task.due ? this.formatDate(task.due) : '—',
             status:        task.status      || 'pending',
             assignedNames: names            || '—',
           };

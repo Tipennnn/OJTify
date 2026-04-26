@@ -198,7 +198,6 @@
                 <th>Date</th>
                 <th>Time In</th>
                 <th>Time Out</th>
-                <th>Hours</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -207,7 +206,6 @@
                 <td>{{ record.date }}</td>
                 <td>{{ record.time_in }}</td>
                 <td>{{ record.time_out }}</td>
-                <td>{{ record.hours_rendered || '—' }}</td>
                 <td>
                   <span class="status"
                         [ngClass]="record.status === 'Present' ? 'present' : 'absent'">
@@ -259,10 +257,8 @@
                 <td>{{ task.supervisor_name || '—' }}</td>
                 <td>{{ task.posted }}</td>
                 <td>
-                  <span [class.overdue]="isOverdue(task.due, task.status)">
-                    {{ task.due }}
-                  </span>
-                </td>
+  <span [class.overdue]="isOverdue(task.due, task.status)">{{ task.due }}</span>
+</td>
                 <td>
                   <span class="status" [ngClass]="task.status">
                     {{ task.status | titlecase }}

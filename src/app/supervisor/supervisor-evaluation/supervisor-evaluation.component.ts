@@ -540,7 +540,10 @@ export class SupervisorEvaluationComponent implements OnInit {
     this.uploadedFileName = '';
     this.showModal        = true;
     await this.autoFillTrainingPeriod(student.$id);
-    setTimeout(() => this.initCanvas(), 150);
+    setTimeout(async () => {
+  this.initCanvas();
+  await this.loadSupervisorEsig();
+}, 150);
   }
 
   private async autoFillTrainingPeriod(studentId: string) {
@@ -658,11 +661,17 @@ export class SupervisorEvaluationComponent implements OnInit {
       && this.hasSignature;
   }
 
-  setSignatureMode(mode: 'draw' | 'upload') {
-    if (this.isViewMode()) return;
-    this.signatureMode = mode; this.hasSignature = false; this.uploadedFileName = '';
-    if (mode === 'draw') { setTimeout(() => { this.initCanvas(); this.clearCanvas(); }, 50); }
+setSignatureMode(mode: 'draw' | 'upload') {
+  if (this.isViewMode()) return;
+  this.signatureMode = mode; this.hasSignature = false; this.uploadedFileName = '';
+  if (mode === 'draw') {
+    setTimeout(async () => {
+      this.initCanvas();
+      this.clearCanvas();
+      await this.loadSupervisorEsig(); // re-load profile e-sig when switching back to draw
+    }, 50);
   }
+}
 
   initCanvas() {
     this.canvas = document.getElementById('sigCanvas') as HTMLCanvasElement;
@@ -806,4 +815,40 @@ export class SupervisorEvaluationComponent implements OnInit {
     if (!ev?.evaluated_at) return '—';
     return new Date(ev.evaluated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
+  private async loadSupervisorEsig(): Promise<void> {
+  const esigFileId = this.currentSupervisor?.esig_file_id;
+  if (!esigFileId) return;
+  try {
+    const jwt = await this.appwrite.account.createJWT();
+    const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${esigFileId}/view?project=${this.PROJECT_ID}`;
+    const res = await fetch(url, {
+      headers: {
+        'X-Appwrite-JWT': jwt.jwt,
+        'X-Appwrite-Project': this.PROJECT_ID
+      }
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      if (!this.canvas || !this.ctx) this.initCanvas();
+      if (!this.canvas || !this.ctx) return;
+      const img = new Image();
+      img.onload = () => {
+        const cR = this.canvas!.width / this.canvas!.height;
+        const iR = img.width / img.height;
+        let dW = this.canvas!.width, dH = this.canvas!.height, dX = 0, dY = 0;
+        if (iR > cR) { dH = this.canvas!.width / iR; dY = (this.canvas!.height - dH) / 2; }
+        else         { dW = this.canvas!.height * iR; dX = (this.canvas!.width - dW) / 2; }
+        this.ctx!.drawImage(img, dX, dY, dW, dH);
+        this.hasSignature = true;
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(blob);
+  } catch (err) {
+    console.warn('Could not load supervisor e-sig:', err);
+  }
+}
 }
