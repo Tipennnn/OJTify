@@ -41,7 +41,7 @@ export class SupervisorLoginComponent implements OnInit, OnDestroy {
   private fpCooldownTimer: any;
 
   // ── REPLACE with your new function ID ─────────────────────
-  private readonly OTP_FUNCTION_ID = 'YOUR_NEW_FUNCTION_ID';
+  private readonly OTP_FUNCTION_ID = '69edb8fb00176781c74b';
 
   constructor(
     private appwrite: AppwriteService,
