@@ -45,14 +45,13 @@ export class SupervisorOjtComponent implements OnInit {
   // PAGINATION
   currentPage = 1;
   pageSize    = 10;
+  totalPages  = 1;
 
   readonly BUCKET_ID  = '69baaf64002ceb2490df';
   readonly PROJECT_ID = '69ba8d9c0027d10c447f';
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
-  // ── Comprehensive course abbreviation map ──────────────────
   private readonly COURSE_MAP: { [key: string]: string } = {
-    // Information Technology & Computing
     'bachelor of science in information technology':              'BSIT',
     'bachelor of science in computer science':                    'BSCS',
     'bachelor of science in computer engineering':                'BSCpE',
@@ -61,8 +60,6 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in artificial intelligence':             'BSAI',
     'bachelor of science in cybersecurity':                       'BSCySec',
     'bachelor of science in software engineering':                'BSSE',
-
-    // Engineering
     'bachelor of science in electronics engineering':             'BSECE',
     'bachelor of science in electronics and communications engineering': 'BSECE',
     'bachelor of science in electrical engineering':              'BSEE',
@@ -73,7 +70,7 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in geodetic engineering':                'BSGE',
     'bachelor of science in mining engineering':                  'BSMinE',
     'bachelor of science in petroleum engineering':               'BSPetE',
-    'bachelor of science in sanitary engineering':                'BSSE',
+    'bachelor of science in sanitary engineering':                'BSSanE',
     'bachelor of science in marine engineering':                  'BSMarE',
     'bachelor of science in marine transportation':               'BSMT',
     'bachelor of science in naval architecture and marine engineering': 'BSNAME',
@@ -83,8 +80,6 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in materials engineering':               'BSMatE',
     'bachelor of science in metallurgical engineering':           'BSMetE',
     'bachelor of science in mechatronics engineering':            'BSMechatronics',
-
-    // Business & Management
     'bachelor of science in business administration':             'BSBA',
     'bachelor of science in accountancy':                         'BSA',
     'bachelor of science in management accounting':               'BSMA',
@@ -93,8 +88,6 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in office administration':               'BSOA',
     'bachelor of science in customs administration':              'BSCA',
     'bachelor of science in public administration':               'BSPA',
-
-    // Health & Medical
     'bachelor of science in nursing':                             'BSN',
     'bachelor of science in pharmacy':                            'BSPharm',
     'bachelor of science in medical technology':                  'BSMT',
@@ -107,8 +100,6 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in dentistry':                           'BSD',
     'doctor of medicine':                                         'MD',
     'doctor of dental medicine':                                  'DMD',
-
-    // Sciences
     'bachelor of science in biology':                             'BSBio',
     'bachelor of science in chemistry':                           'BSChem',
     'bachelor of science in physics':                             'BSPhysics',
@@ -123,8 +114,6 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in fisheries':                           'BSFisheries',
     'bachelor of science in veterinary medicine':                 'BSVM',
     'bachelor of science in environmental science':               'BSES',
-
-    // Education
     'bachelor of secondary education':                            'BSEd',
     'bachelor of elementary education':                           'BEEd',
     'bachelor of physical education':                             'BPEd',
@@ -132,15 +121,11 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of special needs education':                        'BSNED',
     'bachelor of technical-vocational teacher education':         'BTVTED',
     'bachelor of culture and arts education':                     'BCAED',
-
-    // Architecture & Design
     'bachelor of science in architecture':                        'BSArch',
     'bachelor of landscape architecture':                         'BLA',
     'bachelor of interior design':                                'BID',
     'bachelor of fine arts':                                      'BFA',
     'bachelor of graphic technology':                             'BGT',
-
-    // Arts & Social Sciences
     'bachelor of arts in communication':                          'BAComm',
     'bachelor of arts in english':                                'BAEng',
     'bachelor of arts in political science':                      'BAPol',
@@ -157,24 +142,16 @@ export class SupervisorOjtComponent implements OnInit {
     'bachelor of science in social work':                         'BSSW',
     'bachelor of science in criminology':                         'BSCrim',
     'bachelor of science in foreign service':                     'BSFS',
-
-    // Hospitality & Tourism
     'bachelor of science in tourism management':                  'BSTM',
     'bachelor of science in hospitality management':              'BSHM',
     'bachelor of science in hotel and restaurant management':     'BSHRM',
     'bachelor of science in travel management':                   'BSTRM',
-
-    // Law & Governance
     'bachelor of laws':                                           'LLB',
     'juris doctor':                                               'JD',
     'bachelor of science in legal management':                    'BSLM',
-
-    // Technology & Vocational
     'bachelor of technology':                                     'BTech',
     'bachelor of science in industrial technology':               'BSIT',
     'diploma in information technology':                          'DIT',
-
-    // Music & Performing Arts
     'bachelor of music':                                          'BMus',
     'bachelor of arts in music':                                  'BAMusic',
     'bachelor of performing arts':                                'BPA',
@@ -207,24 +184,21 @@ export class SupervisorOjtComponent implements OnInit {
         this.appwrite.STUDENTS_COL
       );
 
-      // Only show students assigned to THIS supervisor
-      // AND who have NOT yet completed their hours
       const filtered = (res.documents as any[]).filter(s => {
         const completed = s.completed_hours || 0;
         const required  = s.required_hours  || 500;
         return s.supervisor_id === this.currentSupervisorId && completed < required;
       });
 
-      // Sort by OJT start date descending (latest first)
       filtered.sort((a, b) => {
         const dateA = new Date(a.ojt_start || a.$createdAt).getTime();
         const dateB = new Date(b.ojt_start || b.$createdAt).getTime();
         return dateB - dateA;
       });
 
-      this.students = filtered;
-
+      this.students         = filtered;
       this.filteredStudents = [...this.students];
+      this.updatePagination();
     } catch (error: any) {
       console.error('Failed to load students:', error.message);
     } finally {
@@ -232,14 +206,14 @@ export class SupervisorOjtComponent implements OnInit {
     }
   }
 
+  updatePagination() {
+    this.totalPages = Math.max(1, Math.ceil(this.filteredStudents.length / this.pageSize));
+  }
+
   // PAGINATION
   get pagedStudents(): Student[] {
     const start = (this.currentPage - 1) * this.pageSize;
     return this.filteredStudents.slice(start, start + this.pageSize);
-  }
-
-  get totalPages(): number {
-    return Math.ceil(this.filteredStudents.length / this.pageSize) || 1;
   }
 
   // Ghost rows to fill empty slots and keep table height fixed
@@ -258,6 +232,22 @@ export class SupervisorOjtComponent implements OnInit {
     return Math.min(this.currentPage * this.pageSize, this.filteredStudents.length);
   }
 
+  get visiblePageNumbers(): number[] {
+    return this.buildVisiblePages(this.currentPage, this.totalPages);
+  }
+
+  private buildVisiblePages(cur: number, total: number): number[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: number[] = [];
+    const add = (n: number) => { if (!pages.includes(n)) pages.push(n); };
+    add(1);
+    if (cur - 2 > 2)  pages.push(-1);
+    for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) add(i);
+    if (cur + 2 < total - 1) pages.push(-1);
+    add(total);
+    return pages;
+  }
+
   goToPage(page: number) {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
@@ -267,8 +257,8 @@ export class SupervisorOjtComponent implements OnInit {
   nextPage() { this.goToPage(this.currentPage + 1); }
 
   onSearch(event: any) {
-    this.searchQuery = event.target.value.toLowerCase();
-    this.currentPage = 1;
+    this.searchQuery  = event.target.value.toLowerCase();
+    this.currentPage  = 1;
     this.filteredStudents = this.students.filter(s => {
       const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
       return fullName.includes(this.searchQuery)                    ||
@@ -276,6 +266,7 @@ export class SupervisorOjtComponent implements OnInit {
              s.course.toLowerCase().includes(this.searchQuery)      ||
              s.email.toLowerCase().includes(this.searchQuery);
     });
+    this.updatePagination();
   }
 
   onToggleSidebar(collapsed: boolean) {
@@ -289,23 +280,18 @@ export class SupervisorOjtComponent implements OnInit {
   abbreviateCourse(course: string): string {
     if (!course) return '—';
     const key = course.trim().toLowerCase();
-
-    // 1. Direct map lookup
     if (this.COURSE_MAP[key]) return this.COURSE_MAP[key];
-
-    // 2. Fuzzy fallback: auto-abbreviate from words
     const words = course.trim().split(/\s+/);
     const skip  = new Set(['of', 'in', 'and', 'the', 'a', 'an', 'for', '&']);
     const abbr  = words
       .filter(w => !skip.has(w.toLowerCase()))
       .map(w => w.charAt(0).toUpperCase() + (w.length > 3 ? w.charAt(1).toLowerCase() : ''))
       .join('');
-
     return abbr || course;
   }
 
   getFullName(s: Student): string {
-    return `${s.first_name} ${s.middle_name ? s.middle_name + ' ' : ''}${s.last_name}`;
+    return `${s.first_name}${s.middle_name ? ' ' + s.middle_name : ''} ${s.last_name}`;
   }
 
   getPhotoUrl(photoId: string): string {

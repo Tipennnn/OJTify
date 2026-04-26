@@ -12,25 +12,6 @@ body {
   height: 100vh;
 }
 
-.sidenav {
-  width: 260px;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  padding: 22px;
-  transition: all 0.3s ease;
-  overflow-y: auto;
-}
-
-.dashboard-wrapper.collapsed .sidenav {
-  width: 80px;
-}
-
 .main-section {
   position: absolute;
   top: 0;
@@ -73,7 +54,7 @@ app-supervisor-topnav {
 }
 
 .dashboard-header h2 {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 600;
   color: #1f2937;
   margin-top: 15px;
@@ -105,13 +86,13 @@ app-supervisor-topnav {
   padding: 8px 12px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
-  width: 250px;
+  width: 240px;
 }
 
 .search-box i {
   color: #9ca3af;
   margin-right: 8px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .search-box input {
@@ -139,8 +120,6 @@ app-supervisor-topnav {
 
 /* =========================
    TABLE CONTAINER
-   — no overflow here so
-     pagination stays pinned
 ========================= */
 .table-container {
   background: #ffffff;
@@ -153,26 +132,11 @@ app-supervisor-topnav {
   flex-direction: column;
 }
 
-/* Scrollable wrapper — only the table scrolls, not the pagination */
-.table-scroll {
-  overflow-x: auto;
-  width: 100%;
-}
-
 /* =========================
-   TABLE — fixed layout so
-   columns NEVER shift
-   6 cols total = 100%
-   col-name    : 26%
-   col-id      : 10%
-   col-course  :  7%
-   col-email   : 26%
-   col-date    : 12%
-   col-progress: 19%
+   TABLE
 ========================= */
 .applicants-table {
   width: 100%;
-  min-width: 900px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -190,7 +154,7 @@ app-supervisor-topnav {
 
 .applicants-table th {
   text-align: left;
-  padding: 14px;
+  padding: 12px 14px;
   font-size: 12px;
   font-weight: 600;
   color: #6b7280;
@@ -201,11 +165,11 @@ app-supervisor-topnav {
   text-overflow: ellipsis;
 }
 
-/* Data rows — fixed height */
+/* Fixed-height data rows */
 .applicants-table tbody .data-row {
   height: 68px;
   border-bottom: 1px solid #f1f5f9;
-  transition: background 0.2s ease;
+  transition: background 0.15s;
   cursor: pointer;
 }
 
@@ -213,7 +177,7 @@ app-supervisor-topnav {
   background: #f9fafb;
 }
 
-/* Ghost/filler rows — same height, no hover */
+/* Ghost / filler rows */
 .applicants-table tbody .ghost-row {
   height: 68px;
   border-bottom: 1px solid #f1f5f9;
@@ -224,10 +188,9 @@ app-supervisor-topnav {
   border-bottom: none;
 }
 
-/* All td defaults: clip overflow, no wrap */
 .applicants-table td {
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 13.5px;
   color: #111827;
   white-space: nowrap;
   overflow: hidden;
@@ -235,46 +198,35 @@ app-supervisor-topnav {
   vertical-align: middle;
 }
 
-/* =========================
-   NAME CELL
-========================= */
+/* Name column */
 .applicants-table td.col-name {
-  white-space: nowrap;
-  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .profile-name {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.profile-name span {
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .profile-pic {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e5e7eb;
+  border: 1.5px solid #e5e7eb;
   flex-shrink: 0;
-}
-
-.name-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: #111827;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* =========================
-   STUDENT ID
-========================= */
-.applicants-table td.col-id {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* =========================
@@ -284,28 +236,64 @@ app-supervisor-topnav {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 180px;
+  max-width: 200px;
 }
 
 .progress-bar {
   width: 100%;
-  height: 8px;
-  background: #e5e7eb;
+  height: 5px;
+  background: #dbe4ff;
   border-radius: 6px;
   overflow: hidden;
+  margin-bottom: 4px;
 }
 
 .progress-fill {
   height: 100%;
-  background: #0818A8;
   border-radius: 6px;
   transition: width 0.3s ease;
+  background: #0818A8;
 }
 
 .progress-text {
-  font-size: 11px;
-  color: #374151;
-  white-space: nowrap;
+  font-size: 11.5px;
+  color: #6b7280;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+.empty-row {
+  pointer-events: none;
+}
+
+.empty-state-cell {
+  text-align: center !important;
+  border-bottom: none !important;
+  vertical-align: middle !important;
+  white-space: normal !important;
+  height: 680px !important;
+  padding: 0 !important;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #9ca3af;
+  height: 100%;
+}
+
+.empty-state i {
+  font-size: 32px;
+  display: block;
+}
+
+.empty-state span {
+  font-size: 14px;
+  color: #9ca3af;
 }
 
 /* =========================
