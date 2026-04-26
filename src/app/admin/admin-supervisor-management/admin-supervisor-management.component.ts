@@ -133,6 +133,7 @@ export class AdminSupervisorManagementComponent implements OnInit {
   readonly ENDPOINT        = 'https://sgp.cloud.appwrite.io/v1';
   readonly SUPERVISORS_COL = 'supervisors';
   readonly INTERNS_COL     = 'interns';
+  private readonly OTP_FUNCTION_ID = '69edb8fb00176781c74b'; // same ID
 
   constructor(private appwrite: AppwriteService) {}
 
@@ -541,35 +542,30 @@ export class AdminSupervisorManagementComponent implements OnInit {
   }
 
   async sendSupervisorWelcomeEmail(email: string, fullName: string, password: string) {
-    try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': environment.brevoApiKey
-        },
-        body: JSON.stringify({
-          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-          to: [{ email, name: fullName }],
-          templateId: environment.brevoSupervisorWelcomeTid,
-          params: {
-            supervisor_name: fullName,
-            email:           email,
-            password:        password
-          }
-        })
-      });
+  try {
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:         'send-supervisor-welcome',
+        email,
+        supervisorName: fullName,
+        password,
+        templateId:     environment.brevoSupervisorWelcomeTid
+      }),
+      false
+    );
 
-      if (!response.ok) {
-        const err = await response.json();
-        console.error('Brevo error:', err);
-      } else {
-        console.log(`Welcome email sent to ${email}`);
-      }
-    } catch (error) {
-      console.error('Failed to send supervisor welcome email:', error);
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      console.error('Supervisor welcome email failed:', result.message);
+    } else {
+      console.log(`Welcome email sent to ${email}`);
     }
+  } catch (error) {
+    console.error('Failed to send supervisor welcome email:', error);
   }
+}
 
   // ── Called on file input change ──
   async onEsigChange(event: Event): Promise<void> {
