@@ -4,7 +4,7 @@
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  background: #f0f4fb;
+  background: #f3f4f6;
 }
 
 .dashboard-wrapper {
@@ -20,7 +20,7 @@ body {
   right: 0;
   bottom: 0;
   overflow-y: auto;
-  background: #f0f4fb;
+  background: #f3f4f6;
   transition: left 0.3s ease;
 }
 
@@ -46,47 +46,34 @@ app-supervisor-topnav {
 ========================= */
 .dashboard-content {
   margin-top: 60px;
-  padding: 28px 32px;
+  padding: 20px;
   min-height: calc(100vh - 60px);
   box-sizing: border-box;
   width: 100%;
 }
 
 /* =========================
-   HEADER
+   HEADER — matches OJT page
 ========================= */
 .dashboard-header {
-  margin-bottom: 24px;
-}
-
-.header-left {
-  margin-bottom: 14px;
-}
-
-.greeting-sub {
-  font-size: 14px;
-  color: #2563eb;
-  font-weight: 500;
-  margin: 0 0 4px;
+  margin-bottom: 10px;
+  padding-left: 20px;
 }
 
 .dashboard-header h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 4px;
-}
-
-.today-date {
-  font-size: 13px;
-  color: #9ca3af;
-  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 15px;
+  margin-bottom: 14px;
 }
 
 .dashboard-divider {
-  width: 100%;
+  width: calc(100% - 20px);
   height: 1px;
   background: #e5e7eb;
+  margin-left: 20px;
+  margin-bottom: 20px;
 }
 
 /* =========================
@@ -288,7 +275,7 @@ tbody tr:hover td { background: #fafbff; }
 .mini-progress-fill {
   height: 6px;
   border-radius: 20px;
-  background: #2563eb;
+  background-color: #2563eb;
   transition: width 0.6s ease;
 }
 
@@ -322,11 +309,6 @@ tbody tr:hover td { background: #fafbff; }
 .assigned-names {
   font-size: 12px;
   color: #6b7280;
-}
-
-.overdue {
-  color: #dc2626;
-  font-weight: 600;
 }
 
 /* =========================

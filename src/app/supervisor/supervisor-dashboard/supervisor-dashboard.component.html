@@ -7,15 +7,11 @@
 
     <div class="dashboard-content">
 
-      <!-- GREETING HEADER -->
+      <!-- HEADER — matches OJT page layout -->
       <div class="dashboard-header">
-        <div class="header-left">
-          <p class="greeting-sub">{{ greetingTime }}, {{ supervisorFirstName }} 👋</p>
-          <h2>Dashboard</h2>
-          <p class="today-date">{{ todayDateFormatted }}</p>
-        </div>
-        <div class="dashboard-divider"></div>
+        <h2>Dashboard</h2>
       </div>
+      <div class="dashboard-divider"></div>
 
       <!-- TOP STAT CARDS -->
       <div class="top-cards">
@@ -113,7 +109,7 @@
                     <div class="mini-progress-bar">
                       <div class="mini-progress-fill"
                            [style.width]="getHoursPercent(s) + '%'"
-                           [style.background]="getHoursPercent(s) >= 100 ? '#16a34a' : '#2563eb'">
+                           [style.backgroundColor]="getHoursPercent(s) >= 100 ? '#16a34a' : '#0818A8'">
                       </div>
                     </div>
                     <span class="mini-pct"
@@ -220,11 +216,7 @@
                   <span class="assigned-names">{{ task.assignedNames }}</span>
                 </td>
                 <td>{{ task.posted }}</td>
-                <td>
-                  <span  [class.overdue]="isOverdue(task.due, task.status)">
-                    {{ task.due }}
-                  </span>
-                </td>
+                <td>{{ task.due }}</td>
                 <td>
                   <span class="status" [ngClass]="task.status">
                     {{ task.status | titlecase }}

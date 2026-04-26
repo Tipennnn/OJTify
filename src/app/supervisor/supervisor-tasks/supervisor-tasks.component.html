@@ -30,7 +30,7 @@
 
         <div class="dashboard-divider"></div>
 
-        <!-- TAB SWITCHER — hidden when intern detail is open -->
+        <!-- TAB SWITCHER -->
         <div class="tab-header-row">
           <div class="tab-switcher">
             <button class="tab-btn" [class.active]="activeTab === 'tasks'" (click)="switchTab('tasks')">
@@ -48,7 +48,7 @@
         <div class="tasks-list">
 
           <div class="task-card"
-               *ngFor="let task of pagedTasks"
+               *ngFor="let task of tasks"
                (click)="openCardModal(task)">
             <div class="task-card-inner">
               <div class="task-date-badge">
@@ -92,26 +92,6 @@
             <p>No tasks yet. Click "Create Task" to get started.</p>
           </div>
 
-        </div>
-
-        <!-- Tasks Pagination -->
-        <div class="pagination" *ngIf="tasks.length > 0">
-          <span class="page-info">
-            Showing {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, tasks.length) }}
-            of {{ tasks.length }}
-          </span>
-          <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <div class="page-numbers">
-            <span class="page"
-                  *ngFor="let p of pageNumbers"
-                  [class.active]="p === currentPage"
-                  (click)="goToPage(p)">{{ p }}</span>
-          </div>
-          <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
-            <i class="fas fa-chevron-right"></i>
-          </button>
         </div>
       </div>
 
@@ -209,21 +189,17 @@
         <!-- ── INTERN LOGBOOK DETAIL ── -->
         <ng-container *ngIf="selectedInternId && selectedInternObj">
 
-          <!-- ══════════════════════════════════════════════════════════
-               UNIFIED HEADER CARD:
-               [Back btn + Profile] on the left, [Week dropdown] on the right
-          ══════════════════════════════════════════════════════════ -->
-          <div class="intern-detail-header-card">
+          <!-- BACK BUTTON — outside and above the header card -->
+          <button class="back-btn-above" (click)="closeInternLogbook()">
+            <i class="fas fa-arrow-left"></i> Back to Interns
+          </button>
 
-            <!-- LEFT: back button + avatar + name/course + meta pills -->
-            <div class="intern-detail-header-left">
-              <!-- Back button -->
-              <button class="back-btn-inline" (click)="closeInternLogbook()">
-                <i class="fas fa-arrow-left"></i> Back to Interns
-              </button>
+          <!-- STICKY WRAPPER: header card sticks to top on scroll -->
+          <div class="intern-detail-sticky-wrap">
+            <div class="intern-detail-header-card">
 
-              <!-- Profile row -->
-              <div class="intern-detail-profile">
+              <!-- LEFT: profile avatar -->
+              <div class="intern-detail-header-right">
                 <div class="intern-lb-avatar-lg"
                      [style.backgroundImage]="getInternProfileUrl(selectedInternObj) ? 'url(' + getInternProfileUrl(selectedInternObj) + ')' : 'none'"
                      [style.backgroundSize]="'cover'"
@@ -232,45 +208,43 @@
                     {{ selectedInternObj.first_name[0] }}{{ selectedInternObj.last_name[0] }}
                   </span>
                 </div>
-                <div class="intern-detail-profile-info">
-                  <h3>{{ selectedInternObj.first_name }} {{ selectedInternObj.last_name }}</h3>
-                  <span>{{ selectedInternObj.course }}</span>
-                  <!-- Mini meta pills -->
-                  <div class="intern-detail-meta-pills">
-                    <span class="idm-pill entries">
-                      <i class="fas fa-book"></i>
-                      {{ internLogbookEntries.length }} entries
-                    </span>
-                    <span class="idm-pill score" *ngIf="getAverageScore(internLogbookEntries) !== null">
-                      <i class="fas fa-star"></i>
-                      avg {{ getAverageScore(internLogbookEntries) }}/100
-                    </span>
+              </div>
+
+              <!-- CENTER: name, course, entries pill -->
+              <div class="intern-detail-header-left">
+                <h3>{{ selectedInternObj.first_name }} {{ selectedInternObj.last_name }}</h3>
+                <span class="intern-detail-course-text">{{ selectedInternObj.course }}</span>
+                <div class="intern-detail-meta-pills">
+                  <span class="idm-pill entries">
+                    <i class="fas fa-book"></i>
+                    {{ internLogbookEntries.length }} entries
+                  </span>
+                </div>
+              </div>
+
+              <!-- RIGHT: week dropdown (only when there are entries) -->
+              <div class="intern-detail-header-center"
+                   *ngIf="!logbookLoading && internLogbookEntries.length > 0">
+                <div class="lb-week-dropdown-wrap">
+                  <span class="lb-week-dropdown-label">
+                    <i class="fas fa-calendar-week"></i> Filter by week
+                  </span>
+                  <div class="lb-week-select-wrap">
+                    <span class="lb-week-select-icon"><i class="fas fa-calendar-week"></i></span>
+                    <select class="lb-week-select"
+                            [(ngModel)]="selectedWeekMonday"
+                            (change)="onWeekFilterChange()"
+                            [size]="1">
+                      <option [ngValue]="null">All weeks</option>
+                      <option *ngFor="let w of getWeekRanges(internLogbookEntries)" [ngValue]="w.monday">
+                        {{ w.label }}&nbsp;&nbsp;({{ w.count }}/5)
+                      </option>
+                    </select>
+                    <span class="lb-week-select-arrow"><i class="fas fa-chevron-down"></i></span>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- RIGHT: week dropdown (only when there are entries) -->
-            <div class="intern-detail-header-right"
-                 *ngIf="!logbookLoading && internLogbookEntries.length > 0">
-              <div class="lb-week-dropdown-wrap">
-                <span class="lb-week-dropdown-label">
-                  <i class="fas fa-calendar-week"></i> Filter by week
-                </span>
-                <div class="lb-week-select-wrap">
-                  <span class="lb-week-select-icon"><i class="fas fa-calendar-week"></i></span>
-                  <select class="lb-week-select"
-                          [(ngModel)]="selectedWeekMonday"
-                          (change)="onWeekFilterChange()"
-                          [size]="1">
-                    <option [ngValue]="null">All weeks</option>
-                    <option *ngFor="let w of getWeekRanges(internLogbookEntries)" [ngValue]="w.monday">
-                      {{ w.label }}&nbsp;&nbsp;({{ w.count }}/5)
-                    </option>
-                  </select>
-                  <span class="lb-week-select-arrow"><i class="fas fa-chevron-down"></i></span>
-                </div>
-              </div>
             </div>
           </div>
 

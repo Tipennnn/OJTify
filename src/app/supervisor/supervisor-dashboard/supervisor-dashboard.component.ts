@@ -130,12 +130,6 @@ export class SupervisorDashboardComponent implements OnInit {
     return 'Good evening';
   }
 
-  get todayDateFormatted(): string {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-  }
-
   // ── E-sig reminder ─────────────────────────────────────────
   private async checkEsigReminder(): Promise<void> {
     if (sessionStorage.getItem('esigReminderShown')) return;
@@ -223,20 +217,23 @@ export class SupervisorDashboardComponent implements OnInit {
         });
       });
 
-      // Build progress list
-      this.internProgress = assigned.map(s => ({
-        $id:              s.$id,
-        first_name:       s.first_name,
-        middle_name:      s.middle_name,
-        last_name:        s.last_name,
-        profile_photo_id: s.profile_photo_id,
-        required_hours:   s.required_hours  || 500,
-        completed_hours:  s.completed_hours || 0,
-        supervisor_id:    s.supervisor_id,
-        school_name:      s.school_name,
-        course:           s.course,
-        fullName:         this.buildFullName(s.first_name, s.middle_name, s.last_name),
-      }));
+      // Build progress list — sorted by latest ($createdAt desc), max 3
+      this.internProgress = assigned
+        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+        .slice(0, 3)
+        .map(s => ({
+          $id:              s.$id,
+          first_name:       s.first_name,
+          middle_name:      s.middle_name,
+          last_name:        s.last_name,
+          profile_photo_id: s.profile_photo_id,
+          required_hours:   s.required_hours  || 500,
+          completed_hours:  s.completed_hours || 0,
+          supervisor_id:    s.supervisor_id,
+          school_name:      s.school_name,
+          course:           s.course,
+          fullName:         this.buildFullName(s.first_name, s.middle_name, s.last_name),
+        }));
 
     } catch (error: any) {
       console.error('Failed to load assigned students:', error.message);
@@ -287,7 +284,7 @@ export class SupervisorDashboardComponent implements OnInit {
     }
   }
 
-  // ── Recent attendance ─────────────────────────────────────
+  // ── Recent attendance — latest first, max 3 ───────────────
   async loadRecentAttendance() {
     this.attendanceLoading = true;
     try {
@@ -296,34 +293,31 @@ export class SupervisorDashboardComponent implements OnInit {
         this.appwrite.ATTENDANCE_COL
       );
       const internIds = Array.from(this.studentMap.keys());
-      const allDocs   = (res.documents as any[]).filter(d => internIds.includes(d.student_id));
 
-      const rows: AttendanceRecord[] = [];
-
-      for (let i = 0; i < 7 && rows.length < 5; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const dayRecords = allDocs.filter(doc => doc.date === dateStr);
-
-        dayRecords.forEach(doc => {
-          if (rows.length < 5) {
-            const student = this.studentMap.get(doc.student_id);
-            rows.push({
-              intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
-              profile_photo_id: student?.profile_photo_id,
-              student_id:       doc.student_id,
-              date:             this.formatDate(dateStr),
-              time_in:          doc.time_in  || '—',
-              time_out:         doc.time_out || '—',
-              status:           doc.status   || 'Absent',
-              hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
-            });
-          }
+      // Filter to only this supervisor's interns, sort latest date first
+      const allDocs = (res.documents as any[])
+        .filter(d => internIds.includes(d.student_id))
+        .sort((a, b) => {
+          const dateCompare = b.date.localeCompare(a.date);
+          if (dateCompare !== 0) return dateCompare;
+          // Secondary sort: time_in descending
+          return (b.time_in || '').localeCompare(a.time_in || '');
         });
-      }
 
-      this.recentAttendance = rows;
+      this.recentAttendance = allDocs.slice(0, 3).map(doc => {
+        const student = this.studentMap.get(doc.student_id);
+        return {
+          intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
+          profile_photo_id: student?.profile_photo_id,
+          student_id:       doc.student_id,
+          date:             this.formatDate(doc.date),
+          time_in:          doc.time_in  || '—',
+          time_out:         doc.time_out || '—',
+          status:           doc.status   || 'Absent',
+          hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
+        };
+      });
+
     } catch (error: any) {
       console.error('Failed to load attendance:', error.message);
     } finally {
@@ -331,7 +325,7 @@ export class SupervisorDashboardComponent implements OnInit {
     }
   }
 
-  // ── Recent tasks ──────────────────────────────────────────
+  // ── Recent tasks — latest first, max 3, truncated names ──
   async loadRecentTasks() {
     this.tasksLoading = true;
     try {
@@ -351,13 +345,22 @@ export class SupervisorDashboardComponent implements OnInit {
         .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
         .slice(0, 3)
         .map(task => {
-          // Resolve assigned intern names
           const ids = (task.assigned_intern_ids || '').split(',').map((id: string) => id.trim());
-          const names = ids
+          const allNames = ids
             .map((id: string) => this.studentMap.get(id))
             .filter(Boolean)
-            .map((s: any) => s.first_name + ' ' + s.last_name)
-            .join(', ');
+            .map((s: any) => s.first_name);
+
+          // Show first 2 first names, append "+N" if there are more
+          let assignedNames = '';
+          if (allNames.length === 0) {
+            assignedNames = '—';
+          } else if (allNames.length <= 2) {
+            assignedNames = allNames.join(', ');
+          } else {
+            const remainder = allNames.length - 2;
+            assignedNames = `${allNames[0]}, ${allNames[1]} +${remainder}`;
+          }
 
           return {
             $id:           task.$id,
@@ -366,7 +369,7 @@ export class SupervisorDashboardComponent implements OnInit {
             posted:        this.formatDate(task.$createdAt.split('T')[0]),
             due:           task.due ? this.formatDate(task.due) : '—',
             status:        task.status      || 'pending',
-            assignedNames: names            || '—',
+            assignedNames,
           };
         });
     } catch (error: any) {
@@ -391,13 +394,6 @@ export class SupervisorDashboardComponent implements OnInit {
     const req  = s.required_hours  || 500;
     const done = s.completed_hours || 0;
     return Math.min(parseFloat(((done / req) * 100).toFixed(1)), 100);
-  }
-
-  isOverdue(dueDateStr: string, status: string): boolean {
-    if (status === 'completed' || !dueDateStr || dueDateStr === '—') return false;
-    try {
-      return new Date(dueDateStr) < new Date();
-    } catch { return false; }
   }
 
   calcHours(timeIn: string, timeOut: string): string {
@@ -425,7 +421,7 @@ export class SupervisorDashboardComponent implements OnInit {
     if (record.profile_photo_id && !record.photoFailed) {
       return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${record.profile_photo_id}/view?project=${this.PROJECT_ID}`;
     }
-    const initials = record.intern_name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('+');
+    const initials = record.intern_name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('');
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=2563eb&color=fff&size=64`;
   }
 

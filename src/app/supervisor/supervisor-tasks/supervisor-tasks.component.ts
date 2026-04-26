@@ -339,23 +339,6 @@ export class SupervisorTasksComponent implements OnInit {
   supervisorName      = '';
   supervisorPhotoUrl: string | null = null;
 
-  currentPage = 1;
-  pageSize    = 5;
-
-  get totalPages(): number {
-    return Math.ceil(this.tasks.length / this.pageSize);
-  }
-  get pageNumbers(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
-  }
-  get pagedTasks(): Task[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.tasks.slice(start, start + this.pageSize);
-  }
-  goToPage(page: number) {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
-  }
   get assignedCount(): number {
     return this.getAssignedIds(this.selectedTask).length;
   }
@@ -1375,14 +1358,12 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   openSubmissionsModal() {
-    this.subsScoreError = '';
     this.buildSubmissionsDisplayList();
     this.isSubmissionsModalOpen = true;
   }
 
   closeSubmissionsModal() {
     this.isSubmissionsModalOpen = false;
-    this.subsScoreError = '';
   }
 
   buildSubmissionsDisplayList() {
@@ -1404,12 +1385,6 @@ export class SupervisorTasksComponent implements OnInit {
         hasSubmission: !!submission
       };
     });
-  }
-
-  private showSubsScoreError(msg: string) {
-    this.subsScoreError = msg;
-    if (this.subsScoreErrorTimer) clearTimeout(this.subsScoreErrorTimer);
-    this.subsScoreErrorTimer = setTimeout(() => { this.subsScoreError = ''; }, 4000);
   }
 
   async onCreateTask() {
@@ -1449,7 +1424,7 @@ export class SupervisorTasksComponent implements OnInit {
         this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, ID.unique(),
         { title: this.selectedTask.title, description: this.selectedTask.description, posted: new Date().toLocaleString(), due: this.selectedTask.due, status: 'pending', assigned_intern_ids: assignedIds, attachment_file_id: attachmentFileId, attachment_file_name: attachmentFileName, supervisor_id: this.currentSupervisorId, supervisor_name: this.supervisorName }
       );
-      this.tasks.unshift(doc as any); this.currentPage = 1; this.closeModal();
+      this.tasks.unshift(doc as any); this.closeModal();
       Swal.fire({ icon: 'success', title: 'Task Created!', text: `"${doc['title']}" has been created successfully.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed', text: error.message }); }
     finally { this.loading = false; }
@@ -1469,7 +1444,6 @@ export class SupervisorTasksComponent implements OnInit {
       await this.appwrite.databases.deleteDocument(this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL, task.$id!);
       this.tasks = this.tasks.filter(t => t.$id !== task.$id);
       if (this.isCardModalOpen) this.closeCardModal();
-      if (this.currentPage > this.totalPages && this.totalPages > 0) this.currentPage = this.totalPages;
       Swal.fire({ icon: 'success', title: 'Task Deleted!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
   }
@@ -1535,7 +1509,6 @@ export class SupervisorTasksComponent implements OnInit {
       });
       return;
     }
-    this.subsScoreError = '';
     sub._scoreSaving = true;
     try {
       await this.appwrite.databases.updateDocument(
@@ -1615,7 +1588,6 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   async loadInternPhotos() {
-    this.internPhotoMap = {};
     Object.entries(this.allInternsMap).forEach(([id, data]) => {
       if (data.photo) this.internPhotoMap[id] = data.photo;
     });

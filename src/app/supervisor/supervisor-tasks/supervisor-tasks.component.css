@@ -161,64 +161,122 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 .intern-table-row:hover .intern-table-chevron { color: #0818A8; transform: translateX(3px); }
 
 /* ══════════════════════════════════════════════
-   INTERN DETAIL — UNIFIED HEADER CARD
-   (replaces the old .intern-logbook-header block)
+   INTERN DETAIL — BACK BUTTON
 ══════════════════════════════════════════════ */
+.back-btn-above {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #0818A8;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(8,24,168,0.25);
+}
+.back-btn-above:hover {
+  background: #060f7a;
+  transform: translateX(-2px);
+  box-shadow: 0 4px 14px rgba(8,24,168,0.35);
+}
+.back-btn-above i { font-size: 12px; }
+
+/* ══════════════════════════════════════════════
+   INTERN DETAIL — STICKY UNIFIED HEADER CARD
+   Layout: [avatar] [name/course/pills] [week dropdown]
+══════════════════════════════════════════════ */
+.intern-detail-sticky-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #f3f4f6;
+  padding-bottom: 8px;
+}
+
 .intern-detail-header-card {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  align-items: center;
+  gap: 16px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  padding: 20px 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  padding: 18px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
+/* Avatar — leftmost */
+.intern-detail-header-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Name / course / pills — grows to fill space */
 .intern-detail-header-left {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
 
-/* ── Inline back button (inside the header card) ── */
-.back-btn-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 9px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #374151;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-  transition: all 0.2s;
-  width: fit-content;
+.intern-detail-header-left h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.back-btn-inline:hover {
-  background: #eef0fc;
-  border-color: #c7d2fe;
-  color: #0818A8;
-}
-.back-btn-inline i { font-size: 11px; }
 
-/* ── Profile row inside the header card ── */
-.intern-detail-profile {
+.intern-detail-course-text {
+  font-size: 13px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.intern-detail-meta-pills {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
 }
 
+.idm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.idm-pill.entries { background: #eef0fc; color: #0818A8; border: 1px solid #c7d2fe; }
+.idm-pill.entries i { font-size: 10px; }
+
+/* Week dropdown — rightmost */
+.intern-detail-header-center {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Avatar circle */
 .intern-lb-avatar-lg {
-  width: 56px;
-  height: 56px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
   background: #0818A8;
   color: white;
@@ -228,61 +286,16 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 2px solid #eef0fc;
+  border: 3px solid #eef0fc;
+  box-shadow: 0 2px 8px rgba(8,24,168,0.15);
 }
 
-.intern-detail-profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.intern-detail-profile-info h3 {
-  font-size: 17px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  line-height: 1.2;
-}
-.intern-detail-profile-info > span {
-  font-size: 12.5px;
-  color: #6b7280;
-}
-
-/* ── Mini meta pills (entries count + avg score) ── */
-.intern-detail-meta-pills {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-.idm-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-.idm-pill.entries { background: #eef0fc; color: #0818A8; border: 1px solid #c7d2fe; }
-.idm-pill.entries i { font-size: 10px; }
-.idm-pill.score   { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-.idm-pill.score i { font-size: 10px; }
-
-/* ── Right side: week dropdown ── */
-.intern-detail-header-right {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 4px;
-}
-
+/* ── Week dropdown ── */
 .lb-week-dropdown-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
+  gap: 5px;
+  align-items: flex-start;
 }
 
 .lb-week-dropdown-label {
@@ -297,7 +310,6 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 }
 .lb-week-dropdown-label i { color: #0818A8; }
 
-/* ── Week select (scrollable) ── */
 .lb-week-select-wrap {
   position: relative;
   display: inline-flex;
@@ -324,8 +336,7 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
   outline: none;
-  min-width: 220px;
-  max-height: 300px; /* enables OS-level scroll on most browsers */
+  min-width: 210px;
   transition: all 0.2s;
 }
 .lb-week-select:hover  { background: #e0e4fb; border-color: #a5b4fc; }
@@ -340,7 +351,6 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 
 /* ══════════════════════════════════════════════
    WEEK DETAIL SECTION
-   (stats row + day cards — below header card)
 ══════════════════════════════════════════════ */
 .lb-week-detail-section {
   background: #ffffff;
@@ -428,9 +438,29 @@ app-supervisor-topnav { position: fixed; top: 0; left: 260px; right: 0; z-index:
 .score-badge.score-low       { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
 .score-badge.lg { padding: 8px 16px; font-size: 14px; }
 
-.lb-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
-.lb-empty i { font-size: 40px; margin-bottom: 14px; display: block; color: #d1d5db; }
-.lb-empty p { font-size: 14px; }
+/* ══════════════════════════════════════════════
+   LB EMPTY STATE — icon on top, centered
+══════════════════════════════════════════════ */
+.lb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  text-align: center;
+}
+.lb-empty i {
+  font-size: 44px;
+  color: #d1d5db;
+  margin-bottom: 16px;
+  display: block;
+}
+.lb-empty p {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0;
+}
 
 /* ══════════════════════════════════════════════
    CREATE TASK MODAL
@@ -561,7 +591,6 @@ textarea { resize: none; }
 .subs-modal-overlay.active { opacity: 1; visibility: visible; }
 .subs-modal { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; width: 1250px; max-width: 95%; height: 85vh; overflow: hidden; transform: translateY(-20px); opacity: 0; animation: modalFadeIn 0.3s forwards; }
 .subs-modal-overlay.active .subs-modal { transform: scale(1) translateY(0); }
-
 .subs-modal-header { display: flex; align-items: center; justify-content: flex-start; padding: 18px 24px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0; gap: 12px; }
 .subs-modal-title { display: flex; align-items: center; gap: 10px; }
 .subs-modal-title i.fa-file-lines { font-size: 18px; color: #0818A8; }
@@ -574,7 +603,6 @@ textarea { resize: none; }
 .subs-stat-sep { color: #d1d5db; font-size: 14px; }
 .subs-modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
 .subs-list { display: flex; flex-direction: column; gap: 10px; }
-
 .subs-file-card { display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 18px; border-radius: 12px; border: 1.5px solid transparent; background: #fafafa; transition: all 0.2s ease; position: relative; overflow: hidden; }
 .subs-card-submitted { border-color: #86efac; background: #f0fdf4; }
 .subs-card-submitted:hover { border-color: #4ade80; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.1); }
@@ -609,17 +637,13 @@ textarea { resize: none; }
 .lb-modal-tab-btn:hover { background: #e5e7eb; color: #374151; }
 .lb-modal-tab-btn.active { background: #0818A8; color: white; box-shadow: 0 2px 6px rgba(8,24,168,0.25); }
 .lb-modal-tab-btn i { font-size: 10px; }
-
 .lb-entry-left { background: #f9fafb; border-right: 1px solid #e5e7eb; }
 .lb-entry-left-inner { display: flex; flex-direction: column; gap: 14px; padding: 24px; height: 100%; overflow-y: auto; }
-
 .lb-detail-section-label { font-size: 11.5px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.07em; display: flex; align-items: center; gap: 7px; }
 .lb-detail-section-label i { font-size: 12px; color: #0818A8; }
-
 .lb-photos-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px; background: white; border-radius: 10px; border: 1px dashed #e5e7eb; text-align: center; }
 .lb-photos-empty i { font-size: 26px; color: #d1d5db; }
 .lb-photos-empty p { font-size: 12.5px; color: #9ca3af; margin: 0; }
-
 .lb-photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .lb-photo-thumb { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid #e5e7eb; aspect-ratio: 1; background: #f3f4f6; }
 .lb-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -628,7 +652,6 @@ textarea { resize: none; }
 .lb-thumb-expand { width: 30px; height: 30px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #111827; font-size: 12px; text-decoration: none; transition: 0.2s; }
 .lb-thumb-expand:hover { background: #0818A8; color: white; }
 .lb-photo-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; font-size: 9px; padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
 .lb-modal-score-display { padding: 8px 0; }
 .lb-modal-score-input { display: flex; flex-direction: column; gap: 6px; }
 .lb-modal-score-input label { font-size: 12px; font-weight: 500; color: #6b7280; }
@@ -638,18 +661,14 @@ textarea { resize: none; }
 .score-set-btn { padding: 9px 16px; background: #0818A8; color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; transition: 0.2s; white-space: nowrap; }
 .score-set-btn:hover { background: #060f7a; }
 .score-set-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
 .lb-entry-right { padding: 32px 36px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1; }
 .lb-entry-header-row { display: flex; align-items: center; gap: 12px; }
 .lb-entry-icon-wrap { width: 44px; height: 44px; border-radius: 11px; background: linear-gradient(135deg, #0818A8, #060f7a); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .lb-entry-intern-name { font-size: 13px; color: #6b7280; margin-top: 2px; }
-
 .lb-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lb-meta-chip { display: flex; align-items: center; gap: 6px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 20px; padding: 5px 12px; font-size: 12.5px; color: #374151; font-weight: 500; }
 .lb-meta-chip i { font-size: 11px; color: #0818A8; }
-
 .lb-view-scroll-area { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
-
 .lb-section-block { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
 .lb-section-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; background: white; }
 .lb-section-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
@@ -671,7 +690,6 @@ textarea { resize: none; }
 .lb-report-date-input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13.5px; font-family: 'Poppins', sans-serif; outline: none; transition: 0.2s; width: 100%; }
 .lb-report-date-input:focus { border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.1); }
 .lb-report-date-arrow { color: #9ca3af; font-size: 12px; flex-shrink: 0; }
-
 .lb-report-preview { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
 .lb-report-preview-header { padding: 10px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; }
 .lb-report-preview-header i { color: #0818A8; }
@@ -680,7 +698,6 @@ textarea { resize: none; }
 .lb-preview-stat:last-child { border-right: none; }
 .lb-preview-stat-value { font-size: 22px; font-weight: 700; color: #111827; line-height: 1; }
 .lb-preview-stat-label { font-size: 10.5px; color: #9ca3af; font-weight: 500; text-align: center; }
-
 .lb-report-export-btn { border: none; cursor: pointer; border-radius: 12px; padding: 0; background: linear-gradient(135deg, #0818A8, #060f7a); overflow: hidden; box-shadow: 0 4px 14px rgba(8,24,168,0.3); transition: all 0.2s; }
 .lb-report-export-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(8,24,168,0.35); }
 .lb-report-export-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -695,16 +712,13 @@ textarea { resize: none; }
 .assign-mode-btn:hover { background: #e5e7eb; color: #374151; }
 .assign-mode-btn.active { background: #0818A8; color: white; box-shadow: 0 2px 8px rgba(8,24,168,0.25); }
 .assign-mode-btn i { font-size: 10px; }
-
 .assign-info-banner { display: flex; align-items: center; gap: 9px; background: #eef0fc; border: 1px solid #c7d2fe; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #374151; margin-top: 4px; }
 .assign-info-banner i { color: #0818A8; font-size: 14px; flex-shrink: 0; }
-
 .course-assign-wrap { display: flex; flex-direction: column; gap: 10px; }
 .course-select-wrap { position: relative; }
 .course-select { width: 100%; padding: 10px 36px 10px 12px; border: 1px solid #d1d5db; border-radius: 9px; font-size: 13px; font-family: 'Poppins', sans-serif; color: #111827; background: white; appearance: none; -webkit-appearance: none; cursor: pointer; transition: 0.2s; outline: none; }
 .course-select:focus { border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.12); }
 .course-select-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 11px; pointer-events: none; }
-
 .course-match-preview { background: white; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
 .course-match-header { display: flex; align-items: center; gap: 7px; padding: 9px 12px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12.5px; color: #374151; }
 .course-match-list { display: flex; flex-direction: column; gap: 0; max-height: 200px; overflow-y: auto; }
@@ -713,7 +727,8 @@ textarea { resize: none; }
 .course-match-chip:hover { background: #f5f7ff; }
 .cmc-avatar { width: 28px; height: 28px; border-radius: 50%; background: #0818A8; color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
-/* ── Keep old .back-btn for any other usages ── */
+/* ── Old .back-btn kept for compatibility ── */
 .back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: white; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s; margin-bottom: 16px; }
 .back-btn:hover { background: #eef0fc; border-color: #0818A8; color: #0818A8; }
 .back-btn i { font-size: 11px; }
+.back-btn-inline { display: none; }
