@@ -167,64 +167,76 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
 
   // STEP 1 — Send OTP via Appwrite Function
   async sendOtp() {
-    if (!this.fpEmail) {
-      this.fpError = 'Please enter your email address.';
+  if (!this.fpEmail) {
+    this.fpError = 'Please enter your email address.';
+    return;
+  }
+
+  this.fpLoading = true;
+  this.fpError   = '';
+
+  try {
+    // Use direct fetch with API key since user is not logged in
+    const url = `https://sgp.cloud.appwrite.io/v1/databases/${this.appwrite.DATABASE_ID}/collections/${this.appwrite.ADMINS_COL}/documents?queries[]=equal("email","${this.fpEmail}")&limit=1`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type':       'application/json',
+        'X-Appwrite-Project': '69ba8d9c0027d10c447f',
+        'X-Appwrite-Key':     environment.appwriteApiKey
+      }
+    });
+
+    if (!res.ok) {
+      this.fpError = 'Failed to verify email. Please try again.';
       return;
     }
 
-    this.fpLoading = true;
-    this.fpError   = '';
+    const data     = await res.json();
+    const adminDoc = (data.documents as any[])[0];
 
-    try {
-      // Check admin email using Appwrite SDK instead of direct fetch
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ADMINS_COL,
-        [Query.equal('email', this.fpEmail)]
-      );
-
-      if (res.total === 0) {
-        this.fpError = 'No admin account found with this email.';
-        return;
-      }
-
-      const adminDoc  = res.documents[0] as any;
-      this.fpUserId   = adminDoc.auth_user_id;
-      this.fpUserName = 'Admin';
-
-      this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
-
-      // Send via Appwrite Function
-      const execution = await this.appwrite.functions.createExecution(
-        this.OTP_FUNCTION_ID,
-        JSON.stringify({
-          action:     'send-otp',
-          email:      this.fpEmail,
-          userName:   this.fpUserName,
-          otp:        this.fpOtp,
-          templateId: environment.brevoOtpTid
-        }),
-        false
-      );
-
-      const result = JSON.parse(execution.responseBody);
-
-      if (!result.success) {
-        this.fpError = 'Failed to send OTP. Please try again.';
-        return;
-      }
-
-      this.startResendCooldown();
-      this.forgotStep = 2;
-
-    } catch (err) {
-      console.error(err);
-      this.fpError = 'Failed to send OTP. Please try again.';
-    } finally {
-      this.fpLoading = false;
+    if (!adminDoc) {
+      this.fpError = 'No admin account found with this email.';
+      return;
     }
+
+    this.fpUserId   = adminDoc.auth_user_id;
+    this.fpUserName = 'Admin';
+
+    this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+
+    // Send via Appwrite Function
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:     'send-otp',
+        email:      this.fpEmail,
+        userName:   this.fpUserName,
+        otp:        this.fpOtp,
+        templateId: environment.brevoOtpTid
+      }),
+      false
+    );
+
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      this.fpError = 'Failed to send OTP. Please try again.';
+      return;
+    }
+
+    this.startResendCooldown();
+    this.forgotStep = 2;
+
+  } catch (err) {
+    console.error(err);
+    this.fpError = 'Failed to send OTP. Please try again.';
+  } finally {
+    this.fpLoading = false;
   }
+}
 
   // STEP 2 — Verify OTP
   verifyOtp() {
