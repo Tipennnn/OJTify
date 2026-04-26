@@ -19,94 +19,73 @@ export default async ({ req, res, log, error }) => {
   }
 
   const action = body?.action;
+  log('Action received: ' + action);
 
   // ── ROUTE: Send OTP ───────────────────────────────────────
   if (action === 'send-otp') {
     const { email, userName, otp, templateId } = body;
-
     if (!email || !otp) {
       return res.json({ success: false, message: 'email and otp are required' }, 400);
     }
-
     try {
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': process.env.BREVO_API_KEY
-        },
+        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
         body: JSON.stringify({
           sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
           to: [{ email, name: userName || 'Student' }],
-          templateId: templateId,
+          templateId,
           params: { user_name: userName || 'Student', otp_code: otp }
         })
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         error('Brevo error: ' + JSON.stringify(data));
         return res.json({ success: false, message: 'Failed to send email' }, 400);
       }
-
       log('OTP sent to ' + email);
       return res.json({ success: true });
-
     } catch (err) {
       error('Fetch error: ' + err.message);
       return res.json({ success: false, message: err.message }, 500);
     }
   }
 
-  // ── ROUTE: Send OTP Admin (looks up admin from DB) ────────
+  // ── ROUTE: Send OTP Admin ─────────────────────────────────
   if (action === 'send-otp-admin') {
     const { email, templateId, databaseId, collectionId } = body;
-
     if (!email) {
       return res.json({ success: false, message: 'email is required' }, 400);
     }
-
     try {
       const result = await databases.listDocuments(
-        databaseId,
-        collectionId,
+        databaseId, collectionId,
         [Query.equal('email', email), Query.limit(1)]
       );
-
       if (result.total === 0) {
         return res.json({ success: false, message: 'No admin account found with this email.' }, 404);
       }
-
       const adminDoc = result.documents[0];
       const userId   = adminDoc.auth_user_id;
       const userName = 'Admin';
       const otp      = Math.floor(100000 + Math.random() * 900000).toString();
-
       const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': process.env.BREVO_API_KEY
-        },
+        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
         body: JSON.stringify({
           sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
           to: [{ email, name: userName }],
-          templateId: templateId,
+          templateId,
           params: { user_name: userName, otp_code: otp }
         })
       });
-
       const emailData = await emailResponse.json();
-
       if (!emailResponse.ok) {
         error('Brevo error: ' + JSON.stringify(emailData));
         return res.json({ success: false, message: 'Failed to send email' }, 400);
       }
-
       log('Admin OTP sent to ' + email);
       return res.json({ success: true, userId, userName, otp });
-
     } catch (err) {
       error('send-otp-admin error: ' + err.message);
       return res.json({ success: false, message: err.message }, 500);
@@ -116,11 +95,9 @@ export default async ({ req, res, log, error }) => {
   // ── ROUTE: Reset Password ─────────────────────────────────
   if (action === 'reset-password') {
     const { userId, password } = body;
-
     if (!userId || !password) {
       return res.json({ success: false, message: 'userId and password are required' }, 400);
     }
-
     try {
       await users.updatePassword(userId, password);
       log('Password reset for user: ' + userId);
@@ -131,93 +108,89 @@ export default async ({ req, res, log, error }) => {
     }
   }
 
-  // ── Fallback ──────────────────────────────────────────────
-  return res.json({ success: false, message: 'Unknown action' }, 400);
-
   // ── ROUTE: Send Approval Email ────────────────────────────
-if (action === 'send-approval') {
-  const { email, applicantName, firstName, startDate, requiredHours, adminNote, templateId } = body;
+  if (action === 'send-approval') {
+    // Accept both camelCase and underscore keys
+    const email         = body.email;
+    const applicantName = body.applicantName;
+    const firstName     = body.firstName;
+    const templateId    = body.templateId;
+    const startDate     = body.startDate     || body.start_date     || '';
+    const requiredHours = body.requiredHours || body.required_hours || '';
+    const adminNote     = body.adminNote     || body.admin_note     || '';
 
-  if (!email || !templateId) {
-    return res.json({ success: false, message: 'email and templateId are required' }, 400);
-  }
-
-  try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_API_KEY
-      },
-      body: JSON.stringify({
-        sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-        to: [{ email, name: applicantName || 'Intern' }],
-        templateId,
-        params: {
-          applicant_name: applicantName,
-          first_name:     firstName,
-          start_date:     startDate     || '',
-          required_hours: requiredHours || '',
-          admin_note:     adminNote     || ''
-        }
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      error('Brevo approval email error: ' + JSON.stringify(data));
-      return res.json({ success: false, message: 'Failed to send approval email' }, 400);
+    if (!email || !templateId) {
+      return res.json({ success: false, message: 'email and templateId are required' }, 400);
     }
-
-    log('Approval email sent to ' + email);
-    return res.json({ success: true });
-
-  } catch (err) {
-    error('send-approval error: ' + err.message);
-    return res.json({ success: false, message: err.message }, 500);
-  }
-}
-
-// ── ROUTE: Send Decline Email ─────────────────────────────
-if (action === 'send-decline') {
-  const { email, applicantName, firstName, adminNote, templateId } = body;
-
-  if (!email || !templateId) {
-    return res.json({ success: false, message: 'email and templateId are required' }, 400);
-  }
-
-  try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_API_KEY
-      },
-      body: JSON.stringify({
-        sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
-        to: [{ email, name: applicantName || 'Applicant' }],
-        templateId,
-        params: {
-          applicant_name: applicantName,
-          first_name:     firstName,
-          admin_note:     adminNote || ''
-        }
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      error('Brevo decline email error: ' + JSON.stringify(data));
-      return res.json({ success: false, message: 'Failed to send decline email' }, 400);
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+        body: JSON.stringify({
+          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+          to: [{ email, name: applicantName || 'Intern' }],
+          templateId,
+          params: {
+            applicant_name: applicantName,
+            first_name:     firstName,
+            start_date:     startDate,
+            required_hours: requiredHours,
+            admin_note:     adminNote
+          }
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        error('Brevo approval error: ' + JSON.stringify(data));
+        return res.json({ success: false, message: 'Failed to send approval email' }, 400);
+      }
+      log('Approval email sent to ' + email);
+      return res.json({ success: true });
+    } catch (err) {
+      error('send-approval error: ' + err.message);
+      return res.json({ success: false, message: err.message }, 500);
     }
-
-    log('Decline email sent to ' + email);
-    return res.json({ success: true });
-
-  } catch (err) {
-    error('send-decline error: ' + err.message);
-    return res.json({ success: false, message: err.message }, 500);
   }
-}
 
+  // ── ROUTE: Send Decline Email ─────────────────────────────
+  if (action === 'send-decline') {
+    const email         = body.email;
+    const applicantName = body.applicantName;
+    const firstName     = body.firstName;
+    const templateId    = body.templateId;
+    const adminNote     = body.adminNote || body.admin_note || '';
+
+    if (!email || !templateId) {
+      return res.json({ success: false, message: 'email and templateId are required' }, 400);
+    }
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+        body: JSON.stringify({
+          sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+          to: [{ email, name: applicantName || 'Applicant' }],
+          templateId,
+          params: {
+            applicant_name: applicantName,
+            first_name:     firstName,
+            admin_note:     adminNote
+          }
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        error('Brevo decline error: ' + JSON.stringify(data));
+        return res.json({ success: false, message: 'Failed to send decline email' }, 400);
+      }
+      log('Decline email sent to ' + email);
+      return res.json({ success: true });
+    } catch (err) {
+      error('send-decline error: ' + err.message);
+      return res.json({ success: false, message: err.message }, 500);
+    }
+  }
+
+  // ── Fallback ──────────────────────────────────────────────
+  return res.json({ success: false, message: 'Unknown action: ' + action }, 400);
 };
