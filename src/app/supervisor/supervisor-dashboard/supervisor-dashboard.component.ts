@@ -5,6 +5,8 @@ import { AppwriteService } from '../../services/appwrite.service';
 import { SupervisorSidenavComponent } from '../supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from '../supervisor-topnav/supervisor-topnav.component';
 import Swal from 'sweetalert2';
+import { Query } from 'appwrite';
+
 
 interface Task {
   $id?: string;
@@ -244,86 +246,94 @@ export class SupervisorDashboardComponent implements OnInit {
 
   // ── All task stats ────────────────────────────────────────
   async loadAllTaskStats() {
-    try {
-      const res       = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL
-      );
-      const internIds = Array.from(this.studentMap.keys());
-      const myTasks   = (res.documents as any[]).filter(task => {
-        if (!task.assigned_intern_ids) return false;
-        const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
-        return ids.some((id: string) => internIds.includes(id));
-      });
-      this.totalTasks     = myTasks.length;
-      this.completedTasks = myTasks.filter(t => t.status === 'completed').length;
-      this.pendingTasks   = myTasks.filter(t => t.status === 'pending').length;
-    } catch { }
-  }
-
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.TASKS_COL,
+      [Query.limit(100)]
+    );
+    const internIds = Array.from(this.studentMap.keys());
+    const myTasks = (res.documents as any[]).filter(task => {
+      if (!task.assigned_intern_ids) return false;
+      const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
+      return ids.some((id: string) => internIds.includes(id));
+    });
+    this.totalTasks     = myTasks.length;
+    this.completedTasks = myTasks.filter(t => t.status === 'completed').length;
+    this.pendingTasks   = myTasks.filter(t => t.status === 'pending').length;
+  } catch { }
+}
   // ── Today's stats ─────────────────────────────────────────
   async loadTodayStats() {
-    try {
-      const now   = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  try {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+    // Also build the formatted version since some records may already be formatted
+    const todayFormatted = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      const internIds    = Array.from(this.studentMap.keys());
-      const todayRecords = (res.documents as any[])
-        .filter(d => d.date === today && internIds.includes(d.student_id));
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [Query.limit(100)]
+    );
 
-      const isWeekend   = now.getDay() === 0 || now.getDay() === 6;
-      this.presentToday = todayRecords.filter(d => d.status === 'Present').length;
-      this.absentToday  = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
-    } catch (error: any) {
-      console.error('Failed to load today stats:', error.message);
-    }
-  }
-
-  // ── Recent attendance — latest first, max 3 ───────────────
-  async loadRecentAttendance() {
-    this.attendanceLoading = true;
-    try {
-      const res       = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
-      const internIds = Array.from(this.studentMap.keys());
-
-      // Filter to only this supervisor's interns, sort latest date first
-      const allDocs = (res.documents as any[])
-        .filter(d => internIds.includes(d.student_id))
-        .sort((a, b) => {
-          const dateCompare = b.date.localeCompare(a.date);
-          if (dateCompare !== 0) return dateCompare;
-          // Secondary sort: time_in descending
-          return (b.time_in || '').localeCompare(a.time_in || '');
-        });
-
-      this.recentAttendance = allDocs.slice(0, 3).map(doc => {
-        const student = this.studentMap.get(doc.student_id);
-        return {
-          intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
-          profile_photo_id: student?.profile_photo_id,
-          student_id:       doc.student_id,
-          date:             this.formatDate(doc.date),
-          time_in:          doc.time_in  || '—',
-          time_out:         doc.time_out || '—',
-          status:           doc.status   || 'Absent',
-          hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
-        };
+    const internIds = Array.from(this.studentMap.keys());
+    const todayRecords = (res.documents as any[])
+      .filter(d => {
+        const matchesIntern = internIds.includes(d.student_id);
+        const matchesDate   = d.date === today || d.date === todayFormatted;
+        return matchesIntern && matchesDate;
       });
 
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
-    } finally {
-      this.attendanceLoading = false;
-    }
+    const isWeekend   = now.getDay() === 0 || now.getDay() === 6;
+    this.presentToday = todayRecords.filter(d => d.status === 'Present').length;
+    this.absentToday  = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
+  } catch (error: any) {
+    console.error('Failed to load today stats:', error.message);
   }
+}
+
+  // ── Recent attendance — latest first, max 3 ───────────────
+ async loadRecentAttendance() {
+  this.attendanceLoading = true;
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [Query.limit(100)]
+    );
+    const internIds = Array.from(this.studentMap.keys());
+
+    const allDocs = (res.documents as any[])
+      .filter(d => internIds.includes(d.student_id))
+      .sort((a, b) => {
+        const dateCompare = b.date.localeCompare(a.date);
+        if (dateCompare !== 0) return dateCompare;
+        return (b.time_in || '').localeCompare(a.time_in || '');
+      });
+
+    this.recentAttendance = allDocs.slice(0, 3).map(doc => {
+      const student = this.studentMap.get(doc.student_id);
+      return {
+        intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
+        profile_photo_id: student?.profile_photo_id,
+        student_id:       doc.student_id,
+        date:             this.formatDate(doc.date),
+        time_in:          doc.time_in  || '—',
+        time_out:         doc.time_out || '—',
+        status:           doc.status   || 'Absent',
+        hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
+      };
+    });
+
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
+  } finally {
+    this.attendanceLoading = false;
+  }
+}
+
 
   // ── Recent tasks — latest first, max 3, truncated names ──
   async loadRecentTasks() {
