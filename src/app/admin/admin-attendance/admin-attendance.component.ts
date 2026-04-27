@@ -68,9 +68,13 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
   readonly ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
 
   // ── Geofence ──────────────────────────────────────────────
-  readonly OFFICE_LAT    = 14.844539;
-  readonly OFFICE_LNG    = 120.289219;
-  readonly OFFICE_RADIUS = 100;
+  officeLat    = 14.844539;
+officeLng    = 120.289219;
+officeRadius = 100;
+
+showGeofenceModal = false;
+geofenceForm = { lat: 0, lng: 0, radius: 0 };
+savingGeofence = false;
 
   // ── Pagination ────────────────────────────────────────────
   currentPage = 1;
@@ -102,9 +106,15 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
         this.appwrite.ADMINS_COL
       );
       const admin = (res.documents as any[]).find(a => a.auth_user_id === user.$id);
-      this.adminName = admin
-        ? `${admin.first_name ?? ''} ${admin.last_name ?? ''}`.trim() || 'Admin'
-        : 'Admin';
+     this.adminName = admin
+  ? `${admin.first_name ?? ''} ${admin.last_name ?? ''}`.trim() || 'Admin'
+  : 'Admin';
+
+if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
+  this.officeLat    = admin.geofence_lat;
+  this.officeLng    = admin.geofence_lng;
+  this.officeRadius = admin.geofence_radius;
+}
     } catch (error: any) {
       console.error('Failed to get admin:', error.message);
       this.adminName = 'Admin';
@@ -344,16 +354,16 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
       const position = await getCurrentPosition();
       const { latitude, longitude } = position.coords;
       const distance = getDistanceMeters(
-        latitude, longitude,
-        this.OFFICE_LAT, this.OFFICE_LNG
-      );
+  latitude, longitude,
+  this.officeLat, this.officeLng
+);
 
-      if (distance > this.OFFICE_RADIUS) {
-        Swal.fire({
-          icon: 'error',
-          title: '📍 Outside Office Location',
-          html: `You are <b>${Math.round(distance)}m</b> away from the office.<br>
-                 Must be within <b>${this.OFFICE_RADIUS}m</b> to record attendance.`,
+if (distance > this.officeRadius) {
+  Swal.fire({
+    icon: 'error',
+    title: '📍 Outside Office Location',
+    html: `You are <b>${Math.round(distance)}m</b> away from the office.<br>
+           Must be within <b>${this.officeRadius}m</b> to record attendance.`,
           confirmButtonColor: '#ef4444'
         });
         return false;
@@ -1041,4 +1051,76 @@ const existing = attendRes.documents[0] ?? null;
     console.error('Auto time-out failed:', error.message);
   }
 }
+openGeofenceModal() {
+  this.geofenceForm = {
+    lat:    this.officeLat,
+    lng:    this.officeLng,
+    radius: this.officeRadius
+  };
+  this.showGeofenceModal = true;
+}
+
+closeGeofenceModal() {
+  this.showGeofenceModal = false;
+}
+
+async saveGeofence() {
+  const { lat, lng, radius } = this.geofenceForm;
+  if (!lat || !lng || !radius || radius <= 0) {
+    Swal.fire({ icon: 'warning', title: 'Invalid Input', text: 'Please enter valid coordinates and radius.' });
+    return;
+  }
+
+  this.savingGeofence = true;
+  try {
+    const user = await this.appwrite.account.get();
+    const res  = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ADMINS_COL
+    );
+    const admin = (res.documents as any[]).find(a => a.auth_user_id === user.$id);
+    if (!admin) throw new Error('Admin document not found.');
+
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ADMINS_COL,
+      admin.$id,
+      { geofence_lat: lat, geofence_lng: lng, geofence_radius: radius }
+    );
+
+    this.officeLat    = lat;
+    this.officeLng    = lng;
+    this.officeRadius = radius;
+    this.showGeofenceModal = false;
+
+    Swal.fire({
+      icon: 'success', title: 'Geofence Updated!',
+      html: `Lat: <b>${lat}</b> · Lng: <b>${lng}</b> · Radius: <b>${radius}m</b>`,
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 4000, timerProgressBar: true
+    });
+  } catch (err: any) {
+    Swal.fire({ icon: 'error', title: 'Save Failed', text: err.message });
+  } finally {
+    this.savingGeofence = false;
+  }
+}
+
+useMyLocation() {
+  if (!navigator.geolocation) {
+    Swal.fire({ icon: 'warning', title: 'Not Supported', text: 'Geolocation is not supported by your browser.' });
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      this.geofenceForm.lat = parseFloat(pos.coords.latitude.toFixed(6));
+      this.geofenceForm.lng = parseFloat(pos.coords.longitude.toFixed(6));
+    },
+    (err) => {
+      Swal.fire({ icon: 'error', title: 'Location Error', text: err.message });
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
 }
