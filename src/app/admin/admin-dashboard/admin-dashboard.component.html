@@ -7,14 +7,19 @@
 
     <div class="dashboard-content">
 
+      <!-- HEADER -->
       <div class="dashboard-header">
-        <h2>System Overview</h2>
+        <div class="header-left">
+          <p class="greeting-sub">{{ greetingTime }}, Admin 👋</p>
+          <h2>System Overview</h2>
+          <p class="today-date">{{ todayDateFormatted }}</p>
+        </div>
         <div class="dashboard-divider"></div>
       </div>
 
       <div class="center-wrapper">
 
-        <!-- STAT CARDS -->
+        <!-- ROW 1: STAT CARDS -->
         <div class="cards">
 
           <div class="card card-blue">
@@ -49,25 +54,257 @@
             <span class="card-number">{{ absentToday }}</span>
           </div>
 
-        </div>
-
-        <!-- WEEKLY ATTENDANCE CHART -->
-        <div class="chart-container">
-          <h3>Attendance This Week</h3>
-          <canvas id="attendanceChart"></canvas>
-        </div>
-
-        <!-- BOTTOM CHARTS -->
-        <div class="charts-row">
-          <div class="chart-container small-chart">
-            <h3>Applicants Status</h3>
-            <canvas id="applicantsChart"></canvas>
+          <div class="card card-purple">
+            <div class="card-left">
+              <div class="card-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+              <span class="card-label">Total Tasks</span>
+            </div>
+            <span class="card-number">{{ totalTasks }}</span>
           </div>
 
-          <div class="chart-container small-chart">
-            <h3>Time-In Behavior Today</h3>
+          <div class="card card-teal">
+            <div class="card-left">
+              <div class="card-icon"><i class="fa-solid fa-user-tie"></i></div>
+              <span class="card-label">Supervisors</span>
+            </div>
+            <span class="card-number">{{ totalSupervisors }}</span>
+          </div>
+
+        </div>
+
+        <!-- ROW 2: WEEKLY ATTENDANCE + APPLICANT DONUT -->
+        <div class="charts-row">
+
+          <div class="chart-container chart-wide">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <i class="fa-solid fa-chart-bar" style="color:#2563eb;"></i>
+                <h3>Weekly Attendance</h3>
+              </div>
+              <div class="chart-legend">
+                <span class="legend-dot" style="background:#2563eb;"></span><small>Present</small>
+                <span class="legend-dot" style="background:#e5e7eb;"></span><small>Absent</small>
+              </div>
+            </div>
+            <canvas id="attendanceChart"></canvas>
+          </div>
+
+          <div class="chart-container chart-narrow">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <i class="fa-solid fa-chart-pie" style="color:#7c3aed;"></i>
+                <h3>Applicant Status</h3>
+              </div>
+            </div>
+            <div class="donut-wrap">
+              <canvas id="applicantsChart"></canvas>
+              <div class="donut-center">
+                <span class="donut-total">{{ approvedCount + declinedCount + pendingApplicants }}</span>
+                <small>Total</small>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ROW 3: TIME-IN + TASK STATUS + HOURS PROGRESS -->
+        <div class="charts-row">
+
+          <div class="chart-container chart-third">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <i class="fa-solid fa-clock" style="color:#d97706;"></i>
+                <h3>Time-In Behavior Today</h3>
+              </div>
+            </div>
             <canvas id="timeChart"></canvas>
           </div>
+
+          <div class="chart-container chart-third">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <i class="fa-solid fa-list-check" style="color:#0891b2;"></i>
+                <h3>Task Completion</h3>
+              </div>
+            </div>
+            <canvas id="taskChart"></canvas>
+          </div>
+
+          <div class="chart-container chart-third">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <i class="fa-solid fa-hourglass-half" style="color:#16a34a;"></i>
+                <h3>Hours Progress</h3>
+              </div>
+            </div>
+            <div class="hours-breakdown">
+              <div *ngFor="let tier of hoursTiers" class="hours-tier">
+                <div class="tier-label">
+                  <span class="tier-name">{{ tier.label }}</span>
+                  <span class="tier-count">{{ tier.count }} intern{{ tier.count !== 1 ? 's' : '' }}</span>
+                </div>
+                <div class="tier-bar">
+                  <div class="tier-fill" [style.width]="getTierPercent(tier.count) + '%'"
+                       [style.background]="tier.color"></div>
+                </div>
+              </div>
+              <div *ngIf="hoursTiers.length === 0" class="no-data-msg">No data yet.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ROW 4: RECENT ATTENDANCE TABLE -->
+        <div class="table-card">
+          <div class="table-header">
+            <div class="th-left">
+              <i class="fa-solid fa-calendar-days" style="color:#2563eb;"></i>
+              <h3>Recent Attendance</h3>
+            </div>
+            <a routerLink="/admin-attendance">View all →</a>
+          </div>
+
+          <div *ngIf="attendanceLoading" style="text-align:center;padding:20px;color:#9ca3af;">
+            <i class="fa fa-spinner fa-spin"></i> Loading...
+          </div>
+
+          <div class="table-wrap" *ngIf="!attendanceLoading">
+            <table>
+              <thead>
+                <tr>
+                  <th>Intern</th>
+                  <th>Date</th>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Hours</th>
+                  <th>Scanned By</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of recentAttendance">
+                  <td class="profile-name-cell">
+                    <img [src]="r.avatarUrl" class="profile-pic" alt="Profile"
+                         (error)="r.avatarUrl = getFallbackAvatar(r.intern_name)">
+                    <div class="intern-name-stack">
+                      <span class="intern-name">{{ r.intern_name }}</span>
+                      <small class="muted">{{ r.school }}</small>
+                    </div>
+                  </td>
+                  <td>{{ r.date }}</td>
+                  <td>{{ r.time_in }}</td>
+                  <td>{{ r.time_out }}</td>
+                  <td>{{ r.hours }}</td>
+                  <td>{{ r.scanned_by_name || '—' }}</td>
+                  <td>
+                    <span class="status" [ngClass]="r.status === 'Present' ? 'present' : 'absent'">
+                      {{ r.status }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="recentAttendance.length === 0">
+                  <td colspan="7" style="text-align:center;color:#9ca3af;padding:24px;">
+                    No attendance records yet.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ROW 5: TOP INTERNS + RECENT TASKS -->
+        <div class="bottom-row">
+
+          <!-- TOP INTERNS BY HOURS -->
+          <div class="table-card half-card">
+            <div class="table-header">
+              <div class="th-left">
+                <i class="fa-solid fa-trophy" style="color:#d97706;"></i>
+                <h3>Top Interns by Hours</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Intern</th>
+                    <th>Progress</th>
+                    <th>Hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of topInterns; let i = index">
+                    <td>
+                      <span class="rank-badge" [ngClass]="'rank-' + (i + 1)">{{ i + 1 }}</span>
+                    </td>
+                    <td class="profile-name-cell">
+                      <img [src]="s.avatarUrl" class="profile-pic" alt="Profile"
+                           (error)="s.avatarUrl = getFallbackAvatar(s.fullName)">
+                      <span>{{ s.fullName }}</span>
+                    </td>
+                    <td>
+                      <div class="mini-progress-wrap">
+                        <div class="mini-progress-bar">
+                          <div class="mini-progress-fill"
+                               [style.width]="getPercent(s.completed_hours, s.required_hours) + '%'"
+                               [style.background]="getPercent(s.completed_hours, s.required_hours) >= 100 ? '#16a34a' : '#2563eb'">
+                          </div>
+                        </div>
+                        <span class="mini-pct">{{ getPercent(s.completed_hours, s.required_hours) }}%</span>
+                      </div>
+                    </td>
+                    <td><strong>{{ s.completed_hours }}</strong>/{{ s.required_hours }}</td>
+                  </tr>
+                  <tr *ngIf="topInterns.length === 0">
+                    <td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">No data yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- RECENT TASKS -->
+          <div class="table-card half-card">
+            <div class="table-header">
+              <div class="th-left">
+                <i class="fa-solid fa-clipboard-list" style="color:#2563eb;"></i>
+                <h3>Recent Tasks</h3>
+              </div>
+              <a routerLink="/admin-tasks">View all →</a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>Supervisor</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let t of recentTasks">
+                    <td class="task-title-cell">
+                      <span class="task-dot" [ngClass]="t.status"></span>
+                      {{ t.title }}
+                    </td>
+                    <td>{{ t.supervisor_name || '—' }}</td>
+                    <td>
+                      <span [class.overdue]="isOverdue(t.due, t.status)">{{ t.due }}</span>
+                    </td>
+                    <td>
+                      <span class="status" [ngClass]="t.status">{{ t.status | titlecase }}</span>
+                    </td>
+                  </tr>
+                  <tr *ngIf="recentTasks.length === 0">
+                    <td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">No tasks yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
       </div>
