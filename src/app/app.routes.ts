@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { LandingPageComponent } from './modules/landing-page/landing-page.component';
 import { InternLoginComponent } from './Intern/intern-login/intern-login.component';
 import { InternRegisterComponent } from './Intern/intern-register/intern-register.component';
 import { InternSidenavComponent } from './intern-sidenav/intern-sidenav.component';
@@ -37,8 +38,11 @@ import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
 
+  // ── Landing Page (Public) ──────────────────────────────
+  { path: 'landing-page', component: LandingPageComponent },
+
   // ── Default ────────────────────────────────────────────
-  { path: '', redirectTo: 'intern-login', pathMatch: 'full' },
+  { path: '', redirectTo: 'landing', pathMatch: 'full' },
 
   // ── Public routes (no guard) ───────────────────────────
   { path: 'intern-login',    component: InternLoginComponent },
