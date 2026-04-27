@@ -73,6 +73,7 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     await this.loadCurrentSupervisor();
     await this.loadStudents();
     await this.loadTodayAttendance();
+    await this.autoTimeOutMissed();
   }
 
   ngOnDestroy() {
@@ -923,4 +924,133 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     this.manualStudentId       = '';
     this.manualSearchResults   = [];
   }
+  async autoTimeOutMissed() {
+  try {
+    const now    = new Date();
+    const hour   = now.getHours();
+    const minute = now.getMinutes();
+
+    // Only run if current time is past 5:00 PM
+    const isPast5PM = hour >= 17;
+
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // Fetch all attendance records that have time_in but no time_out
+    let allDocs: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (true) {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        [
+          Query.equal('status', 'Present'),
+          Query.limit(limit),
+          Query.offset(offset)
+        ]
+      );
+      allDocs = allDocs.concat(res.documents);
+      if (allDocs.length >= res.total || res.documents.length < limit) break;
+      offset += limit;
+    }
+
+    const assignedStudentIds = new Set(
+      this.allStudents
+        .filter(s => s.supervisor_id === this.supervisorId)
+        .map(s => s.$id)
+    );
+
+    const missed = allDocs.filter(doc => {
+      if (!assignedStudentIds.has(doc.student_id)) return false;
+      if (doc.time_out && doc.time_out !== '') return false; // already timed out
+
+      const isPreviousDay = doc.date < today;
+      const isTodayPast5  = doc.date === today && isPast5PM;
+
+      return isPreviousDay || isTodayPast5;
+    });
+
+    for (const doc of missed) {
+      const autoTimeOut = '05:00 PM';
+
+      // Calculate hours worked
+      const parseTimeToMinutes = (t: string): number => {
+        try {
+          const parts   = t.trim().split(' ');
+          const period  = parts[1];
+          const tp      = parts[0].split(':');
+          let hours     = parseInt(tp[0]);
+          const minutes = parseInt(tp[1]);
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12)  hours  = 0;
+          return (hours * 60) + minutes;
+        } catch { return 0; }
+      };
+
+      const timeInMinutes  = parseTimeToMinutes(doc.time_in);
+      const timeOutMinutes = parseTimeToMinutes(autoTimeOut); // 17 * 60 = 1020
+      let diffMinutes      = timeOutMinutes - timeInMinutes;
+      if (diffMinutes < 0) diffMinutes = 0; // safety: don't add negative hours
+
+      const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
+
+      // Update attendance record with auto time_out
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        doc.$id,
+        {
+          time_out:        autoTimeOut,
+          scanned_by_name: 'Auto Time-Out'
+        }
+      );
+
+      // Update student completed_hours
+      if (hoursWorked > 0) {
+        try {
+          const studentDoc = await this.appwrite.databases.getDocument(
+            this.appwrite.DATABASE_ID,
+            this.appwrite.STUDENTS_COL,
+            doc.student_id
+          );
+          const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
+          const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
+          const newCompleted     = Math.min(
+            parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+            requiredHours
+          );
+
+          await this.appwrite.databases.updateDocument(
+            this.appwrite.DATABASE_ID,
+            this.appwrite.STUDENTS_COL,
+            doc.student_id,
+            { completed_hours: newCompleted }
+          );
+
+          // Update local allStudents cache
+          const idx = this.allStudents.findIndex(s => s.$id === doc.student_id);
+          if (idx !== -1) {
+            this.allStudents[idx] = {
+              ...this.allStudents[idx],
+              completed_hours: newCompleted
+            };
+          }
+
+          console.log(`Auto timed out ${doc.student_id} at 5PM — +${hoursWorked} hrs`);
+        } catch (e: any) {
+          console.error('Failed to update hours for auto timeout:', e.message);
+        }
+      }
+    }
+
+    // Reload today's attendance to reflect changes
+    if (missed.length > 0) {
+      await this.loadTodayAttendance();
+    }
+
+  } catch (error: any) {
+    console.error('Auto time-out failed:', error.message);
+  }
+}
 }

@@ -205,65 +205,78 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load all task stats (totals) ──────────────────────────
-  async loadAllTaskStats() {
-    try {
-      const res      = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL
-      );
-      const allTasks = (res.documents as any[]).filter(task => {
-        if (!task.assigned_intern_ids) return false;
-        return task.assigned_intern_ids
-          .split(',').map((id: string) => id.trim())
-          .includes(this.currentUserId);
-      });
-      this.totalTasks     = allTasks.length;
-      this.completedTasks = allTasks.filter(t => t.status === 'completed').length;
-      this.pendingTasks   = allTasks.filter(t => t.status === 'pending').length;
-    } catch { }
+async loadAllTaskStats() {
+  try {
+    const { Query } = await import('appwrite');
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.TASKS_COL,
+      [Query.limit(100)]
+    );
+    const allTasks = (res.documents as any[]).filter(task => {
+      if (!task.assigned_intern_ids) return false;
+      return task.assigned_intern_ids
+        .split(',').map((id: string) => id.trim())
+        .includes(this.currentUserId);
+    });
+    this.totalTasks     = allTasks.length;
+    this.completedTasks = allTasks.filter(t => t.status === 'completed').length;
+    this.pendingTasks   = allTasks.filter(t => t.status === 'pending').length;
+  } catch (error: any) {
+    console.error('Failed to load task stats:', error.message);
   }
+}
 
   // ── Load all attendance stats ──────────────────────────────
   async loadAllAttendanceStats() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
-      const mine = (res.documents as any[]).filter(d => d.student_id === this.currentUserId);
-      this.totalPresent = mine.filter(d => d.status === 'Present').length;
-      this.totalAbsent  = mine.filter(d => d.status === 'Absent').length;
-    } catch { }
+  try {
+    const { Query } = await import('appwrite');
+
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [
+        Query.equal('student_id', this.currentUserId),
+        Query.limit(5000)
+      ]
+    );
+
+    const mine        = res.documents as any[];
+    this.totalPresent = mine.filter(d => d.status === 'Present').length;
+    this.totalAbsent  = mine.filter(d => d.status === 'Absent').length;
+
+  } catch (error: any) {
+    console.error('Failed to load attendance stats:', error.message);
   }
+}
 
   // ── Load recent attendance (last 3 records) ───────────────
-  async loadRecentAttendance() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
+ async loadRecentAttendance() {
+  try {
+    const { Query } = await import('appwrite');
 
-      const myRecords = (res.documents as any[])
-        .filter(d => d.student_id === this.currentUserId)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 3);
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [
+        Query.equal('student_id', this.currentUserId),
+        Query.orderDesc('date'),
+        Query.limit(3)
+      ]
+    );
 
-      this.recentAttendance = myRecords.map(record => {
-        const hoursRendered = this.calcHours(record.time_in, record.time_out);
-        return {
-          date         : this.formatDate(record.date),
-          time_in      : record.time_in  || '—',
-          time_out     : record.time_out || '—',
-          status       : record.status,
-          hours_rendered: hoursRendered
-        };
-      });
+    this.recentAttendance = (res.documents as any[]).map(record => ({
+      date          : this.formatDate(record.date),
+      time_in       : record.time_in  || '—',
+      time_out      : record.time_out || '—',
+      status        : record.status,
+      hours_rendered: this.calcHours(record.time_in, record.time_out)
+    }));
 
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
-    }
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
   }
+}
 
   // ── Calculate hours between time_in and time_out ──────────
   calcHours(timeIn: string, timeOut: string): string {
@@ -445,38 +458,40 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load recent tasks ─────────────────────────────────────
-  async loadRecentTasks() {
-    this.tasksLoading = true;
-    try {
-      const res      = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL
-      );
-      const allTasks = res.documents as any[];
-      const myTasks  = allTasks.filter(task => {
-        if (!task.assigned_intern_ids) return false;
-        return task.assigned_intern_ids
-          .split(',').map((id: string) => id.trim())
-          .includes(this.currentUserId);
-      });
+async loadRecentTasks() {
+  this.tasksLoading = true;
+  try {
+    const { Query } = await import('appwrite');
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.TASKS_COL,
+      [Query.limit(100)]
+    );
+    const allTasks = res.documents as any[];
+    const myTasks  = allTasks.filter(task => {
+      if (!task.assigned_intern_ids) return false;
+      return task.assigned_intern_ids
+        .split(',').map((id: string) => id.trim())
+        .includes(this.currentUserId);
+    });
 
-      this.recentTasks = myTasks
-        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
-        .slice(0, 3)
-        .map(task => ({
-          $id            : task.$id,
-          title          : task.title           || '—',
-          description    : task.description     || '—',
-          posted         : this.formatDate(task.$createdAt.split('T')[0]),
-          due            : task.due ? this.formatDate(task.due) : '—',
-          status         : task.status          || 'pending',
-          supervisor_name: task.supervisor_name || '—'
-        }));
+    this.recentTasks = myTasks
+      .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+      .slice(0, 3)
+      .map(task => ({
+        $id            : task.$id,
+        title          : task.title           || '—',
+        description    : task.description     || '—',
+        posted         : this.formatDate(task.$createdAt.split('T')[0]),
+        due            : task.due ? this.formatDate(task.due) : '—',
+        status         : task.status          || 'pending',
+        supervisor_name: task.supervisor_name || '—'
+      }));
 
-    } catch (error: any) {
-      console.error('Failed to load tasks:', error.message);
-    } finally {
-      this.tasksLoading = false;
-    }
+  } catch (error: any) {
+    console.error('Failed to load tasks:', error.message);
+  } finally {
+    this.tasksLoading = false;
   }
+}
 }
