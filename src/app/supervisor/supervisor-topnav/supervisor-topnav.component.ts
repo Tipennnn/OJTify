@@ -287,31 +287,34 @@ ngOnDestroy() {
   }
 
   private async uploadEsig(file: File): Promise<void> {
-    if (file.type !== 'image/png') return;
-    this.esigUploading = true;
-    try {
-      const user = await this.appwrite.account.get();
-      const oldFileId = this.currentDoc?.esig_file_id;
-      if (oldFileId) {
-        try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); } catch {}
-      }
-      const { ID } = await import('appwrite');
-      const newFileId = ID.unique();
-      await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id, { esig_file_id: newFileId }
-      );
-      if (this.currentDoc) this.currentDoc.esig_file_id = newFileId;
-      const reader = new FileReader();
-      reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
-      reader.readAsDataURL(file);
-      Swal.fire({ icon: 'success', title: 'E-Signature Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-    } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
-    } finally {
-      this.esigUploading = false;
+  if (file.type !== 'image/png') return;
+  this.esigUploading = true;
+  try {
+    const user = await this.appwrite.account.get();
+    const oldFileId = this.currentDoc?.esig_file_id;
+    if (oldFileId) {
+      try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); } catch {}
     }
+    const { ID } = await import('appwrite');
+    const newFileId = ID.unique();
+    await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id, { esig_file_id: newFileId }
+    );
+    if (this.currentDoc) this.currentDoc.esig_file_id = newFileId;
+
+    // ← Use upscaleEsig instead of direct FileReader
+    const reader = new FileReader();
+    reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
+    reader.readAsDataURL(file);
+
+    Swal.fire({ icon: 'success', title: 'E-Signature Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+  } catch (err: any) {
+    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
+  } finally {
+    this.esigUploading = false;
   }
+}
 
   async removeEsig(): Promise<void> {
     if (!this.currentDoc?.esig_file_id) return;
@@ -325,18 +328,18 @@ ngOnDestroy() {
   }
 
   private async loadEsigPreview(fileId: string): Promise<void> {
-    try {
-      const jwt = await this.appwrite.account.createJWT();
-      const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
-      const res = await fetch(url, { headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID } });
-      if (res.ok) {
-        const blob = await res.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
-        reader.readAsDataURL(blob);
-      }
-    } catch (err) { console.warn('Could not load esig preview:', err); }
-  }
+  try {
+    const jwt = await this.appwrite.account.createJWT();
+    const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
+    const res = await fetch(url, { headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID } });
+    if (res.ok) {
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
+      reader.readAsDataURL(blob);
+    }
+  } catch (err) { console.warn('Could not load esig preview:', err); }
+}
 
   // ── Change Password ──
   openChangePassword() {
@@ -424,5 +427,54 @@ ngOnDestroy() {
     if (esigInput) esigInput.click();
   }, 600);
 }
+private upscaleEsig(dataUrl: string): void {
+  const img = new Image();
+  img.onload = () => {
+    const TARGET_W = 800;
+    const TARGET_H = 300;
 
+    const offscreen = document.createElement('canvas');
+    offscreen.width  = TARGET_W;
+    offscreen.height = TARGET_H;
+    const ctx = offscreen.getContext('2d')!;
+
+    // Draw on transparent background
+    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+
+    const canvasRatio = TARGET_W / TARGET_H;
+    const imgRatio    = img.width / img.height;
+    let drawW = TARGET_W, drawH = TARGET_H, drawX = 0, drawY = 0;
+    if (imgRatio > canvasRatio) {
+      drawH = TARGET_W / imgRatio;
+      drawY = (TARGET_H - drawH) / 2;
+    } else {
+      drawW = TARGET_H * imgRatio;
+      drawX = (TARGET_W - drawW) / 2;
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+    // ── Remove white/near-white background ──────────────────
+    const imageData = ctx.getImageData(0, 0, TARGET_W, TARGET_H);
+    const data      = imageData.data;
+    const THRESHOLD = 230; // 0-255, higher = removes more near-white
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      // If pixel is white or near-white, make it transparent
+      if (r >= THRESHOLD && g >= THRESHOLD && b >= THRESHOLD) {
+        data[i + 3] = 0; // set alpha to 0 (fully transparent)
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    this.esigPreviewUrl = offscreen.toDataURL('image/png');
+  };
+  img.src = dataUrl;
+}
 }

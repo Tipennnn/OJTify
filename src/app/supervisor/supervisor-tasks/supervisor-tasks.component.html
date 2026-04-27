@@ -783,12 +783,20 @@
           </div>
           <div class="comment-body">
             <div class="comment-header">
-              <strong>{{ comment.user_name }}
-                <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
-                <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
-              </strong>
-              <span class="comment-date">{{ comment.created_at }}</span>
-            </div>
+  <strong>{{ comment.user_name }}
+    <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
+    <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
+  </strong>
+  <div class="comment-date-wrap">
+    <span class="comment-date">
+      {{ comment.created_at.split(' · edited')[0] }}
+    </span>
+    <span *ngIf="comment.created_at.includes('· edited')" class="edited-badge">
+      <i class="fas fa-pen"></i>
+      edited {{ comment.created_at.split('· edited')[1]?.trim() }}
+    </span>
+  </div>
+</div>
             <ng-container *ngIf="editingCommentId !== comment.$id">
               <p class="comment-text">{{ comment.message }}</p>
               <div class="comment-actions" *ngIf="comment.role === 'supervisor'">

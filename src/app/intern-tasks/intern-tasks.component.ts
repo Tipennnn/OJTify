@@ -286,15 +286,28 @@ export class InternTasksComponent implements OnInit {
   cancelCommentEdit() { this.editingCommentId = null; this.editingMessage = ''; }
 
   async saveEdit(comment: Comment) {
-    if (!this.editingMessage.trim()) return;
-    try {
-      await this.appwrite.databases.updateDocument(this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id!, { message: this.editingMessage.trim() });
-      const i = this.comments.findIndex(c => c.$id === comment.$id);
-      if (i !== -1) this.comments[i] = { ...this.comments[i], message: this.editingMessage.trim() };
-      this.cancelCommentEdit();
-      Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message }); }
-  }
+  if (!this.editingMessage.trim()) return;
+  try {
+    const editedAt = new Date().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+    const updatedMessage = this.editingMessage.trim();
+
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id!,
+      { message: updatedMessage, created_at: `${comment.created_at} · edited ${editedAt}` }
+    );
+    const i = this.comments.findIndex(c => c.$id === comment.$id);
+    if (i !== -1) this.comments[i] = {
+      ...this.comments[i],
+      message: updatedMessage,
+      created_at: `${comment.created_at.split(' · edited')[0]} · edited ${editedAt}`
+    };
+    this.cancelCommentEdit();
+    Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+  } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message }); }
+}
 
   async deleteComment(comment: Comment) {
     const result = await Swal.fire({ title: 'Delete comment?', text: 'This action cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
@@ -333,20 +346,31 @@ export class InternTasksComponent implements OnInit {
   }
 
   async deleteSubmission(submission: Submission) {
-    const result = await Swal.fire({ title: 'Remove submission?', text: 'This will permanently delete your submitted file.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, remove it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
-    if (!result.isConfirmed) return;
-    try {
-      await this.appwrite.storage.deleteFile(this.BUCKET_ID, submission.file_id);
-      await this.appwrite.databases.deleteDocument(this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, submission.$id!);
-      this.submissions = this.submissions.filter(s => s.$id !== submission.$id);
-      if (this.submissions.length === 0) {
-        this.selectedTask!.status = 'pending';
-        const idx = this.tasks.findIndex(t => t.$id === this.selectedTask?.$id);
-        if (idx !== -1) this.tasks[idx].status = 'pending';
-      }
-      Swal.fire({ icon: 'success', title: 'Removed!', text: 'Your submission has been deleted.', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
+  // ── Prevent deletion if submission has been scored ──
+  if (submission.score !== null && submission.score !== undefined) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Cannot Delete',
+      text: 'This submission has already been scored by your supervisor and can no longer be deleted.',
+      confirmButtonColor: '#0818A8'
+    });
+    return;
   }
+
+  const result = await Swal.fire({ title: 'Remove submission?', text: 'This will permanently delete your submitted file.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, remove it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });
+  if (!result.isConfirmed) return;
+  try {
+    await this.appwrite.storage.deleteFile(this.BUCKET_ID, submission.file_id);
+    await this.appwrite.databases.deleteDocument(this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL, submission.$id!);
+    this.submissions = this.submissions.filter(s => s.$id !== submission.$id);
+    if (this.submissions.length === 0) {
+      this.selectedTask!.status = 'pending';
+      const idx = this.tasks.findIndex(t => t.$id === this.selectedTask?.$id);
+      if (idx !== -1) this.tasks[idx].status = 'pending';
+    }
+    Swal.fire({ icon: 'success', title: 'Removed!', text: 'Your submission has been deleted.', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+  } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to delete', text: error.message }); }
+}
 
   async openModal(task: Task) {
   // ← FIX: resolve supervisor name live from supervisorPhotoMap's source
@@ -584,16 +608,33 @@ export class InternTasksComponent implements OnInit {
     return Object.values(groups);
   }
 
-  openAddLogbook() {
-    this.logbookModalMode = 'add';
-    this.selectedLogbookEntry = null;
-    this.logbookPhotos = [];
-    this.selectedPhotos = [];
-    this.logbookForm = { entry_date: new Date().toISOString().split('T')[0], tasks_done: '• ', reflection: '' };
-    this.tasksDoneWordCount = 0;
-    this.reflectionWordCount = 0;
-    this.isLogbookModalOpen = true;
+openAddLogbook() {
+  const now = new Date();
+  const hour = now.getHours();
+
+  if (hour < 8) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Too Early!',
+      text: 'You can only add a daily entry from 8:00 AM to 11:59 PM.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
   }
+
+  this.logbookModalMode = 'add';
+  this.selectedLogbookEntry = null;
+  this.logbookPhotos = [];
+  this.selectedPhotos = [];
+  this.logbookForm = {
+    entry_date: this.getTodayString(),
+    tasks_done: '• ',
+    reflection: ''
+  };
+  this.tasksDoneWordCount = 0;
+  this.reflectionWordCount = 0;
+  this.isLogbookModalOpen = true;
+}
 
   async openViewLogbook(entry: LogbookEntry) {
     this.logbookModalMode = 'view';
@@ -643,79 +684,92 @@ export class InternTasksComponent implements OnInit {
     }
   }
 
-  async saveLogbookEntry() {
-    if (!this.logbookForm.entry_date || !this.logbookForm.tasks_done.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Incomplete Entry', text: 'Please fill in the date and tasks done.', confirmButtonColor: '#2563eb' }); return;
-    }
-
-    if (this.isFutureDate(this.logbookForm.entry_date)) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Future date not allowed',
-        text: 'You cannot log an entry for a future date. Please select today or a past date.',
-        confirmButtonColor: '#2563eb'
-      });
-      return;
-    }
-
-    if (!this.validateWordCounts()) return;
-
-    if (this.dateHasEntry(this.logbookForm.entry_date)) {
-      Swal.fire({ icon: 'warning', title: 'Entry already exists', text: 'You already have a logbook entry for this date. Only one entry per day is allowed.', confirmButtonColor: '#2563eb' }); return;
-    }
-    this.logbookSaving = true;
-    try {
-      const doc = await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID, 'logbook_entries', ID.unique(),
-        {
-          student_id: this.currentUserId,
-          student_name: this.currentUserName,
-          entry_date: this.logbookForm.entry_date,
-          tasks_done: this.logbookForm.tasks_done.trim(),
-          reflection: this.logbookForm.reflection.trim(),
-          created_at: new Date().toISOString()
-        }
-      );
-      this.logbookEntries.unshift(doc as any);
-
-   if (this.selectedPhotos.length > 0) {
-  const failed: string[] = [];
-  for (const photo of this.selectedPhotos) {
-    try {
-      await this.uploadLogbookPhotoSilent((doc as any).$id, photo);
-    } catch {
-      failed.push(photo.name);
-    }
-  }
-  if (failed.length > 0) {
+ async saveLogbookEntry() {
+  // ── Time restriction ──────────────────────────────────
+  const hour = new Date().getHours();
+  if (hour < 8) {
     Swal.fire({
-      icon: 'warning',
-      title: 'Some photos failed',
-      text: `These photos could not be uploaded: ${failed.join(', ')}. You can add them in Edit mode.`,
+      icon: 'info',
+      title: 'Too Early!',
+      text: 'You can only submit a daily entry from 8:00 AM to 11:59 PM.',
       confirmButtonColor: '#2563eb'
     });
-    this.closeLogbookModal();
     return;
   }
-}
 
-      this.closeLogbookModal();
-      Swal.fire({
-        icon: 'success',
-        title: 'Entry Saved!',
-        text: this.selectedPhotos ? 'Your entry and photo have been saved.' : 'Your daily logbook entry has been recorded.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-      });
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Failed to save entry', text: error.message });
-    } finally {
-      this.logbookSaving = false;
-    }
+  if (!this.logbookForm.entry_date || !this.logbookForm.tasks_done.trim()) {
+    Swal.fire({ icon: 'warning', title: 'Incomplete Entry', text: 'Please fill in the date and tasks done.', confirmButtonColor: '#2563eb' }); return;
   }
+
+  if (this.isFutureDate(this.logbookForm.entry_date)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Future date not allowed',
+      text: 'You cannot log an entry for a future date. Please select today or a past date.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
+  if (!this.validateWordCounts()) return;
+
+  if (this.dateHasEntry(this.logbookForm.entry_date)) {
+    Swal.fire({ icon: 'warning', title: 'Entry already exists', text: 'You already have a logbook entry for this date. Only one entry per day is allowed.', confirmButtonColor: '#2563eb' }); return;
+  }
+
+  this.logbookSaving = true;
+  try {
+    const doc = await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID, 'logbook_entries', ID.unique(),
+      {
+        student_id: this.currentUserId,
+        student_name: this.currentUserName,
+        entry_date: this.logbookForm.entry_date,
+        tasks_done: this.logbookForm.tasks_done.trim(),
+        reflection: this.logbookForm.reflection.trim(),
+        created_at: new Date().toISOString()
+      }
+    );
+    this.logbookEntries.unshift(doc as any);
+
+    if (this.selectedPhotos.length > 0) {
+      const failed: string[] = [];
+      for (const photo of this.selectedPhotos) {
+        try {
+          await this.uploadLogbookPhotoSilent((doc as any).$id, photo);
+        } catch {
+          failed.push(photo.name);
+        }
+      }
+      if (failed.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Some photos failed',
+          text: `These photos could not be uploaded: ${failed.join(', ')}. You can add them in Edit mode.`,
+          confirmButtonColor: '#2563eb'
+        });
+        this.closeLogbookModal();
+        return;
+      }
+    }
+
+    this.closeLogbookModal();
+    Swal.fire({
+      icon: 'success',
+      title: 'Entry Saved!',
+      text: this.selectedPhotos.length > 0 ? 'Your entry and photos have been saved.' : 'Your daily logbook entry has been recorded.',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    });
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed to save entry', text: error.message });
+  } finally {
+    this.logbookSaving = false;
+  }
+}
 
   async updateLogbookEntry() {
     if (!this.logbookForm.entry_date || !this.logbookForm.tasks_done.trim()) {
@@ -1164,4 +1218,8 @@ getSupervisorPhotoUrl(supervisorId: string | undefined): string | null {
   if (!photoId) return null;
   return `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${photoId}/view?project=${this.PROJECT_ID}`;
 }
+getPendingPhotoUrl(file: File): string {
+  return URL.createObjectURL(file);
+}
+
 }

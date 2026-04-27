@@ -361,3 +361,24 @@ app-supervisor-topnav {
   color: #ffffff;
   font-weight: 500;
 }
+.eval-tooltip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+.eval-tooltip-badge.evaluated {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.eval-tooltip-badge.not-evaluated {
+  background: #fef9c3;
+  color: #b45309;
+}

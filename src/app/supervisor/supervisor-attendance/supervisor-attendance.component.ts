@@ -298,31 +298,29 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  async submitManualId() {
-    const inputId = this.manualStudentId.trim();
-    if (!inputId && !this.selectedManualStudent) return;
+ async submitManualId() {
+  const inputId = this.manualStudentId.trim();
+  if (!inputId) return;
 
-    const student = this.selectedManualStudent
-      ?? this.allStudents.find(
-        s => s.student_id?.toLowerCase() === inputId.toLowerCase()
-      );
+  const student = this.allStudents.find(
+    s => s.student_id?.toLowerCase() === inputId.toLowerCase()
+      && s.supervisor_id === this.supervisorId
+  );
 
-    if (!student) {
-      Swal.fire({
-        icon: 'error', title: 'Student Not Found',
-        text: `No intern found with ID "${inputId}".`,
-        toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 3500
-      });
-      return;
-    }
-
-    this.manualStudentId       = '';
-    this.selectedManualStudent = null;
-    this.manualSearchResults   = [];
-    await this.processManualAttendance(student);
+  if (!student) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Student Not Found',
+      text: `No intern found with Student ID "${inputId}".`,
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 3500
+    });
+    return;
   }
 
+  this.manualStudentId = '';
+  await this.processManualAttendance(student);
+}
   async processManualAttendance(student: any) {
     const studentId   = student.$id;
     const studentName = `${student.first_name} ${student.last_name}`;
@@ -892,38 +890,17 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   }
 
   onManualIdInput() {
-    const query = this.manualStudentId.trim().toLowerCase();
-    if (!query) {
-      this.manualSearchResults   = [];
-      this.selectedManualStudent = null;
-      return;
-    }
-
-    this.manualSearchResults = this.allStudents
-      .filter(s => {
-        if (s.supervisor_id !== this.supervisorId) return false;
-
-        const completed = Number(s.completed_hours) || 0;
-        const required  = Number(s.required_hours)  || 500;
-        if (completed >= required) return false;
-
-        return s.student_id?.toLowerCase().includes(query) ||
-               `${s.first_name} ${s.last_name}`.toLowerCase().includes(query);
-      })
-      .slice(0, 5);
-  }
+  // no-op — no search results needed
+}
 
   selectManualStudent(student: any) {
-    this.selectedManualStudent = student;
-    this.manualStudentId       = student.student_id;
-    this.manualSearchResults   = [];
-  }
+  // no-op
+}
 
   clearManualSelection() {
-    this.selectedManualStudent = null;
-    this.manualStudentId       = '';
-    this.manualSearchResults   = [];
-  }
+  this.manualStudentId = '';
+}
+
   async autoTimeOutMissed() {
   try {
     const now    = new Date();

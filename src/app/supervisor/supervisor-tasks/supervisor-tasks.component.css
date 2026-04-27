@@ -732,3 +732,34 @@ textarea { resize: none; }
 .back-btn:hover { background: #eef0fc; border-color: #0818A8; color: #0818A8; }
 .back-btn i { font-size: 11px; }
 .back-btn-inline { display: none; }
+
+.edited-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #9ca3af;
+  font-style: italic;
+  margin-left: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 1px 7px;
+}
+.edited-badge i { color: #9ca3af; font-size: 7px; }
+
+.comment-date-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+}

@@ -33,6 +33,7 @@ import { SupervisorDashboardComponent } from './supervisor/supervisor-dashboard/
 import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluation/supervisor-evaluation.component';
 import { InternEvaluationComponent } from './Intern/intern-evaluation/intern-evaluation.component';
 import { CertVerifyComponent } from './modules/cert-verify/cert-verify.component';
+import { DtrVerifyComponent } from './modules/dtr-verify/dtr-verify.component';
 
 import { authGuard } from './guards/auth.guard';
 
@@ -45,12 +46,13 @@ export const routes: Routes = [
   { path: '', redirectTo: 'landing', pathMatch: 'full' },
 
   // ── Public routes (no guard) ───────────────────────────
-  { path: 'intern-login',    component: InternLoginComponent },
-  { path: 'intern-register', component: InternRegisterComponent },
-  { path: 'admin-login',     component: AdminLoginComponent },
-  { path: 'supervisor-login',component: SupervisorLoginComponent },
-  { path: 'reset-password',  component: ResetPasswordComponent },
-  { path: 'verify/:id',      component: CertVerifyComponent },
+  { path: 'intern-login',     component: InternLoginComponent },
+  { path: 'intern-register',  component: InternRegisterComponent },
+  { path: 'admin-login',      component: AdminLoginComponent },
+  { path: 'supervisor-login', component: SupervisorLoginComponent },
+  { path: 'reset-password',   component: ResetPasswordComponent },
+  { path: 'verify/:id',       component: CertVerifyComponent },
+  { path: 'verify/dtr/:ref',  component: DtrVerifyComponent },   // ← NEW
 
   // ── Intern protected routes ────────────────────────────
   {
@@ -73,18 +75,18 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { role: 'admin' },
     children: [
-      { path: 'admin-dashboard',            component: AdminDashboardComponent },
-      { path: 'admin-applicants',           component: AdminApplicantsComponent },
-      { path: 'admin-tasks',                component: AdminTasksComponent },
-      { path: 'admin-ojt',                  component: AdminOjtComponent },
-      { path: 'admin-attendance',           component: AdminAttendanceComponent },
-      { path: 'admin-ojt-profile/:id',      component: AdminOjtProfileComponent },
-      { path: 'admin-attendance-history',   component: AdminAttendanceHistoryComponent },
-      { path: 'admin-completed-ojt',        component: AdminCompletedOjtComponent },
-      { path: 'admin-certificate',          component: AdminCertificateComponent },
-      { path: 'admin-supervisor-management',component: AdminSupervisorManagementComponent },
-      { path: 'admin-sidenav',              component: AdminSidenavComponent },
-      { path: 'admin-topnav',               component: AdminTopnavComponent },
+      { path: 'admin-dashboard',             component: AdminDashboardComponent },
+      { path: 'admin-applicants',            component: AdminApplicantsComponent },
+      { path: 'admin-tasks',                 component: AdminTasksComponent },
+      { path: 'admin-ojt',                   component: AdminOjtComponent },
+      { path: 'admin-attendance',            component: AdminAttendanceComponent },
+      { path: 'admin-ojt-profile/:id',       component: AdminOjtProfileComponent },
+      { path: 'admin-attendance-history',    component: AdminAttendanceHistoryComponent },
+      { path: 'admin-completed-ojt',         component: AdminCompletedOjtComponent },
+      { path: 'admin-certificate',           component: AdminCertificateComponent },
+      { path: 'admin-supervisor-management', component: AdminSupervisorManagementComponent },
+      { path: 'admin-sidenav',               component: AdminSidenavComponent },
+      { path: 'admin-topnav',                component: AdminTopnavComponent },
     ]
   },
 

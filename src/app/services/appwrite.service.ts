@@ -27,6 +27,7 @@ export class AppwriteService {
   readonly EVALUATIONS_COL    = 'evaluations';
   readonly LOGBOOK_COL        = 'logbook_entries';
   readonly LOGBOOK_PHOTOS_COL = 'logbook_photos';
+  readonly DTR_RECORDS_COL = 'dtr_records'
   readonly DELETE_USER_FN     = '69e75aef0017bf366386';
 
   private photoUrl = new BehaviorSubject<string>(

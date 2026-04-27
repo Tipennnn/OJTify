@@ -556,35 +556,57 @@ export class SupervisorTasksComponent implements OnInit {
     this.logbookCurrentPage = 1;
   }
 
-  async loadTasks() {
-    try {
-      const [tasksRes, subsRes] = await Promise.all([
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL,
-          [Query.limit(500)]
-        ),
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID, this.appwrite.SUBMISSIONS_COL,
-          [Query.limit(5000)]
-        )
-      ]);
-      const allSubs = subsRes.documents as any[];
-      this.taskSubmissionCountMap = {};
-      const taskSubMap: { [taskId: string]: Set<string> } = {};
-      allSubs.forEach(sub => {
-        if (!taskSubMap[sub.task_id]) taskSubMap[sub.task_id] = new Set();
-        taskSubMap[sub.task_id].add(sub.student_id);
-      });
-      Object.keys(taskSubMap).forEach(taskId => {
-        this.taskSubmissionCountMap[taskId] = taskSubMap[taskId].size;
-      });
-      this.tasks = (tasksRes.documents as any[])
-        .filter(task => task.supervisor_id === this.currentSupervisorId)
-        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
-    } catch (error: any) {
-      console.error('Failed to load tasks:', error.message);
+ async loadTasks() {
+  try {
+    let allTaskDocs: any[] = [];
+    let offset = 0;
+    const pageSize = 100;
+
+    while (true) {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.TASKS_COL,
+        [Query.limit(pageSize), Query.offset(offset)]
+      );
+      allTaskDocs = allTaskDocs.concat(res.documents);
+      if (res.documents.length < pageSize) break;
+      offset += pageSize;
     }
+
+    // Fetch all submissions in one go
+    let allSubDocs: any[] = [];
+    let subOffset = 0;
+    while (true) {
+      const subsRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUBMISSIONS_COL,
+        [Query.limit(100), Query.offset(subOffset)]
+      );
+      allSubDocs = allSubDocs.concat(subsRes.documents);
+      if (subsRes.documents.length < 100) break;
+      subOffset += 100;
+    }
+
+    // Build submission count map
+    this.taskSubmissionCountMap = {};
+    const taskSubMap: { [taskId: string]: Set<string> } = {};
+    allSubDocs.forEach(sub => {
+      if (!taskSubMap[sub.task_id]) taskSubMap[sub.task_id] = new Set();
+      taskSubMap[sub.task_id].add(sub.student_id);
+    });
+    Object.keys(taskSubMap).forEach(taskId => {
+      this.taskSubmissionCountMap[taskId] = taskSubMap[taskId].size;
+    });
+
+    // Filter strictly by supervisor_id
+    this.tasks = allTaskDocs
+      .filter(task => task.supervisor_id === this.currentSupervisorId)
+      .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
+
+  } catch (error: any) {
+    console.error('Failed to load tasks:', error.message);
   }
+}
 
   getDueDateParts(due: string) {
     const d = new Date(due);
@@ -1542,16 +1564,33 @@ export class SupervisorTasksComponent implements OnInit {
   startEditComment(comment: any) { this.editingCommentId = comment.$id; this.editingMessage = comment.message; }
   cancelEditComment() { this.editingCommentId = null; this.editingMessage = ''; }
 
-  async saveEditComment(comment: any) {
-    if (!this.editingMessage.trim()) return;
-    try {
-      await this.appwrite.databases.updateDocument(this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id, { message: this.editingMessage.trim() });
-      const index = this.taskComments.findIndex(c => c.$id === comment.$id);
-      if (index !== -1) this.taskComments[index] = { ...this.taskComments[index], message: this.editingMessage.trim() };
-      this.cancelEditComment();
-      Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-    } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message }); }
+ async saveEditComment(comment: any) {
+  if (!this.editingMessage.trim()) return;
+  try {
+    const editedAt = new Date().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+    const updatedMessage = this.editingMessage.trim();
+
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, comment.$id,
+      { message: updatedMessage, created_at: `${comment.created_at.split(' · edited')[0]} · edited ${editedAt}` }
+    );
+
+    const index = this.taskComments.findIndex(c => c.$id === comment.$id);
+    if (index !== -1) this.taskComments[index] = {
+      ...this.taskComments[index],
+      message: updatedMessage,
+      created_at: `${comment.created_at.split(' · edited')[0]} · edited ${editedAt}`
+    };
+
+    this.cancelEditComment();
+    Swal.fire({ icon: 'success', title: 'Comment updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed to update', text: error.message });
   }
+}
 
   async deleteSupervisorComment(comment: any) {
     const result = await Swal.fire({ title: 'Delete comment?', text: 'This action cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it', cancelButtonText: 'Cancel', confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280' });

@@ -302,9 +302,10 @@
             <!-- Supervisor -->
             <div class="sig-block">
               <div class="sig-canvas">
-                <img *ngIf="evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
-                <div *ngIf="!evaluation?.signature_data" class="sig-placeholder"><i class="fa-solid fa-pen-nib"></i></div>
-              </div>
+  <img *ngIf="supervisorEsigB64" [src]="supervisorEsigB64" class="sig-img" alt="Supervisor Signature">
+  <img *ngIf="!supervisorEsigB64 && evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
+  <div *ngIf="!supervisorEsigB64 && !evaluation?.signature_data" class="sig-placeholder"><i class="fa-solid fa-pen-nib"></i></div>
+</div>
               <div class="sig-line"></div>
               <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
               <div class="sig-title">{{ supervisor?.position ?? 'Supervisor' }}</div>

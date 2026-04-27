@@ -68,20 +68,28 @@
                 <td class="col-course">{{ abbreviateCourse(student.course) }}</td>
                 <td class="col-email">{{ student.email }}</td>
                 <td class="col-date">{{ getStartDate(student) }}</td>
-                <td class="col-progress">
-                  <div class="progress-wrap">
-                    <div class="progress-bar">
-                      <div class="progress-fill"
-                           [style.width]="getProgress(student) + '%'">
-                      </div>
-                    </div>
-                    <span class="progress-text">
-                      {{ student.completed_hours || 0 }} /
-                      {{ student.required_hours  || 500 }} hrs
-                      ({{ getProgress(student) }}%)
-                    </span>
-                  </div>
-                </td>
+             <td class="col-progress">
+  <div class="progress-wrap">
+    <div class="progress-bar">
+      <div class="progress-fill"
+           [style.width]="getProgress(student) + '%'"
+           [style.background]="isCompleted(student) ? '#16a34a' : '#0818A8'">
+      </div>
+    </div>
+    <span class="progress-text">
+      {{ student.completed_hours || 0 }} /
+      {{ student.required_hours  || 500 }} hrs
+      ({{ getProgress(student) }}%)
+    </span>
+    <span *ngIf="isCompleted(student)"
+          class="eval-tooltip-badge"
+          [class.evaluated]="evaluationMap[student.$id]"
+          [class.not-evaluated]="!evaluationMap[student.$id]">
+      <i [class]="evaluationMap[student.$id] ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'"></i>
+      {{ evaluationMap[student.$id] ? 'Evaluated' : 'Not yet evaluated' }}
+    </span>
+  </div>
+</td>
               </tr>
 
               <!-- Empty state -->

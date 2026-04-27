@@ -221,45 +221,22 @@
       </div>
 
       <!-- MANUAL PANEL -->
-      <div class="manual-panel" [class.hidden]="!showManualEntry">
+      <!-- MANUAL PANEL -->
+<div class="manual-panel" [class.hidden]="!showManualEntry">
 
-        <span class="manual-panel-label">Search intern</span>
+  <span class="manual-panel-label">Enter Student ID</span>
 
-        <!-- Selected student preview -->
-        <div class="selected-student-card" *ngIf="selectedManualStudent">
-          <img [src]="selectedManualStudent.profile_photo_id
-                      ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
-                        + selectedManualStudent.profile_photo_id + '/view?project=' + PROJECT_ID
-                      : 'https://ui-avatars.com/api/?name='
-                        + selectedManualStudent.first_name + '+'
-                        + selectedManualStudent.last_name
-                        + '&background=2563eb&color=fff&size=64'"
-               class="manual-profile-pic" alt="Profile">
-          <div class="manual-student-info">
-            <span class="manual-student-name">
-              {{ selectedManualStudent.first_name }} {{ selectedManualStudent.last_name }}
-            </span>
-            <span class="manual-student-id">{{ selectedManualStudent.student_id }}</span>
-            <span class="manual-student-course">{{ selectedManualStudent.course }}</span>
-          </div>
-          <button class="manual-clear-btn" (click)="clearManualSelection()">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <!-- Search input -->
-        <div class="manual-input-wrapper" *ngIf="!selectedManualStudent">
-          <i class="fas fa-id-card manual-icon"></i>
-          <input
-            type="text"
-            class="manual-id-input"
-            placeholder="Type name or Student ID..."
-            [(ngModel)]="manualStudentId"
-            (input)="onManualIdInput()"
-            (keydown.enter)="submitManualId()"
-            autocomplete="off"
-          />
-        </div>
+  <div class="manual-input-wrapper">
+    <i class="fas fa-id-card manual-icon"></i>
+    <input
+      type="text"
+      class="manual-id-input"
+      placeholder="Type Student ID..."
+      [(ngModel)]="manualStudentId"
+      (keydown.enter)="submitManualId()"
+      autocomplete="off"
+    />
+  </div>
 
         <!-- Results area -->
         <div class="manual-results-area">

@@ -284,11 +284,16 @@
                 <span class="file-size">{{ sub.submitted_at }}</span>
               </div>
             </div>
-            <div class="file-actions">
-              <div class="file-action-btn delete" (click)="deleteSubmission(sub)" title="Delete submission">
-                <i class="fas fa-trash"></i>
-              </div>
-            </div>
+        <div class="file-actions">
+  <div class="file-action-btn delete"
+       (click)="deleteSubmission(sub)"
+       [class.disabled]="sub.score !== null && sub.score !== undefined"
+       [title]="sub.score !== null && sub.score !== undefined ? 'Cannot delete — already scored' : 'Delete submission'"
+       [style.opacity]="sub.score !== null && sub.score !== undefined ? '0.4' : '1'"
+       [style.cursor]="sub.score !== null && sub.score !== undefined ? 'not-allowed' : 'pointer'">
+    <i class="fas fa-trash"></i>
+  </div>
+</div>
           </div>
         </div>
 
@@ -382,15 +387,22 @@
             <span *ngIf="!getCommentPhotoUrl(comment)">{{ getInitials(comment.user_name) }}</span>
           </div>
           <div class="comment-body">
-            <div class="comment-header">
-              <strong>
-                {{ comment.user_name }}
-                <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
-                <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
-              </strong>
-              <span class="comment-date">{{ comment.created_at }}</span>
-            </div>
-            <ng-container *ngIf="editingCommentId !== comment.$id">
+    <div class="comment-header">
+  <strong>
+    {{ comment.user_name }}
+    <span *ngIf="comment.role === 'supervisor'" class="supervisor-badge">Supervisor</span>
+    <span *ngIf="comment.role === 'intern'" class="intern-badge">Intern</span>
+  </strong>
+  <div class="comment-date-wrap">
+    <span class="comment-date">
+      {{ comment.created_at.split(' · edited')[0] }}
+    </span>
+    <span *ngIf="comment.created_at.includes('· edited')" class="edited-badge">
+      <i class="fas fa-pen"></i>
+      edited {{ comment.created_at.split('· edited')[1]?.trim() }}
+    </span>
+  </div>
+</div> <ng-container *ngIf="editingCommentId !== comment.$id">
               <p class="comment-text">{{ comment.message }}</p>
               <div *ngIf="comment.user_id === currentUserId" class="comment-actions">
                 <span (click)="startEdit(comment)"><i class="fas fa-pen"></i> Edit</span>
@@ -449,18 +461,20 @@
   </label>
 
         <!-- Pending photo preview -->
-            <div *ngFor="let photo of selectedPhotos; let i = index" class="lb-pending-photo">
-      <div class="lb-pending-thumb-icon"><i class="fas fa-image"></i></div>
-      <div class="lb-pending-info">
-        <span class="lb-pending-name">{{ photo.name }}</span>
-        <span class="lb-pending-size">{{ getFileSize(photo.size) }}</span>
-      </div>
-      <div class="lb-pending-actions">
-        <button class="lb-discard-btn" (click)="removePendingPhoto(i)" title="Discard">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-    </div>
+<div *ngFor="let photo of selectedPhotos; let i = index" class="lb-pending-photo">
+  <div class="lb-pending-thumb">
+    <img [src]="getPendingPhotoUrl(photo)" alt="preview" class="lb-pending-img">
+  </div>
+  <div class="lb-pending-info">
+    <span class="lb-pending-name">{{ photo.name }}</span>
+    <span class="lb-pending-size">{{ getFileSize(photo.size) }}</span>
+  </div>
+  <div class="lb-pending-actions">
+    <button class="lb-discard-btn" (click)="removePendingPhoto(i)" title="Discard">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</div>
 
       </ng-container>
 

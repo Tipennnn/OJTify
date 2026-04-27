@@ -247,21 +247,34 @@ export class SupervisorDashboardComponent implements OnInit {
   // ── All task stats ────────────────────────────────────────
   async loadAllTaskStats() {
   try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.TASKS_COL,
-      [Query.limit(100)]
-    );
+    let allTasks: any[] = [];
+    let offset = 0;
+    const pageSize = 100;
+
+    while (true) {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.TASKS_COL,
+        [Query.limit(pageSize), Query.offset(offset)]
+      );
+      allTasks = allTasks.concat(res.documents);
+      if (res.documents.length < pageSize) break;
+      offset += pageSize;
+    }
+
     const internIds = Array.from(this.studentMap.keys());
-    const myTasks = (res.documents as any[]).filter(task => {
+    const myTasks = allTasks.filter(task => {
       if (!task.assigned_intern_ids) return false;
       const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
       return ids.some((id: string) => internIds.includes(id));
     });
+
     this.totalTasks     = myTasks.length;
     this.completedTasks = myTasks.filter(t => t.status === 'completed').length;
     this.pendingTasks   = myTasks.filter(t => t.status === 'pending').length;
-  } catch { }
+  } catch (error: any) {
+    console.error('Failed to load task stats:', error.message);
+  }
 }
   // ── Today's stats ─────────────────────────────────────────
   async loadTodayStats() {

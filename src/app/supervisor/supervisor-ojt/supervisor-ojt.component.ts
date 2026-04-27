@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { AppwriteService } from '../../services/appwrite.service';
 import { SupervisorSidenavComponent } from '../supervisor-sidenav/supervisor-sidenav.component';
 import { SupervisorTopnavComponent } from '../supervisor-topnav/supervisor-topnav.component';
+import { Query } from 'appwrite';
 
 interface Student {
   $id: string;
@@ -41,6 +42,7 @@ export class SupervisorOjtComponent implements OnInit {
   searchQuery         = '';
   isCollapsed         = false;
   currentSupervisorId = '';
+  evaluationMap: { [studentId: string]: boolean } = {};
 
   // PAGINATION
   currentPage = 1;
@@ -165,6 +167,8 @@ export class SupervisorOjtComponent implements OnInit {
   async ngOnInit() {
     await this.getCurrentSupervisor();
     await this.loadStudents();
+    await this.loadEvaluations();
+
   }
 
   async getCurrentSupervisor() {
@@ -176,35 +180,43 @@ export class SupervisorOjtComponent implements OnInit {
     }
   }
 
-  async loadStudents() {
-    this.loading = true;
-    try {
+async loadStudents() {
+  this.loading = true;
+  try {
+    let allStudents: any[] = [];
+    let offset = 0;
+    const pageSize = 100;
+
+    while (true) {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
+        this.appwrite.STUDENTS_COL,
+        [Query.limit(pageSize), Query.offset(offset)]
       );
-
-      const filtered = (res.documents as any[]).filter(s => {
-        const completed = s.completed_hours || 0;
-        const required  = s.required_hours  || 500;
-        return s.supervisor_id === this.currentSupervisorId && completed < required;
-      });
-
-      filtered.sort((a, b) => {
-        const dateA = new Date(a.ojt_start || a.$createdAt).getTime();
-        const dateB = new Date(b.ojt_start || b.$createdAt).getTime();
-        return dateB - dateA;
-      });
-
-      this.students         = filtered;
-      this.filteredStudents = [...this.students];
-      this.updatePagination();
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
-    } finally {
-      this.loading = false;
+      allStudents = allStudents.concat(res.documents);
+      if (res.documents.length < pageSize) break;
+      offset += pageSize;
     }
+
+    const filtered = allStudents.filter(s =>
+      s.supervisor_id === this.currentSupervisorId
+    );
+
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.ojt_start || a.$createdAt).getTime();
+      const dateB = new Date(b.ojt_start || b.$createdAt).getTime();
+      return dateB - dateA;
+    });
+
+    this.students         = filtered;
+    this.filteredStudents = [...this.students];
+    this.updatePagination();
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   updatePagination() {
     this.totalPages = Math.max(1, Math.ceil(this.filteredStudents.length / this.pageSize));
@@ -318,4 +330,41 @@ export class SupervisorOjtComponent implements OnInit {
       year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+  async loadEvaluations() {
+  try {
+    let allEvals: any[] = [];
+    let offset = 0;
+    while (true) {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        'evaluations',
+        [Query.limit(100), Query.offset(offset)]
+      );
+      allEvals = allEvals.concat(res.documents);
+      if (res.documents.length < 100) break;
+      offset += 100;
+    }
+    this.evaluationMap = {};
+    allEvals
+      .filter(e => e.supervisor_id === this.currentSupervisorId)
+      .forEach(e => {
+        this.evaluationMap[e.student_id_ref] = true;  // ← fixed field name
+      });
+  } catch (error: any) {
+    console.error('Failed to load evaluations:', error.message);
+  }
+}
+
+isCompleted(student: Student): boolean {
+  const completed = student.completed_hours || 0;
+  const required  = student.required_hours  || 500;
+  return completed >= required;
+}
+
+getEvalTooltip(student: Student): string {
+  if (!this.isCompleted(student)) return '';
+  return this.evaluationMap[student.$id]
+    ? '✓ Evaluated'
+    : '⚠ Not yet evaluated';
+}
 }

@@ -77,6 +77,8 @@ export class InternEvaluationComponent implements OnInit {
   evaluation : Evaluation | null = null;
   supervisor : SupervisorInfo | null = null;
 
+  supervisorEsigB64 = '';
+
   /** Criteria rebuilt from the evaluation's criteria_snapshot */
   displayCriteria: StoredCriterion[] = [];
   /** Scores keyed by criterion key */
@@ -229,20 +231,39 @@ export class InternEvaluationComponent implements OnInit {
       } catch {}
 
       // ── Load supervisor ──────────────────────────────────────────
-      if (ev.supervisor_id) {
-        try {
-          const supDoc = await this.appwrite.databases.getDocument(
-            this.appwrite.DATABASE_ID,
-            this.SUP_COL,
-            ev.supervisor_id
-          );
-          this.supervisor = supDoc as any;
-        } catch {
-          this.buildSupervisorFromName(ev);
+     if (ev.supervisor_id) {
+  try {
+    const supDoc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.SUP_COL,
+      ev.supervisor_id
+    );
+    this.supervisor = supDoc as any;
+
+    // Load supervisor's e-signature from storage
+    if (supDoc['esig_file_id']) {
+      try {
+        const esigUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${supDoc['esig_file_id']}/view?project=${this.PROJECT_ID}`;
+        const res = await fetch(esigUrl);
+        if (res.ok) {
+          const blob = await res.blob();
+          this.supervisorEsigB64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
         }
-      } else if (ev.supervisor_name) {
-        this.buildSupervisorFromName(ev);
+      } catch {
+        this.supervisorEsigB64 = '';
       }
+    }
+
+  } catch {
+    this.buildSupervisorFromName(ev);
+  }
+} else if (ev.supervisor_name) {
+  this.buildSupervisorFromName(ev);
+}
 
       setTimeout(() => {
         this.initCanvas();

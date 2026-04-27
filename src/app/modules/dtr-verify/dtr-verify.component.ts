@@ -4,139 +4,114 @@ import { ActivatedRoute } from '@angular/router';
 import { AppwriteService } from '../../services/appwrite.service';
 import { Query } from 'appwrite';
 
-interface VerifyResult {
-  valid: boolean;
-  internName?: string;
-  studentId?: string;
-  schoolName?: string;
-  course?: string;
-  requiredHours?: number;
-  completedHours?: number;
-  ref?: string;
-  verifiedAt?: string;
-  errorMessage?: string;
-}
-
 @Component({
-  selector: 'app-dtr-verify',
-  standalone: true,
-  imports: [CommonModule],
+  selector:    'app-dtr-verify',
+  standalone:  true,
+  imports:     [CommonModule],
   templateUrl: './dtr-verify.component.html',
-  styleUrls: ['./dtr-verify.component.css']
+  styleUrls:   ['./dtr-verify.component.css']
 })
 export class DtrVerifyComponent implements OnInit {
 
-  loading     = true;
-  result: VerifyResult | null = null;
+  loading = true;
+  valid   = false;
+  errorMessage = '';
 
-  certId  = '';
-  dtrRef  = '';
-  studentParam = '';
+  internName    = '';
+  studentId     = '';
+  schoolName    = '';
+  course        = '';
+  periodLabel   = '';
+  generatedAt   = '';
+  verifiedAt    = '';
+  ref           = '';
 
-  constructor(
-    private route: ActivatedRoute,
-    private appwrite: AppwriteService
-  ) {}
+  requiredHours  = 0;
+  completedHours = 0;
+  totalDays      = 0;
+  presentDays    = 0;
+  absentDays     = 0;
 
-  async ngOnInit() {
-    // URL pattern: /verify/:certId?dtr=REF  OR  /verify/dtr?student=ID&ref=REF
-    this.certId       = this.route.snapshot.paramMap.get('certId') || '';
-    this.dtrRef       = this.route.snapshot.queryParamMap.get('dtr') || '';
-    this.studentParam = this.route.snapshot.queryParamMap.get('student') || '';
-    const refParam    = this.route.snapshot.queryParamMap.get('ref') || '';
-    if (!this.dtrRef && refParam) this.dtrRef = refParam;
-
-    await this.verify();
+  get progressPercent(): number {
+    if (!this.requiredHours) return 0;
+    return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
   }
 
-  async verify() {
+  constructor(private route: ActivatedRoute, private appwrite: AppwriteService) {}
+
+  async ngOnInit() {
+    const refParam = this.route.snapshot.paramMap.get('ref') || '';
+    this.ref = refParam;
+    await this.verify(refParam);
+  }
+
+  async verify(refParam: string) {
     this.loading = true;
+
+    if (!refParam) {
+      this.valid = false;
+      this.errorMessage = 'No document reference provided. This QR code is invalid.';
+      this.loading = false;
+      return;
+    }
+
     try {
-      let studentDoc: any = null;
+      // ── Look up DTR record by unique ref ──────────────────────────────────
+      const dtrRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        'dtr_records',
+        [Query.equal('ref', refParam), Query.limit(1)]
+      );
 
-      // Try to find by cert_verification_id first
-      if (this.certId && this.certId !== 'dtr') {
-        try {
-          const res = await this.appwrite.databases.listDocuments(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.STUDENTS_COL,
-            [Query.equal('cert_verification_id', this.certId), Query.limit(1)]
-          );
-          if (res.documents.length > 0) studentDoc = res.documents[0];
-        } catch { /* ignore */ }
-      }
-
-      // Fallback: find by student_id param
-      if (!studentDoc && this.studentParam) {
-        try {
-          const res = await this.appwrite.databases.listDocuments(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.STUDENTS_COL,
-            [Query.equal('student_id', this.studentParam), Query.limit(1)]
-          );
-          if (res.documents.length > 0) studentDoc = res.documents[0];
-        } catch { /* ignore */ }
-      }
-
-      if (!studentDoc) {
-        this.result = {
-          valid: false,
-          errorMessage: 'No intern record found matching this QR code. This document may be invalid or tampered.'
-        };
+      if (dtrRes.documents.length === 0) {
+        this.valid = false;
+        this.errorMessage = 'This reference code does not exist in the system. The document may be fabricated or tampered with.';
+        this.loading = false;
         return;
       }
 
-      // Validate ref code format: DTR-YYYYMMDD-XXXX-RAND
-      const refValid = this.dtrRef
-        ? /^DTR-\d{8}-\d{4}-[A-Z0-9]{4}$/.test(this.dtrRef)
-        : false;
+      const dtr = dtrRes.documents[0] as any;
 
-      if (!refValid && this.dtrRef) {
-        this.result = {
-          valid: false,
-          errorMessage: 'The document reference code format is invalid. This document may have been altered.'
-        };
-        return;
-      }
+      // ── Look up live student data ─────────────────────────────────────────
+      let student: any = null;
+      try {
+        student = await this.appwrite.databases.getDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          dtr.student_doc_id
+        );
+      } catch { /* archived or deleted — use DTR snapshot */ }
 
-      // Build first + middle + last
-      const fullName = [
-        studentDoc.first_name  || '',
-        studentDoc.middle_name || '',
-        studentDoc.last_name   || ''
-      ].filter(Boolean).join(' ');
+      this.valid = true;
 
-      this.result = {
-        valid:          true,
-        internName:     fullName || studentDoc.name || '—',
-        studentId:      studentDoc.student_id      || '—',
-        schoolName:     studentDoc.school_name     || '—',
-        course:         studentDoc.course          || '—',
-        requiredHours:  studentDoc.required_hours  || 500,
-        completedHours: studentDoc.completed_hours || 0,
-        ref:            this.dtrRef                || '—',
-        verifiedAt:     new Date().toLocaleString('en-PH', {
-                          year: 'numeric', month: 'long', day: 'numeric',
-                          hour: '2-digit', minute: '2-digit', second: '2-digit'
-                        })
-      };
+      this.internName = student
+        ? [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(' ')
+        : dtr.intern_name || '—';
+
+      this.studentId      = student?.student_id      || dtr.student_id || '—';
+      this.schoolName     = student?.school_name     || '—';
+      this.course         = student?.course          || '—';
+      this.requiredHours  = student?.required_hours  || 0;
+      this.completedHours = student?.completed_hours || 0;
+      this.periodLabel    = dtr.period_label         || '—';
+      this.totalDays      = dtr.total_days           || 0;
+      this.presentDays    = dtr.present_days         || 0;
+      this.absentDays     = dtr.absent_days          || 0;
+
+      this.generatedAt = new Date(dtr.generated_at).toLocaleString('en-PH', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      this.verifiedAt = new Date().toLocaleString('en-PH', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
 
     } catch (err: any) {
-      this.result = {
-        valid: false,
-        errorMessage: 'An error occurred while verifying this document. Please try again later.'
-      };
+      this.valid        = false;
+      this.errorMessage = 'An error occurred while verifying. Please try again later.';
       console.error('DTR verify error:', err);
     } finally {
       this.loading = false;
     }
-  }
-
-  get progressPercent(): number {
-    if (!this.result?.requiredHours) return 0;
-    return Math.min(
-      parseFloat(((( this.result.completedHours || 0) / this.result.requiredHours) * 100).toFixed(1)),
-      100
-    );
   }
 }
