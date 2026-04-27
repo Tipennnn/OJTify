@@ -6,7 +6,7 @@
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  background: #f0f4fb;
+  background: #f3f4f6;  /* ← dati #f6f8fc */
 }
 
 .dashboard-wrapper { display: flex; height: 100vh; }
@@ -18,7 +18,7 @@ body {
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #f0f4fb;
+  background: #f3f4f6;  /* ← dati #f6f8fc */
   transition: margin-left 0.3s ease;
   width: calc(100% - 260px);
 }
@@ -47,38 +47,46 @@ app-admin-topnav {
 ========================= */
 .dashboard-content {
   margin-top: 60px;
-  padding: 28px 32px;
+  padding: 30px;
   min-height: calc(100vh - 60px);
   width: 100%;
+  background: #f3f4f6;  /* ← dati #f6f8fc */
 }
-
 /* =========================
    HEADER
 ========================= */
-.dashboard-header { margin-bottom: 24px; }
+.dashboard-header {
+  margin-bottom: 10px;
+  padding-left: 20px;
+}
 
-.header-left { margin-bottom: 14px; }
-
-.greeting-sub {
-  font-size: 14px;
-  color: #2563eb;
-  font-weight: 500;
-  margin: 0 0 4px;
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 20px;
 }
 
 .dashboard-header h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 7px;
+  margin-bottom: 14px;
+  margin-left: -10px;
 }
-
-.today-date { font-size: 13px; color: #9ca3af; margin: 0; }
-
 .dashboard-divider {
-  width: 100%;
+  width: calc(100% - 20px);
   height: 1px;
   background: #e5e7eb;
+  margin-left: 20px;
+  margin-bottom: 20px;
 }
 
 /* =========================
