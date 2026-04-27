@@ -5,6 +5,7 @@ import { InternSidenavComponent } from '../intern-sidenav/intern-sidenav.compone
 import { InternTopnavComponent } from '../intern-topnav/intern-topnav.component';
 import { AppwriteService } from '../services/appwrite.service';
 import Swal from 'sweetalert2';
+import { Query } from 'appwrite';
 
 interface Task {
   $id?: string;
@@ -129,50 +130,54 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load student hours + today attendance ─────────────────
-  async loadStudentData() {
-    try {
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
-      );
-      this.requiredHours  = (doc as any).required_hours  || 500;
-      this.completedHours = (doc as any).completed_hours || 0;
+ async loadStudentData() {
+  try {
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
+    this.requiredHours  = (doc as any).required_hours  || 500;
+    this.completedHours = (doc as any).completed_hours || 0;
 
-      const start = new Date((doc as any).$createdAt);
-      start.setHours(0, 0, 0, 0);
-      this.internStartDate = start;
+    const start = new Date((doc as any).$createdAt);
+    start.setHours(0, 0, 0, 0);
+    this.internStartDate = start;
 
-      // Load supervisor info
-      const supervisorId = (doc as any).supervisor_id;
-      if (supervisorId) {
-        this.loadSupervisorInfo(supervisorId);
-      }
-
-      const now   = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL
-      );
-      const todayRecord = (res.documents as any[])
-        .find(d => d.student_id === this.currentUserId && d.date === today);
-
-      if (todayRecord) {
-        this.todayStatus = todayRecord.status;
-      } else {
-        const createdAt = (doc as any).$createdAt;
-        const startDate = new Date(createdAt);
-        startDate.setHours(0, 0, 0, 0);
-        now.setHours(0, 0, 0, 0);
-        this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
-      }
-
-    } catch (error: any) {
-      console.error('Failed to load student data:', error.message);
+    // Load supervisor info
+    const supervisorId = (doc as any).supervisor_id;
+    if (supervisorId) {
+      this.loadSupervisorInfo(supervisorId);
     }
+
+    // ── FIX: build today string ONCE and reuse ────────────
+    const now   = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // ── FIX: query with filters instead of fetching all ───
+    const { Query } = await import('appwrite');
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [
+        Query.equal('student_id', this.currentUserId),
+        Query.equal('date', today)
+      ]
+    );
+
+    if (res.documents.length > 0) {
+      this.todayStatus = (res.documents[0] as any).status;
+    } else {
+      const startDate = new Date((doc as any).$createdAt);
+      startDate.setHours(0, 0, 0, 0);
+      now.setHours(0, 0, 0, 0);
+      this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
+    }
+
+  } catch (error: any) {
+    console.error('Failed to load student data:', error.message);
   }
+}
 
   // ── Load supervisor info ──────────────────────────────────
   async loadSupervisorInfo(supervisorId: string) {
