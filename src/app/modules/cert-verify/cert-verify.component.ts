@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { AppwriteService } from '../services/appwrite.service';
+import { AppwriteService } from '../../services/appwrite.service';
 import { Query } from 'appwrite';
 
 @Component({
