@@ -129,17 +129,20 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
- async loadAllData() {
-  await this.loadStudents(); // must finish first so totalInterns is set
+async loadAllData() {
+  await this.loadStudents();
   await Promise.all([
     this.loadCounts(),
     this.loadAttendanceData(),
     this.loadTasks(),
     this.loadSupervisors(),
   ]);
-  this.loadRecentAttendance();
+  await this.loadRecentAttendance();
+ 
+  // Wait for Angular to render the canvas elements, then draw charts
+  setTimeout(() => this.loadCharts(), 100);
 }
-
+ 
   // ── Load students ─────────────────────────────────────────
  async loadStudents() {
   try {
@@ -400,7 +403,7 @@ async loadCounts() {
   }
 
   // ── Charts ────────────────────────────────────────────────
-  ngAfterViewInit(): void { setTimeout(() => this.loadCharts(), 300); }
+  ngAfterViewInit(): void {  }
 
   loadCharts() {
     const weekLabels: string[] = [];
