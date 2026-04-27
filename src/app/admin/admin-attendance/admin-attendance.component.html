@@ -20,6 +20,9 @@
           <button class="qr-btn" (click)="openScanner()">
             <i class="fa-solid fa-qrcode"></i> Scan QR
           </button>
+          <button class="qr-btn" (click)="openGeofenceModal()" style="background:#374151;">
+            <i class="fa-solid fa-location-dot"></i> Geofence
+          </button>
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" placeholder="Search intern..."
@@ -52,7 +55,6 @@
             </thead>
             <tbody>
 
-              <!-- ✅ FIXED: uses pagedLogs instead of filteredLogs -->
               <tr *ngFor="let log of pagedLogs">
                 <td class="profile-name">
                   <img [src]="log.student_photo ||
@@ -89,7 +91,6 @@
             </tbody>
           </table>
 
-          <!-- ✅ FIXED: dynamic pagination -->
           <div class="pagination" *ngIf="filteredLogs.length > 0">
             <button class="page-btn"
                     (click)="prevPage()"
@@ -115,7 +116,9 @@
   </div>
 </div>
 
-<!-- QR SCANNER MODAL -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- QR SCANNER MODAL                                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
 <div class="scanner-overlay-bg" *ngIf="showScanner">
   <div class="scanner-modal">
 
@@ -263,6 +266,87 @@
               [disabled]="!selectedManualStudent && !manualStudentId.trim()">
         <i class="fas fa-check-circle"></i>
         Record Attendance
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- GEOFENCE SETTINGS MODAL                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="scanner-overlay-bg" *ngIf="showGeofenceModal">
+  <div class="scanner-modal" style="max-width:420px;">
+
+    <div class="scanner-modal-header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="qr-icon-box">
+          <i class="fas fa-location-dot"></i>
+        </div>
+        <div>
+          <h3 style="margin:0; font-size:15px; font-weight:600; color:#111827;">Geofence Settings</h3>
+          <p style="margin:2px 0 0; font-size:12px; color:#9ca3af;">Set the allowed attendance zone</p>
+        </div>
+      </div>
+      <button class="close-scanner-btn" (click)="closeGeofenceModal()">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+
+      <!-- Use My Location button -->
+      <button
+        type="button"
+        (click)="useMyLocation()"
+        style="display:flex; align-items:center; justify-content:center; gap:8px;
+               width:100%; padding:10px; border:1.5px dashed #2563eb; border-radius:8px;
+               background:#eff6ff; color:#2563eb; font-size:13px; font-weight:600;
+               cursor:pointer;">
+        <i class="fas fa-crosshairs"></i> Use My Current Location
+      </button>
+
+      <div style="display:flex; align-items:center; gap:8px; color:#9ca3af; font-size:11px;">
+        <div style="flex:1; height:1px; background:#e5e7eb;"></div>
+        <span>or enter manually</span>
+        <div style="flex:1; height:1px; background:#e5e7eb;"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:12px; font-weight:600; color:#374151;">Latitude</label>
+        <input type="number" step="any"
+               [(ngModel)]="geofenceForm.lat"
+               placeholder="e.g. 14.844539"
+               style="padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;" />
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:12px; font-weight:600; color:#374151;">Longitude</label>
+        <input type="number" step="any"
+               [(ngModel)]="geofenceForm.lng"
+               placeholder="e.g. 120.289219"
+               style="padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;" />
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:12px; font-weight:600; color:#374151;">Radius (meters)</label>
+        <input type="number"
+               [(ngModel)]="geofenceForm.radius"
+               placeholder="e.g. 100"
+               style="padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;" />
+      </div>
+
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 12px; font-size:12px; color:#166534;">
+        <i class="fas fa-circle-info" style="margin-right:6px;"></i>
+        Current zone: <b>{{ officeLat }}, {{ officeLng }}</b> within <b>{{ officeRadius }}m</b>
+      </div>
+
+    </div>
+
+    <div class="scanner-modal-footer">
+      <button class="manual-submit-btn"
+              (click)="saveGeofence()"
+              [disabled]="savingGeofence">
+        <i class="fas fa-floppy-disk"></i>
+        {{ savingGeofence ? 'Saving...' : 'Save Geofence' }}
       </button>
     </div>
 
