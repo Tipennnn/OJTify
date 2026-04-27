@@ -352,90 +352,145 @@ export class InternRegisterComponent {
   // ── REGISTER ─────────────────────────────────────────────
 
   async onRegister() {
-    this.errorMessage = '';
+  this.errorMessage = '';
 
-    if (!this.course && this.courseSearch.trim()) {
-      this.course = this.courseSearch.trim();
-    }
-
-    if (!this.validateAll()) {
-      this.errorMessage = 'Please fix the errors below before submitting.';
-      return;
-    }
-
-    this.successMessage = '';
-    this.loading        = true;
-
-    try {
-      const user = await this.appwrite.account.create(
-        ID.unique(),
-        this.email,
-        this.password,
-        `${this.firstName} ${this.lastName}`
-      );
-
-      let resumeFileId      = '';
-      let endorsementFileId = '';
-      let coeFileId         = '';
-
-      if (this.resumeFile) {
-        const res = await this.appwrite.storage.createFile(
-          this.BUCKET_ID, ID.unique(), this.resumeFile
-        );
-        resumeFileId = res.$id;
-      }
-
-      if (this.endorsementFile) {
-        const res = await this.appwrite.storage.createFile(
-          this.BUCKET_ID, ID.unique(), this.endorsementFile
-        );
-        endorsementFileId = res.$id;
-      }
-
-      if (this.coeFile) {
-        const res = await this.appwrite.storage.createFile(
-          this.BUCKET_ID, ID.unique(), this.coeFile
-        );
-        coeFileId = res.$id;
-      }
-
-      await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL,
-        user.$id,
-        {
-          auth_user_id:        user.$id,
-          first_name:          this.firstName,
-          middle_name:         this.middleName,
-          last_name:           this.lastName,
-          email:               this.email,
-          contact_number:      this.contactNumber,
-          birthday:            this.birthday,
-          gender:              this.gender,
-          home_address:        this.homeAddress,
-          student_id:          this.studentId,
-          school_name:         this.schoolName,
-          course:              this.course,
-          year_level:          this.yearLevel,
-          resume_file_id:      resumeFileId,
-          endorsement_file_id: endorsementFileId,
-          coe_file_id:         coeFileId,
-          status:              'pending'
-        }
-      );
-
-      try { await this.appwrite.account.deleteSession('current'); } catch { }
-
-      this.successMessage = 'pending';
-
-    } catch (error: any) {
-      if (error?.message?.toLowerCase().includes('already exists') || error?.code === 409) {
-        this.errorMessage = 'An account with this email already exists. Please log in instead.';
-      } else {
-        this.errorMessage = error.message ?? 'Registration failed. Please try again.';
-      }
-    } finally {
-      this.loading = false;
-    }
+  if (!this.course && this.courseSearch.trim()) {
+    this.course = this.courseSearch.trim();
   }
+
+  if (!this.validateAll()) {
+    this.errorMessage = 'Please fix the errors below before submitting.';
+    return;
+  }
+
+  this.successMessage = '';
+  this.loading        = true;
+
+  try {
+    // ── Duplicate checks ──────────────────────────────────
+  const { Query } = await import('appwrite');
+
+const [
+  phoneCheckApplicants,
+  idCheckApplicants,
+  phoneCheckStudents,
+  idCheckStudents,
+  emailCheckStudents
+] = await Promise.all([
+  this.appwrite.databases.listDocuments(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.APPLICANTS_COL,
+    [Query.equal('contact_number', this.contactNumber.replace(/\s/g, '')), Query.limit(1)]
+  ),
+  this.appwrite.databases.listDocuments(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.APPLICANTS_COL,
+    [Query.equal('student_id', this.studentId.trim()), Query.limit(1)]
+  ),
+  this.appwrite.databases.listDocuments(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.STUDENTS_COL,
+    [Query.equal('contact_number', this.contactNumber.replace(/\s/g, '')), Query.limit(1)]
+  ),
+  this.appwrite.databases.listDocuments(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.STUDENTS_COL,
+    [Query.equal('student_id', this.studentId.trim()), Query.limit(1)]
+  ),
+  this.appwrite.databases.listDocuments(
+    this.appwrite.DATABASE_ID,
+    this.appwrite.STUDENTS_COL,
+    [Query.equal('email', this.email.trim()), Query.limit(1)]
+  )
+]);
+
+const duplicateErrors: string[] = [];
+
+if (phoneCheckApplicants.total > 0 || phoneCheckStudents.total > 0)
+  duplicateErrors.push('contact number');
+
+if (idCheckApplicants.total > 0 || idCheckStudents.total > 0)
+  duplicateErrors.push('Student ID');
+
+if (emailCheckStudents.total > 0)
+  duplicateErrors.push('email');
+
+if (duplicateErrors.length > 0) {
+  this.errorMessage = `The following are already registered: ${duplicateErrors.join(', ')}.`;
+  this.loading = false;
+  return;
+}
+    // ── End duplicate checks ──────────────────────────────
+
+    const user = await this.appwrite.account.create(
+      ID.unique(),
+      this.email,
+      this.password,
+      `${this.firstName} ${this.lastName}`
+    );
+
+    let resumeFileId      = '';
+    let endorsementFileId = '';
+    let coeFileId         = '';
+
+    if (this.resumeFile) {
+      const res = await this.appwrite.storage.createFile(
+        this.BUCKET_ID, ID.unique(), this.resumeFile
+      );
+      resumeFileId = res.$id;
+    }
+
+    if (this.endorsementFile) {
+      const res = await this.appwrite.storage.createFile(
+        this.BUCKET_ID, ID.unique(), this.endorsementFile
+      );
+      endorsementFileId = res.$id;
+    }
+
+    if (this.coeFile) {
+      const res = await this.appwrite.storage.createFile(
+        this.BUCKET_ID, ID.unique(), this.coeFile
+      );
+      coeFileId = res.$id;
+    }
+
+    await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.APPLICANTS_COL,
+      user.$id,
+      {
+        auth_user_id:        user.$id,
+        first_name:          this.firstName,
+        middle_name:         this.middleName,
+        last_name:           this.lastName,
+        email:               this.email,
+        contact_number:      this.contactNumber,
+        birthday:            this.birthday,
+        gender:              this.gender,
+        home_address:        this.homeAddress,
+        student_id:          this.studentId,
+        school_name:         this.schoolName,
+        course:              this.course,
+        year_level:          this.yearLevel,
+        resume_file_id:      resumeFileId,
+        endorsement_file_id: endorsementFileId,
+        coe_file_id:         coeFileId,
+        status:              'pending'
+      }
+    );
+
+    try { await this.appwrite.account.deleteSession('current'); } catch { }
+
+    this.successMessage = 'pending';
+
+  } catch (error: any) {
+    if (error?.message?.toLowerCase().includes('already exists') || error?.code === 409) {
+      this.errorMessage = 'An account with this email already exists. Please log in instead.';
+    } else {
+      this.errorMessage = error.message ?? 'Registration failed. Please try again.';
+    }
+  } finally {
+    this.loading = false;
+  }
+}
 }
