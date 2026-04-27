@@ -1003,7 +1003,7 @@ const existing = attendRes.documents[0] ?? null;
         doc.$id,
         {
           time_out:        autoTimeOut,
-          scanned_by_name: 'Auto Time-Out'
+          scanned_by_name: doc.scanned_by_name ? `${doc.scanned_by_name} (Auto Time-Out)` : 'Auto Time-Out'
         }
       );
 
