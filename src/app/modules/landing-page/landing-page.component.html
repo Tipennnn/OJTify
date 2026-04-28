@@ -1,1 +1,570 @@
-<p>landing-page works!</p>
+<!-- ===== STICKY NAVBAR ===== -->
+<nav class="navbar" [class.scrolled]="isScrolled">
+    <div class="nav-container">
+      <a class="nav-logo" (click)="scrollTo('home')">
+        <img src="/assets/images/OJTify_logo.png" alt="OJTify Logo" class="logo-img">
+        <span class="logo-text">OJT<span class="accent">ify</span></span>
+      </a>
+  
+      <ul class="nav-links" [class.open]="menuOpen">
+        <li><a (click)="scrollTo('home'); closeMenu()">Home</a></li>
+        <li><a (click)="scrollTo('features'); closeMenu()">Features</a></li>
+        <li><a (click)="scrollTo('about'); closeMenu()">About</a></li>
+        <li><a (click)="scrollTo('how'); closeMenu()">How It Works</a></li>
+        <li><a (click)="scrollTo('contact'); closeMenu()">Contact</a></li>
+        <li class="nav-login-buttons">
+          <button class="btn-nav-login intern" (click)="closeMenu()">Intern Login</button>
+          <button class="btn-nav-login supervisor" (click)="closeMenu()">Supervisor Login</button>
+        </li>
+      </ul>
+  
+      <button class="hamburger" (click)="toggleMenu()" [class.active]="menuOpen">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  
+  <!-- ===== HERO SECTION ===== -->
+  <section class="hero" id="home">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Exclusively for Olongapo City Elementary School (OCES)
+      </div>
+      <h1 class="hero-title">
+        Simplify OJT Management<br>
+        with <span class="accent-gradient">OJTify</span>
+      </h1>
+      <p class="hero-desc">
+        A unified platform for QR attendance tracking, digital logbooks, supervisor evaluations, and auto-generated DTR &amp; weekly reports — designed for OJT students, cooperating teachers, and school admins.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary" (click)="scrollTo('contact')">
+          Get Started <span class="arrow">→</span>
+        </button>
+        <button class="btn-outline apply" (click)="scrollTo('contact')">
+          Apply Now <span class="arrow">→</span>
+        </button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-number">{{ totalActiveUsers.toLocaleString() }}+</span>
+          <span class="stat-label">Total Active Users</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-number">{{ totalStudents.toLocaleString() }}+</span>
+          <span class="stat-label">OJT Students</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-number">{{ beneficiarySchool }}</span>
+          <span class="stat-label">Partner School</span>
+        </div>
+      </div>
+    </div>
+  
+    <div class="hero-visual">
+      <div class="dashboard-mockup">
+        <div class="mockup-bar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="mockup-url">app.ojtify.com/dashboard</span>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-sidebar">
+            <div class="sidebar-logo">
+              <img src="/assets/images/OJTify_logo.png" alt="OJTify" class="sidebar-logo-img" onerror="this.style.display='none'">
+              OJTify
+            </div>
+            <div class="sidebar-item active">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              Dashboard
+            </div>
+            <div class="sidebar-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Attendance
+            </div>
+            <div class="sidebar-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Logbook
+            </div>
+            <div class="sidebar-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17H5a2 2 0 0 0-2 2"/><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v14"/><path d="M9 17h10a2 2 0 0 0 2-2V9"/></svg>
+              Reports
+            </div>
+            <div class="sidebar-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Evaluations
+            </div>
+          </div>
+          <div class="mockup-main">
+            <div class="mockup-header-row">
+              <span class="mockup-greeting">Good morning, Juan!</span>
+              <span class="mockup-date">April 28, 2026</span>
+            </div>
+            <div class="mockup-cards">
+              <div class="mcard blue">
+                <div class="mcard-label">Hours Logged</div>
+                <div class="mcard-val">324 hrs</div>
+                <div class="mcard-bar"><div class="mcard-fill" style="width:72%"></div></div>
+              </div>
+              <div class="mcard green">
+                <div class="mcard-label">Attendance</div>
+                <div class="mcard-val">96%</div>
+                <div class="mcard-bar"><div class="mcard-fill" style="width:96%"></div></div>
+              </div>
+              <div class="mcard purple">
+                <div class="mcard-label">Reports</div>
+                <div class="mcard-val">12 done</div>
+                <div class="mcard-bar"><div class="mcard-fill" style="width:60%"></div></div>
+              </div>
+            </div>
+            <div class="mockup-activity">
+              <div class="activity-title">Recent Activity</div>
+              <div class="activity-item"><span class="activity-dot"></span> Logbook entry submitted</div>
+              <div class="activity-item"><span class="activity-dot orange"></span> QR scan recorded — 8:02 AM</div>
+              <div class="activity-item"><span class="activity-dot green"></span> DTR generated &amp; ready to print</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-glow"></div>
+    </div>
+  </section>
+  
+  <!-- ===== ABOUT SECTION ===== -->
+  <section class="about-section" id="about">
+    <div class="section-container">
+      <div class="about-text">
+        <div class="section-label">About OJTify</div>
+        <h2 class="section-title">Built to solve the real pain of OJT management</h2>
+        <p class="about-desc">
+          OJTify was built specifically for OJT programs — eliminating the manual, paper-based chaos of traditional internship tracking. Students lose logbooks. Teachers chase signatures. Admins spend hours generating reports.
+          <strong>OJTify solves all of that digitally, in one place.</strong>
+        </p>
+        <p class="about-desc">
+          Our partner school is <strong>Olongapo City Elementary School (OCES)</strong>, where OJTify is deployed to modernize how student teachers manage their internship hours and documentation.
+        </p>
+        <ul class="about-list">
+          <li>No more paper logbooks or manual DTR sheets</li>
+          <li>Real-time progress monitoring for admins</li>
+          <li>Instant QR-based attendance — no hardware needed</li>
+          <li>Auto-generate DTR &amp; weekly reports, ready to print</li>
+          <li>Digital submission directly to your supervisor or school</li>
+        </ul>
+      </div>
+      <div class="about-visual">
+
+        <!-- The Problem -->
+        <div class="about-card about-card--blue">
+          <div class="about-card-icon-wrap problem">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="about-card-title">The Problem</div>
+          <p>Traditional OJT tracking relies on physical logbooks, manual attendance sheets, and slow reporting — leading to errors, lost documents, and wasted time.</p>
+        </div>
+
+        <!-- The Solution -->
+        <div class="about-card about-card--blue">
+          <div class="about-card-icon-wrap solution-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="about-card-title">The OJTify Solution</div>
+          <p>OJTify digitizes the entire OJT process — from QR attendance to printable DTR and auto-generated weekly reports — making internship management effortless.</p>
+        </div>
+
+        <!-- Partner School -->
+        <div class="about-card about-card--blue">
+          <div class="about-card-icon-wrap school-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="about-card-title">Partner School</div>
+          <p><strong>Olongapo City Elementary School (OCES)</strong> — our pilot partner school where OJTify is actively deployed and used by student teachers and cooperating teachers.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== FEATURES SECTION ===== -->
+  <section class="features-section" id="features">
+    <div class="section-container">
+      <div class="section-label center">Features</div>
+      <h2 class="section-title center">Everything you need for OJT</h2>
+      <p class="section-sub center">Powerful tools built for every role in the internship process.</p>
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2"/>
+              <path d="M8 7h8M8 11h8M8 15h5"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">QR Code Attendance</h3>
+          <p class="feature-desc">Students scan a daily QR code to clock in and out instantly. No hardware, no manual sheets — just a smartphone.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Internship Dashboard</h3>
+          <p class="feature-desc">A personalized hub showing real-time hours rendered, attendance rate, weekly progress, and pending submissions.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Digital Logbook</h3>
+          <p class="feature-desc">Daily task logging with cooperating teacher review and approval — all stored securely in the cloud.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Supervisor Evaluation</h3>
+          <p class="feature-desc">Structured evaluation forms for cooperating teachers to rate intern performance on competencies and behavior.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">DTR &amp; Report Generation</h3>
+          <p class="feature-desc">Auto-generate Daily Time Records (DTR) and weekly reports with one click — print-ready and formatted for school submission.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Supervisor Submission</h3>
+          <p class="feature-desc">Submit finalized reports and DTRs directly to your cooperating teacher or supervisor through the platform — streamlined and secure.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== USER ROLES SECTION ===== -->
+  <section class="roles-section" id="roles">
+    <div class="section-container">
+      <div class="section-label center">Who Uses OJTify?</div>
+      <h2 class="section-title center">Built for every role in the OJT process</h2>
+      <div class="roles-grid">
+
+        <div class="role-card">
+          <div class="role-avatar-wrap avatar-blue">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <h3 class="role-title">Intern / OJT Student</h3>
+          <p class="role-desc">Track your OJT journey from day one to completion — all from your phone or laptop.</p>
+          <ul class="role-features">
+            <li>QR attendance scanning (time-in/out)</li>
+            <li>Daily logbook entry submission</li>
+            <li>View supervisor evaluations</li>
+            <li>Generate &amp; print DTR</li>
+            <li>Submit weekly reports to supervisor</li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <div class="role-avatar-wrap avatar-purple">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h3 class="role-title">Supervisor / Cooperating Teacher</h3>
+          <p class="role-desc">Evaluate and monitor your student teachers without extra paperwork.</p>
+          <ul class="role-features">
+            <li>View student attendance records</li>
+            <li>Approve or reject logbook entries</li>
+            <li>Submit performance evaluations</li>
+            <li>Track intern progress in real time</li>
+            <li>Communicate with school admin</li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <div class="role-avatar-wrap avatar-green">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 class="role-title">Admin / School Coordinator</h3>
+          <p class="role-desc">Full control over the system — manage users, monitor everything, and ensure smooth OJT operations.</p>
+          <ul class="role-features">
+            <li>Manage all student &amp; supervisor accounts</li>
+            <li>Review &amp; approve student applications</li>
+            <li>Monitor system-wide OJT progress</li>
+            <li>Oversee submissions and approvals</li>
+            <li>Configure system settings &amp; QR codes</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== SYSTEM PREVIEW SECTION ===== -->
+  <section class="preview-section" id="preview">
+    <div class="section-container">
+      <div class="section-label center">System Preview</div>
+      <h2 class="section-title center">A glimpse inside OJTify</h2>
+      <div class="preview-tabs">
+        <button
+          class="preview-tab"
+          *ngFor="let tab of previewTabs; let i = index"
+          [class.active]="activeTab === i"
+          (click)="activeTab = i">
+          {{ tab.label }}
+        </button>
+      </div>
+      <div class="preview-window">
+        <div class="preview-bar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="preview-url">app.ojtify.com/{{ previewTabs[activeTab].path }}</span>
+        </div>
+        <div class="preview-content" [ngSwitch]="activeTab">
+          <div *ngSwitchCase="0" class="preview-dashboard">
+            <div class="pd-sidebar">
+              <div class="pd-logo">OJTify</div>
+              <div class="pd-nav-item active">Dashboard</div>
+              <div class="pd-nav-item">Attendance</div>
+              <div class="pd-nav-item">Logbook</div>
+              <div class="pd-nav-item">Reports</div>
+            </div>
+            <div class="pd-main">
+              <div class="pd-title">Student Dashboard</div>
+              <div class="pd-stat-row">
+                <div class="pd-stat"><div class="pd-stat-val">324</div><div class="pd-stat-key">Hours</div></div>
+                <div class="pd-stat"><div class="pd-stat-val">96%</div><div class="pd-stat-key">Attendance</div></div>
+                <div class="pd-stat"><div class="pd-stat-val">12</div><div class="pd-stat-key">Reports</div></div>
+                <div class="pd-stat"><div class="pd-stat-val">4.8</div><div class="pd-stat-key">Rating</div></div>
+              </div>
+              <div class="pd-chart-label">Weekly Hours</div>
+              <div class="pd-chart">
+                <div class="pd-bar" style="height:55%"><span>M</span></div>
+                <div class="pd-bar" style="height:80%"><span>T</span></div>
+                <div class="pd-bar" style="height:65%"><span>W</span></div>
+                <div class="pd-bar" style="height:90%"><span>Th</span></div>
+                <div class="pd-bar" style="height:45%"><span>F</span></div>
+              </div>
+            </div>
+          </div>
+          <div *ngSwitchCase="1" class="preview-attendance">
+            <div class="att-header">Attendance Log — April 2026</div>
+            <table class="att-table">
+              <thead><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Apr 28</td><td>8:02 AM</td><td>5:00 PM</td><td>8.9 hrs</td><td><span class="badge present">Present</span></td></tr>
+                <tr><td>Apr 27</td><td>8:15 AM</td><td>5:00 PM</td><td>8.7 hrs</td><td><span class="badge present">Present</span></td></tr>
+                <tr><td>Apr 26</td><td>—</td><td>—</td><td>—</td><td><span class="badge absent">Absent</span></td></tr>
+                <tr><td>Apr 25</td><td>8:00 AM</td><td>5:00 PM</td><td>9.0 hrs</td><td><span class="badge present">Present</span></td></tr>
+                <tr><td>Apr 24</td><td>8:30 AM</td><td>5:00 PM</td><td>8.5 hrs</td><td><span class="badge late">Late</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngSwitchCase="2" class="preview-logbook">
+            <div class="log-header">Daily Logbook</div>
+            <div class="log-entry">
+              <div class="log-date">April 28, 2026</div>
+              <div class="log-body">Assisted cooperating teacher with Grade 3 Math activities. Observed classroom management techniques. Conducted reading drills for 15 students.</div>
+              <div class="log-footer"><span class="log-status approved">Approved by Cooperating Teacher</span></div>
+            </div>
+            <div class="log-entry">
+              <div class="log-date">April 27, 2026</div>
+              <div class="log-body">Prepared lesson plan for Science demo teaching. Coordinated with mentor teacher for feedback session. Submitted weekly report.</div>
+              <div class="log-footer"><span class="log-status pending">Pending Review</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== HOW IT WORKS SECTION ===== -->
+  <section class="how-section" id="how">
+    <div class="section-container">
+      <div class="section-label center">How It Works</div>
+      <h2 class="section-title center">From registration to submission in 5 steps</h2>
+      <p class="section-sub center">Simple, streamlined, and designed to save everyone's time.</p>
+      <div class="steps-row">
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Register &amp; Login</h3>
+          <p class="step-desc">Students create accounts and get linked to their school and OJT placement.</p>
+          <div class="step-connector">→</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Upload Documents</h3>
+          <p class="step-desc">Submit your resume, endorsement letter, and other required documents for school admin review.</p>
+          <div class="step-connector">→</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Get Approved</h3>
+          <p class="step-desc">School admin reviews your application and approves your account to start tracking OJT hours.</p>
+          <div class="step-connector">→</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Generate &amp; Submit</h3>
+          <p class="step-desc">Scan QR codes for attendance, log daily tasks, and auto-generate DTR &amp; weekly reports with one click.</p>
+          <div class="step-connector">→</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Submit to Supervisor</h3>
+          <p class="step-desc">Submit completed DTRs and weekly reports directly to your cooperating teacher through OJTify.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== CTA SECTION ===== -->
+  <section class="cta-section" id="contact">
+    <canvas id="cta-canvas"></canvas>
+    <div class="cta-glow"></div>
+    <div class="cta-content">
+      <h2 class="cta-title">Ready to start your OJT journey?</h2>
+      <p class="cta-sub">
+        Join <strong>{{ totalActiveUsers.toLocaleString() }}+</strong> OJT students already using OJTify to track attendance, log hours, and submit reports seamlessly.
+      </p>
+      <div class="cta-actions">
+        <button class="btn-cta-main large">Start Your Application <span class="arrow">→</span></button>
+        <p class="cta-process-text">Transform your OJT experience with digital attendance, automated reports, and seamless supervisor communication.</p>
+        <div class="cta-key-features">
+          <div class="feature-item">
+            <div class="feature-item-bar"></div>
+            <span class="feature-label">QR Code Attendance</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-item-bar"></div>
+            <span class="feature-label">Digital Logbook</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-item-bar"></div>
+            <span class="feature-label">Auto-Generated Reports</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-item-bar"></div>
+            <span class="feature-label">Performance Evaluations</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img src="/assets/images/OJTify_logo.png" alt="OJTify Logo" class="footer-logo-img" onerror="this.style.display='none'">
+          <span class="logo-text">OJT<span class="accent">ify</span></span>
+        </div>
+        <p class="footer-tagline">OJT management for student teachers, simplified.</p>
+        <p class="footer-school">Built for student teachers and their schools.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <div class="footer-col-title">Navigate</div>
+          <a (click)="scrollTo('about')">About</a>
+          <a (click)="scrollTo('features')">Features</a>
+          <a (click)="scrollTo('how')">How It Works</a>
+          <a (click)="scrollTo('contact')">Contact</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">Login</div>
+          <a href="#">Intern / Student</a>
+          <a href="#">Supervisor</a>
+          <a href="#">Admin</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">Legal</div>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-credits">
+        <span>&copy; 2026 OJTify. All rights reserved.</span>
+        <span>Built as a capstone project</span>
+      </div>
+      <div class="footer-developers">
+        <span class="dev-label">Developed by:</span>
+        <span class="dev-team"><strong>NexDev</strong> — Ar-jay Stephenbel P. San Jose &amp; John Adrian F. Fontelera</span>
+      </div>
+    </div>
+  </footer>
