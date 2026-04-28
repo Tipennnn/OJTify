@@ -557,12 +557,20 @@
 .table-wrap::-webkit-scrollbar       { width: 5px; height: 5px; }
 .table-wrap::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
 
+/* WITH THIS: */
 .table-panel table {
   width: 100%;
   border-collapse: collapse;
   min-width: 520px;
+  table-layout: fixed;        /* ← locks column widths */
 }
-
+/* ADD these column width classes after the table rule: */
+.col-date     { width: 22%; }
+.col-day      { width: 9%;  }
+.col-timein   { width: 14%; }
+.col-timeout  { width: 14%; }
+.col-recorded { width: 24%; }
+.col-status   { width: 17%; }
 .table-panel thead th {
   position: sticky;
   top: 0;
@@ -584,6 +592,8 @@
   padding: clamp(8px, 1.5vw, 12px);
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
+  overflow: hidden;           /* ← add this */
+  text-overflow: ellipsis;    /* ← add this */
 }
 
 .table-panel tr:hover td  { background: #f1f5f9; }

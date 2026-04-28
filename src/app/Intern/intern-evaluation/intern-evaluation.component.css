@@ -219,89 +219,59 @@
 
 .header-inner {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 28px 18px;
+  gap: 20px;
   flex-wrap: wrap;
-  align-items: center;
-  padding: 20px 24px 18px;
-  gap: 16px;
 }
 
-.header-logos-left {
+/* LEFT: logo + school name grouped tightly */
+.header-brand-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.header-logo {
-  height: 44px;
-  width: auto;
-  object-fit: contain;
-}
-
-.ojtify-logo { height: 40px; }
-
-.header-logo-divider {
-  width: 1px;
-  height: 38px;
-  background: rgba(255,255,255,0.3);
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 14px;
   flex: 1;
-  min-width: 180px;
-  text-align: center;
+  min-width: 200px;
 }
 
-.brand-icon {
-  width: 42px;
-  height: 42px;
+/* OCES logo — bigger */
+.oces-logo-lg {
+  height: 64px;
+  width: auto;
+  object-fit: contain;
   flex-shrink: 0;
-  background: rgba(255,255,255,.15);
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: rgba(255,255,255,.9);
 }
 
-.brand-text { text-align: left; }
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
 
+/* School name — bigger than OFFICIAL OJT PERFORMANCE APPRAISAL title (14px) */
 .brand-school {
   font-family: var(--font-head);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   color: #fff;
-  line-height: 1.25;
-  margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 .brand-tagline {
-  font-size: 10px;
-  color: rgba(255,255,255,.55);
+  font-size: 11px;
+  color: rgba(255,255,255,.65);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
 }
 
-.header-right-wrap {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
+/* RIGHT: meta info */
 .header-meta {
   display: flex;
   flex-direction: column;
   gap: 5px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .hm-row {
@@ -621,9 +591,21 @@
 
 .bar-fill { height: 100%; border-radius: 3px; }
 
-.ct-overall { background: #f0f3ff; border-top: 2px solid var(--blue-mid); }
-.ct-overall td { padding: 11px 10px; }
+.ct-overall-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  line-height: 1.5;
+}
 
+.ct-overall td {
+  padding: 12px 10px;
+  vertical-align: middle;
+}
 .ct-overall-label {
   font-size: 12px;
   font-weight: 700;
@@ -777,6 +759,7 @@
   margin-top: 20px;
   border-top: 1px solid var(--border-light);
   padding-top: 20px;
+  align-items: start; /* keeps both columns top-aligned so they're horizontally even */
 }
 
 .sig-block {
@@ -784,6 +767,10 @@
   flex-direction: column;
   align-items: center;
   min-width: 0;
+}
+/* Clean sig display — no box in final doc */
+.sig-canvas {
+  border: 1px dashed var(--border); /* keep dashed only for print/screen context */
 }
 
 .sig-canvas {
@@ -798,7 +785,18 @@
   overflow: hidden;
   margin-bottom: 6px;
 }
-
+@media print {
+  .sig-canvas {
+    border: none !important;
+    background: transparent !important;
+  }
+  .sig-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    padding: 0 !important;
+  }
+}
 .sig-img { max-width: 100%; max-height: 100%; object-fit: contain; padding: 4px; }
 .sig-placeholder { font-size: 20px; color: var(--border); }
 
@@ -989,6 +987,9 @@
   .header-inner { padding: 16px 20px 14px; }
   .doc-body { padding: 22px 20px 20px; }
 
+  .brand-school { font-size: 22px; }
+  .oces-logo-lg { height: 54px; }
+
   .scale-legend-full {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1015,7 +1016,6 @@
 
   .eval-header-row h2 { font-size: 20px; }
 
-  /* Header stacks vertically */
   .header-inner {
     flex-direction: column;
     align-items: flex-start;
@@ -1023,48 +1023,43 @@
     padding: 14px 16px 12px;
   }
 
-  .header-brand {
-    justify-content: flex-start;
+  .header-brand-left {
+    width: 100%;
+  }
+
+  .brand-school { font-size: 20px; }
+  .oces-logo-lg { height: 50px; }
+
+  .header-meta {
+    width: 100%;
     text-align: left;
   }
-
-  .header-meta { text-align: left; }
   .hm-row { justify-content: flex-start; }
-
-  .header-right-wrap {
-    width: 100%;
-    justify-content: space-between;
-  }
 
   .doc-body { padding: 18px 16px 16px; }
 
   .doc-section-title { font-size: 12px; letter-spacing: 1px; }
 
-  /* Scale legend: 2 columns */
   .scale-legend-full {
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
   }
 
-  /* Hide bar column in criteria table on small screens */
   .criteria-table .ct-bar,
   .criteria-table th:last-child {
     display: none;
   }
 
-  /* Remarks stack vertically */
   .remarks-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  /* Recommendation: 2 cols */
   .recommendation-row {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
 
-  /* Cert details: 1 col */
   .cert-details-row {
     grid-template-columns: 1fr;
   }
@@ -1080,7 +1075,6 @@
     border-top: none;
   }
 
-  /* Signatures stack */
   .sig-row {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -1108,13 +1102,10 @@
   .header-inner { padding: 12px 14px 10px; gap: 10px; }
   .doc-body { padding: 14px 12px 12px; }
 
-  .brand-school { font-size: 13px; }
+  .brand-school { font-size: 17px; }
   .brand-tagline { font-size: 9px; }
-  .header-logo { height: 36px; }
-  .ojtify-logo { height: 32px; }
-  .brand-icon { width: 36px; height: 36px; font-size: 15px; }
+  .oces-logo-lg { height: 44px; }
 
-  /* Scale legend: 1 col on very small */
   .scale-legend-full {
     grid-template-columns: repeat(2, 1fr);
     gap: 5px;
@@ -1125,7 +1116,6 @@
   .sl-card-label { font-size: 10px; }
   .sl-card-desc { display: none; }
 
-  /* Recommendation: 1 col */
   .recommendation-row {
     grid-template-columns: 1fr 1fr;
     gap: 6px;
@@ -1171,9 +1161,8 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .header-logos-left { gap: 6px; }
-  .header-logo { height: 30px; }
-  .ojtify-logo { height: 28px; }
+  .oces-logo-lg { height: 38px; }
+  .brand-school { font-size: 15px; }
 
   .it-key { width: 90px; min-width: 80px; font-size: 10px; }
   .it-val { font-size: 11px; }
@@ -1217,12 +1206,22 @@
   }
 
   .header-inner {
-    display: grid !important;
-    grid-template-columns: auto 1fr auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
     padding: 16px 24px 12px !important;
-    gap: 16px !important;
+    gap: 20px !important;
     flex-wrap: nowrap !important;
   }
+
+  .header-brand-left {
+    flex: 1 !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .oces-logo-lg { height: 56px !important; }
+  .brand-school { font-size: 22px !important; }
 
   .footer-inner { padding: 10px 24px; flex-wrap: nowrap; }
 
@@ -1230,9 +1229,11 @@
   .remarks-grid       { grid-template-columns: 1fr 1fr !important; gap: 6px; }
   .recommendation-row { grid-template-columns: repeat(4, 1fr) !important; gap: 6px; }
   .cert-details-row   { grid-template-columns: repeat(3, 1fr) !important; }
-  .sig-row            { grid-template-columns: 1fr 1fr !important; gap: 32px; }
+  .sig-row            { grid-template-columns: 1fr 1fr !important; gap: 32px; align-items: start !important; }
+
   .criteria-table .ct-bar,
   .criteria-table th:last-child { display: table-cell !important; }
+
   .cd-item { border-right: 1px solid var(--border-light) !important; border-bottom: none !important; border-top: none !important; grid-column: span 1 !important; }
   .cd-item:last-child { border-right: none !important; }
 
@@ -1261,8 +1262,4 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-
-  .brand-school { font-size: 14px !important; }
-  .header-logo  { height: 44px !important; }
-  .ojtify-logo  { height: 40px !important; }
 }

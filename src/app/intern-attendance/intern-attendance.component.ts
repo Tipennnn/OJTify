@@ -148,6 +148,11 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     this.startQRCountdown();
   }
 
+  get ghostReportRows(): null[] {
+    const empty = this.reportPageSize - this.pagedRecordsList.length;
+    return empty > 0 ? Array(empty).fill(null) : [];
+  }
+
   async loadStudentHours() {
     try {
       const doc = await this.appwrite.databases.getDocument(

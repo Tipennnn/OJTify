@@ -197,32 +197,49 @@
 
       <div class="table-panel">
         <div class="table-wrap">
-          <table *ngIf="filteredRecordsList.length > 0">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Day</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Recorded By</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of pagedRecordsList">
-                <td>{{ r.date | date: 'MMMM d, y' }}</td>
-                <td>{{ r.day }}</td>
-                <td>{{ r.timeIn }}</td>
-                <td>{{ r.timeOut }}</td>
-                <td>{{ r.scannedBy || '—' }}</td>
-                <td [class.present]="r.status === 'Present'"
-                    [class.absent]="r.status === 'Absent'"
-                    [class.no-record]="r.status === 'No Record'">
-                  {{ r.status }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+       <!-- FIND your existing table tag and replace with this: -->
+<table *ngIf="filteredRecordsList.length > 0">
+  <colgroup>
+    <col class="col-date">
+    <col class="col-day">
+    <col class="col-timein">
+    <col class="col-timeout">
+    <col class="col-recorded">
+    <col class="col-status">
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="col-date">Date</th>
+      <th class="col-day">Day</th>
+      <th class="col-timein">Time In</th>
+      <th class="col-timeout">Time Out</th>
+      <th class="col-recorded">Recorded By</th>
+      <th class="col-status">Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let r of pagedRecordsList">
+      <td>{{ r.date | date: 'MMMM d, y' }}</td>
+      <td>{{ r.day }}</td>
+      <td>{{ r.timeIn }}</td>
+      <td>{{ r.timeOut }}</td>
+      <td>{{ r.scannedBy || '—' }}</td>
+      <td [class.present]="r.status === 'Present'"
+          [class.absent]="r.status === 'Absent'"
+          [class.no-record]="r.status === 'No Record'">
+        {{ r.status }}
+      </td>
+    </tr>
+
+    <!-- GHOST ROWS — same pattern as admin OJT -->
+    <ng-container *ngFor="let ghost of ghostReportRows">
+      <tr style="height: 44px; border-bottom: 1px solid #e5e7eb; pointer-events: none;">
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+    </ng-container>
+
+  </tbody>
+</table>
           <div *ngIf="filteredRecordsList.length === 0" class="no-records-msg">
             No records found for selected filters..
           </div>

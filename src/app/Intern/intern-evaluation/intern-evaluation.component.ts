@@ -28,8 +28,8 @@ interface Evaluation {
   student_id_ref: string;
   supervisor_id?: string;
   supervisor_name?: string;
-  scores_json: string;           // JSON: { [criterionKey]: number }
-  criteria_snapshot: string;     // JSON: EditableCriterion[]
+  scores_json: string;
+  criteria_snapshot: string;
   remarks: string;
   strengths?: string;
   areas_for_improvement?: string;
@@ -51,7 +51,6 @@ interface SupervisorInfo {
   email?: string;
 }
 
-/** One criterion as stored in the snapshot */
 export interface StoredCriterion {
   key: string;
   label: string;
@@ -79,12 +78,9 @@ export class InternEvaluationComponent implements OnInit {
 
   supervisorEsigB64 = '';
 
-  /** Criteria rebuilt from the evaluation's criteria_snapshot */
   displayCriteria: StoredCriterion[] = [];
-  /** Scores keyed by criterion key */
   scores: Record<string, number> = {};
 
-  // ── Intern signature ─────────────────────────────────────────────────────
   isDrawing        = false;
   lastX            = 0;
   lastY            = 0;
@@ -110,9 +106,8 @@ export class InternEvaluationComponent implements OnInit {
   readonly EVAL_COL   = 'evaluations';
   readonly SUP_COL    = 'supervisors';
   readonly SCHOOL     = 'Olongapo City Elementary School';
-  readonly AY         = 'A.Y. 2024 – 2025';
+  readonly AY = `A.Y. ${new Date().getFullYear() - 1} – ${new Date().getFullYear()}`;
 
-  /** Fallback criteria if snapshot is missing */
   private readonly DEFAULT_CRITERIA: StoredCriterion[] = [
     { key: 'punctuality',     label: 'Punctuality',            icon: 'fa-clock',          numChoices: 5, question: 'Does the trainee arrive on time and follow the assigned schedule?',               choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V. Good', 5: 'Excellent' } },
     { key: 'attendance',      label: 'Attendance',             icon: 'fa-calendar-check', numChoices: 5, question: 'Does the trainee maintain consistent attendance and avoid unnecessary absences?',  choiceLabels: { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'V. Good', 5: 'Excellent' } },
@@ -134,159 +129,151 @@ export class InternEvaluationComponent implements OnInit {
 
   // ── Load data ─────────────────────────────────────────────────────────────
   async loadData() {
-  this.loading = true;
-  try {
-    const account = await this.appwrite.account.get();
-
+    this.loading = true;
     try {
-      const studentDoc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        account.$id
-      );
-      this.student = studentDoc as any;
-    } catch {
-      const sRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      this.student = (sRes.documents as any[]).find(s => s.email === account.email) ?? null;
-    }
+      const account = await this.appwrite.account.get();
 
-    if (!this.student) {
-      this.hasEvaluation = false;
-      this.loading = false;
-      return;
-    }
-
-    const eRes = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.EVAL_COL
-    );
-    const ev = (eRes.documents as any[]).find(e => e.student_id_ref === this.student!.$id);
-
-    if (ev) {
-      this.evaluation    = ev as Evaluation;
-      this.hasEvaluation = true;
-      this.hasInternSig  = !!ev.intern_signature;
-
-      // ── Rebuild display criteria from snapshot ──────────────────
-      let criteriaSnap: any[] = [];
       try {
-        criteriaSnap = JSON.parse(ev.criteria_snapshot ?? '[]');
-      } catch { criteriaSnap = []; }
+        const studentDoc = await this.appwrite.databases.getDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          account.$id
+        );
+        this.student = studentDoc as any;
+      } catch {
+        const sRes = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL
+        );
+        this.student = (sRes.documents as any[]).find(s => s.email === account.email) ?? null;
+      }
 
-      if (criteriaSnap.length) {
-        // Convert EditableCriterion[] (supervisor format) → StoredCriterion[]
-        // Each EditableCriterion has multiple questions; flatten to one row per question
-        this.displayCriteria = [];
-        for (const c of criteriaSnap) {
-          if (c.questions?.length) {
-            for (const q of c.questions) {
+      if (!this.student) {
+        this.hasEvaluation = false;
+        this.loading = false;
+        return;
+      }
+
+      const eRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.EVAL_COL
+      );
+      const ev = (eRes.documents as any[]).find(e => e.student_id_ref === this.student!.$id);
+
+      if (ev) {
+        this.evaluation    = ev as Evaluation;
+        this.hasEvaluation = true;
+        this.hasInternSig  = !!ev.intern_signature;
+
+        // ── Rebuild display criteria from snapshot ──────────────────
+        let criteriaSnap: any[] = [];
+        try {
+          criteriaSnap = JSON.parse(ev.criteria_snapshot ?? '[]');
+        } catch { criteriaSnap = []; }
+
+        if (criteriaSnap.length) {
+          this.displayCriteria = [];
+          for (const c of criteriaSnap) {
+            if (c.questions?.length) {
+              for (const q of c.questions) {
+                this.displayCriteria.push({
+                  key         : `${c.key}::${q.qkey}`,
+                  label       : c.label,
+                  icon        : c.icon ?? 'fa-star',
+                  question    : q.text,
+                  numChoices  : q.numChoices ?? 5,
+                  choiceLabels: q.choiceLabels ?? { 1:'Poor', 2:'Fair', 3:'Good', 4:'V.Good', 5:'Excellent' }
+                });
+              }
+            } else {
               this.displayCriteria.push({
-                key         : `${c.key}::${q.qkey}`,  // matches answers_json key
+                key         : c.key,
                 label       : c.label,
                 icon        : c.icon ?? 'fa-star',
-                question    : q.text,
-                numChoices  : q.numChoices ?? 5,
-                choiceLabels: q.choiceLabels ?? { 1:'Poor', 2:'Fair', 3:'Good', 4:'V.Good', 5:'Excellent' }
+                question    : c.question ?? c.label,
+                numChoices  : c.numChoices ?? 5,
+                choiceLabels: c.choiceLabels ?? { 1:'Poor', 2:'Fair', 3:'Good', 4:'V.Good', 5:'Excellent' }
               });
             }
-          } else {
-            // Old flat format fallback
-            this.displayCriteria.push({
-              key         : c.key,
-              label       : c.label,
-              icon        : c.icon ?? 'fa-star',
-              question    : c.question ?? c.label,
-              numChoices  : c.numChoices ?? 5,
-              choiceLabels: c.choiceLabels ?? { 1:'Poor', 2:'Fair', 3:'Good', 4:'V.Good', 5:'Excellent' }
-            });
           }
+        } else {
+          this.displayCriteria = this.DEFAULT_CRITERIA;
         }
+
+        // ── Parse scores ────────────────────────────────────────────
+        try {
+          const raw = JSON.parse(ev.answers_json ?? '{}');
+          this.scores = {};
+          for (const [key, val] of Object.entries(raw)) {
+            this.scores[key] = parseInt(val as string, 10) || 0;
+          }
+        } catch {
+          this.scores = this.legacyScores(ev);
+        }
+
+        // ── Parse remarks ───────────────────────────────────────────
+        try {
+          const remarksMap = JSON.parse(ev.remarks_sections_json ?? '{}');
+          if (!ev.strengths)             (this.evaluation as any).strengths             = remarksMap['strengths']             ?? '';
+          if (!ev.areas_for_improvement) (this.evaluation as any).areas_for_improvement = remarksMap['areas_for_improvement'] ?? '';
+          if (!ev.remarks)               (this.evaluation as any).remarks               = remarksMap['overall_remarks']        ?? '';
+        } catch {}
+
+        // ── Load supervisor ──────────────────────────────────────────
+        if (ev.supervisor_id) {
+          try {
+            const supDoc = await this.appwrite.databases.getDocument(
+              this.appwrite.DATABASE_ID,
+              this.SUP_COL,
+              ev.supervisor_id
+            );
+            this.supervisor = supDoc as any;
+
+            if (supDoc['esig_file_id']) {
+              try {
+                const esigUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${supDoc['esig_file_id']}/view?project=${this.PROJECT_ID}`;
+                const res = await fetch(esigUrl);
+                if (res.ok) {
+                  const blob = await res.blob();
+                  this.supervisorEsigB64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(blob);
+                  });
+                }
+              } catch {
+                this.supervisorEsigB64 = '';
+              }
+            }
+
+          } catch {
+            this.buildSupervisorFromName(ev);
+          }
+        } else if (ev.supervisor_name) {
+          this.buildSupervisorFromName(ev);
+        }
+
+        setTimeout(() => {
+          this.initCanvas();
+          if (ev.intern_signature && this.ctx && this.canvas) {
+            const img = new Image();
+            img.onload = () => this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
+            img.src    = ev.intern_signature;
+          }
+        }, 300);
+
       } else {
-        this.displayCriteria = this.DEFAULT_CRITERIA;
+        this.hasEvaluation = false;
       }
 
-      // ── Parse scores from answers_json (supervisor format) ──────
-      try {
-        const raw = JSON.parse(ev.answers_json ?? '{}');
-        // answers_json keys are like "punctuality::q1" → value is a string number
-        this.scores = {};
-        for (const [key, val] of Object.entries(raw)) {
-          this.scores[key] = parseInt(val as string, 10) || 0;
-        }
-      } catch {
-        // Fallback to legacy flat fields
-        this.scores = this.legacyScores(ev);
-      }
-
-      // ── Parse remarks from remarks_sections_json ─────────────────
-      try {
-        const remarksMap = JSON.parse(ev.remarks_sections_json ?? '{}');
-        // Map to the flat fields the template uses
-        if (!ev.strengths)             (this.evaluation as any).strengths             = remarksMap['strengths']             ?? '';
-        if (!ev.areas_for_improvement) (this.evaluation as any).areas_for_improvement = remarksMap['areas_for_improvement'] ?? '';
-        if (!ev.remarks)               (this.evaluation as any).remarks               = remarksMap['overall_remarks']        ?? '';
-      } catch {}
-
-      // ── Load supervisor ──────────────────────────────────────────
-     if (ev.supervisor_id) {
-  try {
-    const supDoc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.SUP_COL,
-      ev.supervisor_id
-    );
-    this.supervisor = supDoc as any;
-
-    // Load supervisor's e-signature from storage
-    if (supDoc['esig_file_id']) {
-      try {
-        const esigUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${supDoc['esig_file_id']}/view?project=${this.PROJECT_ID}`;
-        const res = await fetch(esigUrl);
-        if (res.ok) {
-          const blob = await res.blob();
-          this.supervisorEsigB64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(blob);
-          });
-        }
-      } catch {
-        this.supervisorEsigB64 = '';
-      }
-    }
-
-  } catch {
-    this.buildSupervisorFromName(ev);
-  }
-} else if (ev.supervisor_name) {
-  this.buildSupervisorFromName(ev);
-}
-
-      setTimeout(() => {
-        this.initCanvas();
-        if (ev.intern_signature && this.ctx && this.canvas) {
-          const img = new Image();
-          img.onload = () => this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
-          img.src    = ev.intern_signature;
-        }
-      }, 300);
-
-    } else {
+    } catch (err: any) {
+      console.error('loadData error:', err.message);
       this.hasEvaluation = false;
+    } finally {
+      this.loading = false;
     }
-
-  } catch (err: any) {
-    console.error('loadData error:', err.message);
-    this.hasEvaluation = false;
-  } finally {
-    this.loading = false;
   }
-}
 
-  /** Backward-compat: extract scores from old flat fields */
   private legacyScores(ev: any): Record<string, number> {
     const keys = ['punctuality','attendance','quality_of_work','productivity','initiative','cooperation','communication','professionalism','dependability'];
     const out: Record<string, number> = {};
@@ -327,8 +314,9 @@ export class InternEvaluationComponent implements OnInit {
 
   // ── Rating helpers ────────────────────────────────────────────────────────
   getRating(key: string): number {
-  return this.scores[key] ?? 0;
-}
+    return this.scores[key] ?? 0;
+  }
+
   getChoiceLabel(c: StoredCriterion, v: number): string {
     return c.choiceLabels?.[v] ?? `Level ${v}`;
   }
@@ -356,16 +344,16 @@ export class InternEvaluationComponent implements OnInit {
   }
 
   getOverallAverage(): number {
-  if (!this.displayCriteria.length) return 0;
-  const normalized = this.displayCriteria
-    .map(c => {
-      const raw = this.scores[c.key] ?? 0;
-      return raw > 0 ? (raw / c.numChoices) * 5 : 0;
-    })
-    .filter(v => v > 0);
-  if (!normalized.length) return 0;
-  return parseFloat((normalized.reduce((a, b) => a + b, 0) / normalized.length).toFixed(2));
-}
+    if (!this.displayCriteria.length) return 0;
+    const normalized = this.displayCriteria
+      .map(c => {
+        const raw = this.scores[c.key] ?? 0;
+        return raw > 0 ? (raw / c.numChoices) * 5 : 0;
+      })
+      .filter(v => v > 0);
+    if (!normalized.length) return 0;
+    return parseFloat((normalized.reduce((a, b) => a + b, 0) / normalized.length).toFixed(2));
+  }
 
   getOverallLabel(avg: number): string {
     if (avg >= 4.5) return 'Excellent';
@@ -484,6 +472,7 @@ export class InternEvaluationComponent implements OnInit {
     if (mode === 'draw') { setTimeout(() => { this.initCanvas(); this.clearInternCanvas(); }, 50); }
   }
 
+  // ── FIXED: Signature upload — always normalize to 88% of canvas ──────────
   onSignatureImageUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files || !input.files[0]) return;
@@ -497,11 +486,30 @@ export class InternEvaluationComponent implements OnInit {
         if (!this.canvas || !this.ctx) this.initCanvas();
         if (!this.canvas || !this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        const canvasRatio = this.canvas.width / this.canvas.height;
-        const imgRatio    = img.width / img.height;
-        let drawW = this.canvas.width, drawH = this.canvas.height, drawX = 0, drawY = 0;
-        if (imgRatio > canvasRatio) { drawH = this.canvas.width / imgRatio;  drawY = (this.canvas.height - drawH) / 2; }
-        else                        { drawW = this.canvas.height * imgRatio; drawX = (this.canvas.width  - drawW) / 2; }
+
+        // Always fill 88% of canvas — small images scale UP, large scale DOWN
+        // Result: every signature looks the same normalized size
+        const PAD     = 0.88;
+        const targetW = this.canvas.width  * PAD;
+        const targetH = this.canvas.height * PAD;
+        const imgRatio = img.width  / img.height;
+        const boxRatio = targetW    / targetH;
+
+        let drawW: number, drawH: number;
+        if (imgRatio > boxRatio) {
+          // Image is wider relative to box — constrain by width
+          drawW = targetW;
+          drawH = targetW / imgRatio;
+        } else {
+          // Image is taller relative to box — constrain by height
+          drawH = targetH;
+          drawW = targetH * imgRatio;
+        }
+
+        // Center in canvas
+        const drawX = (this.canvas.width  - drawW) / 2;
+        const drawY = (this.canvas.height - drawH) / 2;
+
         this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
         this.hasInternSig = true;
       };
@@ -634,10 +642,31 @@ export class InternEvaluationComponent implements OnInit {
       #printArea .ct-group-header { background: #eef0f8 !important; -webkit-print-color-adjust: exact !important; }
       #printArea .rec-active { background: #e8eaf8 !important; -webkit-print-color-adjust: exact !important; }
       #printArea .score-circle, #printArea .bar-fill, #printArea .rating-tag, #printArea .remarks-section, #printArea .cert-statement, #printArea .remarks-box { -webkit-print-color-adjust: exact !important; }
+
+      /* ── FIX: Remove sig box borders and background in PDF ── */
+      #printArea .sig-canvas {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      #printArea .sig-img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        padding: 0 8px !important;
+      }
+      #printArea .sig-wrapper {
+        border: none !important;
+        background: transparent !important;
+      }
     `;
     document.head.appendChild(printStyleEl);
-    element.style.boxShadow = 'none'; element.style.borderRadius = '0';
-    element.style.width = '794px'; element.style.maxWidth = '794px'; element.style.margin = '0';
+
+    element.style.boxShadow    = 'none';
+    element.style.borderRadius = '0';
+    element.style.width        = '794px';
+    element.style.maxWidth     = '794px';
+    element.style.margin       = '0';
 
     await new Promise(r => setTimeout(r, 200));
 
