@@ -69,8 +69,15 @@ export interface StoredCriterion {
 })
 export class InternEvaluationComponent implements OnInit {
 
-  loading       = true;
-  hasEvaluation = false;
+  loading          = true;
+  hasEvaluation    = false;
+
+  /**
+   * Controls whether the full evaluation document is shown.
+   * When false (default), only the "Your Appraisal is Ready" CTA card is shown.
+   * Set to true when the user clicks "View My Evaluation".
+   */
+  viewingEvaluation = false;
 
   student    : Student | null = null;
   evaluation : Evaluation | null = null;
@@ -253,14 +260,9 @@ export class InternEvaluationComponent implements OnInit {
           this.buildSupervisorFromName(ev);
         }
 
-        setTimeout(() => {
-          this.initCanvas();
-          if (ev.intern_signature && this.ctx && this.canvas) {
-            const img = new Image();
-            img.onload = () => this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
-            img.src    = ev.intern_signature;
-          }
-        }, 300);
+        // NOTE: Canvas init is deferred until the user clicks "View My Evaluation"
+        // because the canvas element doesn't exist in the DOM until viewingEvaluation = true.
+        // initCanvas() is called instead from the view button click via setTimeout.
 
       } else {
         this.hasEvaluation = false;
@@ -310,6 +312,23 @@ export class InternEvaluationComponent implements OnInit {
       department  : ev.supervisor_department ?? undefined,
       email       : ev.supervisor_email      ?? undefined
     };
+  }
+
+  /**
+   * Called when the user clicks "View My Evaluation".
+   * Sets viewingEvaluation = true (done inline in the template),
+   * then waits for Angular to render the canvas before initializing it.
+   */
+  onViewEvaluation() {
+    this.viewingEvaluation = true;
+    setTimeout(() => {
+      this.initCanvas();
+      if (this.evaluation?.intern_signature && this.ctx && this.canvas) {
+        const img = new Image();
+        img.onload = () => this.ctx!.drawImage(img, 0, 0, this.canvas!.width, this.canvas!.height);
+        img.src    = this.evaluation.intern_signature;
+      }
+    }, 300);
   }
 
   // ── Rating helpers ────────────────────────────────────────────────────────
@@ -472,7 +491,7 @@ export class InternEvaluationComponent implements OnInit {
     if (mode === 'draw') { setTimeout(() => { this.initCanvas(); this.clearInternCanvas(); }, 50); }
   }
 
-  // ── FIXED: Signature upload — always normalize to 88% of canvas ──────────
+  // ── Signature upload — normalize to 88% of canvas ──────────────────────
   onSignatureImageUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files || !input.files[0]) return;
@@ -487,26 +506,27 @@ export class InternEvaluationComponent implements OnInit {
         if (!this.canvas || !this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Always fill 88% of canvas — small images scale UP, large scale DOWN
-        // Result: every signature looks the same normalized size
-        const PAD     = 0.88;
-        const targetW = this.canvas.width  * PAD;
-        const targetH = this.canvas.height * PAD;
+        /*
+          SIGNATURE UPLOAD SIZE CONTROL:
+          PAD controls how much of the canvas the uploaded image fills (0.88 = 88%).
+          Lower this value (e.g. 0.7) to make uploaded signatures appear smaller.
+          The image is always centered and aspect-ratio preserved.
+        */
+        const PAD      = 0.88;
+        const targetW  = this.canvas.width  * PAD;
+        const targetH  = this.canvas.height * PAD;
         const imgRatio = img.width  / img.height;
         const boxRatio = targetW    / targetH;
 
         let drawW: number, drawH: number;
         if (imgRatio > boxRatio) {
-          // Image is wider relative to box — constrain by width
           drawW = targetW;
           drawH = targetW / imgRatio;
         } else {
-          // Image is taller relative to box — constrain by height
           drawH = targetH;
           drawW = targetH * imgRatio;
         }
 
-        // Center in canvas
         const drawX = (this.canvas.width  - drawW) / 2;
         const drawY = (this.canvas.height - drawH) / 2;
 
@@ -624,6 +644,7 @@ export class InternEvaluationComponent implements OnInit {
     hide('.intern-sig-pad-wrap');
     hide('#internSigSection');
     hide('.clear-btn-sm');
+    hide('.eval-back-row');
 
     const origBoxShadow    = element.style.boxShadow;
     const origBorderRadius = element.style.borderRadius;
@@ -642,23 +663,9 @@ export class InternEvaluationComponent implements OnInit {
       #printArea .ct-group-header { background: #eef0f8 !important; -webkit-print-color-adjust: exact !important; }
       #printArea .rec-active { background: #e8eaf8 !important; -webkit-print-color-adjust: exact !important; }
       #printArea .score-circle, #printArea .bar-fill, #printArea .rating-tag, #printArea .remarks-section, #printArea .cert-statement, #printArea .remarks-box { -webkit-print-color-adjust: exact !important; }
-
-      /* ── FIX: Remove sig box borders and background in PDF ── */
-      #printArea .sig-canvas {
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-      #printArea .sig-img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: contain !important;
-        padding: 0 8px !important;
-      }
-      #printArea .sig-wrapper {
-        border: none !important;
-        background: transparent !important;
-      }
+      #printArea .sig-canvas { border: none !important; background: transparent !important; box-shadow: none !important; }
+      #printArea .sig-img { max-width: 60% !important; max-height: 68px !important; object-fit: contain !important; padding: 0 8px !important; }
+      #printArea .sig-wrapper { border: none !important; background: transparent !important; }
     `;
     document.head.appendChild(printStyleEl);
 

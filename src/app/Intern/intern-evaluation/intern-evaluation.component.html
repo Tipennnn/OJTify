@@ -8,11 +8,14 @@
 
     <div class="dashboard-content">
 
-      <!-- DASHBOARD-STYLE HEADER (screen only) -->
+      <!-- ── DASHBOARD HEADER (screen only) ── -->
       <div class="dashboard-header no-print" *ngIf="!loading">
         <div class="eval-header-row">
           <h2>Evaluation</h2>
-          <button class="btn-download" *ngIf="hasEvaluation" (click)="printEvaluation()">
+          <!-- Download button only shows when the user is actively viewing the eval doc -->
+          <button class="btn-download"
+                  *ngIf="hasEvaluation && viewingEvaluation"
+                  (click)="printEvaluation()">
             <i class="fa-solid fa-file-arrow-down"></i> Download PDF
           </button>
         </div>
@@ -25,13 +28,13 @@
         </div>
       </div>
 
-      <!-- LOADING -->
+      <!-- ── LOADING ── -->
       <div class="loading-wrap" *ngIf="loading">
         <div class="spinner"></div>
         <p>Loading your appraisal…</p>
       </div>
 
-      <!-- NO EVALUATION -->
+      <!-- ── NO EVALUATION YET ── -->
       <div class="no-eval-wrap" *ngIf="!loading && !hasEvaluation">
         <div class="no-eval-card">
           <div class="no-eval-icon"><i class="fa-regular fa-clock"></i></div>
@@ -45,379 +48,458 @@
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════
-           PRINTABLE EVALUATION DOCUMENT
-      ═══════════════════════════════════════ -->
-      <div class="eval-doc" *ngIf="!loading && hasEvaluation" id="printArea">
+      <!-- ══════════════════════════════════════════════
+           EVALUATION READY — CTA CARD (shown before opening)
+           Shown when evaluation exists but user hasn't clicked View yet
+      ══════════════════════════════════════════════ -->
+      <div class="eval-ready-wrap no-print" *ngIf="!loading && hasEvaluation && !viewingEvaluation">
+        <div class="eval-ready-card">
 
-        <!-- HEADER -->
-        <div class="doc-header">
-          <div class="header-inner">
-
-            <!-- LEFT: OCES logo + School name side by side -->
-            <div class="header-brand-left">
-              <img *ngIf="ocesLogoB64" [src]="ocesLogoB64" alt="OCES" class="oces-logo-lg">
-              <div class="brand-text">
-                <div class="brand-school">{{ SCHOOL }}</div>
-                <div class="brand-tagline">On-the-Job Training Program</div>
-              </div>
-            </div>
-
-            <!-- RIGHT: Meta info -->
-            <div class="header-meta">
-              <div class="hm-row">
-                <span class="hm-key">Document Type</span>
-                <span class="hm-val">Performance Appraisal Report</span>
-              </div>
-              <div class="hm-row">
-                <span class="hm-key">Reference No.</span>
-                <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
-              </div>
-              <div class="hm-row">
-                <span class="hm-key">Date Issued</span>
-                <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
-              </div>
-              <div class="hm-row">
-                <span class="hm-key">Academic Year</span>
-                <span class="hm-val">{{ AY }}</span>
-              </div>
-            </div>
-
+          <!-- Icon -->
+          <div class="eval-ready-icon">
+            <i class="fa-solid fa-circle-check"></i>
           </div>
-          <div class="header-accent-bar"></div>
+
+          <!-- Title & description -->
+          <h3>Your Appraisal is Ready</h3>
+          <p>
+            Your supervisor has completed your OJT performance evaluation.
+            View your official appraisal report below — you can also download it as a PDF after signing.
+          </p>
+
+          <!-- Preview details -->
+          <div class="eval-ready-details" *ngIf="student && evaluation">
+            <div class="ned-row">
+              <span>Student</span>
+              <span>{{ getFullName() }}</span>
+            </div>
+            <div class="ned-row">
+              <span>Student ID</span>
+              <span>{{ student.student_id }}</span>
+            </div>
+            <div class="ned-row">
+              <span>Evaluated by</span>
+              <span>{{ supervisor?.first_name }} {{ supervisor?.last_name }}</span>
+            </div>
+            <div class="ned-row">
+              <span>Date Evaluated</span>
+              <span>{{ formatDate(evaluation.evaluated_at) }}</span>
+            </div>
+            <div class="ned-row">
+              <span>Overall Rating</span>
+              <span [style.color]="getRatingColor(getOverallAverage(), 5)" style="font-weight:700;">
+                {{ getOverallAverage() }} / 5.00 &nbsp;·&nbsp; {{ getOverallLabel(getOverallAverage()) }}
+              </span>
+            </div>
+            <div class="ned-row">
+              <span>Hours Completed</span>
+              <span>{{ student.completed_hours ?? 0 }} / {{ student.required_hours ?? 500 }} hrs ({{ getProgress() }}%)</span>
+            </div>
+          </div>
+
+          <!-- CTA button -->
+          <button class="btn-view-eval" (click)="viewingEvaluation = true">
+            <i class="fa-solid fa-file-lines"></i>
+            View My Evaluation
+          </button>
+
+          <!-- Subtle hint -->
+          <div class="eval-ready-hint">
+            <i class="fa-solid fa-lock-open" style="font-size:11px;"></i>
+            You will also be able to add your e-signature and download a PDF copy
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+           FULL EVALUATION DOCUMENT
+           Only shown after user clicks "View My Evaluation"
+      ══════════════════════════════════════════════ -->
+      <div *ngIf="!loading && hasEvaluation && viewingEvaluation">
+
+        <!-- Back button row (screen only, hidden on print/PDF) -->
+        <div class="eval-back-row no-print">
+          <button class="btn-back" (click)="viewingEvaluation = false">
+            <i class="fa-solid fa-chevron-left"></i> Back to Summary
+          </button>
         </div>
 
-        <!-- BODY -->
-        <div class="doc-body">
+        <!-- ── PRINTABLE EVALUATION DOCUMENT ── -->
+        <div class="eval-doc" id="printArea">
 
-          <div class="doc-section-title">OFFICIAL OJT PERFORMANCE APPRAISAL</div>
+          <!-- HEADER -->
+          <div class="doc-header">
+            <div class="header-inner">
 
-          <!-- PART I: INTERN INFORMATION -->
-          <div class="part-header">
-            <span class="part-num">PART I</span>
-            <span class="part-label">Intern Information</span>
+              <!-- LEFT: OCES logo + School name -->
+              <div class="header-brand-left">
+                <img *ngIf="ocesLogoB64" [src]="ocesLogoB64" alt="OCES" class="oces-logo-lg">
+                <div class="brand-text">
+                  <div class="brand-school">{{ SCHOOL }}</div>
+                  <div class="brand-tagline">On-the-Job Training Program</div>
+                </div>
+              </div>
+
+              <!-- RIGHT: Meta info -->
+              <div class="header-meta">
+                <div class="hm-row">
+                  <span class="hm-key">Document Type</span>
+                  <span class="hm-val">Performance Appraisal Report</span>
+                </div>
+                <div class="hm-row">
+                  <span class="hm-key">Reference No.</span>
+                  <span class="hm-val">OJT-PA-{{ student?.student_id }}</span>
+                </div>
+                <div class="hm-row">
+                  <span class="hm-key">Date Issued</span>
+                  <span class="hm-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
+                </div>
+                <div class="hm-row">
+                  <span class="hm-key">Academic Year</span>
+                  <span class="hm-val">{{ AY }}</span>
+                </div>
+              </div>
+
+            </div>
+            <div class="header-accent-bar"></div>
           </div>
-          <div class="info-table-wrap">
-            <table class="info-table">
-              <tbody>
-                <tr><td class="it-key">Full Name</td><td class="it-val it-name">{{ getFullName() }}</td></tr>
-                <tr><td class="it-key">Student ID No.</td><td class="it-val">{{ student?.student_id }}</td></tr>
-                <tr><td class="it-key">Course / Program</td><td class="it-val">{{ student?.course }}</td></tr>
-                <tr><td class="it-key">Institution</td><td class="it-val">{{ SCHOOL }}</td></tr>
-                <tr><td class="it-key">Email Address</td><td class="it-val">{{ student?.email }}</td></tr>
-                <tr><td class="it-key">Required Hours</td><td class="it-val">{{ student?.required_hours ?? 500 }} hours</td></tr>
-                <tr><td class="it-key">Hours Rendered</td><td class="it-val"><strong>{{ student?.completed_hours ?? 0 }} hours</strong></td></tr>
+
+          <!-- BODY -->
+          <div class="doc-body">
+
+            <div class="doc-section-title">OFFICIAL OJT PERFORMANCE APPRAISAL</div>
+
+            <!-- PART I: INTERN INFORMATION -->
+            <div class="part-header">
+              <span class="part-num">PART I</span>
+              <span class="part-label">Intern Information</span>
+            </div>
+            <div class="info-table-wrap">
+              <table class="info-table">
+                <tbody>
+                  <tr><td class="it-key">Full Name</td><td class="it-val it-name">{{ getFullName() }}</td></tr>
+                  <tr><td class="it-key">Student ID No.</td><td class="it-val">{{ student?.student_id }}</td></tr>
+                  <tr><td class="it-key">Course / Program</td><td class="it-val">{{ student?.course }}</td></tr>
+                  <tr><td class="it-key">Institution</td><td class="it-val">{{ SCHOOL }}</td></tr>
+                  <tr><td class="it-key">Email Address</td><td class="it-val">{{ student?.email }}</td></tr>
+                  <tr><td class="it-key">Required Hours</td><td class="it-val">{{ student?.required_hours ?? 500 }} hours</td></tr>
+                  <tr><td class="it-key">Hours Rendered</td><td class="it-val"><strong>{{ student?.completed_hours ?? 0 }} hours</strong></td></tr>
+                  <tr>
+                    <td class="it-key">Completion Rate</td>
+                    <td class="it-val">
+                      <div class="it-progress">
+                        <div class="itp-track"><div class="itp-fill" [style.width]="getProgress() + '%'"></div></div>
+                        <span>{{ getProgress() }}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr><td class="it-key">Evaluation Period</td><td class="it-val">{{ getEvaluationPeriod() }}</td></tr>
+                  <tr><td class="it-key">Company / Dept.</td><td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- PART II: EVALUATING SUPERVISOR -->
+            <div class="part-header">
+              <span class="part-num">PART II</span>
+              <span class="part-label">Evaluating Supervisor</span>
+            </div>
+            <div class="info-table-wrap">
+              <table class="info-table">
+                <tbody>
+                  <tr><td class="it-key">Supervisor Name</td><td class="it-val it-name">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</td></tr>
+                  <tr><td class="it-key">Position / Title</td><td class="it-val">Teacher</td></tr>
+                  <tr><td class="it-key">Organization</td><td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td></tr>
+                  <tr><td class="it-key">Email Address</td><td class="it-val">{{ supervisor?.email ?? '—' }}</td></tr>
+                  <tr><td class="it-key">Evaluation Date</td><td class="it-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- PART III: RATING SCALE -->
+            <div class="part-header">
+              <span class="part-num">PART III</span>
+              <span class="part-label">Rating Scale</span>
+            </div>
+            <div class="scale-legend-full">
+              <div *ngFor="let item of ratingLegendItems" class="sl-card">
+                <span class="sl-score-lg"
+                      [style.background]="getRatingColor(item.v, ratingLegendItems.length)"
+                      [style.color]="'#fff'">{{ item.v }}</span>
+                <div class="sl-card-text">
+                  <span class="sl-card-label">{{ item.l }}</span>
+                  <span class="sl-card-desc">Rating level {{ item.v }} of {{ ratingLegendItems.length }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PART IV: PERFORMANCE RATINGS -->
+            <div class="part-header">
+              <span class="part-num">PART IV</span>
+              <span class="part-label">Performance Ratings ({{ displayCriteria.length }} criteria)</span>
+            </div>
+
+            <table class="criteria-table">
+              <thead>
                 <tr>
-                  <td class="it-key">Completion Rate</td>
-                  <td class="it-val">
-                    <div class="it-progress">
-                      <div class="itp-track"><div class="itp-fill" [style.width]="getProgress() + '%'"></div></div>
-                      <span>{{ getProgress() }}%</span>
+                  <th class="ct-no">#</th>
+                  <th class="ct-crit">Category</th>
+                  <th class="ct-sub">Question / Criterion</th>
+                  <th class="ct-score">Score</th>
+                  <th class="ct-rating">Rating</th>
+                  <th class="ct-bar">Performance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="ct-sub-row" *ngFor="let c of displayCriteria; let i = index">
+                  <td class="ct-no" style="text-align:center;font-weight:700;color:#0818A8;">{{ i + 1 }}</td>
+                  <td class="ct-crit-val">
+                    <strong><i class="fa-solid {{ c.icon }}" style="color:#0818A8;margin-right:5px;font-size:10px;"></i>{{ c.label }}</strong>
+                  </td>
+                  <td class="ct-sub-val">{{ c.question }}</td>
+                  <td class="ct-score-val">
+                    <span class="score-circle"
+                          [style.background]="getRatingColor(getRating(c.key), c.numChoices)"
+                          [style.color]="'#fff'">
+                      {{ getRating(c.key) }}
+                    </span>
+                  </td>
+                  <td class="ct-rating-val">
+                    <span class="rating-tag"
+                          [style.background]="getRatingColor(getRating(c.key), c.numChoices) + '18'"
+                          [style.color]="getRatingColor(getRating(c.key), c.numChoices)">
+                      {{ getChoiceLabel(c, getRating(c.key)) }}
+                    </span>
+                  </td>
+                  <td class="ct-bar-val">
+                    <div class="bar-track">
+                      <div class="bar-fill"
+                           [style.width]="(getRating(c.key) / c.numChoices * 100) + '%'"
+                           [style.background]="getRatingColor(getRating(c.key), c.numChoices)"></div>
                     </div>
                   </td>
                 </tr>
-                <tr><td class="it-key">Evaluation Period</td><td class="it-val">{{ getEvaluationPeriod() }}</td></tr>
-                <tr><td class="it-key">Company / Dept.</td><td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td></tr>
               </tbody>
+              <tfoot>
+                <tr class="ct-overall">
+                  <td colspan="3">
+                    <div class="ct-overall-label">
+                      <i class="fa-solid fa-star"></i>&nbsp; OVERALL AVERAGE RATING
+                      <span style="font-weight:400;font-size:10px;color:#6b7280;">(normalized to 5-point scale)</span>
+                    </div>
+                  </td>
+                  <td class="ct-score-val">
+                    <span class="score-circle overall-circle"
+                          [style.background]="getRatingColor(getOverallAverage(), 5)"
+                          [style.color]="'#fff'">
+                      {{ getOverallAverage() }}
+                    </span>
+                  </td>
+                  <td class="ct-rating-val">
+                    <span class="rating-tag overall-tag"
+                          [style.background]="getRatingColor(getOverallAverage(), 5) + '18'"
+                          [style.color]="getRatingColor(getOverallAverage(), 5)">
+                      {{ getOverallLabel(getOverallAverage()) }}
+                    </span>
+                  </td>
+                  <td class="ct-bar-val">
+                    <div class="bar-track">
+                      <div class="bar-fill"
+                           [style.width]="(getOverallAverage() / 5 * 100) + '%'"
+                           [style.background]="getRatingColor(getOverallAverage(), 5)"></div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
-          </div>
 
-          <!-- PART II: EVALUATING SUPERVISOR -->
-          <div class="part-header">
-            <span class="part-num">PART II</span>
-            <span class="part-label">Evaluating Supervisor</span>
-          </div>
-          <div class="info-table-wrap">
-            <table class="info-table">
-              <tbody>
-                <tr><td class="it-key">Supervisor Name</td><td class="it-val it-name">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</td></tr>
-                <tr><td class="it-key">Position / Title</td><td class="it-val">Teacher</td></tr>
-                <tr><td class="it-key">Organization</td><td class="it-val">{{ supervisor?.company_name ?? SCHOOL }}</td></tr>
-                <tr><td class="it-key">Email Address</td><td class="it-val">{{ supervisor?.email ?? '—' }}</td></tr>
-                <tr><td class="it-key">Evaluation Date</td><td class="it-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- PART III: RATING SCALE -->
-          <div class="part-header">
-            <span class="part-num">PART III</span>
-            <span class="part-label">Rating Scale</span>
-          </div>
-          <div class="scale-legend-full">
-            <div *ngFor="let item of ratingLegendItems" class="sl-card">
-              <span class="sl-score-lg" [style.background]="getRatingColor(item.v, ratingLegendItems.length)" [style.color]="'#fff'">{{ item.v }}</span>
-              <div class="sl-card-text">
-                <span class="sl-card-label">{{ item.l }}</span>
-                <span class="sl-card-desc">Rating level {{ item.v }} of {{ ratingLegendItems.length }}</span>
+            <!-- PART V: OVERALL EVALUATION & REMARKS -->
+            <div class="part-header">
+              <span class="part-num">PART V</span>
+              <span class="part-label">Overall Evaluation &amp; Remarks</span>
+            </div>
+            <div class="remarks-grid">
+              <div class="remarks-box">
+                <div class="remarks-box-label"><i class="fa-solid fa-thumbs-up"></i> Strengths</div>
+                <p class="remarks-text">{{ evaluation?.strengths ?? 'No strengths provided.' }}</p>
+              </div>
+              <div class="remarks-box remarks-box-improvement">
+                <div class="remarks-box-label"><i class="fa-solid fa-arrow-trend-up"></i> Areas for Improvement</div>
+                <p class="remarks-text">{{ evaluation?.areas_for_improvement ?? 'Not specified.' }}</p>
               </div>
             </div>
-          </div>
 
-          <!-- PART IV: PERFORMANCE RATINGS -->
-          <div class="part-header">
-            <span class="part-num">PART IV</span>
-            <span class="part-label">Performance Ratings ({{ displayCriteria.length }} criteria)</span>
-          </div>
+            <!-- PART VI: SUPERVISOR'S COMMENTS -->
+            <div class="part-header">
+              <span class="part-num">PART VI</span>
+              <span class="part-label">Supervisor's Comments</span>
+            </div>
+            <div class="remarks-section">
+              <p class="remarks-text">{{ evaluation?.remarks ?? 'No additional comments provided.' }}</p>
+            </div>
 
-          <table class="criteria-table">
-            <thead>
-              <tr>
-                <th class="ct-no">#</th>
-                <th class="ct-crit">Category</th>
-                <th class="ct-sub">Question / Criterion</th>
-                <th class="ct-score">Score</th>
-                <th class="ct-rating">Rating</th>
-                <th class="ct-bar">Performance</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="ct-sub-row" *ngFor="let c of displayCriteria; let i = index">
-                <td class="ct-no" style="text-align:center;font-weight:700;color:#0818A8;">{{ i + 1 }}</td>
-                <td class="ct-crit-val">
-                  <strong><i class="fa-solid {{ c.icon }}" style="color:#0818A8;margin-right:5px;font-size:10px;"></i>{{ c.label }}</strong>
-                </td>
-                <td class="ct-sub-val">{{ c.question }}</td>
-                <td class="ct-score-val">
-                  <span class="score-circle"
-                        [style.background]="getRatingColor(getRating(c.key), c.numChoices)"
-                        [style.color]="'#fff'">
-                    {{ getRating(c.key) }}
-                  </span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag"
-                        [style.background]="getRatingColor(getRating(c.key), c.numChoices) + '18'"
-                        [style.color]="getRatingColor(getRating(c.key), c.numChoices)">
-                    {{ getChoiceLabel(c, getRating(c.key)) }}
-                  </span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill"
-                         [style.width]="(getRating(c.key) / c.numChoices * 100) + '%'"
-                         [style.background]="getRatingColor(getRating(c.key), c.numChoices)"></div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr class="ct-overall">
-                <td colspan="3">
-                  <div class="ct-overall-label">
-                    <i class="fa-solid fa-star"></i>&nbsp; OVERALL AVERAGE RATING
-                    <span style="font-weight:400;font-size:10px;color:#6b7280;">(normalized to 5-point scale)</span>
-                  </div>
-                </td>
-                <td class="ct-score-val">
-                  <span class="score-circle overall-circle"
-                        [style.background]="getRatingColor(getOverallAverage(), 5)"
-                        [style.color]="'#fff'">
-                    {{ getOverallAverage() }}
-                  </span>
-                </td>
-                <td class="ct-rating-val">
-                  <span class="rating-tag overall-tag"
-                        [style.background]="getRatingColor(getOverallAverage(), 5) + '18'"
-                        [style.color]="getRatingColor(getOverallAverage(), 5)">
-                    {{ getOverallLabel(getOverallAverage()) }}
-                  </span>
-                </td>
-                <td class="ct-bar-val">
-                  <div class="bar-track">
-                    <div class="bar-fill"
-                         [style.width]="(getOverallAverage() / 5 * 100) + '%'"
-                         [style.background]="getRatingColor(getOverallAverage(), 5)"></div>
-                  </div>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <!-- PART V: OVERALL EVALUATION & REMARKS -->
-          <div class="part-header">
-            <span class="part-num">PART V</span>
-            <span class="part-label">Overall Evaluation &amp; Remarks</span>
-          </div>
-          <div class="remarks-grid">
-            <div class="remarks-box">
-              <div class="remarks-box-label"><i class="fa-solid fa-thumbs-up"></i> Strengths</div>
-              <p class="remarks-text">{{ evaluation?.strengths ?? 'No strengths provided.' }}</p>
+            <!-- PART VII: RECOMMENDATION -->
+            <div class="part-header">
+              <span class="part-num">PART VII</span>
+              <span class="part-label">Recommendation</span>
             </div>
-            <div class="remarks-box remarks-box-improvement">
-              <div class="remarks-box-label"><i class="fa-solid fa-arrow-trend-up"></i> Areas for Improvement</div>
-              <p class="remarks-text">{{ evaluation?.areas_for_improvement ?? 'Not specified.' }}</p>
-            </div>
-          </div>
-
-          <!-- PART VI: SUPERVISOR'S COMMENTS -->
-          <div class="part-header">
-            <span class="part-num">PART VI</span>
-            <span class="part-label">Supervisor's Comments</span>
-          </div>
-          <div class="remarks-section">
-            <p class="remarks-text">{{ evaluation?.remarks ?? 'No additional comments provided.' }}</p>
-          </div>
-
-          <!-- PART VII: RECOMMENDATION -->
-          <div class="part-header">
-            <span class="part-num">PART VII</span>
-            <span class="part-label">Recommendation</span>
-          </div>
-          <div class="recommendation-row">
-            <div class="rec-option" [class.rec-active]="isRecommendationActive('highly_recommended')">
-              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-              <span class="rec-label">Highly Recommended</span>
-            </div>
-            <div class="rec-option" [class.rec-active]="isRecommendationActive('recommended')">
-              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-              <span class="rec-label">Recommended</span>
-            </div>
-            <div class="rec-option" [class.rec-active]="isRecommendationActive('recommended_with_reservations')">
-              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-              <span class="rec-label">Recommended with Reservations</span>
-            </div>
-            <div class="rec-option" [class.rec-active]="isRecommendationActive('not_recommended')">
-              <span class="rec-check"><i class="fa-solid fa-check"></i></span>
-              <span class="rec-label">Not Recommended</span>
-            </div>
-          </div>
-
-          <!-- PART VIII: CERTIFICATION & SIGNATURE -->
-          <div class="part-header">
-            <span class="part-num">PART VIII</span>
-            <span class="part-label">Certification &amp; Signature</span>
-          </div>
-          <div class="cert-section">
-            <p class="cert-statement">
-              I hereby certify that the above ratings and remarks represent an honest, objective, and fair assessment of the intern's performance during the official On-the-Job Training period. This document has been prepared in good faith and in accordance with the OJT program guidelines of <strong>{{ SCHOOL }}</strong>.
-            </p>
-            <div class="cert-details-row">
-              <div class="cd-item">
-                <span class="cd-key">Training Venue</span>
-                <span class="cd-val">{{ supervisor?.company_name ?? SCHOOL }}</span>
+            <div class="recommendation-row">
+              <div class="rec-option" [class.rec-active]="isRecommendationActive('highly_recommended')">
+                <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+                <span class="rec-label">Highly Recommended</span>
               </div>
-              <div class="cd-item">
-                <span class="cd-key">Training Period</span>
-                <span class="cd-val">{{ getEvaluationPeriod() }}</span>
+              <div class="rec-option" [class.rec-active]="isRecommendationActive('recommended')">
+                <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+                <span class="rec-label">Recommended</span>
               </div>
-              <div class="cd-item">
-                <span class="cd-key">Date of Evaluation</span>
-                <span class="cd-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
+              <div class="rec-option" [class.rec-active]="isRecommendationActive('recommended_with_reservations')">
+                <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+                <span class="rec-label">Recommended with Reservations</span>
+              </div>
+              <div class="rec-option" [class.rec-active]="isRecommendationActive('not_recommended')">
+                <span class="rec-check"><i class="fa-solid fa-check"></i></span>
+                <span class="rec-label">Not Recommended</span>
               </div>
             </div>
-          </div>
 
-          <!-- SIGNATURE BLOCKS -->
-          <div class="sig-row">
-
-            <!-- Supervisor -->
-            <div class="sig-block">
-              <div class="sig-canvas">
-                <img *ngIf="supervisorEsigB64" [src]="supervisorEsigB64" class="sig-img" alt="Supervisor Signature">
-                <img *ngIf="!supervisorEsigB64 && evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
-                <div *ngIf="!supervisorEsigB64 && !evaluation?.signature_data" class="sig-placeholder"><i class="fa-solid fa-pen-nib"></i></div>
-              </div>
-              <div class="sig-line"></div>
-              <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
-              <div class="sig-title">{{ supervisor?.position ?? 'Supervisor' }}</div>
-              <div class="sig-sub-title">{{ supervisor?.company_name ?? SCHOOL }}</div>
-              <div class="sig-label">Evaluating Supervisor</div>
+            <!-- PART VIII: CERTIFICATION & SIGNATURE -->
+            <div class="part-header">
+              <span class="part-num">PART VIII</span>
+              <span class="part-label">Certification &amp; Signature</span>
             </div>
-
-            <!-- Intern -->
-            <div class="sig-block">
-              <ng-container *ngIf="evaluation?.intern_signature && !resigning; else internDrawBlock">
-                <div class="sig-canvas">
-                  <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
+            <div class="cert-section">
+              <p class="cert-statement">
+                I hereby certify that the above ratings and remarks represent an honest, objective, and fair assessment of the intern's performance during the official On-the-Job Training period. This document has been prepared in good faith and in accordance with the OJT program guidelines of <strong>{{ SCHOOL }}</strong>.
+              </p>
+              <div class="cert-details-row">
+                <div class="cd-item">
+                  <span class="cd-key">Training Venue</span>
+                  <span class="cd-val">{{ supervisor?.company_name ?? SCHOOL }}</span>
                 </div>
-                <button class="clear-btn-sm" style="margin-top:8px;" (click)="startResign()">
-                  <i class="fa-solid fa-rotate-left"></i> Re-sign
-                </button>
-              </ng-container>
+                <div class="cd-item">
+                  <span class="cd-key">Training Period</span>
+                  <span class="cd-val">{{ getEvaluationPeriod() }}</span>
+                </div>
+                <div class="cd-item">
+                  <span class="cd-key">Date of Evaluation</span>
+                  <span class="cd-val">{{ formatDate(evaluation?.evaluated_at ?? '') }}</span>
+                </div>
+              </div>
+            </div>
 
-              <ng-template #internDrawBlock>
-                <div class="intern-sig-pad-wrap" id="internSigSection">
-                  <div class="sig-mode-tabs">
-                    <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
-                      <i class="fa-solid fa-pen-nib"></i> Draw
-                    </button>
-                    <button class="sig-tab-btn" [class.active]="signatureMode === 'upload'" (click)="setSignatureMode('upload')">
-                      <i class="fa-solid fa-image"></i> Upload
-                    </button>
+            <!-- SIGNATURE BLOCKS -->
+            <div class="sig-row">
+
+              <!-- Supervisor -->
+              <div class="sig-block">
+                <div class="sig-canvas">
+                  <img *ngIf="supervisorEsigB64" [src]="supervisorEsigB64" class="sig-img" alt="Supervisor Signature">
+                  <img *ngIf="!supervisorEsigB64 && evaluation?.signature_data" [src]="evaluation?.signature_data" class="sig-img" alt="Supervisor Signature">
+                  <div *ngIf="!supervisorEsigB64 && !evaluation?.signature_data" class="sig-placeholder"><i class="fa-solid fa-pen-nib"></i></div>
+                </div>
+                <div class="sig-line"></div>
+                <div class="sig-fullname">{{ supervisor?.first_name }} {{ supervisor?.last_name }}</div>
+                <div class="sig-title">{{ supervisor?.position ?? 'Supervisor' }}</div>
+                <div class="sig-sub-title">{{ supervisor?.company_name ?? SCHOOL }}</div>
+                <div class="sig-label">Evaluating Supervisor</div>
+              </div>
+
+              <!-- Intern -->
+              <div class="sig-block">
+                <ng-container *ngIf="evaluation?.intern_signature && !resigning; else internDrawBlock">
+                  <div class="sig-canvas">
+                    <img [src]="evaluation?.intern_signature" class="sig-img" alt="Intern Signature">
                   </div>
+                  <button class="clear-btn-sm no-print" style="margin-top:8px;" (click)="startResign()">
+                    <i class="fa-solid fa-rotate-left"></i> Re-sign
+                  </button>
+                </ng-container>
 
-                  <div class="sig-wrapper" *ngIf="signatureMode === 'draw'">
-                    <canvas id="internSigCanvas" width="280" height="90"
-                      (mousedown)="onMouseDown($event)"
-                      (mousemove)="onMouseMove($event)"
-                      (mouseup)="onMouseUp()"
-                      (mouseleave)="onMouseLeave()"
-                      (touchstart)="onTouchStart($event)"
-                      (touchmove)="onTouchMove($event)"
-                      (touchend)="onTouchEnd()">
-                    </canvas>
-                    <div class="sig-placeholder" *ngIf="!hasInternSig">
-                      <i class="fa-solid fa-pen-nib"></i> Sign here
-                    </div>
-                  </div>
-
-                  <div class="sig-upload-area" *ngIf="signatureMode === 'upload'">
-                    <input type="file" id="internSigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                      style="display:none" (change)="onSignatureImageUpload($event)">
-                    <div *ngIf="!hasInternSig" class="sig-upload-placeholder" (click)="triggerFileInput()">
-                      <i class="fa-solid fa-cloud-arrow-up"></i>
-                      <span>Upload signature image</span>
-                    </div>
-                    <div *ngIf="hasInternSig" class="sig-upload-preview">
-                      <canvas id="internSigCanvas" width="280" height="90" style="pointer-events:none"></canvas>
-                      <button class="clear-btn-sm" (click)="clearInternCanvas()">
-                        <i class="fa-solid fa-eraser"></i> Remove
+                <ng-template #internDrawBlock>
+                  <div class="intern-sig-pad-wrap" id="internSigSection">
+                    <div class="sig-mode-tabs">
+                      <button class="sig-tab-btn" [class.active]="signatureMode === 'draw'" (click)="setSignatureMode('draw')">
+                        <i class="fa-solid fa-pen-nib"></i> Draw
+                      </button>
+                      <button class="sig-tab-btn" [class.active]="signatureMode === 'upload'" (click)="setSignatureMode('upload')">
+                        <i class="fa-solid fa-image"></i> Upload
                       </button>
                     </div>
-                  </div>
 
-                  <div class="intern-sig-actions">
-                    <button class="clear-btn-sm" *ngIf="hasInternSig && signatureMode === 'draw'" (click)="clearInternCanvas()">
-                      <i class="fa-solid fa-eraser"></i> Clear
-                    </button>
-                    <button class="btn-save-sig" [disabled]="!hasInternSig || savingSig" (click)="saveInternSignature()">
-                      <i class="fa-solid fa-floppy-disk" *ngIf="!savingSig"></i>
-                      <i class="fa fa-spinner fa-spin" *ngIf="savingSig"></i>
-                      {{ savingSig ? 'Saving…' : 'Save Signature' }}
-                    </button>
-                  </div>
+                    <div class="sig-wrapper" *ngIf="signatureMode === 'draw'">
+                      <canvas id="internSigCanvas" width="280" height="90"
+                        (mousedown)="onMouseDown($event)"
+                        (mousemove)="onMouseMove($event)"
+                        (mouseup)="onMouseUp()"
+                        (mouseleave)="onMouseLeave()"
+                        (touchstart)="onTouchStart($event)"
+                        (touchmove)="onTouchMove($event)"
+                        (touchend)="onTouchEnd()">
+                      </canvas>
+                      <div class="sig-placeholder" *ngIf="!hasInternSig">
+                        <i class="fa-solid fa-pen-nib"></i> Sign here
+                      </div>
+                    </div>
 
-                  <div class="sig-hint" *ngIf="!hasInternSig">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    Required before downloading
-                  </div>
-                </div>
-              </ng-template>
+                    <div class="sig-upload-area" *ngIf="signatureMode === 'upload'">
+                      <input type="file" id="internSigFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                        style="display:none" (change)="onSignatureImageUpload($event)">
+                      <div *ngIf="!hasInternSig" class="sig-upload-placeholder" (click)="triggerFileInput()">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload signature image</span>
+                      </div>
+                      <div *ngIf="hasInternSig" class="sig-upload-preview">
+                        <canvas id="internSigCanvas" width="280" height="90" style="pointer-events:none"></canvas>
+                        <button class="clear-btn-sm" (click)="clearInternCanvas()">
+                          <i class="fa-solid fa-eraser"></i> Remove
+                        </button>
+                      </div>
+                    </div>
 
-              <div class="sig-line"></div>
-              <div class="sig-fullname">{{ getFullName() }}</div>
-             <!--- <div class="sig-title">{{ student?.student_id }}</div>---->
-              <div class="sig-sub-title">{{ student?.course }}</div>
-              <div class="sig-label">OJT Intern</div>
+                    <div class="intern-sig-actions">
+                      <button class="clear-btn-sm" *ngIf="hasInternSig && signatureMode === 'draw'" (click)="clearInternCanvas()">
+                        <i class="fa-solid fa-eraser"></i> Clear
+                      </button>
+                      <button class="btn-save-sig" [disabled]="!hasInternSig || savingSig" (click)="saveInternSignature()">
+                        <i class="fa-solid fa-floppy-disk" *ngIf="!savingSig"></i>
+                        <i class="fa fa-spinner fa-spin" *ngIf="savingSig"></i>
+                        {{ savingSig ? 'Saving…' : 'Save Signature' }}
+                      </button>
+                    </div>
+
+                    <div class="sig-hint" *ngIf="!hasInternSig">
+                      <i class="fa-solid fa-triangle-exclamation"></i>
+                      Required before downloading
+                    </div>
+                  </div>
+                </ng-template>
+
+                <div class="sig-line"></div>
+                <div class="sig-fullname">{{ getFullName() }}</div>
+                <div class="sig-sub-title">{{ student?.course }}</div>
+                <div class="sig-label">OJT Intern</div>
+              </div>
+
             </div>
+            <!-- end sig-row -->
 
           </div>
-          <!-- end sig-row -->
+          <!-- end doc-body -->
 
-        </div>
-        <!-- end doc-body -->
-
-        <!-- FOOTER -->
-        <div class="doc-footer">
-          <div class="footer-inner">
-            <span>{{ SCHOOL }} · On-the-Job Training Program · {{ AY }}</span>
-            <span>This is an official digitally-issued appraisal document. Page 1 of 1.</span>
+          <!-- FOOTER -->
+          <div class="doc-footer">
+            <div class="footer-inner">
+              <span>{{ SCHOOL }} · On-the-Job Training Program · {{ AY }}</span>
+              <span>This is an official digitally-issued appraisal document. Page 1 of 1.</span>
+            </div>
           </div>
+
         </div>
+        <!-- end .eval-doc -->
 
       </div>
-      <!-- end .eval-doc -->
+      <!-- end viewingEvaluation wrapper -->
 
     </div>
   </div>
