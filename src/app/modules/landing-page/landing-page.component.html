@@ -13,8 +13,8 @@
         <li><a (click)="scrollTo('how'); closeMenu()">How It Works</a></li>
         <li><a (click)="scrollTo('contact'); closeMenu()">Contact</a></li>
         <li class="nav-login-buttons">
-          <button class="btn-nav-login intern" (click)="closeMenu()">Intern Login</button>
-          <button class="btn-nav-login supervisor" (click)="closeMenu()">Supervisor Login</button>
+        <button class="btn-nav-login intern" (click)="goTo('/intern-login'); closeMenu()">Intern Login</button>
+        <button class="btn-nav-login supervisor" (click)="goTo('/supervisor-login'); closeMenu()">Supervisor Login</button>
         </li>
       </ul>
   
@@ -40,10 +40,10 @@
         A unified platform for QR attendance tracking, digital logbooks, supervisor evaluations, and auto-generated DTR &amp; weekly reports — designed for OJT students, cooperating teachers, and school admins.
       </p>
       <div class="hero-actions">
-        <button class="btn-primary" (click)="scrollTo('contact')">
+      <button class="btn-primary" (click)="scrollTo('contact')">
           Get Started <span class="arrow">→</span>
         </button>
-        <button class="btn-outline apply" (click)="scrollTo('contact')">
+        <button class="btn-outline apply" (click)="goTo('/intern-register')">
           Apply Now <span class="arrow">→</span>
         </button>
       </div>
@@ -501,7 +501,7 @@
         Join <strong>{{ totalActiveUsers.toLocaleString() }}+</strong> OJT students already using OJTify to track attendance, log hours, and submit reports seamlessly.
       </p>
       <div class="cta-actions">
-        <button class="btn-cta-main large">Start Your Application <span class="arrow">→</span></button>
+        <button class="btn-cta-main large" (click)="goTo('/intern-register')">Start Your Application <span class="arrow">→</span></button>
         <p class="cta-process-text">Transform your OJT experience with digital attendance, automated reports, and seamless supervisor communication.</p>
         <div class="cta-key-features">
           <div class="feature-item">
@@ -544,17 +544,17 @@
           <a (click)="scrollTo('how')">How It Works</a>
           <a (click)="scrollTo('contact')">Contact</a>
         </div>
+       <div class="footer-col">
+        <div class="footer-col-title">Login</div>
+        <a (click)="goTo('/intern-login')">Intern / Student</a>
+        <a (click)="goTo('/supervisor-login')">Supervisor</a>
+        <a (click)="goTo('/admin-login')">Admin</a>
+      </div>
         <div class="footer-col">
-          <div class="footer-col-title">Login</div>
-          <a href="#">Intern / Student</a>
-          <a href="#">Supervisor</a>
-          <a href="#">Admin</a>
-        </div>
-        <div class="footer-col">
-          <div class="footer-col-title">Legal</div>
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms of Service</a>
-        </div>
+  <div class="footer-col-title">Legal</div>
+  <a (click)="openModal('privacy')">Privacy Policy</a>
+  <a (click)="openModal('terms')">Terms of Service</a>
+</div>
       </div>
     </div>
     <div class="footer-bottom">
@@ -568,3 +568,54 @@
       </div>
     </div>
   </footer>
+
+  <!-- ===== MODALS ===== -->
+<div class="modal-backdrop" *ngIf="activeModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">{{ activeModal === 'privacy' ? 'Privacy Policy' : 'Terms of Service' }}</h2>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <ng-container *ngIf="activeModal === 'privacy'">
+        <p><strong>Last updated: April 28, 2026</strong></p>
+        <h3>1. Information We Collect</h3>
+        <p>OJTify collects personal information you provide during registration, including your name, email address, student ID, school name, and OJT-related documents (resume, endorsement letter, certificate of enrollment).</p>
+        <h3>2. How We Use Your Information</h3>
+        <p>Your data is used solely to manage your OJT program — tracking attendance, logbook entries, evaluations, and generating DTR and weekly reports. We do not sell or share your data with third parties.</p>
+        <h3>3. Data Storage</h3>
+        <p>All data is stored securely via Appwrite cloud infrastructure. Uploaded documents are stored in encrypted storage buckets accessible only to authorized users.</p>
+        <h3>4. Access Control</h3>
+        <p>Only you, your assigned cooperating teacher/supervisor, and school admins can access your OJT records. All access is role-based and authenticated.</p>
+        <h3>5. Data Retention</h3>
+        <p>Your records are retained for the duration of your OJT program. Completed OJT records may be archived for school administrative purposes.</p>
+        <h3>6. Your Rights</h3>
+        <p>You may request correction or deletion of your data by contacting your school administrator.</p>
+        <h3>7. Contact</h3>
+        <p>For privacy concerns, contact the OJTify admin at your school or reach the development team via the Contact section of this page.</p>
+      </ng-container>
+
+      <ng-container *ngIf="activeModal === 'terms'">
+        <p><strong>Last updated: April 28, 2026</strong></p>
+        <h3>1. Acceptance of Terms</h3>
+        <p>By registering and using OJTify, you agree to these Terms of Service. If you do not agree, do not use the platform.</p>
+        <h3>2. Eligibility</h3>
+        <p>OJTify is exclusively for enrolled OJT students, cooperating teachers, and administrators of partner schools (currently Olongapo City Elementary School). Unauthorized access is prohibited.</p>
+        <h3>3. User Responsibilities</h3>
+        <p>You are responsible for maintaining the confidentiality of your account credentials. All logbook entries, attendance records, and submitted documents must be truthful and accurate. Falsification of records is grounds for immediate account suspension.</p>
+        <h3>4. Acceptable Use</h3>
+        <p>You agree not to misuse the platform, attempt unauthorized access, disrupt service, or submit false or misleading information. OJTify is to be used solely for legitimate OJT management purposes.</p>
+        <h3>5. Intellectual Property</h3>
+        <p>OJTify and all its components are developed by NexDev (Ar-jay Stephenbel P. San Jose &amp; John Adrian F. Fontelera) as a capstone project. Unauthorized reproduction or redistribution is prohibited.</p>
+        <h3>6. Limitation of Liability</h3>
+        <p>OJTify is provided as-is. The developers are not liable for data loss, service interruptions, or any damages arising from use of the platform beyond what is reasonably preventable.</p>
+        <h3>7. Modifications</h3>
+        <p>These terms may be updated at any time. Continued use of OJTify after changes constitutes acceptance of the updated terms.</p>
+        <h3>8. Governing Law</h3>
+        <p>These terms are governed by the laws of the Republic of the Philippines.</p>
+      </ng-container>
+
+    </div>
+  </div>
+</div>

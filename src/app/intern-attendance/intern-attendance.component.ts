@@ -163,20 +163,24 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  async loadTodayStatus() {
-    try {
-      const now   = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-      const res   = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.ATTENDANCE_COL, [Query.limit(500)]
-      );
-      const todayRecord = (res.documents as any[])
-        .find(d => d.student_id === this.currentUserId && d.date === today);
-      this.todayStatus = todayRecord ? todayRecord.status : 'Absent';
-    } catch (error: any) {
-      console.error('Failed to load today status:', error.message);
-    }
+ async loadTodayStatus() {
+  try {
+    const now   = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const res   = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, this.appwrite.ATTENDANCE_COL, [Query.limit(500)]
+    );
+    const todayRecord = (res.documents as any[])
+      .find(d => d.student_id === this.currentUserId && d.date === today);
+
+    this.todayStatus = todayRecord 
+      ? todayRecord.status 
+      : (now.getHours() >= 17 ? 'Absent' : 'No Attendance Record');
+
+  } catch (error: any) {
+    console.error('Failed to load today status:', error.message);
   }
+}
 
   async loadInternStartDate() {
     try {
@@ -203,72 +207,81 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     return Math.min(parseFloat(((this.completedHours / this.requiredHours) * 100).toFixed(1)), 100);
   }
 
-  async loadAttendance() {
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.ATTENDANCE_COL, [Query.limit(500)]
-      );
-      const docs      = res.documents as any[];
-      const myRecords = docs.filter(d => d.student_id === this.currentUserId);
+ async loadAttendance() {
+  try {
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, this.appwrite.ATTENDANCE_COL, [Query.limit(500)]
+    );
+    const docs      = res.documents as any[];
+    const myRecords = docs.filter(d => d.student_id === this.currentUserId);
 
-      this.attendanceStatus  = {};
-      this.attendanceRecords = {};
-      this.allRecords        = [];
+    this.attendanceStatus  = {};
+    this.attendanceRecords = {};
+    this.allRecords        = [];
 
-      const recordsByDate: { [dateStr: string]: any } = {};
+    const recordsByDate: { [dateStr: string]: any } = {};
 
-      myRecords.forEach(record => {
-        const parts       = record.date.split('-');
-        const recordYear  = parseInt(parts[0], 10);
-        const recordMonth = parseInt(parts[1], 10) - 1;
-        const recordDay   = parseInt(parts[2], 10);
-        recordsByDate[record.date] = record;
-        if (recordMonth === this.month && recordYear === this.year) {
-          this.attendanceStatus[recordDay]  = record.status;
-          this.attendanceRecords[recordDay] = record;
-        }
-        this.allRecords.push({
-          $id:       record.$id,
-          date:      record.date,
-          day:       new Date(recordYear, recordMonth, recordDay)
-                       .toLocaleString('default', { weekday: 'short' }),
-          timeIn:    record.time_in         || '—',
-          timeOut:   record.time_out        || '—',
-          status:    record.status === 'Present' ? 'Present' : 'Absent',
-          scannedBy: record.scanned_by_name || '—'
-        });
-      });
-
-      const now = new Date();
-      now.setHours(0,0,0,0);
-      const cursor = this.internStartDate
-        ? new Date(this.internStartDate)
-        : new Date(now.getFullYear(), 0, 1);
-
-      while (cursor < now) {
-        const dow = cursor.getDay();
-        if (dow !== 0 && dow !== 6) {
-          const yyyy    = cursor.getFullYear();
-          const mm      = String(cursor.getMonth()+1).padStart(2,'0');
-          const dd      = String(cursor.getDate()).padStart(2,'0');
-          const dateStr = `${yyyy}-${mm}-${dd}`;
-          if (!recordsByDate[dateStr]) {
-            this.allRecords.push({
-              date:      dateStr,
-              day:       cursor.toLocaleString('default', { weekday: 'short' }),
-              timeIn:    '—', timeOut: '—', status: 'Absent', scannedBy: '—'
-            });
-          }
-        }
-        cursor.setDate(cursor.getDate() + 1);
+    myRecords.forEach(record => {
+      const parts       = record.date.split('-');
+      const recordYear  = parseInt(parts[0], 10);
+      const recordMonth = parseInt(parts[1], 10) - 1;
+      const recordDay   = parseInt(parts[2], 10);
+      recordsByDate[record.date] = record;
+      if (recordMonth === this.month && recordYear === this.year) {
+        this.attendanceStatus[recordDay]  = record.status;
+        this.attendanceRecords[recordDay] = record;
       }
+      this.allRecords.push({
+        $id:       record.$id,
+        date:      record.date,
+        day:       new Date(recordYear, recordMonth, recordDay)
+                     .toLocaleString('default', { weekday: 'short' }),
+        timeIn:    record.time_in         || '—',
+        timeOut:   record.time_out        || '—',
+        status:    record.status === 'Present' ? 'Present' : 'Absent',
+        scannedBy: record.scanned_by_name || '—'
+      });
+    });
 
-      this.allRecords.sort((a, b) => a.date.localeCompare(b.date));
-      this.applyReportFilters();
-    } catch (error: any) {
-      console.error('Failed to load attendance:', error.message);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const currentTime = new Date();
+    const isPast5PM = currentTime.getHours() >= 17;
+
+    // Include today if it's past 5PM
+    const loopEnd = isPast5PM
+      ? new Date(now.getTime() + 86400000)
+      : now;
+
+    const cursor = this.internStartDate
+      ? new Date(this.internStartDate)
+      : new Date(now.getFullYear(), 0, 1);
+
+    while (cursor < loopEnd) {
+      const dow = cursor.getDay();
+      if (dow !== 0 && dow !== 6) {
+        const yyyy    = cursor.getFullYear();
+        const mm      = String(cursor.getMonth()+1).padStart(2,'0');
+        const dd      = String(cursor.getDate()).padStart(2,'0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        if (!recordsByDate[dateStr]) {
+          this.allRecords.push({
+            date:      dateStr,
+            day:       cursor.toLocaleString('default', { weekday: 'short' }),
+            timeIn:    '—', timeOut: '—', status: 'Absent', scannedBy: '—'
+          });
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1);
     }
+
+    this.allRecords.sort((a, b) => a.date.localeCompare(b.date));
+    this.applyReportFilters();
+  } catch (error: any) {
+    console.error('Failed to load attendance:', error.message);
   }
+}
 
   get monthName() {
     return new Date(this.year, this.month).toLocaleString('default', { month: 'long' });
@@ -304,16 +317,28 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     await this.loadAttendance();
   }
 
-  isPastWeekdayWithNoRecord(day: number): boolean {
-    if (this.isWeekend(day)) return false;
-    const date = new Date(this.year, this.month, day);
-    const now  = new Date();
-    now.setHours(0,0,0,0);
-    if (date >= now) return false;
-    if (this.internStartDate && date < this.internStartDate) return false;
-    if (this.attendanceStatus[day]) return false;
-    return true;
+isPastWeekdayWithNoRecord(day: number): boolean {
+  if (this.isWeekend(day)) return false;
+  const date = new Date(this.year, this.month, day);
+  const now  = new Date();
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+
+  const isToday = date.getTime() === todayMidnight.getTime();
+
+  // ✅ For today specifically: only mark absent if it's past 5PM
+  if (isToday) {
+    const isPast5PM = now.getHours() >= 17;
+    if (!isPast5PM) return false;
+    return !this.attendanceStatus[day]; // absent if no record
   }
+
+  // For past days (before today)
+  if (date >= todayMidnight) return false;
+  if (this.internStartDate && date < this.internStartDate) return false;
+  if (this.attendanceStatus[day]) return false;
+  return true;
+}
 
   openAttendance(day: number) {
     const date = new Date(this.year, this.month, day);
@@ -872,7 +897,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     // 👉 SUPERVISOR TITLE — Shows job position (always "OJT Coordinator / Immediate Supervisor")
     //    Font: 6.5pt normal, color: gray
     doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(GRAY);
-    doc.text('OJT Coordinator / Immediate Supervisor', sigX + sigBlockWidth / 2, nameY + 3, { align: 'center' });
+    doc.text('Supervisor/Cooperating Teacher', sigX + sigBlockWidth / 2, nameY + 3, { align: 'center' });
 
     // 👉 DOWNLOAD DATE — Shows the current date when PDF is generated
     //    Font: 6.5pt normal, color: dark gray

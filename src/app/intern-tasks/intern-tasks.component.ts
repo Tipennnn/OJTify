@@ -936,60 +936,102 @@ openAddLogbook() {
   // ════════════════════════════════════════════════════════
   //  WEEKLY REPORT PDF
   // ════════════════════════════════════════════════════════
-  async generateWeeklyReport() {
+ async generateWeeklyReport() {
   if (!this.reportWeekStart || !this.reportWeekEnd) {
-    Swal.fire({ icon: 'warning', title: 'Select a date range', text: 'Please enter the week start and end dates.', confirmButtonColor: '#2563eb' }); return;
+    Swal.fire({ icon: 'warning', title: 'Select a date range', text: 'Please enter the week start and end dates.', confirmButtonColor: '#2563eb' });
+    return;
   }
   this.reportGenerating = true;
   try {
     const start = new Date(this.reportWeekStart);
     const end   = new Date(this.reportWeekEnd);
     end.setHours(23, 59, 59, 999);
-
-    const weekEntries = this.logbookEntries.filter(e => { const d = new Date(e.entry_date); return d >= start && d <= end; });
+ 
+    const weekEntries = this.logbookEntries.filter(e => {
+      const d = new Date(e.entry_date);
+      return d >= start && d <= end;
+    });
+ 
     if (weekEntries.length === 0) {
       Swal.fire({ icon: 'info', title: 'No entries found', text: 'There are no logbook entries for the selected date range.', confirmButtonColor: '#2563eb' });
-      this.reportGenerating = false; return;
+      this.reportGenerating = false;
+      return;
     }
-
-    const sortedEntries = [...weekEntries].sort((a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime());
-
-    const allPhotosRes = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, 'logbook_photos');
-    const allPhotos    = allPhotosRes.documents as any[];
-    const entryIds     = new Set(sortedEntries.map(e => e.$id));
-    const rangePhotos  = allPhotos.filter(p => entryIds.has(p.entry_id) && p.student_id === this.currentUserId);
-
+ 
+    const sortedEntries = [...weekEntries].sort((a, b) =>
+      new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime()
+    );
+ 
+    // ── 1. Generate unique ref ──────────────────────────────────────────────
+    const ref = this.generateLogbookRefCode();
+    const weekLabel     = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    const generatedDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const verifyUrl     = `${window.location.origin}/verify/logbook/${encodeURIComponent(ref)}`;
+ 
+    // ── 2. Save logbook_records doc BEFORE building PDF ────────────────────
+    try {
+      const { ID } = await import('appwrite');
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        'logbook_records',
+        ID.unique(),
+        {
+          ref:            ref,
+          student_id:     this.currentUserId,
+          intern_name:    this.currentUserName || '',
+          week_start:     this.reportWeekStart,
+          week_end:       this.reportWeekEnd,
+          period_label:   weekLabel,
+          total_entries:  sortedEntries.length,
+          generated_at:   new Date().toISOString(),
+        }
+      );
+    } catch (err: any) {
+      console.error('Failed to save logbook record — PDF continues anyway:', err.message);
+    }
+ 
+    // ── 3. Build QR base64 ──────────────────────────────────────────────────
+    let qrBase64: string | null = null;
+    try {
+      qrBase64 = await this.buildQrBase64(verifyUrl, 160);
+    } catch { qrBase64 = null; }
+ 
+    // ── 4. Load photos ──────────────────────────────────────────────────────
+    const allPhotosRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID, 'logbook_photos'
+    );
+    const allPhotos   = allPhotosRes.documents as any[];
+    const entryIds    = new Set(sortedEntries.map(e => e.$id));
+    const rangePhotos = allPhotos.filter(
+      p => entryIds.has(p.entry_id) && p.student_id === this.currentUserId
+    );
+ 
     const toBase64 = (url: string): Promise<string> =>
       fetch(url).then(r => r.blob()).then(blob => new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload  = () => res(reader.result as string);
-        reader.onerror = rej;
+        const reader     = new FileReader();
+        reader.onload    = () => res(reader.result as string);
+        reader.onerror   = rej;
         reader.readAsDataURL(blob);
       }));
-
+ 
     interface PhotoItem { b64: string; name: string; entryDate: string; uploadedAt: string; }
     const photoMap: Record<string, PhotoItem[]> = {};
-
+ 
     await Promise.allSettled(rangePhotos.map(async (photo) => {
       try {
         const b64 = await toBase64(this.getPhotoUrl(photo.file_id));
         const entry = sortedEntries.find(e => e.$id === photo.entry_id);
-        const entryDate = entry ? new Date(entry.entry_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
-        const uploadedAt = photo.uploaded_at || '';
+        const entryDate = entry
+          ? new Date(entry.entry_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+          : '';
         if (!photoMap[photo.entry_id]) photoMap[photo.entry_id] = [];
-        photoMap[photo.entry_id].push({ b64, name: photo.file_name, entryDate, uploadedAt });
-      } catch { /* skip */ }
+        photoMap[photo.entry_id].push({ b64, name: photo.file_name, entryDate, uploadedAt: photo.uploaded_at || '' });
+      } catch { /* skip failed photos */ }
     }));
-
-    const totalEntries  = sortedEntries.length;
-    const weekLabel     = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
-    const generatedDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-    const allPhotoItems: PhotoItem[] = [];
-    for (const entry of sortedEntries) {
-      allPhotoItems.push(...(photoMap[entry.$id!] || []));
-    }
-
+ 
+    const totalEntries = sortedEntries.length;
+ 
+    // ── 5. Build table rows ─────────────────────────────────────────────────
     const rows = sortedEntries.map(e => {
       const photoCount = (photoMap[e.$id!] || []).length;
       return `
@@ -1004,11 +1046,12 @@ openAddLogbook() {
         </tr>
       `;
     }).join('');
-
+ 
+    // ── 6. Build page 1 HTML ────────────────────────────────────────────────
     const page1 = document.createElement('div');
     page1.id = '__pdf-page1';
     page1.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
-
+ 
     page1.innerHTML = `
       <div style="text-align:center; padding-bottom:14px; border-bottom:3px solid #2563eb; margin-bottom:4px;">
         <div style="font-size:15px; font-weight:700; color:#1e293b; letter-spacing:0.2px;">Weekly OJT Accomplishment Report</div>
@@ -1045,7 +1088,7 @@ openAddLogbook() {
         <tbody>${rows}</tbody>
       </table>
     `;
-
+ 
     const style1 = document.createElement('style');
     style1.textContent = `
       #__pdf-page1 table tbody tr { border-bottom:1px solid #e2e8f0; }
@@ -1056,45 +1099,153 @@ openAddLogbook() {
     `;
     page1.prepend(style1);
     document.body.appendChild(page1);
-
-    Swal.fire({ title: 'Generating PDF…', html: '<p style="font-size:13px;color:#6b7280;">Please wait while your report is being prepared.</p>', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+ 
+    Swal.fire({
+      title: 'Generating PDF…',
+      html: '<p style="font-size:13px;color:#6b7280;">Please wait while your report is being prepared.</p>',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading()
+    });
     await new Promise(r => setTimeout(r, 200));
-
+ 
     const canvas1 = await html2canvas(page1, {
       scale: 2, useCORS: true, allowTaint: true,
       backgroundColor: '#ffffff', logging: false,
       width: 794, height: page1.scrollHeight, windowWidth: 794
     });
-
-    const A4_W = 210; const A4_H = 297;
-    const MARGIN_TOP = 15; const MARGIN_BOT = 5;
-    const CONTENT_H  = A4_H - MARGIN_TOP - MARGIN_BOT;
-
+ 
+    // ── 7. PDF setup ────────────────────────────────────────────────────────
+    const A4_W      = 210;
+    const A4_H      = 297;
+    const MARGIN_T  = 15;
+    const MARGIN_B  = 5;
+    const FOOTER_H  = 24; // mm — reserved for QR footer band
+    const CONTENT_H = A4_H - MARGIN_T - MARGIN_B - FOOTER_H;
+ 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-
+ 
+    // ── QR footer band drawn on each page ───────────────────────────────────
+    const QR_MM     = 18;
+    const BAND_H    = FOOTER_H;
+    const BAND_Y    = A4_H - BAND_H - 3;
+    const BAND_X    = 12;
+    const BAND_W    = A4_W - 24;
+ 
+    const drawQrFooter = () => {
+      // Background
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(BAND_X, BAND_Y, BAND_W, BAND_H, 'F');
+ 
+      // Top border line
+      pdf.setDrawColor(209, 213, 219);
+      pdf.setLineWidth(0.3);
+      pdf.line(BAND_X, BAND_Y, BAND_X + BAND_W, BAND_Y);
+ 
+      // Green left accent (logbook uses green to distinguish from DTR blue)
+      pdf.setFillColor(5, 150, 105);
+      pdf.rect(BAND_X, BAND_Y, 2, BAND_H, 'F');
+ 
+      // QR code box
+      const qrX = BAND_X + 5;
+      const qrY = BAND_Y + (BAND_H - QR_MM) / 2;
+ 
+      if (qrBase64) {
+        pdf.setFillColor(255, 255, 255);
+        pdf.setDrawColor(209, 213, 219);
+        pdf.setLineWidth(0.25);
+        pdf.roundedRect(qrX - 1, qrY - 1, QR_MM + 2, QR_MM + 2, 1.2, 1.2, 'FD');
+        pdf.addImage(qrBase64, 'PNG', qrX, qrY, QR_MM, QR_MM);
+      } else {
+        pdf.setFillColor(236, 253, 245);
+        pdf.setDrawColor(5, 150, 105);
+        pdf.roundedRect(qrX - 1, qrY - 1, QR_MM + 2, QR_MM + 2, 1.2, 1.2, 'FD');
+        pdf.setFontSize(5.5);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(5, 150, 105);
+        pdf.text('SCAN TO\nVERIFY', qrX + QR_MM / 2, qrY + QR_MM / 2 - 1, { align: 'center' });
+      }
+ 
+      const tx = qrX + QR_MM + 5;
+ 
+      // Label
+      pdf.setFontSize(5.8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('SCAN QR TO VERIFY LOGBOOK REPORT AUTHENTICITY', tx, BAND_Y + 5.5);
+ 
+      // Ref
+      pdf.setFontSize(6.5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Document Reference:', tx, BAND_Y + 10.5);
+      const refW = pdf.getTextWidth('Document Reference:  ');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(ref, tx + refW, BAND_Y + 10.5);
+ 
+      // Intern
+      pdf.setFontSize(6.2);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Intern:', tx, BAND_Y + 15.5);
+      const internW = pdf.getTextWidth('Intern:  ');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(this.currentUserName || '—', tx + internW, BAND_Y + 15.5);
+ 
+      // Verify URL
+      pdf.setFontSize(6.2);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Verify at:', tx, BAND_Y + 20);
+      const verW = pdf.getTextWidth('Verify at:  ');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(5, 150, 105);
+      const urlDisplay = verifyUrl.length > 72 ? verifyUrl.substring(0, 69) + '...' : verifyUrl;
+      pdf.text(urlDisplay, tx + verW, BAND_Y + 20);
+      pdf.setDrawColor(5, 150, 105);
+      pdf.setLineWidth(0.15);
+      pdf.line(tx + verW, BAND_Y + 21, tx + verW + pdf.getTextWidth(urlDisplay), BAND_Y + 21);
+    };
+ 
+    // ── 8. Canvas → pages helper ────────────────────────────────────────────
     const addCanvasWithMargins = (canvas: HTMLCanvasElement, isFirstPage: boolean) => {
       const pxPerMm = canvas.width / A4_W;
       const slicePx = Math.round(CONTENT_H * pxPerMm);
-      const mTopPx  = Math.round(MARGIN_TOP * pxPerMm);
+      const mTopPx  = Math.round(MARGIN_T  * pxPerMm);
       let srcY = 0; let first = isFirstPage;
+ 
       while (srcY < canvas.height) {
         if (!first) pdf.addPage();
         first = false;
+ 
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width  = canvas.width;
         pageCanvas.height = Math.round(A4_H * pxPerMm);
         const ctx = pageCanvas.getContext('2d')!;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+ 
         const srcH = Math.min(slicePx, canvas.height - srcY);
         ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, mTopPx, canvas.width, srcH);
         pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, A4_W, A4_H);
+ 
+        // Draw QR footer on this page
+        drawQrFooter();
+ 
         srcY += srcH;
       }
     };
-
+ 
     addCanvasWithMargins(canvas1, true);
-
+ 
+    // ── 9. Photos page ──────────────────────────────────────────────────────
+    const allPhotoItems: PhotoItem[] = [];
+    for (const entry of sortedEntries) {
+      allPhotoItems.push(...(photoMap[entry.$id!] || []));
+    }
+ 
     if (allPhotoItems.length > 0) {
       const photoRowsHtml = (() => {
         let html = '';
@@ -1103,32 +1254,44 @@ openAddLogbook() {
           const b = allPhotoItems[i + 1];
           html += `<div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start;">`;
           html += `<div style="flex:1;min-width:0;"><img src="${a.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${a.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${a.name}</div>${a.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${a.uploadedAt}</div>` : ''}</div>`;
-          if (b) { html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}</div>`; }
-          else { html += `<div style="flex:1;"></div>`; }
+          if (b) {
+            html += `<div style="flex:1;min-width:0;"><img src="${b.b64}" style="width:100%;border-radius:6px;border:1px solid #e2e8f0;display:block;max-height:200px;object-fit:cover;"><div style="font-size:9px;color:#2563eb;font-weight:600;margin-top:4px;">${b.entryDate}</div><div style="font-size:8px;color:#94a3b8;margin-top:1px;">${b.name}</div>${b.uploadedAt ? `<div style="font-size:8px;color:#c4b5fd;margin-top:1px;">⏱ ${b.uploadedAt}</div>` : ''}</div>`;
+          } else {
+            html += `<div style="flex:1;"></div>`;
+          }
           html += `</div>`;
         }
         return html;
       })();
-
+ 
       const page2 = document.createElement('div');
       page2.id = '__pdf-page2';
       page2.style.cssText = 'position:fixed;left:-9999px;top:0;width:714px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 40px 20px 40px;box-sizing:border-box;';
-      page2.innerHTML = `<div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:14px;"><div style="font-size:13px; font-weight:700; color:#1e293b;">Photo Evidence</div><div style="font-size:10px; color:#64748b; margin-top:2px;">Visual documentation of daily OJT activities</div></div>${photoRowsHtml}`;
+      page2.innerHTML = `
+        <div style="text-align:center; border-bottom:2px solid #2563eb; padding-bottom:10px; margin-bottom:14px;">
+          <div style="font-size:13px; font-weight:700; color:#1e293b;">Photo Evidence</div>
+          <div style="font-size:10px; color:#64748b; margin-top:2px;">Visual documentation of daily OJT activities</div>
+        </div>
+        ${photoRowsHtml}
+      `;
       document.body.appendChild(page2);
-
-      const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 714, height: page2.scrollHeight, windowWidth: 714 });
+ 
+      const canvas2 = await html2canvas(page2, {
+        scale: 2, useCORS: true, allowTaint: true,
+        backgroundColor: '#ffffff', logging: false,
+        width: 714, height: page2.scrollHeight, windowWidth: 714
+      });
       addCanvasWithMargins(canvas2, false);
       document.body.removeChild(page2);
     }
-
-    // ── Fetch supervisor info for signature ───────────────
+ 
+    // ── 10. Signature page ──────────────────────────────────────────────────
     let svName    = '';
     let svEsigB64 : string | null = null;
-
+ 
     try {
       const svRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL
       );
       const svDoc = (svRes.documents as any[])[0];
       if (svDoc) {
@@ -1138,10 +1301,7 @@ openAddLogbook() {
             const jwt = await this.appwrite.account.createJWT();
             const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${svDoc.esig_file_id}/view?project=${this.PROJECT_ID}`;
             const res = await fetch(url, {
-              headers: {
-                'X-Appwrite-JWT': jwt.jwt,
-                'X-Appwrite-Project': this.PROJECT_ID
-              }
+              headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID }
             });
             if (res.ok) {
               const blob = await res.blob();
@@ -1155,12 +1315,12 @@ openAddLogbook() {
           } catch { svEsigB64 = null; }
         }
       }
-    } catch { /* signature block will render blank */ }
-
+    } catch { /* signature block renders blank */ }
+ 
     const esigImgHtml = svEsigB64
       ? `<img src="${svEsigB64}" style="height:48px; max-width:160px; object-fit:contain; display:block; margin:0 auto;">`
       : `<div style="height:48px;"></div>`;
-
+ 
     const pageSig = document.createElement('div');
     pageSig.id = '__pdf-pagesig';
     pageSig.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;padding:20px 60px 20px 60px;box-sizing:border-box;';
@@ -1182,26 +1342,41 @@ openAddLogbook() {
       <div style="margin-top:32px; padding-top:10px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
         <div style="font-size:9px; color:#94a3b8;">Generated on ${generatedDate} &nbsp;·&nbsp; Confidential – For Official Use Only</div>
         <div style="font-size:9px; color:#2563eb; font-weight:600;">OJTify · Olongapo City Elementary School</div>
-      </div>`;
+      </div>
+    `;
     document.body.appendChild(pageSig);
-
-    const canvasSig = await html2canvas(pageSig, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false, width: 794, height: pageSig.scrollHeight, windowWidth: 794 });
+ 
+    const canvasSig = await html2canvas(pageSig, {
+      scale: 2, useCORS: true, allowTaint: true,
+      backgroundColor: '#ffffff', logging: false,
+      width: 794, height: pageSig.scrollHeight, windowWidth: 794
+    });
     addCanvasWithMargins(canvasSig, false);
     document.body.removeChild(pageSig);
     document.body.removeChild(page1);
-
+ 
     const fileName = `OJT-Logbook-${this.currentUserName.replace(/\s+/g, '-')}-${this.reportWeekStart}.pdf`;
     pdf.save(fileName);
-    Swal.fire({ icon: 'success', title: 'Downloaded!', text: `Saved as ${fileName}`, confirmButtonColor: '#2563eb', timer: 2500, showConfirmButton: false });
-
-  } catch (error: any) { Swal.fire({ icon: 'error', title: 'Report failed', text: error.message }); }
-  finally {
+ 
+    Swal.fire({
+      icon: 'success',
+      title: 'Downloaded!',
+      text: `Saved as ${fileName}`,
+      confirmButtonColor: '#2563eb',
+      timer: 2500,
+      showConfirmButton: false
+    });
+ 
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Report failed', text: error.message });
+  } finally {
     this.reportGenerating = false;
     document.getElementById('__pdf-page1')?.remove();
     document.getElementById('__pdf-page2')?.remove();
     document.getElementById('__pdf-pagesig')?.remove();
   }
 }
+ 
 
   formatEntryDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
@@ -1221,5 +1396,26 @@ getSupervisorPhotoUrl(supervisorId: string | undefined): string | null {
 getPendingPhotoUrl(file: File): string {
   return URL.createObjectURL(file);
 }
-
+private buildQrBase64(text: string, size: number): Promise<string> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const QRCode = await import('qrcode');
+      const lib    = (QRCode as any).default ?? QRCode;
+      const dataUrl: string = await lib.toDataURL(text, {
+        width: size, margin: 1,
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      resolve(dataUrl);
+    } catch (err) { reject(err); }
+  });
+}
+private generateLogbookRefCode(): string {
+  const now  = new Date();
+  const y    = now.getFullYear();
+  const m    = String(now.getMonth() + 1).padStart(2, '0');
+  const d    = String(now.getDate()).padStart(2, '0');
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const id   = this.currentUserId.replace(/\D/g, '').slice(-4).padStart(4, '0');
+  return `LBK-${y}${m}${d}-${id}-${rand}`;
+}
 }

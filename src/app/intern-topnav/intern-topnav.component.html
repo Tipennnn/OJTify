@@ -191,32 +191,38 @@
             <p class="cert-body-para" [innerHTML]="getBodyText()"></p>
             <p class="cert-given-text">{{ getGivenText() }}</p>
 
-            <div class="cert-sig-row">
-              <div class="cert-sig-block">
-                <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">
-                <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
-                  {{ certTemplate.leftSignatoryName | uppercase }}
-                </p>
-                <div class="cert-sig-underline"></div>
-                <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
-                <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
-              </div>
+       <div class="cert-sig-row">
+  <div class="cert-sig-block">
+    <img *ngIf="certTemplate.leftSigUrl" 
+         [src]="certTemplate.leftSigUrl" 
+         class="cert-sig-image"
+         style="width:160px; height:80px; object-fit:contain; display:block; margin:0 auto 4px auto;">
+    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+      {{ certTemplate.leftSignatoryName | uppercase }}
+    </p>
+    <div class="cert-sig-underline"></div>
+    <p class="cert-sig-pos">{{ certTemplate.leftSignatoryPos }}</p>
+    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+  </div>
 
-              <div class="cert-sig-block">
-                <img *ngIf="supervisorRightSigBase64" [src]="supervisorRightSigBase64" class="cert-sig-image">
-                <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
-                  {{ supervisorName | uppercase }}
-                </p>
-                <div class="cert-sig-underline"></div>
-                <p class="cert-sig-pos">{{ supervisorPos }}</p>
-                <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
-              </div>
+  <div class="cert-sig-block">
+    <img *ngIf="supervisorRightSigBase64" 
+         [src]="supervisorRightSigBase64" 
+         class="cert-sig-image"
+         style="width:160px; height:80px; object-fit:contain; display:block; margin:0 auto 4px auto;">
+    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+      {{ supervisorName | uppercase }}
+    </p>
+    <div class="cert-sig-underline"></div>
+    <p class="cert-sig-pos">{{ supervisorPos }}</p>
+    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+  </div>
 
-              <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
-                <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
-                <p class="cert-qr-label">Scan to verify</p>
-              </div>
-            </div>
+  <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
+    <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
+    <p class="cert-qr-label">Scan to verify</p>
+  </div>
+</div>
 
           </div>
         </div>

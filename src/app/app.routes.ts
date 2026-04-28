@@ -34,25 +34,25 @@ import { SupervisorEvaluationComponent } from './supervisor/supervisor-evaluatio
 import { InternEvaluationComponent } from './Intern/intern-evaluation/intern-evaluation.component';
 import { CertVerifyComponent } from './modules/cert-verify/cert-verify.component';
 import { DtrVerifyComponent } from './modules/dtr-verify/dtr-verify.component';
-
+import { LogbookVerifyComponent } from './modules/logbook-verify/logbook-verify.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
 
-  // ── Landing Page (Public) ──────────────────────────────
-  { path: 'landing-page', component: LandingPageComponent },
-
-  // ── Default ────────────────────────────────────────────
-  { path: '', redirectTo: 'landing', pathMatch: 'full' },
+  // ── Landing Page (Public, default route) ──────────────
+  { path: '', component: LandingPageComponent },            // ← THIS IS THE FIX
 
   // ── Public routes (no guard) ───────────────────────────
-  { path: 'intern-login',     component: InternLoginComponent },
-  { path: 'intern-register',  component: InternRegisterComponent },
-  { path: 'admin-login',      component: AdminLoginComponent },
-  { path: 'supervisor-login', component: SupervisorLoginComponent },
-  { path: 'reset-password',   component: ResetPasswordComponent },
-  { path: 'verify/:id',       component: CertVerifyComponent },
-  { path: 'verify/dtr/:ref',  component: DtrVerifyComponent },   // ← NEW
+  { path: 'intern-login',           component: InternLoginComponent },
+  { path: 'intern-register',        component: InternRegisterComponent },
+  { path: 'admin-login',            component: AdminLoginComponent },
+  { path: 'supervisor-login',       component: SupervisorLoginComponent },
+  { path: 'reset-password',         component: ResetPasswordComponent },
+
+  // ── Verify routes — specific paths BEFORE the wildcard :id ──
+  { path: 'verify/dtr/:ref',        component: DtrVerifyComponent },
+  { path: 'verify/logbook/:ref',    component: LogbookVerifyComponent },
+  { path: 'verify/:id',             component: CertVerifyComponent },
 
   // ── Intern protected routes ────────────────────────────
   {

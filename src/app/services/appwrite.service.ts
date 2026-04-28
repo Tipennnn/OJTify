@@ -28,7 +28,9 @@ export class AppwriteService {
   readonly LOGBOOK_COL        = 'logbook_entries';
   readonly LOGBOOK_PHOTOS_COL = 'logbook_photos';
   readonly DTR_RECORDS_COL = 'dtr_records'
+  readonly LOGBOOK_RECORDS_COL = 'logbook_records';
   readonly DELETE_USER_FN     = '69e75aef0017bf366386';
+  
 
   private photoUrl = new BehaviorSubject<string>(
     'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128'

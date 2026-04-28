@@ -1,5 +1,8 @@
 import { Component, HostListener, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { AppwriteService } from '../../services/appwrite.service'; // adjust path if needed
+import { Query } from 'appwrite';
 
 @Component({
   selector: 'app-landing-page',
@@ -13,6 +16,7 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   isScrolled = false;
   menuOpen   = false;
   activeTab  = 0;
+  activeModal: 'privacy' | 'terms' | null = null;
 
   totalStudents    = 180;
   totalSupervisors = 24;
@@ -32,7 +36,39 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
     { label: 'Logbook',    path: 'logbook' }
   ];
 
-  ngOnInit(): void {}
+  constructor(private router: Router, private appwrite: AppwriteService) {}
+
+  ngOnInit(): void {
+    this.loadUserCounts();
+  }
+
+  async loadUserCounts() {
+    try {
+      const [students, supervisors, admins] = await Promise.all([
+        this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, [Query.limit(1)]
+        ),
+        this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, [Query.limit(1)]
+        ),
+        this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID, this.appwrite.ADMINS_COL, [Query.limit(1)]
+        ),
+      ]);
+      this.totalStudents    = students.total;
+      this.totalSupervisors = supervisors.total;
+      this.totalAdmins      = admins.total;
+    } catch (e) {
+      // fallback values stay
+    }
+  }
+
+  goTo(path: string) {
+    this.router.navigate([path]);
+  }
+
+  openModal(type: 'privacy' | 'terms') { this.activeModal = type; }
+  closeModal() { this.activeModal = null; }
 
   ngAfterViewInit(): void {
     this.initCtaCanvas();
