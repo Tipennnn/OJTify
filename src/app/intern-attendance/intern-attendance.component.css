@@ -293,7 +293,6 @@
 .attendance-box {
   width: 100%;
   max-width: 380px;
-  /* FIX: fixed height so modal never shrinks when content is empty */
   height: min(90vh, 420px);
   min-height: 420px;
   background: white;
@@ -464,27 +463,77 @@
   box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
 }
 
-/* ─── DOWNLOAD DTR BUTTON ────────────────────────── */
+/* ─── DOWNLOAD DTR BUTTON — IMPROVED ────────────── */
 .dl-pdf-btn {
-  padding: 7px 14px;
-  background: #2563eb;
+  position: relative;
+  padding: 0;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   font-size: clamp(11px, 1.5vw, 13px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: background 0.2s;
+  gap: 0;
   width: 100%;
   white-space: nowrap;
   box-sizing: border-box;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  min-height: 42px;
 }
 
-.dl-pdf-btn:hover { background: #0b47b3; }
+.dl-pdf-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0);
+  transition: background 0.2s ease;
+  border-radius: inherit;
+}
+
+.dl-pdf-btn:hover {
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
+  filter: brightness(1.08);
+}
+
+.dl-pdf-btn:hover::before {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dl-pdf-btn:active {
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+/* Icon container with pill background */
+.dl-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.18);
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  margin: 5px 0 5px 6px;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.dl-pdf-btn:hover .dl-icon-wrap {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.dl-label {
+  flex: 1;
+  text-align: center;
+  padding: 0 10px 0 6px;
+  line-height: 1.2;
+}
 
 /* ─── TABLE PANEL ────────────────────────────────── */
 .table-panel {
@@ -720,14 +769,12 @@
   }
 
   .reports-box {
-    /* FIX: fixed height even when empty — never shrinks */
     height: 88vh;
     max-height: 88vh;
     border-radius: 16px;
     overflow: hidden;
   }
 
-  /* Stack filters on top of table */
   .reports-body {
     flex-direction: column;
     overflow-y: auto;
@@ -735,11 +782,6 @@
     gap: 10px;
   }
 
-  /*
-   * FIX: Compact 3-column filter bar
-   * [Month label+select] | [Status label+select] | [Download DTR]
-   * This prevents filters from eating too much vertical space
-   */
   .filters-panel {
     flex: none;
     width: 100%;
@@ -754,28 +796,24 @@
     border-radius: 10px;
   }
 
-  /* Month label: row 1 col 1 */
   .filters-panel > label:nth-child(1) {
     grid-column: 1;
     grid-row: 1;
     font-size: 11px;
     margin: 0;
   }
-  /* Month select: row 2 col 1 */
   .filters-panel > select:nth-child(2) {
     grid-column: 1;
     grid-row: 2;
     font-size: 12px;
     padding: 7px 6px;
   }
-  /* Status label: row 1 col 2 */
   .filters-panel > label:nth-child(3) {
     grid-column: 2;
     grid-row: 1;
     font-size: 11px;
     margin: 0;
   }
-  /* Status select: row 2 col 2 */
   .filters-panel > select:nth-child(4) {
     grid-column: 2;
     grid-row: 2;
@@ -783,25 +821,35 @@
     padding: 7px 6px;
   }
 
-  /*
-   * FIX: Download DTR button spans both rows in col 3
-   * Compact size but still shows full "Download DTR" label
-   */
+  /* Download DTR button on mobile */
   .dl-pdf-btn {
     grid-column: 3;
     grid-row: 1 / 3;
     width: auto;
-    min-width: 86px;
+    min-width: 90px;
     height: 100%;
-    min-height: 58px;
-    padding: 8px 10px;
+    min-height: 62px;
+    padding: 6px 8px;
     font-size: 11px;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     white-space: normal;
     text-align: center;
     line-height: 1.3;
-    border-radius: 8px;
+    border-radius: 10px;
+  }
+
+  .dl-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin: 0;
+  }
+
+  .dl-label {
+    padding: 0 4px;
+    font-size: 11px;
   }
 
   .table-panel {
@@ -809,7 +857,6 @@
     min-height: 0;
   }
 
-  /* FIX: pagination stays right-aligned on mobile */
   .report-pagination {
     justify-content: flex-end;
   }
@@ -819,7 +866,6 @@
     text-align: right;
   }
 
-  /* Calendar adjustments */
   .calendar-header { flex-direction: column; align-items: flex-start; }
   .calendar-actions { flex-wrap: wrap; }
   .calendar-grid { gap: 5px; }
@@ -849,7 +895,6 @@
   .attendance-modal { padding: 6px; }
   .attendance-box { padding: 12px; min-height: 380px; }
 
-  /* On very tiny screens, stack the filter bar vertically */
   .filters-panel {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto auto;
@@ -863,6 +908,16 @@
     padding: 8px 14px;
     white-space: nowrap;
     font-size: 12px;
+  }
+
+  .dl-icon-wrap {
+    width: 26px;
+    height: 26px;
+    margin: 0;
+  }
+
+  .dl-label {
+    padding: 0 6px;
   }
 }
 
@@ -888,10 +943,18 @@
     grid-column: unset;
     grid-row: unset;
     width: 100%;
-    min-height: auto;
+    min-height: 42px;
     flex-direction: row;
     white-space: nowrap;
     font-size: clamp(11px, 1.5vw, 13px);
-    padding: 7px 14px;
+    padding: 0;
+  }
+
+  .dl-icon-wrap {
+    margin: 5px 0 5px 6px;
+  }
+
+  .dl-label {
+    padding: 0 10px 0 6px;
   }
 }

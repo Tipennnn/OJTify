@@ -188,7 +188,10 @@
         </select>
 
         <button class="dl-pdf-btn" (click)="downloadDTRPdf()">
-          <i class="fa fa-file-pdf"></i> Download DTR
+          <span class="dl-icon-wrap">
+            <i class="fa-solid fa-download"></i>
+          </span>
+          <span class="dl-label">Download</span>
         </button>
       </div>
 
@@ -224,7 +227,7 @@
             No records found for selected filters..
           </div>
         </div>
-      
+
         <!-- PAGINATION -->
         <div class="report-pagination" *ngIf="filteredRecordsList.length > 0">
           <span class="report-page-info">
@@ -241,8 +244,7 @@
             <i class="fa-solid fa-chevron-right"></i>
           </button>
         </div>
-      
-      
+
       </div>
     </div>
   </div>

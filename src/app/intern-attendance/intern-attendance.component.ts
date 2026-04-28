@@ -100,8 +100,6 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   months  = ['January','February','March','April','May','June',
              'July','August','September','October','November','December'];
   years   : number[] = [];
-
-  // ── FIX: status list now matches the actual values used in allRecords ──────
   statuses = ['Present', 'Absent'];
 
   constructor(private appwrite: AppwriteService) {}
@@ -119,9 +117,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     this.generateYears();
   }
 
-  ngOnDestroy() {
-    clearInterval(this.qrTimer);
-  }
+  ngOnDestroy() { clearInterval(this.qrTimer); }
 
   async getCurrentUser() {
     try {
@@ -143,9 +139,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
 
   startQRCountdown() {
     clearInterval(this.qrTimer);
-    this.qrTimer = setInterval(() => {
-      this.qrExpiresIn--;
-    }, 1000);
+    this.qrTimer = setInterval(() => { this.qrExpiresIn--; }, 1000);
   }
 
   refreshQRManually() {
@@ -157,9 +151,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   async loadStudentHours() {
     try {
       const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
+        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, this.currentUserId
       );
       this.requiredHours      = (doc as any).required_hours  || 500;
       this.completedHours     = (doc as any).completed_hours || 0;
@@ -174,11 +166,9 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   async loadTodayStatus() {
     try {
       const now   = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
       const res   = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [Query.limit(500)]
+        this.appwrite.DATABASE_ID, this.appwrite.ATTENDANCE_COL, [Query.limit(500)]
       );
       const todayRecord = (res.documents as any[])
         .find(d => d.student_id === this.currentUserId && d.date === today);
@@ -191,14 +181,12 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   async loadInternStartDate() {
     try {
       const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.currentUserId
+        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, this.currentUserId
       );
       const createdAt = (doc as any).$createdAt;
       if (createdAt) {
         const d = new Date(createdAt);
-        d.setHours(0, 0, 0, 0);
+        d.setHours(0,0,0,0);
         this.internStartDate = d;
       }
     } catch (error: any) {
@@ -218,11 +206,8 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   async loadAttendance() {
     try {
       const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [Query.limit(500)]
+        this.appwrite.DATABASE_ID, this.appwrite.ATTENDANCE_COL, [Query.limit(500)]
       );
-
       const docs      = res.documents as any[];
       const myRecords = docs.filter(d => d.student_id === this.currentUserId);
 
@@ -237,14 +222,11 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
         const recordYear  = parseInt(parts[0], 10);
         const recordMonth = parseInt(parts[1], 10) - 1;
         const recordDay   = parseInt(parts[2], 10);
-
         recordsByDate[record.date] = record;
-
         if (recordMonth === this.month && recordYear === this.year) {
           this.attendanceStatus[recordDay]  = record.status;
           this.attendanceRecords[recordDay] = record;
         }
-
         this.allRecords.push({
           $id:       record.$id,
           date:      record.date,
@@ -252,15 +234,13 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
                        .toLocaleString('default', { weekday: 'short' }),
           timeIn:    record.time_in         || '—',
           timeOut:   record.time_out        || '—',
-          // ── FIX: use the DB value; if it says 'Present' keep it, otherwise 'Absent' ──
           status:    record.status === 'Present' ? 'Present' : 'Absent',
           scannedBy: record.scanned_by_name || '—'
         });
       });
 
-      // ── Generate synthetic Absent rows for past weekdays with no scan ────────
       const now = new Date();
-      now.setHours(0, 0, 0, 0);
+      now.setHours(0,0,0,0);
       const cursor = this.internStartDate
         ? new Date(this.internStartDate)
         : new Date(now.getFullYear(), 0, 1);
@@ -269,19 +249,14 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
         const dow = cursor.getDay();
         if (dow !== 0 && dow !== 6) {
           const yyyy    = cursor.getFullYear();
-          const mm      = String(cursor.getMonth() + 1).padStart(2, '0');
-          const dd      = String(cursor.getDate()).padStart(2, '0');
+          const mm      = String(cursor.getMonth()+1).padStart(2,'0');
+          const dd      = String(cursor.getDate()).padStart(2,'0');
           const dateStr = `${yyyy}-${mm}-${dd}`;
-
           if (!recordsByDate[dateStr]) {
             this.allRecords.push({
               date:      dateStr,
               day:       cursor.toLocaleString('default', { weekday: 'short' }),
-              timeIn:    '—',
-              timeOut:   '—',
-              // ── FIX: was 'Absent', keep consistent ──────────────────────────
-              status:    'Absent',
-              scannedBy: '—'
+              timeIn:    '—', timeOut: '—', status: 'Absent', scannedBy: '—'
             });
           }
         }
@@ -333,7 +308,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
     if (this.isWeekend(day)) return false;
     const date = new Date(this.year, this.month, day);
     const now  = new Date();
-    now.setHours(0, 0, 0, 0);
+    now.setHours(0,0,0,0);
     if (date >= now) return false;
     if (this.internStartDate && date < this.internStartDate) return false;
     if (this.attendanceStatus[day]) return false;
@@ -341,7 +316,7 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   }
 
   openAttendance(day: number) {
-    const date        = new Date(this.year, this.month, day);
+    const date = new Date(this.year, this.month, day);
     this.selectedDate = date.toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
@@ -352,15 +327,9 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
       this.timeOut   = record.time_out        || '—';
       this.scannedBy = record.scanned_by_name || '—';
     } else if (this.isPastWeekdayWithNoRecord(day)) {
-      this.status    = 'Absent';
-      this.timeIn    = '—';
-      this.timeOut   = '—';
-      this.scannedBy = '—';
+      this.status = 'Absent'; this.timeIn = '—'; this.timeOut = '—'; this.scannedBy = '—';
     } else {
-      this.status    = 'No Attendance Record';
-      this.timeIn    = '—';
-      this.timeOut   = '—';
-      this.scannedBy = '—';
+      this.status = 'No Attendance Record'; this.timeIn = '—'; this.timeOut = '—'; this.scannedBy = '—';
     }
     this.showAttendanceModal = true;
   }
@@ -390,369 +359,540 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
 
   generateYears() {
     const currentYear = new Date().getFullYear();
-    for (let i = currentYear; i >= currentYear - 5; i--) {
-      this.years.push(i);
-    }
+    for (let i = currentYear; i >= currentYear - 5; i--) { this.years.push(i); }
   }
 
   private formatDateLong(dateStr: string): string {
     const parts = dateStr.split('-');
-    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    const d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
-private buildQrBase64(text: string, size: number): Promise<string> {
-  return new Promise(async (resolve, reject) => {
+  // ── Load a local Angular asset as base64 ──────────────────────────────
+  private async loadImageAsBase64(assetPath: string): Promise<string | null> {
     try {
-      // Use the globally available QRCode from the qrcode package
-      const QRCode = await import('qrcode');
-      const lib    = (QRCode as any).default ?? QRCode;
- 
-      // toDataURL returns a base64 PNG string directly — no canvas needed
-      const dataUrl: string = await lib.toDataURL(text, {
-        width:           size,
-        margin:          1,
-        color: {
-          dark:  '#000000',
-          light: '#ffffff'
-        }
+      const res = await fetch(assetPath);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror   = reject;
+        reader.readAsDataURL(blob);
       });
- 
-      // dataUrl is "data:image/png;base64,..." — jsPDF needs just the base64
-      // but addImage() also accepts the full data URL, so resolve as-is
-      resolve(dataUrl);
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
+    } catch { return null; }
+  }
 
- async downloadDTRPdf() {
-  const { jsPDF }  = await import('jspdf');
-  const { ID }     = await import('appwrite');
- 
-  this.applyReportFilters();
- 
-  const doc   = new jsPDF({ unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
- 
-  // ── 1. Unique ref code ────────────────────────────────────────────────────
-  const ref = this.generateRefCode();
- 
-  // ── 2. Verify URL — just the ref, the page does the lookup ───────────────
-  const dtrVerifyUrl = `${window.location.origin}/verify/dtr/${encodeURIComponent(ref)}`;
- 
-  // ── 3. Period label ───────────────────────────────────────────────────────
-  let periodLabel = '';
-  if (this.reportFilterMonth && this.reportFilterYear) {
-    periodLabel = `${this.reportFilterMonth} ${this.reportFilterYear}`;
-  } else if (this.reportFilterMonth) {
-    periodLabel = this.reportFilterMonth;
-  } else if (this.reportFilterYear) {
-    periodLabel = this.reportFilterYear.toString();
-  } else if (this.filteredRecordsList.length > 0) {
-    const dates = this.filteredRecordsList.map(r => new Date(r.date)).filter(d => !isNaN(d.getTime()));
-    if (dates.length) {
-      const minD = new Date(Math.min(...dates.map(d => d.getTime())));
-      const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
-      const minM = minD.toLocaleString('default', { month: 'long' });
-      const maxM = maxD.toLocaleString('default', { month: 'long' });
-      const minY = minD.getFullYear(), maxY = maxD.getFullYear();
-      if (minM === maxM && minY === maxY)  periodLabel = `${minM} ${minY}`;
-      else if (minY === maxY)              periodLabel = `${minM} – ${maxM} ${minY}`;
-      else                                 periodLabel = `${minM} ${minY} – ${maxM} ${maxY}`;
-    }
-  }
-  if (!periodLabel) periodLabel = 'All Records';
- 
-  // ── 4. Save DTR record to Appwrite BEFORE building PDF ───────────────────
-  //    This is what makes the QR verifiable — the ref exists in the DB.
-  try {
-    await this.appwrite.databases.createDocument(
-      this.appwrite.DATABASE_ID,
-      'dtr_records',              // ← add this collection in Appwrite console
-      ID.unique(),
-      {
-        ref:           ref,
-        student_id:    this.realStudentId   || this.currentUserId,
-        student_doc_id: this.currentUserId,
-        intern_name:   this.internName      || '',
-        period_label:  periodLabel,
-        generated_at:  new Date().toISOString(),
-        total_days:    this.filteredRecordsList.length,
-        present_days:  this.filteredRecordsList.filter(r => r.status === 'Present').length,
-        absent_days:   this.filteredRecordsList.filter(r => r.status === 'Absent').length,
-      }
-    );
-  } catch (err: any) {
-    console.error('Failed to save DTR record — download continues anyway:', err.message);
-    // Don't block the PDF; just log. If Appwrite is down the PDF still generates.
-  }
- 
-  // ── Colour palette ────────────────────────────────────────────────────────
-  type RGB = [number, number, number];
-  const BLUE  : RGB = [37,  99,  235];
-  const DARK  : RGB = [17,  24,  39];
-  const GRAY  : RGB = [107, 114, 128];
-  const LGRAY : RGB = [243, 244, 246];
-  const WHITE : RGB = [255, 255, 255];
-  const GREEN : RGB = [22,  163, 74];
-  const RED   : RGB = [220, 38,  38];
-  const BORD  : RGB = [209, 213, 219];
- 
-  const MARGIN   = 12;
-  const FOOTER_H = 28;
-  const usableH  = pageH - FOOTER_H - 12;
- 
-  const periodParts  = periodLabel.split(' ');
-  const displayMonth = periodParts.length >= 2 ? periodParts.slice(0, -1).join(' ') : periodLabel;
-  const displayYear  = periodParts.length >= 2 ? periodParts[periodParts.length - 1] : '';
- 
-  // ── 5. Build QR base64 ────────────────────────────────────────────────────
-  let footerQrBase64: string | null = null;
-  try {
-    footerQrBase64 = await this.buildQrBase64(dtrVerifyUrl, 160);
-  } catch { footerQrBase64 = null; }
- 
-  const QR_SIZE = 20;
- 
-  // ── 6. Footer renderer ───────────────────────────────────────────────────
-  const drawFooter = (pageNum: number, totalPgs: number) => {
-    const fy = pageH - FOOTER_H - 3;
- 
-    doc.setFillColor(248, 250, 252);
-    doc.rect(MARGIN, fy, pageW - MARGIN * 2, FOOTER_H, 'F');
-    doc.setDrawColor(...BORD);
-    doc.setLineWidth(0.35);
-    doc.line(MARGIN, fy, pageW - MARGIN, fy);
-    doc.setFillColor(...BLUE);
-    doc.rect(MARGIN, fy, 2, FOOTER_H, 'F');
- 
-    const qrX = MARGIN + 5;
-    const qrY = fy + (FOOTER_H - QR_SIZE) / 2;
- 
-    if (footerQrBase64) {
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(...BORD);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(qrX - 1, qrY - 1, QR_SIZE + 2, QR_SIZE + 2, 1.5, 1.5, 'FD');
-      doc.addImage(footerQrBase64, 'PNG', qrX, qrY, QR_SIZE, QR_SIZE);
-    } else {
-      doc.setFillColor(237, 242, 255);
-      doc.setDrawColor(...BLUE);
-      doc.roundedRect(qrX - 1, qrY - 1, QR_SIZE + 2, QR_SIZE + 2, 1.5, 1.5, 'FD');
-      doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLUE);
-      doc.text('SCAN TO\nVERIFY', qrX + QR_SIZE / 2, qrY + QR_SIZE / 2 - 1, { align: 'center' });
-    }
- 
-    const tx = qrX + QR_SIZE + 5;
- 
-    doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...GRAY);
-    doc.text('SCAN QR TO VERIFY DTR AUTHENTICITY', tx, fy + 5.5);
- 
-    doc.setFontSize(6.8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-    doc.text('Document Reference:', tx, fy + 10.5);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-    doc.text(ref, tx + doc.getTextWidth('Document Reference:  '), fy + 10.5);
- 
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-    doc.text('Intern:', tx, fy + 15.5);
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-    doc.text(this.internName || '—', tx + doc.getTextWidth('Intern:  '), fy + 15.5);
- 
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-    doc.text('Verify at:', tx, fy + 20.5);
-    const verLabelW = doc.getTextWidth('Verify at:  ');
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLUE);
-    const urlDisplay = dtrVerifyUrl.length > 70 ? dtrVerifyUrl.substring(0, 67) + '...' : dtrVerifyUrl;
-    doc.text(urlDisplay, tx + verLabelW, fy + 20.5);
-    doc.setDrawColor(...BLUE); doc.setLineWidth(0.2);
-    doc.line(tx + verLabelW, fy + 21.5, tx + verLabelW + doc.getTextWidth(urlDisplay), fy + 21.5);
- 
-    doc.setFontSize(5.8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-    doc.text(
-      'This DTR is generated and verified by OJTify. Scan the QR code to confirm this document is authentic.',
-      tx, fy + 25.5
-    );
- 
-    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-    doc.text(`Page ${pageNum} of ${totalPgs}`, pageW - MARGIN - 2, fy + FOOTER_H - 3, { align: 'right' });
-  };
- 
-  // ── 7. Document header ───────────────────────────────────────────────────
-  let y = MARGIN;
- 
-  doc.setFontSize(9.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-  doc.text('ON-THE-JOB TRAINING PROGRAM', pageW / 2, y + 6, { align: 'center' });
-  y += 12;
- 
-  doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-  doc.text('DAILY TIME RECORD', pageW / 2, y, { align: 'center' });
-  y += 6;
- 
-  doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...DARK);
-  doc.text(
-    displayYear ? `Month: ${displayMonth}     Year: ${displayYear}` : `Period: ${displayMonth}`,
-    pageW / 2, y, { align: 'center' }
-  );
-  y += 5;
- 
-  doc.setDrawColor(...DARK); doc.setLineWidth(0.7);
-  doc.line(MARGIN, y, pageW - MARGIN, y);
-  doc.setLineWidth(0.25);
-  doc.line(MARGIN, y + 1.2, pageW - MARGIN, y + 1.2);
-  y += 8;
- 
-  const col1 = MARGIN, col2 = 78, col3 = 148;
- 
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-  doc.text('INTERN NAME', col1, y); doc.text('STUDENT ID', col2, y); doc.text('REQUIRED HOURS', col3, y);
-  y += 5;
- 
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-  doc.text(this.internName    || '—', col1, y);
-  doc.text(this.realStudentId || '—', col2, y);
-  doc.text(`${this.requiredHours} hrs`, col3, y);
-  y += 7;
- 
-  doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-  doc.text('COMPLETED HOURS', col1, y); doc.text('REMAINING HOURS', col2, y); doc.text('PROGRESS', col3, y);
-  y += 5;
- 
-  doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-  doc.text(`${this.completedHours} hrs`, col1, y);
-  doc.text(`${this.remainingHours} hrs`, col2, y);
-  doc.text(`${this.hoursProgress}%`,     col3, y);
-  y += 6;
- 
-  doc.setDrawColor(...BORD); doc.setLineWidth(0.4);
-  doc.line(MARGIN, y, pageW - MARGIN, y);
-  y += 13;
- 
-  // ── 8. Table ─────────────────────────────────────────────────────────────
-  const colX  = [12,  52,  74, 104, 134, 174];
-  const colW  = [40,  22,  30,  30,  40,  26];
-  const heads = ['Date', 'Day', 'Time In', 'Time Out', 'Recorded By', 'Status'];
-  const rowH  = 8;
- 
-  const drawTableHeader = () => {
-    doc.setFillColor(...BLUE);
-    doc.rect(MARGIN, y, pageW - MARGIN * 2, rowH, 'F');
-    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHITE);
-    heads.forEach((h, i) => doc.text(h, colX[i] + colW[i] / 2, y + 5.5, { align: 'center' }));
-  };
- 
-  drawTableHeader();
-  y += rowH;
- 
-  if (this.filteredRecordsList.length === 0) {
-    doc.setFillColor(...LGRAY);
-    doc.rect(MARGIN, y, pageW - MARGIN * 2, rowH + 2, 'F');
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-    doc.text('No records found for the selected filters.', pageW / 2, y + 6, { align: 'center' });
-    y += rowH + 2;
-  } else {
-    this.filteredRecordsList.forEach((r, idx) => {
-      if (y + rowH > usableH) {
-        doc.addPage(); y = MARGIN + 8;
-        drawTableHeader(); y += rowH;
-      }
- 
-      const stripe: RGB = idx % 2 === 0 ? LGRAY : WHITE;
-      doc.setFillColor(...stripe);
-      doc.rect(MARGIN, y, pageW - MARGIN * 2, rowH, 'F');
-      doc.setDrawColor(...BORD); doc.setLineWidth(0.2);
-      doc.line(MARGIN, y + rowH, pageW - MARGIN, y + rowH);
- 
-      const cells = [this.formatDateLong(r.date), r.day, r.timeIn, r.timeOut, r.scannedBy || '—', r.status];
-      cells.forEach((cell, i) => {
-        if (i === 5) {
-          doc.setTextColor(cell === 'Present' ? GREEN[0] : cell === 'Absent' ? RED[0] : GRAY[0],
-                           cell === 'Present' ? GREEN[1] : cell === 'Absent' ? RED[1]  : GRAY[1],
-                           cell === 'Present' ? GREEN[2] : cell === 'Absent' ? RED[2]  : GRAY[2]);
-          doc.setFont('helvetica', 'bold');
-        } else {
-          doc.setTextColor(...DARK); doc.setFont('helvetica', 'normal');
-        }
-        doc.setFontSize(7.5);
-        const maxChars = Math.floor(colW[i] / 1.7);
-        const txt = cell.length > maxChars ? cell.substring(0, maxChars) + '…' : cell;
-        doc.text(txt, colX[i] + colW[i] / 2, y + 5.5, { align: 'center' });
-      });
-      y += rowH;
+  // ── Build QR code as base64 PNG ───────────────────────────────────────
+  private buildQrBase64(text: string, size: number): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const QRCode = await import('qrcode');
+        const lib    = (QRCode as any).default ?? QRCode;
+        const dataUrl: string = await lib.toDataURL(text, {
+          width: size, margin: 1,
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+        resolve(dataUrl);
+      } catch (err) { reject(err); }
     });
   }
- 
-  // ── 9. Summary row ───────────────────────────────────────────────────────
-  const presentCount = this.filteredRecordsList.filter(r => r.status === 'Present').length;
-  const absentCount  = this.filteredRecordsList.filter(r => r.status === 'Absent').length;
-  const totalCount   = this.filteredRecordsList.length;
- 
-  if (y + rowH + 2 > usableH) { doc.addPage(); y = MARGIN + 8; }
-  y += 3;
-  doc.setFillColor(237, 242, 255);
-  doc.rect(MARGIN, y, pageW - MARGIN * 2, rowH, 'F');
-  doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLUE);
-  doc.text(`Total: ${totalCount}  |  Present: ${presentCount}  |  Absent: ${absentCount}`,
-    pageW / 2, y + 5.5, { align: 'center' });
-  y += rowH;
- 
-  // ── 10. Signature block ──────────────────────────────────────────────────
-  let supervisorName = '';
-  let esigBase64: string | null = null;
- 
-  try {
-    const svRes = await this.appwrite.databases.listDocuments(this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL);
-    const svDoc = (svRes.documents as any[])[0];
-    if (svDoc) {
-      supervisorName = `${svDoc.first_name || ''} ${svDoc.last_name || ''}`.trim();
-      if (svDoc.esig_file_id) {
-        try {
-          const BUCKET_ID = '69baaf64002ceb2490df', PROJECT_ID = '69ba8d9c0027d10c447f';
-          const ENDPOINT  = 'https://sgp.cloud.appwrite.io/v1';
-          const jwt = await this.appwrite.account.createJWT();
-          const res = await fetch(`${ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${svDoc.esig_file_id}/view?project=${PROJECT_ID}`, {
-            headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': PROJECT_ID }
-          });
-          if (res.ok) {
-            const blob = await res.blob();
-            esigBase64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror   = reject;
-              reader.readAsDataURL(blob);
-            });
-          }
-        } catch { esigBase64 = null; }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  DOWNLOAD DTR PDF  —  Simple, Clean, Official Document
+  // ══════════════════════════════════════════════════════════════════════
+  async downloadDTRPdf() {
+    const { jsPDF } = await import('jspdf');
+    const { ID }    = await import('appwrite');
+
+    this.applyReportFilters();
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const PW  = doc.internal.pageSize.getWidth();   // 210mm
+    const PH  = doc.internal.pageSize.getHeight();  // 297mm
+    const ML  = 20;    // left margin
+    const MR  = 20;    // right margin
+    const CW  = PW - ML - MR;   // 170mm usable width
+
+    // ── Period label ────────────────────────────────────────────────────
+    let periodLabel = '';
+    if (this.reportFilterMonth && this.reportFilterYear) {
+      periodLabel = `${this.reportFilterMonth} ${this.reportFilterYear}`;
+    } else if (this.reportFilterMonth) {
+      periodLabel = this.reportFilterMonth;
+    } else if (this.reportFilterYear) {
+      periodLabel = this.reportFilterYear.toString();
+    } else if (this.filteredRecordsList.length > 0) {
+      const dates = this.filteredRecordsList
+        .map(r => new Date(r.date)).filter(d => !isNaN(d.getTime()));
+      if (dates.length) {
+        const minD = new Date(Math.min(...dates.map(d => d.getTime())));
+        const maxD = new Date(Math.max(...dates.map(d => d.getTime())));
+        const minM = minD.toLocaleString('default', { month: 'long' });
+        const maxM = maxD.toLocaleString('default', { month: 'long' });
+        const minY = minD.getFullYear(), maxY = maxD.getFullYear();
+        if (minM === maxM && minY === maxY)  periodLabel = `${minM} ${minY}`;
+        else if (minY === maxY)              periodLabel = `${minM} – ${maxM} ${minY}`;
+        else                                 periodLabel = `${minM} ${minY} – ${maxM} ${maxY}`;
       }
     }
-  } catch {}
- 
-  if (y + 60 > usableH) { doc.addPage(); y = MARGIN + 10; }
-  y += 12;
- 
-  doc.setDrawColor(...BORD); doc.setLineWidth(0.4);
-  doc.line(MARGIN, y, pageW - MARGIN, y);
-  y += 10;
- 
-  const ESIG_W = 44, ESIG_H = 22, sigLineW = 72, centerX = pageW / 2;
-  if (esigBase64) doc.addImage(esigBase64, 'PNG', centerX - ESIG_W / 2, y, ESIG_W, ESIG_H);
- 
-  const nameY = y + ESIG_H + 4;
-  doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
-  doc.text(supervisorName || '________________________', centerX, nameY, { align: 'center' });
-  doc.setDrawColor(...DARK); doc.setLineWidth(0.5);
-  doc.line(centerX - sigLineW / 2, nameY + 4, centerX + sigLineW / 2, nameY + 4);
-  doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
-  doc.text('OJT Coordinator', centerX, nameY + 10, { align: 'center' });
- 
-  // ── 11. Footers on every page ────────────────────────────────────────────
-  const totalPages = (doc as any).internal.getNumberOfPages();
-  for (let p = 1; p <= totalPages; p++) { doc.setPage(p); drawFooter(p, totalPages); }
- 
-  doc.save(`DTR_${this.realStudentId || 'intern'}_${periodLabel.replace(/\s+/g, '_')}_${ref}.pdf`);
-}
+    if (!periodLabel) periodLabel = 'All Records';
+
+    // ── Ref & verify URL ────────────────────────────────────────────────
+    const ref          = this.generateRefCode();
+    const dtrVerifyUrl = `${window.location.origin}/verify/dtr/${encodeURIComponent(ref)}`;
+
+    // ── Save record to Appwrite ─────────────────────────────────────────
+    try {
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID, 'dtr_records', ID.unique(),
+        {
+          ref,
+          student_id:     this.realStudentId || this.currentUserId,
+          student_doc_id: this.currentUserId,
+          intern_name:    this.internName || '',
+          period_label:   periodLabel,
+          generated_at:   new Date().toISOString(),
+          total_days:     this.filteredRecordsList.length,
+          present_days:   this.filteredRecordsList.filter(r => r.status === 'Present').length,
+          absent_days:    this.filteredRecordsList.filter(r => r.status === 'Absent').length,
+        }
+      );
+    } catch (err: any) {
+      console.error('DTR save failed (PDF still downloads):', err.message);
+    }
+
+    // ── Load assets in parallel (DUAL OCES, NO DEPED) ────────────────────
+    const [ocesLogo, qrBase64] = await Promise.all([
+      this.loadImageAsBase64('assets/images/OCES_logo.png'),
+      this.buildQrBase64(dtrVerifyUrl, 200).catch(() => null as any),
+    ]);
+
+    // ── Load supervisor e-signature ─────────────────────────────────────
+    let supervisorName = '';
+    let esigBase64: string | null = null;
+    try {
+      const svRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL
+      );
+      const svDoc = (svRes.documents as any[])[0];
+      if (svDoc) {
+        supervisorName = `${svDoc.first_name || ''} ${svDoc.last_name || ''}`.trim();
+        if (svDoc.esig_file_id) {
+          try {
+            const BUCKET_ID  = '69baaf64002ceb2490df';
+            const PROJECT_ID = '69ba8d9c0027d10c447f';
+            const ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+            const jwt = await this.appwrite.account.createJWT();
+            const res = await fetch(
+              `${ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${svDoc.esig_file_id}/view?project=${PROJECT_ID}`,
+              { headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': PROJECT_ID } }
+            );
+            if (res.ok) {
+              const blob = await res.blob();
+              esigBase64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror   = reject;
+                reader.readAsDataURL(blob);
+              });
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    // ════════════════════════════════════════════════════════════════════
+    //  COLORS
+    // ════════════════════════════════════════════════════════════════════
+    type RGB = [number, number, number];
+    const BLUE     : RGB = [28,  78,  145];  // DepEd blue
+    const LITEBLUE : RGB = [235, 242, 255];  // light blue fills
+    const DARK     : RGB = [25,  25,  25 ];  // body text
+    const GRAY     : RGB = [100, 100, 100];  // secondary text
+    const LGRAY    : RGB = [160, 160, 160];  // muted text
+    const BORDER   : RGB = [190, 200, 215];  // borders
+    const STRIPE   : RGB = [248, 249, 252];  // alternate row
+    const WHITE    : RGB = [255, 255, 255];
+    const GREEN    : RGB = [21,  128, 61 ];
+    const RED      : RGB = [185, 28,  28 ];
+
+    // Helpers
+    const fc = (c: RGB) => doc.setFillColor(c[0], c[1], c[2]);
+    const tc = (c: RGB) => doc.setTextColor(c[0], c[1], c[2]);
+    const dc = (c: RGB) => doc.setDrawColor(c[0], c[1], c[2]);
+    const lw = (w: number) => doc.setLineWidth(w);
+
+    // ════════════════════════════════════════════════════════════════════
+    //  FOOTER renderer (called on every page at the end)
+    // ════════════════════════════════════════════════════════════════════
+    const FY = PH - 18;   // footer starts here
+
+    const drawFooter = (pg: number, total: number) => {
+      // Thin top border
+      dc(BORDER); lw(0.3);
+      doc.line(ML, FY, ML + CW, FY);
+
+      // QR code (small, bottom-left)
+      const qSz = 12;
+      if (qrBase64) {
+        doc.addImage(qrBase64, 'PNG', ML, FY + 3, qSz, qSz);
+      }
+
+      const tx = ML + (qrBase64 ? qSz + 4 : 0);
+
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(GRAY);
+      doc.text('Reference No.: ', tx, FY + 6);
+      doc.setFont('helvetica', 'bold'); tc(DARK);
+      doc.text(ref, tx + doc.getTextWidth('Reference No.: '), FY + 6);
+
+      doc.setFont('helvetica', 'normal'); tc(GRAY);
+      doc.text('Verify: ', tx, FY + 11);
+      tc(BLUE);
+      const urlShow = dtrVerifyUrl.length > 75 ? dtrVerifyUrl.slice(0,72) + '...' : dtrVerifyUrl;
+      doc.text(urlShow, tx + doc.getTextWidth('Verify: '), FY + 11);
+
+      doc.setFontSize(6); tc(LGRAY);
+      doc.text('Generated by OJTify Attendance Management System', tx, FY + 16);
+
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); tc(GRAY);
+      doc.text(`Page ${pg} of ${total}`, ML + CW, FY + 10, { align: 'right' });
+    };
+
+    // ════════════════════════════════════════════════════════════════════
+    //  PAGE CONTENT START
+    // ════════════════════════════════════════════════════════════════════
+    let y = ML;
+    const SAFE = FY - 4;   // don't draw table rows below this
+
+    // ────────────────────────────────────────────────────────────────────
+    //  HEADER BLOCK
+    //  Layout: [OCES logo] | [center text] | [OCES logo]
+    // ────────────────────────────────────────────────────────────────────
+    const HDR_H  = 30;
+    const LOGO_SZ = 24;
+    const LOGO_Y  = y + (HDR_H - LOGO_SZ) / 2;
+
+    // Outer border of header
+    dc(BORDER); lw(0.4);
+    doc.rect(ML, y, CW, HDR_H, 'S');
+
+    // OCES logo — left
+    if (ocesLogo) {
+      doc.addImage(ocesLogo, 'PNG', ML + 4, LOGO_Y, LOGO_SZ, LOGO_SZ);
+    }
+
+    // OCES logo — right (duplicate)
+    if (ocesLogo) {
+      doc.addImage(ocesLogo, 'PNG', ML + CW - LOGO_SZ - 4, LOGO_Y, LOGO_SZ, LOGO_SZ);
+    }
+
+    // Center text
+    const cx = PW / 2;
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); tc(GRAY);
+    doc.text('Republic of the Philippines', cx, y + 7, { align: 'center' });
+    doc.text('Department of Education', cx, y + 12, { align: 'center' });
+    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); tc(BLUE);
+    doc.text('OJT Coordination & Evaluation Section (OCES)', cx, y + 18, { align: 'center' });
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); tc(GRAY);
+    doc.text('On-the-Job Training Program', cx, y + 23, { align: 'center' });
+
+    y += HDR_H;
+
+    // ────────────────────────────────────────────────────────────────────
+    //  DOCUMENT TITLE BAR
+    // ────────────────────────────────────────────────────────────────────
+    fc(BLUE);
+    doc.rect(ML, y, CW, 10, 'F');
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); tc(WHITE);
+    doc.text('DAILY TIME RECORD (DTR)', cx, y + 7, { align: 'center' });
+    y += 10;
+
+    // ────────────────────────────────────────────────────────────────────
+    //  PERIOD + REF SUB-BAR
+    // ────────────────────────────────────────────────────────────────────
+    fc(LITEBLUE); dc(BORDER); lw(0.3);
+    doc.rect(ML, y, CW, 7, 'FD');
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); tc(BLUE);
+    doc.text(`Period Covered: ${periodLabel}`, ML + 4, y + 5);
+    doc.text(`Doc. Ref.: ${ref}`, ML + CW - 4, y + 5, { align: 'right' });
+    y += 7 + 4;
+
+    // ────────────────────────────────────────────────────────────────────
+    //  INTERN INFORMATION BLOCK
+    // ────────────────────────────────────────────────────────────────────
+    const INFO_H = 30;
+    dc(BORDER); lw(0.3);
+    doc.rect(ML, y, CW, INFO_H, 'S');
+
+    // Section header strip
+    fc(LITEBLUE);
+    doc.rect(ML, y, CW, 7, 'F');
+    dc(BORDER); lw(0.2);
+    doc.line(ML, y + 7, ML + CW, y + 7);
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); tc(BLUE);
+    doc.text('INTERN INFORMATION', ML + 4, y + 5.2);
+
+    // 3 columns: name | student ID | hours
+    const C1 = ML + 4;
+    const C2 = ML + CW / 3 + 4;
+    const C3 = ML + (CW / 3) * 2 + 4;
+    const COL_W = CW / 3 - 8;
+
+    // column dividers
+    dc(BORDER); lw(0.2);
+    doc.line(ML + CW/3, y + 7, ML + CW/3, y + INFO_H);
+    doc.line(ML + (CW/3)*2, y + 7, ML + (CW/3)*2, y + INFO_H);
+
+    // Helper: draw label + value pair
+    const field = (label: string, value: string, fx: number, fy: number, valColor: RGB = DARK) => {
+      doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(GRAY);
+      doc.text(label, fx, fy);
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(valColor[0], valColor[1], valColor[2]);
+      // Clamp to column width
+      const maxW = COL_W;
+      let txt = value;
+      while (doc.getTextWidth(txt) > maxW && txt.length > 1) {
+        txt = txt.slice(0, -1);
+      }
+      if (txt !== value) txt = txt.slice(0, -1) + '…';
+      doc.text(txt, fx, fy + 5.5);
+    };
+
+    // Row 1
+    field('Intern Name',     this.internName    || '—', C1, y + 12);
+    field('Student ID',      this.realStudentId || '—', C2, y + 12);
+    field('Required Hours',  `${this.requiredHours} hrs`, C3, y + 12, BLUE);
+
+    // Row 2
+    field('Completed Hours', `${this.completedHours} hrs`, C1, y + 22, GREEN);
+    field('Remaining Hours', `${this.remainingHours} hrs`, C2, y + 22, RED);
+    field('Progress',        `${this.hoursProgress}%`,     C3, y + 22, BLUE);
+
+    y += INFO_H + 3;
+
+    // Date generated line
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); tc(LGRAY);
+    const genDate = new Date().toLocaleDateString('en-US',
+      { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.text(`Date Generated: ${genDate}`, ML, y + 3);
+    y += 7;
+
+    // ════════════════════════════════════════════════════════════════════
+    //  ATTENDANCE TABLE
+    // ════════════════════════════════════════════════════════════════════
+    const ROW_H  = 7;
+    const HEAD_H = 8;
+
+    // Column config: label, width (mm), text alignment
+    type Align = 'left' | 'center' | 'right';
+    const COLS: { label: string; w: number; align: Align }[] = [
+      { label: 'Date',        w: 46, align: 'left'   },
+      { label: 'Day',         w: 15, align: 'center' },
+      { label: 'Time In',     w: 24, align: 'center' },
+      { label: 'Time Out',    w: 24, align: 'center' },
+      { label: 'Recorded By', w: 38, align: 'left'   },
+      { label: 'Status',      w: 23, align: 'center' },
+    ];
+    // (Total = 170 = CW ✓)
+
+    // Precompute column x positions
+    const colX: number[] = [];
+    let accX = ML;
+    COLS.forEach(c => { colX.push(accX); accX += c.w; });
+
+    // ── Draw table header ──────────────────────────────────────────────
+    const drawHead = (hy: number) => {
+      fc(BLUE);
+      doc.rect(ML, hy, CW, HEAD_H, 'F');
+      COLS.forEach((col, i) => {
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); tc(WHITE);
+        const tx2 = col.align === 'center'
+          ? colX[i] + col.w / 2
+          : col.align === 'right'
+          ? colX[i] + col.w - 2
+          : colX[i] + 2;
+        doc.text(col.label, tx2, hy + 5.5, { align: col.align });
+      });
+      // Thin white column separator lines
+      dc(WHITE); lw(0.15);
+      for (let i = 1; i < COLS.length; i++) {
+        doc.line(colX[i], hy + 1.5, colX[i], hy + HEAD_H - 1.5);
+      }
+    };
+
+    // ── Draw a single data row ─────────────────────────────────────────
+    const drawRow = (r: AttendanceRecord, rowIdx: number, ry: number) => {
+      if (rowIdx % 2 === 0) { fc(STRIPE); } else { fc(WHITE); }
+      doc.rect(ML, ry, CW, ROW_H, 'F');
+
+      // Bottom border
+      dc(BORDER); lw(0.2);
+      doc.line(ML, ry + ROW_H, ML + CW, ry + ROW_H);
+
+      // Column separators
+      lw(0.15);
+      for (let i = 1; i < COLS.length; i++) {
+        doc.line(colX[i], ry + 0.5, colX[i], ry + ROW_H - 0.5);
+      }
+
+      const cells = [
+        this.formatDateLong(r.date),
+        r.day,
+        r.timeIn,
+        r.timeOut,
+        r.scannedBy || '—',
+        r.status,
+      ];
+
+      cells.forEach((cell, i) => {
+        const col = COLS[i];
+        doc.setFontSize(7.5);
+
+        if (i === 5) {
+          // Status — small colored badge
+          const isPresent = cell === 'Present';
+          const isAbsent  = cell === 'Absent';
+          const bgC: RGB  = isPresent ? [220, 252, 231] : isAbsent ? [254, 226, 226] : [242, 244, 247];
+          const fgC: RGB  = isPresent ? GREEN            : isAbsent ? RED             : GRAY;
+          const bw = 19, bh = 4.5;
+          const bx = colX[i] + (col.w - bw) / 2;
+          const by = ry + (ROW_H - bh) / 2;
+          fc(bgC);
+          doc.roundedRect(bx, by, bw, bh, 2, 2, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(fgC[0], fgC[1], fgC[2]);
+          doc.text(cell, bx + bw / 2, by + 3.3, { align: 'center' });
+        } else {
+          doc.setFont('helvetica', 'normal'); tc(DARK);
+          const tx2 = col.align === 'center'
+            ? colX[i] + col.w / 2
+            : col.align === 'right'
+            ? colX[i] + col.w - 2
+            : colX[i] + 2;
+          // Truncate to column width
+          const maxCh = Math.floor(col.w / 1.75);
+          const txt = cell.length > maxCh ? cell.slice(0, maxCh - 1) + '…' : cell;
+          doc.text(txt, tx2, ry + 5, { align: col.align });
+        }
+      });
+    };
+
+    // ── Outer border & header ──────────────────────────────────────────
+    dc(BORDER); lw(0.3);
+    doc.rect(ML, y, CW, HEAD_H, 'S');   // header outline
+    drawHead(y);
+    y += HEAD_H;
+
+    // ── Rows ───────────────────────────────────────────────────────────
+    if (this.filteredRecordsList.length === 0) {
+      fc(STRIPE);
+      doc.rect(ML, y, CW, 12, 'F');
+      dc(BORDER); lw(0.3);
+      doc.line(ML, y, ML, y + 12);
+      doc.line(ML + CW, y, ML + CW, y + 12);
+      doc.line(ML, y + 12, ML + CW, y + 12);
+      doc.setFontSize(8); doc.setFont('helvetica', 'italic'); tc(GRAY);
+      doc.text('No records found for the selected filters.', cx, y + 8, { align: 'center' });
+      y += 12;
+    } else {
+      // Left/right border lines run the full height of the table body
+      const tableStartY = y;
+      this.filteredRecordsList.forEach((r, idx) => {
+        if (y + ROW_H > SAFE) {
+          // Close current page's table border
+          dc(BORDER); lw(0.3);
+          doc.line(ML,      tableStartY, ML,      y);
+          doc.line(ML + CW, tableStartY, ML + CW, y);
+          doc.addPage();
+          y = ML;
+          drawHead(y);
+          y += HEAD_H;
+        }
+        drawRow(r, idx, y);
+        y += ROW_H;
+      });
+      // Close table border
+      dc(BORDER); lw(0.3);
+      doc.line(ML,      tableStartY, ML,      y);
+      doc.line(ML + CW, tableStartY, ML + CW, y);
+      doc.line(ML, y, ML + CW, y);   // bottom border
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    //  SUMMARY ROW
+    // ────────────────────────────────────────────────────────────────────
+    if (y + 10 > SAFE) { doc.addPage(); y = ML; }
+    y += 2;
+
+    const presentCount = this.filteredRecordsList.filter(r => r.status === 'Present').length;
+    const absentCount  = this.filteredRecordsList.filter(r => r.status === 'Absent').length;
+    const totalCount   = this.filteredRecordsList.length;
+
+    fc(LITEBLUE); dc(BORDER); lw(0.3);
+    doc.rect(ML, y, CW, 8, 'FD');
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); tc(BLUE);
+    doc.text(
+      `Total Days: ${totalCount}     Present: ${presentCount}     Absent: ${absentCount}     Progress: ${this.hoursProgress}%`,
+      cx, y + 5.5, { align: 'center' }
+    );
+    y += 8 + 55;
+
+    // ════════════════════════════════════════════════════════════════════
+    //  SIGNATURE BLOCK — LOWER RIGHT of PAGE (BEFORE FOOTER LINE)
+    //  👉 FIND THIS SECTION: Line 842-872 in downloadDTRPdf() method
+    //  👉 EDIT HERE: E-SIGNATURE SIZE, SUPERVISOR NAME, TITLE, DATE
+    // ════════════════════════════════════════════════════════════════════
+    // Position signature on the far right side, ABOVE footer divider
+    const sigX = ML + CW - 55;      // even further right
+    const sigY = FY - 38;            // positioned HIGHER so it doesn't go below footer line
+    const sigBlockWidth = 53;
+
+    // 👉 E-SIGNATURE IMAGE — MUCH LARGER NOW: 75x40 (significantly bigger than supervisor name)
+    //    Change esigW to 75 and esigH to 40 to make the signature even bigger
+    if (esigBase64) {
+      const esigW = 75, esigH = 40;  // Increased from 65x32 to 75x40 — much more prominent
+      const esigXCenter = sigX + (sigBlockWidth - esigW) / 2 - 3;  // slight left offset for centering
+      doc.addImage(esigBase64, 'PNG', esigXCenter, sigY, esigW, esigH);
+    }
+
+    // 👉 SUPERVISOR NAME + TITLE + DATE section
+    //    nameY value controls the gap between e-signature image and the supervisor name
+    //    Decrease the value to bring name CLOSER to signature, increase to move it further away
+    let nameY = esigBase64 ? sigY + 25: sigY;  // 40mm signature + gap = 8mm spacing
+
+    // 👉 SUPERVISOR NAME — Displays the supervisor's full name (e.g., "Juan Delacruz")
+    //    Font: 7.5pt bold, color: dark gray
+    //    This comes from the Appwrite SUPERVISORS_COL database
+    const coordName = supervisorName || '________________________________';
+    doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); tc(DARK);
+    doc.text(coordName, sigX + sigBlockWidth / 2, nameY, { align: 'center' });
+
+    // 👉 SUPERVISOR TITLE — Shows job position (always "OJT Coordinator / Immediate Supervisor")
+    //    Font: 6.5pt normal, color: gray
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(GRAY);
+    doc.text('OJT Coordinator / Immediate Supervisor', sigX + sigBlockWidth / 2, nameY + 3, { align: 'center' });
+
+    // 👉 DOWNLOAD DATE — Shows the current date when PDF is generated
+    //    Font: 6.5pt normal, color: dark gray
+    //    Format: "April 28, 2026" (automatically updates based on system date)
+    const downloadDate = new Date().toLocaleDateString('en-US',
+      { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(DARK);
+    doc.text(`Date: ${downloadDate}`, sigX + sigBlockWidth / 2, nameY + 6, { align: 'center' });
+
+    // ════════════════════════════════════════════════════════════════════
+    //  STAMP FOOTER ON EVERY PAGE
+    // ════════════════════════════════════════════════════════════════════
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      drawFooter(p, totalPages);
+    }
+
+    doc.save(`DTR_${this.realStudentId || 'intern'}_${periodLabel.replace(/[\s–]+/g,'_')}_${ref}.pdf`);
+  }
 
   private generateRefCode(): string {
     const now  = new Date();
@@ -760,7 +900,7 @@ private buildQrBase64(text: string, size: number): Promise<string> {
     const m    = String(now.getMonth() + 1).padStart(2, '0');
     const d    = String(now.getDate()).padStart(2, '0');
     const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const id   = (this.realStudentId || 'STU').replace(/\D/g, '').slice(-4).padStart(4, '0');
+    const id   = (this.realStudentId || 'STU').replace(/\D/g,'').slice(-4).padStart(4,'0');
     return `DTR-${y}${m}${d}-${id}-${rand}`;
   }
 }
