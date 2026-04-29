@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -433,64 +433,69 @@ certVerificationId = '';
 
   closeCertModal() { this.showCertModal = false; }
 
-  openCertificate() {
-    this.menuOpen = false;
-    if (!this.certSentByAdmin) {
-      if (this.certData.hoursCompleted < this.certData.requiredHours) {
-        Swal.fire({
-          icon: 'info', title: 'Not Yet Available',
-          text: `You need to complete ${this.certData.requiredHours} hours first. You currently have ${this.certData.hoursCompleted} hrs.`,
-          confirmButtonColor: '#2563eb'
-        });
-      } else {
-        Swal.fire({
-          icon: 'info', title: 'Certificate Pending',
-          text: 'You have completed your required hours! Your certificate will be available once the admin issues it.',
-          confirmButtonColor: '#2563eb'
-        });
-      }
-      return;
+openCertificate() {
+  this.menuOpen = false;
+  if (!this.certSentByAdmin) {
+    if (this.certData.hoursCompleted < this.certData.requiredHours) {
+      Swal.fire({
+        icon: 'info', title: 'Not Yet Available',
+        text: `You need to complete ${this.certData.requiredHours} hours first. You currently have ${this.certData.hoursCompleted} hrs.`,
+        confirmButtonColor: '#2563eb'
+      });
+    } else {
+      Swal.fire({
+        icon: 'info', title: 'Certificate Pending',
+        text: 'You have completed your required hours! Your certificate will be available once the admin issues it.',
+        confirmButtonColor: '#2563eb'
+      });
     }
-    this.showCertModal = true;
+    return;
   }
+  this.showCertModal = true;
+  setTimeout(() => this.updateCertScale(), 0);
+}
 
   // ── Download certificate as PDF ──
   async downloadCertificate(): Promise<void> {
-    const certEl = document.getElementById('certificate-preview');
-    if (!certEl || this.isDownloading) return;
+  const certEl = document.getElementById('certificate-preview') as HTMLElement;
+  if (!certEl || this.isDownloading) return;
+  this.isDownloading = true;
 
-    this.isDownloading = true;
+  // Temporarily reset transform so html2canvas captures at full 900px
+  const prevTransform = certEl.style.transform;
+  certEl.style.transform = 'scale(1)';
 
-    try {
-      const canvas = await html2canvas(certEl, {
-        scale:           3,
-        useCORS:         false,
-        allowTaint:      false,
-        backgroundColor: '#ffffff',
-        windowWidth:     certEl.scrollWidth,
-        windowHeight:    certEl.scrollHeight,
-        x: 0, y: 0, scrollX: 0, scrollY: 0,
-      });
+  try {
+    const canvas = await html2canvas(certEl, {
+      scale:           3,
+      useCORS:         false,
+      allowTaint:      false,
+      backgroundColor: '#ffffff',
+      width:           900,
+      height:          638,
+      windowWidth:     900,
+      windowHeight:    638,
+      x: 0, y: 0, scrollX: 0, scrollY: 0,
+    });
 
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const pdf     = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const pdfW    = pdf.internal.pageSize.getWidth();
-      const pdfH    = pdf.internal.pageSize.getHeight();
+    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    const pdf     = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pdfW    = pdf.internal.pageSize.getWidth();
+    const pdfH    = pdf.internal.pageSize.getHeight();
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+    pdf.save(`Certificate_${this.certData.studentName.replace(/\s+/g, '_')}.pdf`);
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
-      pdf.save(`Certificate_${this.certData.studentName.replace(/\s+/g, '_')}.pdf`);
-
-    } catch (err) {
-      console.error('PDF generation failed:', err);
-      Swal.fire({
-        icon: 'error', title: 'Download Failed',
-        text: 'Could not generate the PDF. Please try again.',
-        confirmButtonColor: '#2563eb'
-      });
-    } finally {
-      this.isDownloading = false;
-    }
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    Swal.fire({ icon: 'error', title: 'Download Failed',
+      text: 'Could not generate the PDF. Please try again.',
+      confirmButtonColor: '#2563eb' });
+  } finally {
+    // Restore the visual scale
+    certEl.style.transform = prevTransform;
+    this.isDownloading = false;
   }
+}
 
   async updatePassword() {
     this.pwError = ''; this.pwSuccess = '';
@@ -556,4 +561,40 @@ certVerificationId = '';
     });
   } catch { return ''; }
 }
+
+
+updateCertScale() {
+  const scrollArea = document.querySelector('.cert-scroll-area') as HTMLElement;
+  const cert       = document.querySelector('.certificate')      as HTMLElement;
+  const wrapper    = document.querySelector('.cert-scale-wrapper') as HTMLElement;
+  const modal      = document.querySelector('.cert-modal-wrapper') as HTMLElement;
+  if (!scrollArea || !cert || !wrapper) return;
+
+  const CERT_W = 900;
+  const CERT_H = 638;
+  const available = scrollArea.clientWidth - 32;
+  const scale = available < CERT_W ? available / CERT_W : 1;
+
+  cert.style.transform       = `scale(${scale})`;
+  cert.style.transformOrigin = 'top center';
+
+  wrapper.style.width          = '100%';
+  wrapper.style.height         = `${CERT_H * scale}px`;
+  wrapper.style.overflow       = 'hidden';
+  wrapper.style.display        = 'flex';
+  wrapper.style.justifyContent = 'center';
+
+  // Shrink the modal to fit: topbar (~65px) + padding (48px) + scaled cert height
+  if (modal) {
+    const topbarHeight = 65;
+    const padding      = 48;   // 24px top + 24px bottom from cert-scroll-area
+    const idealHeight  = topbarHeight + padding + (CERT_H * scale);
+    modal.style.height    = `${idealHeight}px`;
+    modal.style.maxHeight = `${idealHeight}px`;
+  }
+}
+ @HostListener('window:resize')
+ onResize() {
+   if (this.showCertModal) this.updateCertScale();
+ }
 }

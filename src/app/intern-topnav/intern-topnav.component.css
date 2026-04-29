@@ -381,11 +381,9 @@
   animation: fadeIn .3s ease;
   display: flex;
   flex-direction: column;
-  max-height: 94vh;
-  height: 94vh;
+  /* remove height: 94vh and max-height: 94vh — JS handles this now */
   box-sizing: border-box;
 }
-
 .cert-modal-topbar {
   display: flex;
   justify-content: space-between;
@@ -459,7 +457,9 @@
 .cert-scroll-area {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto; 
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 24px 16px;
   display: flex;
   justify-content: center;
@@ -472,7 +472,8 @@
 ============================= */
 .certificate {
   width: 900px;
-  min-height: 638px;
+  height: 638px;          /* FIXED height — forces landscape always */
+  min-height: unset;
   background: #fff;
   position: relative;
   font-family: 'Times New Roman', Times, serif;
@@ -480,8 +481,14 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  transform-origin: top left;  /* scale from top-left corner */
 }
-
+.cert-scale-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+}
 .cert-top-bar         { height: 10px; flex-shrink: 0; }
 .cert-top-bar-gold    { height: 4px;  flex-shrink: 0; }
 .cert-bottom-bar-gold { height: 4px;  flex-shrink: 0; }
@@ -528,9 +535,9 @@
   position: relative; z-index: 2; flex: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 12px 70px; text-align: center;
+  padding: 8px 50px;   /* was 12px 70px */
+  text-align: center;
 }
-
 .cert-header {
   display: flex; align-items: center; justify-content: center;
   gap: 16px; width: 100%; margin-bottom: 20px; margin-top: -32px;
@@ -553,7 +560,12 @@
 .cert-subtitle-tag{ font-size: 10px; color: #6b7280; letter-spacing: 2.5px; text-transform: uppercase; margin: 0 0 8px; font-family: Arial, sans-serif; }
 .cert-awarded-text{ font-size: 13px; font-style: italic; color: #4b5563; margin: 18px 0 2px; }
 .cert-name-wrap   { margin-bottom: 4px; }
-.cert-cursive-name{ font-family: 'Great Vibes', cursive; font-size: 52px; margin: 0 0 2px; line-height: 1.15; }
+.cert-cursive-name {
+  font-family: 'Great Vibes', cursive;
+  font-size: 42px;   /* was 52px */
+  margin: 0 0 2px;
+  line-height: 1.15;
+}
 .cert-name-line   { width: 380px; height: 1px; margin: 0 auto 4px; }
 .cert-body-para   { font-size: 11.5px; color: #374151; line-height: 1.8; max-width: 620px; margin: 2px 0; }
 .cert-body-para strong { font-weight: 700; }
@@ -677,3 +689,15 @@
     border-radius: 12px;
   }
 }
+
+@media (max-width: 960px) {
+  .certificate {
+     /* scale the whole cert proportionally */
+     transform-origin: top center;
+     transform: scale(var(--cert-scale, 1));
+  }
+  .cert-scroll-area {
+    /* compensate for scaled-down height so no dead whitespace */
+    align-items: flex-start;
+  }
+ }
