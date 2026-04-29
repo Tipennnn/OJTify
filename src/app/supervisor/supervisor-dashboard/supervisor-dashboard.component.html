@@ -3,11 +3,12 @@
   <app-supervisor-sidenav (toggle)="onToggleSidebar($event)"></app-supervisor-sidenav>
 
   <div class="main-section">
+
     <app-supervisor-topnav></app-supervisor-topnav>
 
     <div class="dashboard-content">
 
-      <!-- HEADER — matches OJT page layout -->
+      <!-- HEADER -->
       <div class="dashboard-header">
         <h2>Dashboard</h2>
       </div>
@@ -172,7 +173,7 @@
                 </td>
               </tr>
               <tr *ngIf="recentAttendance.length === 0">
-                <td colspan="6" style="text-align:center; color:#9ca3af; padding:20px;">
+                <td colspan="5" style="text-align:center; color:#9ca3af; padding:20px;">
                   No attendance records yet.
                 </td>
               </tr>

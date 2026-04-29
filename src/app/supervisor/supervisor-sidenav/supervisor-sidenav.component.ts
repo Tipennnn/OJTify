@@ -21,6 +21,8 @@ export class SupervisorSidenavComponent {
     private router  : Router,
     private appwrite: AppwriteService
   ) {
+    // On mobile (< 768px) CSS already collapses via media query.
+    // We track this flag only for the toggle button on desktop.
     this.isCollapsed = window.innerWidth < 768;
 
     this.router.events
@@ -33,13 +35,22 @@ export class SupervisorSidenavComponent {
   }
 
   toggleNav(): void {
-    this.isCollapsed = !this.isCollapsed;
-    this.toggle.emit(this.isCollapsed);
+    // Only allow toggle on desktop — mobile is locked by CSS media query
+    if (window.innerWidth >= 768) {
+      this.isCollapsed = !this.isCollapsed;
+      this.toggle.emit(this.isCollapsed);
+    }
   }
 
   @HostListener('window:resize', ['$event'])
-  onResize(event: any) {
-    this.isCollapsed = event.target.innerWidth < 768;
+  onResize(event: any): void {
+    const width = event.target.innerWidth;
+    if (width < 768) {
+      this.isCollapsed = true;
+    } else if (width >= 768) {
+      this.isCollapsed = false;
+    }
+    this.toggle.emit(this.isCollapsed);
   }
 
   async onLogout(): Promise<void> {
@@ -72,7 +83,6 @@ export class SupervisorSidenavComponent {
       return;
     }
 
-    // Reset photo
     this.appwrite.updateProfilePhoto(
       'https://ui-avatars.com/api/?name=User&background=0818A8&color=fff&size=128'
     );

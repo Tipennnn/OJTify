@@ -1,46 +1,23 @@
 /* ========================= */
-/* DASHBOARD WRAPPER & MAIN */
+/* SIDENAV — flex child,     */
+/* NOT position:fixed        */
 /* ========================= */
-body {
-  margin: 0;
-  font-family: 'Poppins', sans-serif;
-}
 
-.dashboard-wrapper {
-  display: flex;
-  height: 100vh;
-}
-
-.main-section {
-  flex: 1;
-  margin-left: 260px;
-  overflow-y: auto;
-  background: #f3f4f6;
-  padding: 20px;
-  transition: margin-left 0.3s ease;
-}
-
-.sidenav.collapsed ~ .main-section {
-  margin-left: 80px;
-}
-
-/* ========================= */
-/* MAIN SIDENAV              */
-/* ========================= */
 .sidenav {
   width: 260px;
   height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
+  flex-shrink: 0;
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   padding: 22px;
   font-family: 'Poppins', sans-serif;
-  transition: all 0.3s ease;
+  transition: width 0.3s ease;
   overflow-y: auto;
+  position: sticky;
+  top: 0;
+  box-sizing: border-box;
 }
 
 .sidenav.collapsed {
@@ -50,6 +27,7 @@ body {
 /* ========================= */
 /* BRAND                     */
 /* ========================= */
+
 .brand-section {
   display: flex;
   align-items: center;
@@ -81,20 +59,25 @@ body {
   font-size: 22px;
   font-weight: 700;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* ========================= */
 /* DIVIDER                   */
 /* ========================= */
+
 .divider {
   height: 1px;
   background: #e5e7eb;
   margin: 12px 0 18px 0;
+  flex-shrink: 0;
 }
 
 /* ========================= */
 /* MENU                      */
 /* ========================= */
+
 .nav-menu {
   display: flex;
   flex-direction: column;
@@ -112,6 +95,8 @@ body {
   font-size: 15px;
   transition: all 0.25s ease;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .icon-box {
@@ -139,6 +124,7 @@ body {
 }
 
 /* ACTIVE */
+
 .nav-item.active {
   color: #0818A8;
 }
@@ -161,6 +147,7 @@ body {
 /* ========================= */
 /* LOGOUT                    */
 /* ========================= */
+
 .logout-section {
   margin-top: auto;
 }
@@ -178,6 +165,7 @@ body {
 /* ========================= */
 /* COLLAPSED STATE           */
 /* ========================= */
+
 .sidenav.collapsed .brand-title {
   display: none;
 }
@@ -202,9 +190,6 @@ body {
 /* ========================= */
 /* TOOLTIP ON COLLAPSED      */
 /* ========================= */
-.sidenav.collapsed .nav-item {
-  position: relative;
-}
 
 .sidenav.collapsed .nav-item:hover::after {
   content: attr(data-tooltip);
@@ -221,7 +206,7 @@ body {
   white-space: nowrap;
   z-index: 999;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .sidenav.collapsed .nav-item:hover::before {
@@ -231,72 +216,30 @@ body {
 /* ========================= */
 /* RESPONSIVE                */
 /* ========================= */
+
 @media (max-width: 1024px) {
-  .sidenav {
-    width: 220px;
-  }
-  .main-section {
-    margin-left: 220px;
-  }
+  .sidenav { width: 220px; }
 }
 
 @media (max-width: 768px) {
   .sidenav {
-    width: 180px;
-    padding: 18px;
+    width: 80px;
+    padding: 18px 10px;
   }
-  .main-section {
-    margin-left: 180px;
-  }
-  .brand-title {
-    font-size: 18px;
-  }
-  .nav-item {
-    font-size: 14px;
-    padding: 10px;
-  }
-  .icon-box {
-    width: 30px;
-    height: 30px;
-  }
+  .brand-title      { display: none; }
+  .nav-item span    { display: none; }
+  .nav-item         { justify-content: center; gap: 0; padding: 10px; }
+  .brand-section    { justify-content: center; padding-left: 0; }
+  .icon-box         { width: 32px; height: 32px; }
+  .nav-item::before { left: -6px !important; }
 }
 
 @media (max-width: 480px) {
-  .sidenav {
-    width: 140px;
-    padding: 16px;
-  }
-  .main-section {
-    margin-left: 140px;
-  }
-  .brand-title {
-    font-size: 16px;
-  }
-  .nav-item {
-    font-size: 13px;
-    gap: 10px;
-  }
-  .icon-box {
-    width: 26px;
-    height: 26px;
-    font-size: 12px;
-  }
+  .sidenav  { width: 64px; padding: 14px 8px; }
+  .icon-box { width: 28px; height: 28px; font-size: 13px; }
 }
 
 @media (max-width: 360px) {
-  .sidenav {
-    width: 120px;
-  }
-  .main-section {
-    margin-left: 120px;
-  }
-  .brand-title {
-    display: none;
-  }
-  .nav-item span {
-    display: none;
-  }
-  .nav-item {
-    justify-content: center;
-  }
+  .sidenav  { width: 56px; padding: 12px 6px; }
+  .icon-box { width: 26px; height: 26px; font-size: 12px; }
 }
