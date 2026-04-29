@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { InternSidenavComponent } from '../../intern-sidenav/intern-sidenav.component';
@@ -751,4 +751,42 @@ export class InternEvaluationComponent implements OnInit {
       document.getElementById('__pdf-print-overrides')?.remove();
     }
   }
+  // Add these two properties near the top with the other booleans
+showPreviewModal = false;
+private previewScale = 1;
+
+// Add this method
+openPreview() {
+  this.showPreviewModal = true;
+  setTimeout(() => this.updatePreviewScale(), 150);
+}
+
+closePreview() {
+  this.showPreviewModal = false;
+  const doc = document.querySelector('.preview-eval-doc') as HTMLElement;
+  if (doc) (doc.style as any).zoom = '1';
+}
+
+updatePreviewScale() {
+  const modal      = document.querySelector('.preview-modal-wrapper') as HTMLElement;
+  const doc        = document.querySelector('.preview-eval-doc')      as HTMLElement;
+  const scrollArea = document.querySelector('.preview-scroll-area')   as HTMLElement;
+  if (!modal || !doc || !scrollArea) return;
+
+  const DOC_W   = 794;
+  const available = modal.clientWidth - 32;
+  const scale   = available / DOC_W;
+
+  // zoom affects layout flow — no wrapper height tricks needed
+  (doc.style as any).zoom = String(scale);
+
+  scrollArea.style.overflowY = 'auto';
+  scrollArea.style.overflowX = 'hidden';
+}
+
+
+@HostListener('window:resize')
+onPreviewResize() {
+  if (this.showPreviewModal) this.updatePreviewScale();
+}
 }
