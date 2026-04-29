@@ -7,72 +7,66 @@ body {
   background: #f3f4f6;
 }
 
+/* Match dashboard-wrapper exactly — flex row, no absolute positioning */
 .dashboard-wrapper {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
+/* main-section fills remaining width after sidenav — same as dashboard */
 .main-section {
-  position: absolute;
-  top: 0;
-  left: 260px;
-  right: 0;
-  bottom: 0;
-  overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #f3f4f6;
-  transition: left 0.3s ease;
 }
 
-.dashboard-wrapper.collapsed .main-section {
-  left: 80px;
-}
-
+/* topnav is a natural flex child — not fixed */
 app-supervisor-topnav {
-  position: fixed;
-  top: 0;
-  left: 260px;
-  right: 0;
-  z-index: 100;
-  transition: left 0.3s ease;
-}
-
-.dashboard-wrapper.collapsed app-supervisor-topnav {
-  left: 80px;
-}
-
-.dashboard-content {
-  margin-top: 60px;
-  padding: 20px;
-  min-height: calc(100vh - 60px);
-  box-sizing: border-box;
+  flex-shrink: 0;
   width: 100%;
+  display: block;
 }
 
+/* =========================
+   DASHBOARD CONTENT
+========================= */
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* =========================
+   HEADER
+========================= */
 .dashboard-header {
   margin-bottom: 10px;
-  padding-left: 20px;
 }
 
 .dashboard-header h2 {
   font-size: 21px;
   font-weight: 600;
   color: #1f2937;
-  margin-top: 15px;
-  margin-bottom: 14px;
+  margin: 10px 0 14px;
 }
 
 .header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-right: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .dashboard-divider {
-  width: calc(100% - 20px);
+  width: 100%;
   height: 1px;
   background: #e5e7eb;
-  margin-left: 20px;
   margin-bottom: 20px;
 }
 
@@ -125,11 +119,20 @@ app-supervisor-topnav {
   background: #ffffff;
   padding: 15px;
   border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+}
+
+/* =========================
+   TABLE SCROLL WRAP
+========================= */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* =========================
@@ -138,7 +141,8 @@ app-supervisor-topnav {
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
+  min-width: 860px;
 }
 
 .col-name     { width: 26%; }
@@ -161,9 +165,11 @@ app-supervisor-topnav {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  border-bottom: 1px solid #f0f0f0;
 }
+
+.applicants-table th:first-child { border-radius: 8px 0 0 8px; }
+.applicants-table th:last-child  { border-radius: 0 8px 8px 0; }
 
 /* Fixed-height data rows */
 .applicants-table tbody .data-row {
@@ -261,6 +267,31 @@ app-supervisor-topnav {
 }
 
 /* =========================
+   EVAL BADGE
+========================= */
+.eval-tooltip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+.eval-tooltip-badge.evaluated {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.eval-tooltip-badge.not-evaluated {
+  background: #fef9c3;
+  color: #b45309;
+}
+
+/* =========================
    EMPTY STATE
 ========================= */
 .empty-row {
@@ -308,6 +339,7 @@ app-supervisor-topnav {
   padding-top: 12px;
   border-top: 1px solid #f1f5f9;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .page-info {
@@ -361,24 +393,124 @@ app-supervisor-topnav {
   color: #ffffff;
   font-weight: 500;
 }
-.eval-tooltip-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 20px;
-  margin-top: 2px;
-  width: fit-content;
+
+/* =========================
+   RESPONSIVE — TABLET (≤1024px)
+========================= */
+@media (max-width: 1024px) {
+  .dashboard-content { padding: 20px; }
 }
 
-.eval-tooltip-badge.evaluated {
-  background: #dcfce7;
-  color: #16a34a;
+/* =========================
+   RESPONSIVE — TABLET PORTRAIT (≤768px)
+========================= */
+@media (max-width: 768px) {
+  .dashboard-content { padding: 16px; }
+
+  .header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+
+  .profile-pic {
+    width: 30px;
+    height: 30px;
+  }
+
+  .pagination {
+    gap: 6px;
+  }
 }
 
-.eval-tooltip-badge.not-evaluated {
-  background: #fef9c3;
-  color: #b45309;
+/* =========================
+   RESPONSIVE — MOBILE (≤480px)
+========================= */
+@media (max-width: 480px) {
+  .dashboard-content { padding: 12px; }
+
+  .dashboard-header h2 { font-size: 17px; }
+  .dashboard-divider   { margin-bottom: 14px; }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 8px 8px;
+    font-size: 11px;
+  }
+
+  .profile-pic {
+    width: 26px;
+    height: 26px;
+  }
+
+  .profile-name {
+    gap: 7px;
+  }
+
+  .progress-text {
+    font-size: 10px;
+  }
+
+  .eval-tooltip-badge {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+
+  .page-btn {
+    padding: 6px 10px;
+  }
+
+  .page {
+    padding: 5px 8px;
+    font-size: 12px;
+    min-width: 28px;
+  }
+
+  .page-info {
+    font-size: 11px;
+  }
+}
+
+/* =========================
+   RESPONSIVE — SMALL PHONES (≤390px)
+========================= */
+@media (max-width: 390px) {
+  .dashboard-content { padding: 10px; }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 7px 6px;
+    font-size: 10px;
+  }
+
+  .profile-pic {
+    width: 24px;
+    height: 24px;
+  }
 }
