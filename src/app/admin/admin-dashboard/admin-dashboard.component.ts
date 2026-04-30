@@ -109,26 +109,26 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   async ngOnInit() {
-    await this.loadAllData();
-
-    if (!sessionStorage.getItem('adminWelcomeShown')) {
-      try {
-        await this.appwrite.account.get();
-        sessionStorage.setItem('adminWelcomeShown', 'true');
-        Swal.fire({
-          icon: 'success',
-          title: 'Welcome back, Admin!',
-          text: 'You are logged in as an administrator.',
-          timer: 3000,
-          timerProgressBar: true,
-          showConfirmButton: false,
-          toast: true,
-          position: 'top-end',
-        });
-      } catch {}
-    }
+  const storedRole = sessionStorage.getItem('role');
+  if (storedRole !== 'admin') {
+    return; // Don't load data if wrong role in this tab
   }
+  await this.loadAllData();
 
+  if (!sessionStorage.getItem('adminWelcomeShown')) {
+    sessionStorage.setItem('adminWelcomeShown', 'true');
+    Swal.fire({
+      icon: 'success',
+      title: 'Welcome back, Admin!',
+      text: 'You are logged in as an administrator.',
+      timer: 3000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end',
+    });
+  }
+}
 async loadAllData() {
   await this.loadStudents();
   await Promise.all([

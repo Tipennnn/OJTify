@@ -83,14 +83,29 @@ export class InternDashboardComponent implements OnInit {
     await this.checkAndShowAlerts();
   }
 
-  async getCurrentUser() {
-    try {
-      const user         = await this.appwrite.account.get();
-      this.currentUserId = user.$id;
-      this.firstName     = user.name?.split(' ')[0] || user.email || 'Student';
-    } catch { }
-  }
+ async getCurrentUser() {
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    const storedRole = sessionStorage.getItem('role');
 
+    if (!storedId || storedRole !== 'intern') {
+      this.router.navigate(['/intern-login']);
+      return;
+    }
+
+    this.currentUserId = storedId;
+
+    // Get name from the student doc, not account.get()
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      storedId
+    );
+    this.firstName = (doc as any).first_name || 'Student';
+  } catch {
+    this.router.navigate(['/intern-login']);
+  }
+}
   // ── Greeting by time of day ───────────────────────────────
   get greetingTime(): string {
     const h = new Date().getHours();
@@ -367,26 +382,23 @@ async loadAllTaskStats() {
     return Math.max(this.requiredHours - this.completedHours, 0);
   }
 
-  async checkAndShowAlerts() {
-    try {
-      const user      = await this.appwrite.account.get();
-      const firstName = user.name?.split(' ')[0] || user.email || 'Student';
+async checkAndShowAlerts() {
+  try {
+    // Use stored first name instead of account.get()
+    const firstName = this.firstName || 'Student';
 
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      const docs = res.documents as any[];
-      const doc  = docs.find(d => d.$id === this.currentUserId);
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      this.currentUserId
+    );
 
-      const missingFields: string[] = [];
-      if (doc) {
-        if (!doc.profile_photo_id?.trim()) missingFields.push('Profile photo');
-        if (!doc.contact_number?.trim())   missingFields.push('Contact number');
-        if (!doc.home_address?.trim())     missingFields.push('Home address');
-      }
+    const missingFields: string[] = [];
+    if (!(doc as any).profile_photo_id?.trim()) missingFields.push('Profile photo');
+    if (!(doc as any).contact_number?.trim())   missingFields.push('Contact number');
+    if (!(doc as any).home_address?.trim())     missingFields.push('Home address');
 
-      this.profileIncomplete = missingFields.length > 0;
+    this.profileIncomplete = missingFields.length > 0;
 
       if (!sessionStorage.getItem('welcomeShown')) {
         sessionStorage.setItem('welcomeShown', 'true');

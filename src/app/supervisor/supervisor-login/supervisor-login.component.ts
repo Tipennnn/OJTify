@@ -131,6 +131,7 @@ export class SupervisorLoginComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('esigReminderShown');
       sessionStorage.removeItem('role');
       sessionStorage.setItem('role', 'supervisor');
+      sessionStorage.setItem('currentDocId', supervisor.$id);
       this.router.navigate(['/supervisor-dashboard']);
 
     } catch (error: any) {

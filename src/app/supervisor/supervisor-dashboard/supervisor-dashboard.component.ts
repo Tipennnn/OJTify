@@ -140,7 +140,7 @@ export class SupervisorDashboardComponent implements OnInit {
       const doc  = await this.appwrite.databases.getDocument(
         this.appwrite.DATABASE_ID,
         this.appwrite.SUPERVISORS_COL,
-        user.$id
+       this.currentSupervisorId
       );
       const hasEsig = !!(doc as any).esig_file_id;
       sessionStorage.setItem('esigReminderShown', 'true');
@@ -173,20 +173,27 @@ export class SupervisorDashboardComponent implements OnInit {
 
   // ── Get logged-in supervisor ──────────────────────────────
   async getCurrentSupervisor() {
-    try {
-      const user = await this.appwrite.account.get();
-      this.currentSupervisorId = user.$id;
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL,
-        user.$id
-      );
-      this.supervisorFirstName = (doc as any).first_name || '';
-      this.supervisorName      = `${(doc as any).first_name} ${(doc as any).last_name}`;
-    } catch (error: any) {
-      console.error('Failed to get supervisor:', error.message);
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    const storedRole = sessionStorage.getItem('role');
+
+    if (!storedId || storedRole !== 'supervisor') {
+      // Don't redirect — just silently fail so other tabs aren't affected
+      return;
     }
+
+    this.currentSupervisorId = storedId;
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      storedId
+    );
+    this.supervisorFirstName = (doc as any).first_name || '';
+    this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
   }
+}
 
   // ── Load assigned students ────────────────────────────────
   async loadAssignedStudents() {

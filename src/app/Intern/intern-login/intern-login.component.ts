@@ -382,6 +382,7 @@ export class InternLoginComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('profilePhotoReminderShown');
       sessionStorage.removeItem('profileAlertShown');
       sessionStorage.setItem('role', 'intern');
+      sessionStorage.setItem('currentDocId', student.$id);
       this.router.navigate(['/intern-dashboard']);
 
     } catch (error: any) {
