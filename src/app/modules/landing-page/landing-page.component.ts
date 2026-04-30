@@ -21,7 +21,9 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   totalStudents    = 180;
   totalSupervisors = 24;
   totalAdmins      = 6;
-  get totalActiveUsers(): number { return this.totalStudents + this.totalSupervisors + this.totalAdmins; }
+ get totalActiveUsers(): number { 
+  return this.totalStudents + this.totalSupervisors; 
+}
   beneficiarySchool = 'OCES';
 
   private animId: number | null = null;
@@ -43,25 +45,21 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async loadUserCounts() {
-    try {
-      const [students, supervisors, admins] = await Promise.all([
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, [Query.limit(1)]
-        ),
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, [Query.limit(1)]
-        ),
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID, this.appwrite.ADMINS_COL, [Query.limit(1)]
-        ),
-      ]);
-      this.totalStudents    = students.total;
-      this.totalSupervisors = supervisors.total;
-      this.totalAdmins      = admins.total;
-    } catch (e) {
-      // fallback values stay
-    }
+  try {
+    const [students, supervisors] = await Promise.all([
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, [Query.limit(1)]
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, [Query.limit(1)]
+      ),
+    ]);
+    this.totalStudents    = students.total;
+    this.totalSupervisors = supervisors.total;
+  } catch (e) {
+    console.error('loadUserCounts failed:', e);
   }
+}
 
   goTo(path: string) {
     this.router.navigate([path]);
