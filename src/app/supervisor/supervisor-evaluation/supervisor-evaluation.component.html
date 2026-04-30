@@ -7,10 +7,9 @@
 
     <div class="dashboard-content">
 
+      <!-- HEADER — search bar here, same as OJT -->
       <div class="dashboard-header header-flex">
-        <div>
-          <h2>Student Evaluation</h2>
-        </div>
+        <div><h2>Student Evaluation</h2></div>
         <div class="search-box">
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" placeholder="Search student..." (input)="onSearch($event)">
@@ -19,7 +18,7 @@
 
       <div class="dashboard-divider"></div>
 
-      <!-- Tabs row -->
+      <!-- Tabs row — no search bar here anymore -->
       <div class="tab-row">
         <div class="tab-bar">
           <button class="tab-btn" [class.active]="activeTab === 'pending'" (click)="setTab('pending')">
@@ -48,82 +47,85 @@
       <div class="center-wrapper" *ngIf="!loading && activeTab === 'pending'">
         <div class="table-container">
 
-          <table class="applicants-table">
-            <colgroup>
-              <col class="col-name">
-              <col class="col-sid">
-              <col class="col-course">
-              <col class="col-school">
-              <col class="col-progress">
-              <col class="col-action">
-            </colgroup>
-            <thead>
-              <tr>
-                <th class="col-name">Name</th>
-                <th class="col-sid">Student ID</th>
-                <th class="col-course">Course</th>
-                <th class="col-school">School</th>
-                <th class="col-progress">Hours Progress</th>
-                <th class="col-action"></th>
-              </tr>
-            </thead>
-            <tbody>
+          <!-- Horizontal scroll wrapper — same as OJT -->
+          <div class="table-wrap">
+            <table class="applicants-table">
+              <colgroup>
+                <col class="col-name">
+                <col class="col-sid">
+                <col class="col-course">
+                <col class="col-school">
+                <col class="col-progress">
+                <col class="col-action">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="col-name">Name</th>
+                  <th class="col-sid">Student ID</th>
+                  <th class="col-course">Course</th>
+                  <th class="col-school">School</th>
+                  <th class="col-progress">Hours Progress</th>
+                  <th class="col-action">Action</th>
+                </tr>
+              </thead>
+              <tbody>
 
-              <!-- Data rows -->
-              <tr *ngFor="let student of pagedStudents" class="data-row">
-                <td class="col-name">
-                  <div class="profile-name">
-                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
-                    <span>{{ getFullName(student) }}</span>
-                  </div>
-                </td>
-                <td class="col-sid plain-text">{{ student.student_id }}</td>
-                <td class="col-course plain-text">{{ abbreviateCourse(student.course) }}</td>
-                <td class="col-school plain-text">{{ student.school_name }}</td>
-                <td class="col-progress">
-                  <div class="progress-wrap">
-                    <div class="progress-bar">
-                      <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
-                    </div>
-                    <span class="progress-text">
-                      {{ student.completed_hours || 0 }} / {{ student.required_hours || 500 }} hrs
-                      ({{ getProgress(student) }}%)
-                    </span>
-                  </div>
-                </td>
-                <td class="col-action">
-                  <button class="btn-action-icon" title="Evaluate student" (click)="openEvaluate(student)">
-                    <i class="fa-solid fa-clipboard-check"></i>
-                  </button>
-                </td>
-              </tr>
-
-              <!-- Empty state -->
-              <ng-container *ngIf="filteredStudents.length === 0; else pendingGhostRows">
-                <tr class="empty-row">
-                  <td colspan="6" class="empty-state-cell">
-                    <div class="empty-state">
-                      <i class="fa-solid fa-clipboard-check"></i>
-                      <span>No pending students found.</span>
+                <!-- Data rows -->
+                <tr *ngFor="let student of pagedStudents" class="data-row">
+                  <td class="col-name">
+                    <div class="profile-name">
+                      <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
+                      <span>{{ getFullName(student) }}</span>
                     </div>
                   </td>
+                  <td class="col-sid plain-text">{{ student.student_id }}</td>
+                  <td class="col-course plain-text">{{ abbreviateCourse(student.course) }}</td>
+                  <td class="col-school plain-text">{{ student.school_name }}</td>
+                  <td class="col-progress">
+                    <div class="progress-wrap">
+                      <div class="progress-bar">
+                        <div class="progress-fill" [style.width]="getProgress(student) + '%'"></div>
+                      </div>
+                      <span class="progress-text">
+                        {{ student.completed_hours || 0 }} / {{ student.required_hours || 500 }} hrs
+                        ({{ getProgress(student) }}%)
+                      </span>
+                    </div>
+                  </td>
+                  <td class="col-action">
+                    <button class="btn-action-icon" title="Evaluate student" (click)="openEvaluate(student)">
+                      <i class="fa-solid fa-clipboard-check"></i>
+                    </button>
+                  </td>
                 </tr>
-              </ng-container>
 
-              <!-- Ghost rows -->
-              <ng-template #pendingGhostRows>
-                <tr *ngFor="let ghost of ghostRowsPending" class="ghost-row">
-                  <td class="col-name"></td>
-                  <td class="col-sid"></td>
-                  <td class="col-course"></td>
-                  <td class="col-school"></td>
-                  <td class="col-progress"></td>
-                  <td class="col-action"></td>
-                </tr>
-              </ng-template>
+                <!-- Empty state -->
+                <ng-container *ngIf="filteredStudents.length === 0; else pendingGhostRows">
+                  <tr class="empty-row">
+                    <td colspan="6" class="empty-state-cell">
+                      <div class="empty-state">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                        <span>No pending students found.</span>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
 
-            </tbody>
-          </table>
+                <!-- Ghost rows -->
+                <ng-template #pendingGhostRows>
+                  <tr *ngFor="let ghost of ghostRowsPending" class="ghost-row">
+                    <td class="col-name"></td>
+                    <td class="col-sid"></td>
+                    <td class="col-course"></td>
+                    <td class="col-school"></td>
+                    <td class="col-progress"></td>
+                    <td class="col-action"></td>
+                  </tr>
+                </ng-template>
+
+              </tbody>
+            </table>
+          </div>
 
           <div class="pagination">
             <span class="page-info">
@@ -154,84 +156,87 @@
       <div class="center-wrapper" *ngIf="!loading && activeTab === 'evaluated'">
         <div class="table-container">
 
-          <table class="applicants-table evaluated-table">
-            <colgroup>
-              <col class="col-name">
-              <col class="col-sid">
-              <col class="col-course">
-              <col class="col-rating">
-              <col class="col-evalby">
-              <col class="col-date">
-              <col class="col-action">
-            </colgroup>
-            <thead>
-              <tr>
-                <th class="col-name">Name</th>
-                <th class="col-sid">Student ID</th>
-                <th class="col-course">Course</th>
-                <th class="col-rating">Overall Rating</th>
-                <th class="col-evalby">Evaluated By</th>
-                <th class="col-date">Date</th>
-                <th class="col-action"></th>
-              </tr>
-            </thead>
-            <tbody>
+          <!-- Horizontal scroll wrapper — same as OJT -->
+          <div class="table-wrap">
+            <table class="applicants-table evaluated-table">
+              <colgroup>
+                <col class="col-name">
+                <col class="col-sid">
+                <col class="col-course">
+                <col class="col-rating">
+                <col class="col-evalby">
+                <col class="col-date">
+                <col class="col-action">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="col-name">Name</th>
+                  <th class="col-sid">Student ID</th>
+                  <th class="col-course">Course</th>
+                  <th class="col-rating">Overall Rating</th>
+                  <th class="col-evalby">Evaluated By</th>
+                  <th class="col-date">Date</th>
+                  <th class="col-action"></th>
+                </tr>
+              </thead>
+              <tbody>
 
-              <!-- Data rows -->
-              <tr *ngFor="let student of pagedEvaluated" class="data-row">
-                <td class="col-name">
-                  <div class="profile-name">
-                    <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
-                    <span>{{ getFullName(student) }}</span>
-                  </div>
-                </td>
-                <td class="col-sid plain-text">{{ student.student_id }}</td>
-                <td class="col-course plain-text">{{ abbreviateCourse(student.course) }}</td>
-                <td class="col-rating">
-                  <span class="overall-pill"
-                        [style.background]="getOverallColor(getEvalAverage(student)) + '18'"
-                        [style.color]="getOverallColor(getEvalAverage(student))">
-                    ★ {{ getEvalAverage(student) }}
-                    &nbsp;—&nbsp;
-                    {{ getOverallLabel(getEvalAverage(student)) }}
-                  </span>
-                </td>
-                <td class="col-evalby plain-text">{{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}</td>
-                <td class="col-date plain-text">{{ getEvalDate(student) }}</td>
-                <td class="col-action">
-                  <button class="btn-action-icon" title="View evaluation" (click)="viewEvaluation(student)">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                  </button>
-                </td>
-              </tr>
-
-              <!-- Empty state -->
-              <ng-container *ngIf="filteredEvaluated.length === 0; else evaluatedGhostRows">
-                <tr class="empty-row">
-                  <td colspan="7" class="empty-state-cell">
-                    <div class="empty-state">
-                      <i class="fa-solid fa-circle-check"></i>
-                      <span>No evaluated students yet.</span>
+                <!-- Data rows -->
+                <tr *ngFor="let student of pagedEvaluated" class="data-row">
+                  <td class="col-name">
+                    <div class="profile-name">
+                      <img [src]="getAvatarUrl(student)" class="profile-pic" alt="">
+                      <span>{{ getFullName(student) }}</span>
                     </div>
                   </td>
+                  <td class="col-sid plain-text">{{ student.student_id }}</td>
+                  <td class="col-course plain-text">{{ abbreviateCourse(student.course) }}</td>
+                  <td class="col-rating">
+                    <span class="overall-pill"
+                          [style.background]="getOverallColor(getEvalAverage(student)) + '18'"
+                          [style.color]="getOverallColor(getEvalAverage(student))">
+                      ★ {{ getEvalAverage(student) }}
+                      &nbsp;—&nbsp;
+                      {{ getOverallLabel(getEvalAverage(student)) }}
+                    </span>
+                  </td>
+                  <td class="col-evalby plain-text">{{ evaluationMap.get(student.$id)?.supervisor_name || '—' }}</td>
+                  <td class="col-date plain-text">{{ getEvalDate(student) }}</td>
+                  <td class="col-action">
+                    <button class="btn-action-icon" title="View evaluation" (click)="viewEvaluation(student)">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                  </td>
                 </tr>
-              </ng-container>
 
-              <!-- Ghost rows -->
-              <ng-template #evaluatedGhostRows>
-                <tr *ngFor="let ghost of ghostRowsEvaluated" class="ghost-row">
-                  <td class="col-name"></td>
-                  <td class="col-sid"></td>
-                  <td class="col-course"></td>
-                  <td class="col-rating"></td>
-                  <td class="col-evalby"></td>
-                  <td class="col-date"></td>
-                  <td class="col-action"></td>
-                </tr>
-              </ng-template>
+                <!-- Empty state -->
+                <ng-container *ngIf="filteredEvaluated.length === 0; else evaluatedGhostRows">
+                  <tr class="empty-row">
+                    <td colspan="7" class="empty-state-cell">
+                      <div class="empty-state">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>No evaluated students yet.</span>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
 
-            </tbody>
-          </table>
+                <!-- Ghost rows -->
+                <ng-template #evaluatedGhostRows>
+                  <tr *ngFor="let ghost of ghostRowsEvaluated" class="ghost-row">
+                    <td class="col-name"></td>
+                    <td class="col-sid"></td>
+                    <td class="col-course"></td>
+                    <td class="col-rating"></td>
+                    <td class="col-evalby"></td>
+                    <td class="col-date"></td>
+                    <td class="col-action"></td>
+                  </tr>
+                </ng-template>
+
+              </tbody>
+            </table>
+          </div>
 
           <div class="pagination">
             <span class="page-info">
