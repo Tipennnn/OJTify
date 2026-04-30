@@ -10,15 +10,16 @@
     <div class="dashboard-content">
 
       <div class="dashboard-header header-flex">
+
         <div class="header-left">
           <h2>Attendance</h2>
-          <div class="clickable-date-box" [routerLink]="['/supervisor-attendance-history']">
-            <i class="fa-solid fa-calendar-days"></i>
-            <span>{{ getToday() }}</span>
-          </div>
         </div>
 
         <div class="header-right">
+          <a class="clickable-date-box" [routerLink]="['/supervisor-attendance-history']">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>{{ getToday() }}</span>
+          </a>
           <button class="qr-btn" (click)="openScanner()">
             <i class="fa-solid fa-qrcode"></i> Scan QR
           </button>
@@ -28,6 +29,7 @@
                    (input)="onSearch($event)">
           </div>
         </div>
+
       </div>
 
       <div class="dashboard-divider"></div>
@@ -42,22 +44,32 @@
       <!-- TABLE -->
       <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
-          <table class="applicants-table">
-            <thead>
-              <tr>
-                <th class="col-name">Name</th>
-                <th class="col-id">Student ID</th>
-                <th class="col-time">Time In</th>
-                <th class="col-time">Time Out</th>
-                <th class="col-status">Status</th>
-                <th class="col-scanned">Scanned By</th>
-              </tr>
-            </thead>
-            <tbody>
 
-              <!-- Data rows -->
-              <ng-container *ngFor="let log of pagedLogs">
-                <tr class="data-row">
+          <!-- Horizontal scroll wrapper -->
+          <div class="table-wrap">
+            <table class="applicants-table">
+              <colgroup>
+                <col class="col-name">
+                <col class="col-id">
+                <col class="col-time">
+                <col class="col-time">
+                <col class="col-status">
+                <col class="col-scanned">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="col-name">Name</th>
+                  <th class="col-id">Student ID</th>
+                  <th class="col-time">Time In</th>
+                  <th class="col-time">Time Out</th>
+                  <th class="col-status">Status</th>
+                  <th class="col-scanned">Scanned By</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <!-- Data rows -->
+                <tr *ngFor="let log of pagedLogs" class="data-row">
                   <td class="col-name">
                     <div class="profile-name">
                       <img [src]="log.student_photo ||
@@ -83,22 +95,22 @@
                   </td>
                   <td class="col-scanned">{{ log.scanned_by_name || '—' }}</td>
                 </tr>
-              </ng-container>
 
-              <!-- Empty state — centered, replaces ghost rows entirely -->
-              <tr *ngIf="filteredLogs.length === 0" class="empty-row">
-                <td colspan="6" class="empty-state-cell">
-                  <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <span>No attendance records for today yet.</span>
-                  </div>
-                </td>
-              </tr>
+                <!-- Empty state -->
+                <ng-container *ngIf="filteredLogs.length === 0; else attendanceGhostRows">
+                  <tr class="empty-row">
+                    <td colspan="6" class="empty-state-cell">
+                      <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <span>No attendance records for today yet.</span>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
 
-              <!-- Ghost / filler rows — only when there ARE records -->
-              <ng-container *ngIf="filteredLogs.length > 0">
-                <ng-container *ngFor="let ghost of ghostRows">
-                  <tr class="ghost-row">
+                <!-- Ghost rows — only when there ARE records -->
+                <ng-template #attendanceGhostRows>
+                  <tr *ngFor="let ghost of ghostRows" class="ghost-row">
                     <td class="col-name"></td>
                     <td class="col-id"></td>
                     <td class="col-time"></td>
@@ -106,13 +118,13 @@
                     <td class="col-status"></td>
                     <td class="col-scanned"></td>
                   </tr>
-                </ng-container>
-              </ng-container>
+                </ng-template>
 
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
 
-          <!-- PAGINATION — matches admin-ojt style -->
+          <!-- PAGINATION -->
           <div class="pagination">
             <span class="page-info">
               Showing {{ rangeStart }}–{{ rangeEnd }}
@@ -124,7 +136,11 @@
               <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="page-numbers">
-              <span class="page active">{{ currentPage }}</span>
+              <ng-container *ngFor="let p of pageNumbers">
+                <span class="page"
+                      [class.active]="p === currentPage"
+                      (click)="goToPage(p)">{{ p }}</span>
+              </ng-container>
             </div>
             <button class="page-btn"
                     (click)="nextPage()"
@@ -135,6 +151,7 @@
 
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -156,7 +173,7 @@
           <p>Scan QR or search manually</p>
         </div>
       </div>
-      <button class="close-scanner-btn" (click)="closeScanner()">✕</button>
+      <button class="close-scanner-btn" (click)="closeScanner()">&#x2715;</button>
     </div>
 
     <!-- Mode Tabs -->
@@ -221,22 +238,21 @@
       </div>
 
       <!-- MANUAL PANEL -->
-      <!-- MANUAL PANEL -->
-<div class="manual-panel" [class.hidden]="!showManualEntry">
+      <div class="manual-panel" [class.hidden]="!showManualEntry">
 
-  <span class="manual-panel-label">Enter Student ID</span>
+        <span class="manual-panel-label">Enter Student ID</span>
 
-  <div class="manual-input-wrapper">
-    <i class="fas fa-id-card manual-icon"></i>
-    <input
-      type="text"
-      class="manual-id-input"
-      placeholder="Type Student ID..."
-      [(ngModel)]="manualStudentId"
-      (keydown.enter)="submitManualId()"
-      autocomplete="off"
-    />
-  </div>
+        <div class="manual-input-wrapper">
+          <i class="fas fa-id-card manual-icon"></i>
+          <input
+            type="text"
+            class="manual-id-input"
+            placeholder="Type Student ID..."
+            [(ngModel)]="manualStudentId"
+            (keydown.enter)="submitManualId()"
+            autocomplete="off"
+          />
+        </div>
 
         <!-- Results area -->
         <div class="manual-results-area">
