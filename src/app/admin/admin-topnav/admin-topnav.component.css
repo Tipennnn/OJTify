@@ -10,44 +10,51 @@
   background: #ffffff;
   border-bottom: 1px solid #e5e5e5;
   position: relative;
+  box-sizing: border-box;
+  min-width: 0;
 }
+
+.topnav-left {
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+}
+
 .topnav-left .greeting {
   font-size: 16px;
   font-weight: 500;
   color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
+
 .topnav-right {
   display: flex;
   align-items: center;
   gap: 14px;
-  position: relative;
+  position: relative;  /* dropdown anchors to this */
+  flex-shrink: 0;
 }
 
-/* DATETIME DISPLAY */
+/* =============================
+   DATETIME DISPLAY
+============================= */
 .datetime-display {
   display: flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
 }
+
 .datetime-icon {
   font-size: 14px;
   color: #9ca3af;
   flex-shrink: 0;
 }
-.datetime-date {
-  font-size: 13px;
-  font-weight: 600;
-  color: #6b7280;
-  white-space: nowrap;
-  font-family: Arial, Helvetica, sans-serif;
-}
-.datetime-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #d1d5db;
-  flex-shrink: 0;
-}
+
+.datetime-date,
 .datetime-time {
   font-size: 13px;
   font-weight: 600;
@@ -55,6 +62,15 @@
   white-space: nowrap;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.datetime-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
 .topnav-divider {
   width: 1px;
   height: 20px;
@@ -62,32 +78,42 @@
   flex-shrink: 0;
 }
 
-/* PROFILE */
-.profile { cursor: pointer; }
+/* =============================
+   PROFILE AVATAR
+============================= */
+.profile { cursor: pointer; flex-shrink: 0; }
+
 .profile img {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
   transition: 0.2s;
+  display: block;
 }
+
 .profile img:hover { transform: scale(1.05); }
 
 /* =============================
    DROPDOWN
+   Always anchored to right edge
+   of .topnav-right — NEVER full
+   width on any screen size
 ============================= */
 .dropdown {
   position: absolute;
-  top: 55px;
+  top: calc(100% + 8px);
   right: 0;
-  width: 210px;
+  left: auto;             /* NEVER stretch left */
+  width: 210px;           /* fixed comfortable width on all screens */
   background: white;
   border-radius: 10px;
   border: 1px solid #e5e5e5;
   box-shadow: 0 8px 20px rgba(0,0,0,0.08);
   overflow: hidden;
-  z-index: 10;
+  z-index: 1000;
 }
+
 .dropdown-item {
   display: flex;
   align-items: center;
@@ -97,7 +123,9 @@
   font-size: 14px;
   transition: 0.2s;
   white-space: nowrap;
+  position: relative;
 }
+
 .dropdown-item i { width: 18px; color: #555; }
 .dropdown-item:hover { background: #f5f7fb; }
 
@@ -113,18 +141,22 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 /* =============================
    PASSWORD MODAL
 ============================= */
 .password-modal {
-  width: 400px;
+  width: 100%;
+  max-width: 420px;
   background: white;
   padding: 26px 28px 30px;
   border-radius: 16px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.15);
   animation: fadeIn .25s ease;
+  box-sizing: border-box;
 }
 
 /* MODAL HEADER */
@@ -134,6 +166,7 @@
   gap: 12px;
   margin-bottom: 8px;
 }
+
 .modal-header-icon {
   width: 40px;
   height: 40px;
@@ -146,25 +179,31 @@
   font-size: 16px;
   flex-shrink: 0;
 }
-.modal-header-text { flex: 1; }
+
+.modal-header-text { flex: 1; min-width: 0; }
+
 .modal-header-text h2 {
   font-size: 17px;
   font-weight: 700;
   color: #111827;
   margin: 0 0 2px;
 }
+
 .modal-header-text p {
   font-size: 12px;
   color: #6b7280;
   margin: 0;
 }
+
 .close-icon {
   font-size: 18px;
   cursor: pointer;
   color: #777;
   transition: .2s;
-  margin-left: auto;
+  flex-shrink: 0;
+  padding: 2px;
 }
+
 .close-icon:hover { color: #000; transform: scale(1.1); }
 
 .modal-divider {
@@ -176,12 +215,14 @@
 
 /* INPUT GROUPS */
 .input-group { margin-bottom: 16px; }
+
 .input-group label {
   font-size: 13px;
   display: block;
   margin-bottom: 6px;
   color: #444;
 }
+
 .password-field {
   display: flex;
   align-items: center;
@@ -191,10 +232,12 @@
   transition: .2s;
   background: #fff;
 }
+
 .password-field:focus-within {
   border: 1px solid #111827;
   box-shadow: 0 0 0 2px rgba(17,24,39,0.1);
 }
+
 .password-field input {
   flex: 1;
   border: none;
@@ -202,12 +245,15 @@
   padding: 10px;
   font-size: 14px;
   background: transparent;
+  min-width: 0;
 }
+
 .password-field i {
   cursor: pointer;
   color: #111827;
   transition: .2s;
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 /* FIELD ICON */
@@ -233,6 +279,7 @@
   margin-bottom: 14px;
   animation: shake .25s ease;
 }
+
 .pw-success {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
@@ -258,6 +305,7 @@
   padding-left: 2px;
   animation: shake .25s ease;
 }
+
 .field-error-border {
   border-color: #dc2626 !important;
   box-shadow: 0 0 0 2px rgba(220,38,38,0.1) !important;
@@ -269,7 +317,9 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 22px;
+  flex-wrap: wrap;
 }
+
 .cancel-btn {
   background: transparent;
   color: #6b7280;
@@ -281,10 +331,9 @@
   font-weight: 500;
   transition: .2s;
 }
-.cancel-btn:hover {
-  border-color: #9ca3af;
-  color: #374151;
-}
+
+.cancel-btn:hover { border-color: #9ca3af; color: #374151; }
+
 .save-btn {
   background: #111827;
   color: white;
@@ -299,11 +348,13 @@
   gap: 7px;
   transition: .25s;
 }
+
 .save-btn:hover {
   background: #000000;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(17,24,39,0.25);
 }
+
 .save-btn:disabled,
 .cancel-btn:disabled {
   opacity: 0.6;
@@ -318,8 +369,51 @@
   from { opacity: 0; transform: scale(.96); }
   to   { opacity: 1; transform: scale(1); }
 }
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   30%       { transform: translateX(-4px); }
   70%       { transform: translateX(4px); }
+}
+
+/* =============================
+   RESPONSIVE BREAKPOINTS
+============================= */
+
+/* ── Tablet landscape (≤1024px) ── */
+@media (max-width: 1024px) {
+  .topnav { padding: 0 20px; }
+}
+
+/* ── Tablet portrait (≤768px) ── */
+@media (max-width: 768px) {
+  .topnav { padding: 0 14px; }
+  .topnav-left .greeting { font-size: 13px; }
+  .topnav-right { gap: 8px; }
+  .datetime-date { display: none; }
+  .datetime-dot  { display: none; }
+  .datetime-time { font-size: 12px; }
+}
+
+/* ── Small phones (≤600px) ── */
+@media (max-width: 600px) {
+  .datetime-display { display: none; }
+  .topnav-divider   { display: none; }
+  .password-modal   { padding: 20px 16px 24px; border-radius: 12px; }
+  .modal-actions    { justify-content: stretch; }
+  .cancel-btn, .save-btn { flex: 1; text-align: center; }
+}
+
+/* ── Very small phones (≤480px) ── */
+@media (max-width: 480px) {
+  .topnav { height: 54px; padding: 0 12px; }
+  .topnav-left .greeting { font-size: 12px; }
+  .profile img { width: 32px; height: 32px; }
+
+  .dropdown {
+    top: calc(100% + 6px);
+    right: 0;
+    left: auto;
+    width: 200px;
+  }
 }
