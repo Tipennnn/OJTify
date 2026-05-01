@@ -219,27 +219,26 @@
 
 @media (max-width: 1024px) {
   .sidenav { width: 220px; }
+  /* Keep collapsed width consistent */
+  .sidenav.collapsed { width: 80px; }
 }
 
 @media (max-width: 768px) {
+  /* Don't hard-set width here — .collapsed class handles it.
+     Previously, width:80px was forced here unconditionally which
+     fought [class.collapsed] bindings and broke tooltips/labels. */
   .sidenav {
-    width: 80px;
     padding: 18px 10px;
   }
-  .brand-title      { display: none; }
-  .nav-item span    { display: none; }
-  .nav-item         { justify-content: center; gap: 0; padding: 10px; }
-  .brand-section    { justify-content: center; padding-left: 0; }
-  .icon-box         { width: 32px; height: 32px; }
-  .nav-item::before { left: -6px !important; }
+  .icon-box { width: 32px; height: 32px; }
 }
 
 @media (max-width: 480px) {
-  .sidenav  { width: 64px; padding: 14px 8px; }
+  .sidenav { padding: 14px 8px; }
   .icon-box { width: 28px; height: 28px; font-size: 13px; }
 }
 
 @media (max-width: 360px) {
-  .sidenav  { width: 56px; padding: 12px 6px; }
+  .sidenav { padding: 12px 6px; }
   .icon-box { width: 26px; height: 26px; font-size: 12px; }
 }

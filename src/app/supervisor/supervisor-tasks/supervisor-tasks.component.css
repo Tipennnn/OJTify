@@ -15,25 +15,31 @@ body { font-family: 'Poppins', sans-serif; background: #f3f4f6; overflow-x: hidd
 
 app-supervisor-sidenav {
   flex-shrink: 0;
-  width: 260px;
+  /* Let the sidenav component control its own width via its internal CSS.
+     We only set height & stickiness here. */
   height: 100vh;
   position: sticky;
   top: 0;
   z-index: 100;
+  /* Remove any fixed width — the component's own .sidenav / .sidenav.collapsed
+     classes handle 260 → 80px. We just need the host element to shrink too. */
+  transition: width 0.3s ease;
 }
 
 .main-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-width: 0;      /* critical — prevents flex child from overflowing */
   overflow: hidden;
   background: #f3f4f6;
 }
 
-.dashboard-wrapper.collapsed app-supervisor-sidenav {
-  width: 80px;
-}
+/* Mirror the sidenav's width on the host element so the wrapper tracks it.
+   The sidenav component itself sets width:260px / 80px on .sidenav;
+   we replicate those values on the host so flex layout shrinks correctly. */
+app-supervisor-sidenav           { width: 260px; }
+.dashboard-wrapper.collapsed app-supervisor-sidenav { width: 80px; }
 
 app-supervisor-topnav {
   position: sticky;
@@ -265,8 +271,8 @@ app-supervisor-topnav {
   font-family: 'Poppins', sans-serif;
   flex-shrink: 0;
 }
-.task-action-btn.edit-btn { background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; }
-.task-action-btn.edit-btn:hover { background: #2563eb; color: #fff; }
+.task-action-btn.edit-btn   { background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; }
+.task-action-btn.edit-btn:hover   { background: #2563eb; color: #fff; }
 .task-action-btn.delete-btn { background: #fff5f5; border: 1px solid #fecaca; color: #dc2626; }
 .task-action-btn.delete-btn:hover { background: #dc2626; color: #fff; }
 
@@ -1368,23 +1374,21 @@ textarea { resize: none; }
 .intern-ghost-row:last-child td { border-bottom: none; }
 
 /* ════════════════════════════════════════
-   RESPONSIVE — 1280px (large laptop)
+   RESPONSIVE — 1280px
 ════════════════════════════════════════ */
 @media (max-width: 1280px) {
-  app-supervisor-sidenav { width: 240px; }
+  app-supervisor-sidenav                          { width: 240px; }
   .dashboard-wrapper.collapsed app-supervisor-sidenav { width: 76px; }
 }
 
 /* ════════════════════════════════════════
-   RESPONSIVE — 1024px (tablet landscape / small laptop)
+   RESPONSIVE — 1024px
 ════════════════════════════════════════ */
 @media (max-width: 1024px) {
-  app-supervisor-sidenav { width: 210px; }
+  app-supervisor-sidenav                          { width: 210px; }
   .dashboard-wrapper.collapsed app-supervisor-sidenav { width: 68px; }
 
   .lb-report-preview-stats { grid-template-columns: repeat(2, 1fr); }
-
-  /* Modal side panels narrower */
   .modal-left { width: clamp(180px, 25%, 260px); }
   .task-modal .modal-right { width: clamp(190px, 33%, 360px); }
   .lb-entry-left { width: clamp(180px, 26%, 260px); }
@@ -1394,52 +1398,62 @@ textarea { resize: none; }
    RESPONSIVE — 900px
 ════════════════════════════════════════ */
 @media (max-width: 900px) {
-  app-supervisor-sidenav { width: 190px; }
+  app-supervisor-sidenav                          { width: 190px; }
   .dashboard-wrapper.collapsed app-supervisor-sidenav { width: 64px; }
 
-  /* Collapse submission badge text on small screens */
   .submission-badge { font-size: 10px; padding: 3px 8px; }
-
-  /* Week days slightly smaller */
   .lb-week-days { gap: 5px; }
   .lb-day-card { min-height: 65px; }
 }
 
 /* ════════════════════════════════════════
-   RESPONSIVE — 768px (tablet portrait)
+   RESPONSIVE — 768px  ← KEY MOBILE BREAKPOINT
+   The sidenav is 68px wide here (icon-only).
+   We must NOT let its host element stay at 260px.
 ════════════════════════════════════════ */
 @media (max-width: 768px) {
-  app-supervisor-sidenav {
+  /* ── Sidenav host tracks the component's icon-only width ── */
+  app-supervisor-sidenav,
+  .dashboard-wrapper.collapsed app-supervisor-sidenav {
     width: 68px;
     min-width: 68px;
     flex-shrink: 0;
   }
 
+  /* ── Main section fills all remaining space ── */
+  .main-section { min-width: 0; }
+
+  /* ── Content padding tighter ── */
   .dashboard-content { padding: 12px; }
 
-  /* Header stacks */
+  /* ── Header stacks ── */
   .header-flex { flex-direction: column; align-items: flex-start; gap: 8px; }
   .header-actions { width: 100%; }
   .search-box { width: 100%; max-width: 100%; }
+
+  /* ── Tabs full-width ── */
   .tab-switcher { width: 100%; }
   .tab-btn { flex: 1; justify-content: center; }
 
-  /* Intern detail header wraps */
+  /* ── Task cards: actions always visible on touch ── */
+  .task-card-actions { opacity: 1; }
+
+  /* ── Intern detail header wraps ── */
   .intern-detail-header-card { gap: 10px; }
   .intern-detail-header-center { margin-left: 0; width: 100%; }
   .lb-week-dropdown-wrap { width: 100%; }
   .lb-week-select { min-width: 100%; width: 100%; }
+  /* Don't stick the detail header on small screens — avoids z-index overlap */
   .intern-detail-sticky-wrap { position: static; }
 
-  /* Week day cards */
+  /* ── Week day cards ── */
   .lb-week-days { gap: 5px; }
   .lb-day-card { min-height: 65px; padding: 6px 4px; }
   .lb-day-num { font-size: 15px; }
 
-  /* Task card actions always visible on touch */
-  .task-card-actions { opacity: 1; }
-
-  /* ── TASK CARD MODAL stacks vertically ── */
+  /* ════════════════════════════════
+     TASK CARD MODAL — stacks vertically
+  ════════════════════════════════ */
   .task-modal-modern {
     flex-direction: column;
     height: 93vh;
@@ -1460,10 +1474,12 @@ textarea { resize: none; }
     gap: 12px;
   }
 
-  /* ── CREATE/EDIT TASK MODAL stacks vertically ── */
+  /* ════════════════════════════════
+     CREATE / EDIT TASK MODAL — stacks
+  ════════════════════════════════ */
   .task-modal { height: 93vh; max-height: 93vh; }
   .modal-content { flex-direction: column; overflow-y: auto; }
-  .task-modal .modal-left { max-width: 100%; overflow-y: visible; padding: 14px 16px; }
+  .task-modal .modal-left  { max-width: 100%; overflow-y: visible; padding: 14px 16px; }
   .task-modal .modal-right {
     width: 100%;
     max-width: 100%;
@@ -1472,7 +1488,9 @@ textarea { resize: none; }
     padding: 14px 16px;
   }
 
-  /* ── LOGBOOK ENTRY MODAL stacks vertically ── */
+  /* ════════════════════════════════
+     LOGBOOK ENTRY MODAL — stacks
+  ════════════════════════════════ */
   .lb-detail-modal {
     flex-direction: column;
     height: 93vh;
@@ -1488,11 +1506,13 @@ textarea { resize: none; }
   }
   .lb-entry-right { padding: 14px 16px; }
 
-  /* ── SUBMISSIONS MODAL ── */
+  /* ════════════════════════════════
+     SUBMISSIONS MODAL
+  ════════════════════════════════ */
   .subs-file-card { flex-wrap: wrap; gap: 8px; }
   .subs-score-input-row { width: 100%; }
 
-  /* Modal footer always stacked */
+  /* Modal footer stacked */
   .modal-footer { flex-wrap: wrap; gap: 8px; }
   .create-btn, .cancel-btn { flex: 1; justify-content: center; min-width: 0; }
 }
@@ -1501,7 +1521,8 @@ textarea { resize: none; }
    RESPONSIVE — 600px
 ════════════════════════════════════════ */
 @media (max-width: 600px) {
-  app-supervisor-sidenav {
+  app-supervisor-sidenav,
+  .dashboard-wrapper.collapsed app-supervisor-sidenav {
     width: 60px;
     min-width: 60px;
   }
@@ -1515,13 +1536,12 @@ textarea { resize: none; }
 
   /* Week detail smaller */
   .lb-week-days { gap: 4px; }
-  .lb-day-card { min-height: 60px; padding: 5px 3px; }
-  .lb-day-name { font-size: 7px; }
-  .lb-day-num { font-size: 13px; }
-  .lb-day-tag { font-size: 8px; padding: 2px 4px; }
+  .lb-day-card  { min-height: 60px; padding: 5px 3px; }
+  .lb-day-name  { font-size: 7px; }
+  .lb-day-num   { font-size: 13px; }
+  .lb-day-tag   { font-size: 8px; padding: 2px 4px; }
   .lb-score-chip { font-size: 8px; padding: 1px 4px; }
 
-  /* Hide some modal tab icon on very small */
   .lb-modal-tab-btn i { display: none; }
 
   /* Report date group stacks */
@@ -1529,7 +1549,6 @@ textarea { resize: none; }
   .lb-report-date-arrow { display: none; }
   .lb-report-preview-stats { grid-template-columns: repeat(2, 1fr); }
 
-  /* Reduce modal heights to fit */
   .task-modal-modern { height: 96vh; max-height: 96vh; border-radius: 12px; }
   .lb-detail-modal   { height: 96vh; max-height: 96vh; }
   .task-modal        { height: 96vh; max-height: 96vh; }
@@ -1541,12 +1560,10 @@ textarea { resize: none; }
   .task-modal .modal-left  { padding: 12px; }
   .task-modal .modal-right { padding: 12px; }
 
-  /* Pagination compact */
   .page-info { display: none; }
   .page { min-width: 26px; padding: 4px 6px; }
 
-  /* Task meta truncates more */
-  .task-card-meta { font-size: 9px; }
+  .task-card-meta  { font-size: 9px; }
   .task-card-title { font-size: 11px; }
 }
 
@@ -1554,7 +1571,8 @@ textarea { resize: none; }
    RESPONSIVE — 480px (small phone)
 ════════════════════════════════════════ */
 @media (max-width: 480px) {
-  app-supervisor-sidenav {
+  app-supervisor-sidenav,
+  .dashboard-wrapper.collapsed app-supervisor-sidenav {
     width: 56px;
     min-width: 56px;
   }
@@ -1568,28 +1586,23 @@ textarea { resize: none; }
   .lb-week-days { gap: 3px; }
   .lb-day-card  { min-height: 56px; }
   .lb-day-num   { font-size: 12px; }
+  /* Hide tags & chips to save space */
   .lb-day-tag, .lb-score-chip { display: none; }
 
-  /* Tab buttons shrink */
   .tab-btn { font-size: 11px; padding: 6px 10px; gap: 4px; }
   .tab-btn i { display: none; }
 
-  /* Action buttons touch-friendly */
   .task-action-btn { width: 30px; height: 30px; }
 
-  /* Modal footer always stacked column */
   .modal-footer { flex-direction: column-reverse; }
   .create-btn, .cancel-btn { width: 100%; justify-content: center; }
 
-  /* Subs modal stat bar wraps */
   .subs-stat-sep { display: none; }
   .subs-stat-bar { gap: 6px; }
 
-  /* Week stats pills wrap nicely */
   .lb-week-stats-row { gap: 5px; }
   .lb-week-stat { font-size: 10px; padding: 4px 8px; }
 
-  /* Intern detail header collapses */
   .intern-detail-header-card { padding: 10px 12px; }
   .intern-lb-avatar-lg { width: 42px; height: 42px; font-size: 14px; }
   .intern-detail-header-left h3 { font-size: 14px; }
@@ -1599,7 +1612,8 @@ textarea { resize: none; }
    RESPONSIVE — 360px (very small phone)
 ════════════════════════════════════════ */
 @media (max-width: 360px) {
-  app-supervisor-sidenav {
+  app-supervisor-sidenav,
+  .dashboard-wrapper.collapsed app-supervisor-sidenav {
     width: 52px;
     min-width: 52px;
   }
@@ -1612,43 +1626,39 @@ textarea { resize: none; }
   .lb-day-num { font-size: 11px; }
   .lb-day-name { font-size: 6px; }
 
-  /* Task card super compact */
   .task-card-inner { gap: 5px; padding: 6px 8px; }
   .task-date-badge { min-width: 32px; padding: 4px 5px; }
   .tb-num { font-size: 13px; }
   .task-card-title { font-size: 10px; }
 
-  /* Submission badge minimal */
   .submission-badge { font-size: 9px; padding: 3px 6px; }
 
-  /* Pagination minimal */
   .page-numbers { gap: 2px; }
   .page { min-width: 24px; padding: 3px 5px; font-size: 10px; }
   .page-btn { padding: 5px 8px; font-size: 10px; }
 
-  /* Intern header minimal */
   .intern-lb-avatar-lg { width: 38px; height: 38px; font-size: 12px; }
   .intern-detail-header-left h3 { font-size: 13px; }
-
-  /* Score badge compact */
   .score-badge { font-size: 9px; padding: 3px 7px; }
 }
 
 /* ════════════════════════════════════════
-   TOUCH DEVICES — better tap targets
+   TOUCH DEVICES — larger tap targets
 ════════════════════════════════════════ */
 @media (hover: none) and (pointer: coarse) {
   .task-card-actions { opacity: 1; }
-  .task-action-btn { width: 32px; height: 32px; }
-  .page { min-width: 34px; min-height: 34px; display: flex; align-items: center; justify-content: center; }
-  .page-btn { min-height: 34px; }
+  .task-action-btn { width: 34px; height: 34px; }
+  .page { min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+  .page-btn { min-height: 36px; }
+  /* Remove hover transforms that feel wrong on touch */
   .lb-day-card.has-entry:hover { transform: none; }
   .task-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-color: #e5e7eb; }
   .intern-table-row:hover .intern-table-chevron { transform: none; }
+  .back-btn-above:hover { transform: none; }
 }
 
 /* ════════════════════════════════════════
-   LANDSCAPE PHONE (short viewport)
+   LANDSCAPE PHONE — short viewport
 ════════════════════════════════════════ */
 @media (max-height: 500px) and (orientation: landscape) {
   .task-modal-modern, .lb-detail-modal, .task-modal {
