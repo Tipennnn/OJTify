@@ -134,14 +134,15 @@ export class SupervisorDashboardComponent implements OnInit {
 
   // ── E-sig reminder ─────────────────────────────────────────
   private async checkEsigReminder(): Promise<void> {
-    if (sessionStorage.getItem('esigReminderShown')) return;
-    try {
-      const user = await this.appwrite.account.get();
-      const doc  = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL,
-       this.currentSupervisorId
-      );
+  if (sessionStorage.getItem('esigReminderShown')) return;
+  try {
+    if (!this.currentSupervisorId) return; // guard — no ID means getCurrentSupervisor failed
+
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      this.currentSupervisorId
+    );
       const hasEsig = !!(doc as any).esig_file_id;
       sessionStorage.setItem('esigReminderShown', 'true');
       if (hasEsig) return;

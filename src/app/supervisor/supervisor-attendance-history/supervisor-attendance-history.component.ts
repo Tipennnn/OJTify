@@ -99,30 +99,25 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
   // ── Load current logged-in supervisor ────────────────
 
   async loadCurrentSupervisor() {
-    try {
-      // Get the currently logged-in Appwrite account
-      const account = await this.appwrite.account.get();
-
-      // Try to find matching supervisor document by email
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL   // make sure this constant exists in AppwriteService
-      );
-      const supervisors = res.documents as any[];
-
-      this.currentSupervisor =
-        supervisors.find(s => s.email === account.email) ?? {
-          $id        : account.$id,
-          first_name : account.name?.split(' ')[0] ?? 'Supervisor',
-          last_name  : account.name?.split(' ').slice(1).join(' ') ?? '',
-          email      : account.email
-        };
-    } catch (error: any) {
-      console.warn('Could not load supervisor profile:', error.message);
-      // Fall back gracefully — manual add will still work, just without a name
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) {
       this.currentSupervisor = null;
+      return;
     }
+
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      storedId
+    ) as any;
+
+    this.currentSupervisor = doc;
+  } catch (error: any) {
+    console.warn('Could not load supervisor profile:', error.message);
+    this.currentSupervisor = null;
   }
+}
 
   get supervisorFullName(): string {
     if (!this.currentSupervisor) return 'Unknown Supervisor';

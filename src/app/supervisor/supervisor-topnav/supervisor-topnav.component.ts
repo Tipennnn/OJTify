@@ -98,64 +98,69 @@ ngOnDestroy() {
   }
 
   async loadProfilePhoto() {
-    try {
-      const user = await this.appwrite.account.get();
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
-      const doc = (res.documents as any[]).find(d => d.$id === user.$id);
-      this.currentDoc = doc || null;
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
-      if (doc?.profile_photo_id) {
-        this.profilePhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
-      } else {
-        this.profilePhotoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'Supervisor')}&background=0818A8&color=fff&size=128`;
-      }
-    } catch {
-      this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=Supervisor&background=0818A8&color=fff&size=128';
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      storedId
+    ) as any;
+    this.currentDoc = doc || null;
+
+    if (doc?.profile_photo_id) {
+      this.profilePhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+    } else {
+      const name = `${doc?.first_name || 'Supervisor'} ${doc?.last_name || ''}`.trim();
+      this.profilePhotoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0818A8&color=fff&size=128`;
     }
+  } catch {
+    this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=Supervisor&background=0818A8&color=fff&size=128';
   }
+}
 
   toggleMenu() { this.menuOpen = !this.menuOpen; }
 
   async goProfile() {
-    this.menuOpen         = false;
-    this.profileError     = '';
-    this.profileSuccess   = '';
-    this.esigPreviewUrl   = '';
-    this.photoPreviewUrl  = '';
-    this.profileLoading   = true;
-    this.showProfileModal = true;
+  this.menuOpen         = false;
+  this.profileError     = '';
+  this.profileSuccess   = '';
+  this.esigPreviewUrl   = '';
+  this.photoPreviewUrl  = '';
+  this.profileLoading   = true;
+  this.showProfileModal = true;
 
-    try {
-      const user = await this.appwrite.account.get();
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
-      const doc = (res.documents as any[]).find(d => d.$id === user.$id);
-      this.currentDoc = doc || null;
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
-      this.profileForm = {
-        first_name  : doc?.first_name   || user.name?.split(' ')[0] || '',
-        last_name   : doc?.last_name    || user.name?.split(' ')[1] || '',
-        email       : doc?.email        || user.email || '',
-        employee_id : doc?.employee_id  || '',
-        grade_level : doc?.grade_level  || '',
-      };
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      storedId
+    ) as any;
+    this.currentDoc = doc || null;
 
-      this.photoPreviewUrl = this.profilePhotoUrl;
+    this.profileForm = {
+      first_name  : doc?.first_name   || '',
+      last_name   : doc?.last_name    || '',
+      email       : doc?.email        || '',
+      employee_id : doc?.employee_id  || '',
+      grade_level : doc?.grade_level  || '',
+    };
 
-      if (doc?.esig_file_id) {
-        await this.loadEsigPreview(doc.esig_file_id);
-      }
-    } catch (err: any) {
-      this.profileError = 'Failed to load profile data.';
-    } finally {
-      this.profileLoading = false;
+    this.photoPreviewUrl = this.profilePhotoUrl;
+
+    if (doc?.esig_file_id) {
+      await this.loadEsigPreview(doc.esig_file_id);
     }
+  } catch (err: any) {
+    this.profileError = 'Failed to load profile data.';
+  } finally {
+    this.profileLoading = false;
   }
+}
 
   closeProfileModal() {
     this.showProfileModal = false;
@@ -193,9 +198,9 @@ ngOnDestroy() {
 
   this.photoUploading = true;
   try {
-    const user = await this.appwrite.account.get();
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
-    // Delete old photo if exists
     const oldPhotoId = this.currentDoc?.profile_photo_id;
     if (oldPhotoId) {
       try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldPhotoId); } catch {}
@@ -208,18 +213,15 @@ ngOnDestroy() {
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID,
       this.appwrite.SUPERVISORS_COL,
-      user.$id,
+      storedId, // ← use storedId instead of user.$id
       { profile_photo_id: newFileId }
     );
 
     if (this.currentDoc) this.currentDoc.profile_photo_id = newFileId;
 
-    // Build the Appwrite URL directly (more reliable than FileReader for topnav)
     const newPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${newFileId}/view?project=${this.PROJECT_ID}`;
     this.profilePhotoUrl = newPhotoUrl;
     this.photoPreviewUrl = newPhotoUrl;
-
-    // Reset file input
     (event.target as HTMLInputElement).value = '';
 
     Swal.fire({ icon: 'success', title: 'Photo Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
@@ -231,17 +233,18 @@ ngOnDestroy() {
   }
 }
 
-  async saveProfile() {
+ async saveProfile() {
   this.profileError   = '';
   this.profileSuccess = '';
-
-  this.profileSaving = true;
+  this.profileSaving  = true;
   try {
-    const user = await this.appwrite.account.get();
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
+
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID,
       this.appwrite.SUPERVISORS_COL,
-      user.$id,
+      storedId, // ← use storedId instead of user.$id
       {
         employee_id : this.profileForm.employee_id.trim(),
         grade_level : this.profileForm.grade_level,
@@ -290,7 +293,9 @@ ngOnDestroy() {
   if (file.type !== 'image/png') return;
   this.esigUploading = true;
   try {
-    const user = await this.appwrite.account.get();
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
+
     const oldFileId = this.currentDoc?.esig_file_id;
     if (oldFileId) {
       try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); } catch {}
@@ -299,11 +304,12 @@ ngOnDestroy() {
     const newFileId = ID.unique();
     await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
     await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id, { esig_file_id: newFileId }
+      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL,
+      storedId, // ← use storedId instead of user.$id
+      { esig_file_id: newFileId }
     );
     if (this.currentDoc) this.currentDoc.esig_file_id = newFileId;
 
-    // ← Use upscaleEsig instead of direct FileReader
     const reader = new FileReader();
     reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
     reader.readAsDataURL(file);
@@ -317,21 +323,26 @@ ngOnDestroy() {
 }
 
   async removeEsig(): Promise<void> {
-    if (!this.currentDoc?.esig_file_id) return;
-    try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.currentDoc.esig_file_id); } catch {}
-    const user = await this.appwrite.account.get();
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id, { esig_file_id: '' }
-    );
-    if (this.currentDoc) this.currentDoc.esig_file_id = '';
-    this.esigPreviewUrl = '';
-  }
+  if (!this.currentDoc?.esig_file_id) return;
+  try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.currentDoc.esig_file_id); } catch {}
 
-  private async loadEsigPreview(fileId: string): Promise<void> {
+  const storedId = sessionStorage.getItem('currentDocId');
+  if (!storedId) return;
+
+  await this.appwrite.databases.updateDocument(
+    this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL,
+    storedId, // ← use storedId instead of user.$id
+    { esig_file_id: '' }
+  );
+  if (this.currentDoc) this.currentDoc.esig_file_id = '';
+  this.esigPreviewUrl = '';
+}
+
+ private async loadEsigPreview(fileId: string): Promise<void> {
   try {
-    const jwt = await this.appwrite.account.createJWT();
+    // No JWT needed — direct URL fetch
     const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
-    const res = await fetch(url, { headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': this.PROJECT_ID } });
+    const res = await fetch(url);
     if (res.ok) {
       const blob = await res.blob();
       const reader = new FileReader();

@@ -172,13 +172,14 @@ export class SupervisorOjtComponent implements OnInit {
   }
 
   async getCurrentSupervisor() {
-    try {
-      const user = await this.appwrite.account.get();
-      this.currentSupervisorId = user.$id;
-    } catch (error: any) {
-      console.error('Failed to get supervisor:', error.message);
-    }
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
+    this.currentSupervisorId = storedId;
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
   }
+}
 
 async loadStudents() {
   this.loading = true;

@@ -81,22 +81,23 @@ export class SupervisorAttendanceComponent implements OnInit, OnDestroy {
   }
 
   async loadCurrentSupervisor() {
-    try {
-      const user = await this.appwrite.account.get();
-      this.supervisorId = user.$id;
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
-      const sup = (res.documents as any[]).find(s => s.$id === user.$id);
-      if (sup) {
-        this.supervisorName = `${sup.first_name} ${sup.last_name}`;
-      }
-    } catch (error: any) {
-      console.error('Failed to get supervisor:', error.message);
-    }
+    this.supervisorId = storedId;
+
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      storedId
+    ) as any;
+
+    this.supervisorName = `${doc.first_name} ${doc.last_name}`;
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
   }
+}
 
   async loadStudents() {
     try {

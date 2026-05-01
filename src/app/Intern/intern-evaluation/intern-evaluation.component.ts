@@ -136,24 +136,27 @@ export class InternEvaluationComponent implements OnInit {
 
   // ── Load data ─────────────────────────────────────────────────────────────
   async loadData() {
-    this.loading = true;
-    try {
-      const account = await this.appwrite.account.get();
+  this.loading = true;
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) {
+      this.hasEvaluation = false;
+      this.loading = false;
+      return;
+    }
 
-      try {
-        const studentDoc = await this.appwrite.databases.getDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL,
-          account.$id
-        );
-        this.student = studentDoc as any;
-      } catch {
-        const sRes = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL
-        );
-        this.student = (sRes.documents as any[]).find(s => s.email === account.email) ?? null;
-      }
+    try {
+      const studentDoc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        storedId
+      );
+      this.student = studentDoc as any;
+    } catch {
+      this.hasEvaluation = false;
+      this.loading = false;
+      return;
+    }
 
       if (!this.student) {
         this.hasEvaluation = false;
