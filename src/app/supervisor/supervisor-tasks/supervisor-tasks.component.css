@@ -15,14 +15,10 @@ body { font-family: 'Poppins', sans-serif; background: #f3f4f6; overflow-x: hidd
 
 app-supervisor-sidenav {
   flex-shrink: 0;
-  /* Let the sidenav component control its own width via its internal CSS.
-     We only set height & stickiness here. */
   height: 100vh;
   position: sticky;
   top: 0;
   z-index: 100;
-  /* Remove any fixed width — the component's own .sidenav / .sidenav.collapsed
-     classes handle 260 → 80px. We just need the host element to shrink too. */
   transition: width 0.3s ease;
 }
 
@@ -30,14 +26,11 @@ app-supervisor-sidenav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;      /* critical — prevents flex child from overflowing */
+  min-width: 0;
   overflow: hidden;
   background: #f3f4f6;
 }
 
-/* Mirror the sidenav's width on the host element so the wrapper tracks it.
-   The sidenav component itself sets width:260px / 80px on .sidenav;
-   we replicate those values on the host so flex layout shrinks correctly. */
 app-supervisor-sidenav           { width: 260px; }
 .dashboard-wrapper.collapsed app-supervisor-sidenav { width: 80px; }
 
@@ -109,12 +102,31 @@ app-supervisor-topnav {
   border: 1px solid #e5e7eb;
   width: clamp(160px, 30vw, 250px);
   height: 38px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   box-sizing: border-box;
 }
 .search-box i { color: #9ca3af; margin-right: 8px; font-size: clamp(11px, 1.5vw, 14px); flex-shrink: 0; }
-.search-box input { border: none; outline: none; width: 100%; font-size: clamp(11px, 1.5vw, 13px); background: transparent; font-family: 'Poppins', sans-serif; }
+.search-box input {
+  border: none;
+  outline: none !important;
+  box-shadow: none !important;
+  width: 100%;
+  font-size: clamp(11px, 1.5vw, 13px);
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+  -webkit-appearance: none;
+}
+.search-box input:focus,
+.search-box input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
 .search-box:hover { border-color: #9ca3af; }
+.search-box:focus-within {
+  border-color: #c7d2fe;
+  box-shadow: 0 0 0 3px rgba(8, 24, 168, 0.08);
+}
 
 /* ════════════════════════════════════════
    TAB SWITCHER
@@ -828,7 +840,12 @@ app-supervisor-topnav {
 .task-modal .modal-close:hover { background: #fee2e2; color: #dc2626; }
 .task-modal .modal-close::before { content: none; }
 
-.modal-content { display: flex; flex: 1; overflow: hidden; }
+.modal-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
 
 .task-modal .modal-left {
   flex: 1;
@@ -843,8 +860,9 @@ app-supervisor-topnav {
   color: #0818A8;
 }
 
+/* ── Modal Right Panel: strict flex column, no overflow ── */
 .task-modal .modal-right {
-  width: clamp(200px, 32%, 380px);
+  width: clamp(220px, 32%, 400px);
   flex-shrink: 0;
   background: #f9fafb;
   border-left: 1px solid #e5e7eb;
@@ -852,13 +870,129 @@ app-supervisor-topnav {
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow-y: auto;
+  overflow: hidden; /* children handle their own scroll */
   box-sizing: border-box;
 }
 .task-modal .modal-right h3 {
   font-size: clamp(13px, 1.8vw, 16px);
   font-weight: 600;
   margin-bottom: clamp(7px, 1.2vw, 12px);
+  flex-shrink: 0;
+}
+
+/* ── Assign mode tabs ── */
+.assign-mode-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.assign-mode-btn {
+  padding: 7px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #6b7280;
+  font-size: clamp(10px, 1.3vw, 12.5px);
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: 0.2s;
+  flex: 1;
+  justify-content: center;
+  white-space: nowrap;
+}
+.assign-mode-btn:hover { background: #f3f4f6; }
+.assign-mode-btn.active { background: #0818A8; color: white; border-color: #0818A8; }
+
+/* ── All Interns preview ── */
+.all-interns-preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+.all-interns-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(11px, 1.5vw, 13px);
+  color: #374151;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 7px 11px;
+  flex-shrink: 0;
+}
+.all-interns-header strong { color: #16a34a; }
+
+.all-interns-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f1f5f9;
+  padding-right: 2px;
+}
+.all-interns-scroll::-webkit-scrollbar { width: 4px; }
+.all-interns-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+.all-interns-scroll::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 10px; }
+
+/* ── Specific intern list wrap — fills remaining space ── */
+.intern-list-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 6px;
+}
+
+.intern-list-wrap .search-box {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Override old intern-list: remove fixed max-height, use flex */
+.intern-list {
+  flex: 1;
+  max-height: none !important;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f1f5f9;
+}
+.intern-list::-webkit-scrollbar { width: 4px; }
+.intern-list::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+.intern-list::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 10px; }
+
+.intern-selected-count {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: #6b7280;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Course assign wrap fills remaining space too */
+.course-assign-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 10px;
 }
 
 .form-group {
@@ -877,9 +1011,10 @@ input[type="text"], input[type="date"], textarea {
   font-family: 'Poppins', sans-serif;
   box-sizing: border-box;
   width: 100%;
+  outline: none;
 }
 input[type="text"]:focus, input[type="date"]:focus, textarea:focus {
-  outline: none;
+  outline: none !important;
   border-color: #0818A8;
   box-shadow: 0 0 0 3px rgba(8,24,168,0.12);
 }
@@ -936,6 +1071,7 @@ textarea { resize: none; }
   border-top: 1px solid #e5e7eb;
   flex-wrap: wrap;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .cancel-btn {
@@ -1254,9 +1390,9 @@ textarea { resize: none; }
 
 .subs-score-wrap { flex-shrink: 0; }
 .subs-score-input-row { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.subs-score-field { width: 60px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-family: 'Poppins', sans-serif; text-align: center; -moz-appearance: textfield; }
+.subs-score-field { width: 60px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 12px; font-family: 'Poppins', sans-serif; text-align: center; -moz-appearance: textfield; outline: none; }
 .subs-score-field::-webkit-inner-spin-button, .subs-score-field::-webkit-outer-spin-button { -webkit-appearance: none; }
-.subs-score-field:focus { outline: none; border-color: #0818A8; box-shadow: 0 0 0 2px rgba(8,24,168,0.1); }
+.subs-score-field:focus { outline: none !important; border-color: #0818A8; box-shadow: 0 0 0 2px rgba(8,24,168,0.1); }
 .subs-score-btn { width: 28px; height: 28px; background: #0818A8; border: none; border-radius: 8px; color: white; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
 .subs-score-btn:hover:not(:disabled) { background: #060f7a; }
 .subs-score-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -1296,9 +1432,9 @@ textarea { resize: none; }
 .lb-modal-score-input { display: flex; flex-direction: column; gap: 5px; }
 .lb-modal-score-input label { font-size: 11px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; }
 .score-input-row { display: flex; gap: 6px; align-items: center; }
-.score-input-field { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; font-family: 'Poppins', sans-serif; -moz-appearance: textfield; }
+.score-input-field { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; font-family: 'Poppins', sans-serif; -moz-appearance: textfield; outline: none; }
 .score-input-field::-webkit-inner-spin-button, .score-input-field::-webkit-outer-spin-button { -webkit-appearance: none; }
-.score-input-field:focus { outline: none; border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.1); }
+.score-input-field:focus { outline: none !important; border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.1); }
 .score-set-btn { padding: 8px 12px; background: #0818A8; border: none; border-radius: 8px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; transition: 0.2s; white-space: nowrap; }
 .score-set-btn:hover:not(:disabled) { background: #060f7a; }
 .score-set-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -1331,8 +1467,8 @@ textarea { resize: none; }
 .lb-report-date-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: clamp(110px, 18vw, 150px); }
 .lb-report-date-field label { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; }
 .lb-report-date-field label i { color: #0818A8; }
-.lb-report-date-input { padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 9px; font-size: clamp(11px, 1.5vw, 13px); font-family: 'Poppins', sans-serif; width: 100%; }
-.lb-report-date-input:focus { outline: none; border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.08); }
+.lb-report-date-input { padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 9px; font-size: clamp(11px, 1.5vw, 13px); font-family: 'Poppins', sans-serif; width: 100%; outline: none; }
+.lb-report-date-input:focus { outline: none !important; border-color: #0818A8; box-shadow: 0 0 0 3px rgba(8,24,168,0.08); }
 .lb-report-date-arrow { color: #9ca3af; font-size: 12px; }
 
 .lb-report-preview { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
@@ -1349,21 +1485,43 @@ textarea { resize: none; }
 .lb-report-btn-inner { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 18px; font-size: clamp(11px, 1.5vw, 13.5px); font-weight: 700; font-family: 'Poppins', sans-serif; }
 .lb-report-btn-icon { width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 11px; }
 
-.assign-mode-tabs { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
-.assign-mode-btn { padding: 7px 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; color: #6b7280; font-size: clamp(10px, 1.3vw, 12.5px); font-weight: 500; cursor: pointer; font-family: 'Poppins', sans-serif; display: flex; align-items: center; gap: 5px; transition: 0.2s; flex: 1; justify-content: center; white-space: nowrap; }
-.assign-mode-btn:hover { background: #f3f4f6; }
-.assign-mode-btn.active { background: #0818A8; color: white; border-color: #0818A8; }
-
-.intern-list { display: flex; flex-direction: column; gap: 5px; max-height: 280px; overflow-y: auto; }
-.intern-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; border: 1px solid #e5e7eb; background: white; transition: 0.18s; }
+/* ════════════════════════════════════════
+   INTERN ITEMS
+════════════════════════════════════════ */
+.intern-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  transition: 0.18s;
+}
 .intern-item:hover { background: #f5f7ff; border-color: #c7d2fe; }
 .intern-item.selected { background: #eef0fc; border-color: #0818A8; }
-.intern-avatar { width: 32px; height: 32px; border-radius: 50%; background: #0818A8; color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background-size: cover; background-position: center; }
+.intern-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0818A8;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+}
 
-.course-assign-wrap { display: flex; flex-direction: column; gap: 10px; }
-.course-match-preview { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
-.course-match-header { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #374151; }
-.course-match-list { display: flex; flex-direction: column; gap: 5px; max-height: 160px; overflow-y: auto; }
+/* ════════════════════════════════════════
+   COURSE MATCH PREVIEW
+════════════════════════════════════════ */
+.course-match-preview { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow: hidden; }
+.course-match-header { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #374151; flex-shrink: 0; }
+.course-match-list { display: flex; flex-direction: column; gap: 5px; flex: 1; overflow-y: auto; min-height: 0; }
 .course-match-chip { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #f8fafc; border-radius: 8px; font-size: 12.5px; color: #374151; }
 .cmc-avatar { width: 26px; height: 26px; border-radius: 50%; background: #0818A8; color: white; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
@@ -1390,7 +1548,7 @@ textarea { resize: none; }
 
   .lb-report-preview-stats { grid-template-columns: repeat(2, 1fr); }
   .modal-left { width: clamp(180px, 25%, 260px); }
-  .task-modal .modal-right { width: clamp(190px, 33%, 360px); }
+  .task-modal .modal-right { width: clamp(200px, 36%, 380px); }
   .lb-entry-left { width: clamp(180px, 26%, 260px); }
 }
 
@@ -1407,12 +1565,9 @@ textarea { resize: none; }
 }
 
 /* ════════════════════════════════════════
-   RESPONSIVE — 768px  ← KEY MOBILE BREAKPOINT
-   The sidenav is 68px wide here (icon-only).
-   We must NOT let its host element stay at 260px.
+   RESPONSIVE — 768px
 ════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* ── Sidenav host tracks the component's icon-only width ── */
   app-supervisor-sidenav,
   .dashboard-wrapper.collapsed app-supervisor-sidenav {
     width: 68px;
@@ -1420,40 +1575,29 @@ textarea { resize: none; }
     flex-shrink: 0;
   }
 
-  /* ── Main section fills all remaining space ── */
   .main-section { min-width: 0; }
-
-  /* ── Content padding tighter ── */
   .dashboard-content { padding: 12px; }
 
-  /* ── Header stacks ── */
   .header-flex { flex-direction: column; align-items: flex-start; gap: 8px; }
   .header-actions { width: 100%; }
   .search-box { width: 100%; max-width: 100%; }
 
-  /* ── Tabs full-width ── */
   .tab-switcher { width: 100%; }
   .tab-btn { flex: 1; justify-content: center; }
 
-  /* ── Task cards: actions always visible on touch ── */
   .task-card-actions { opacity: 1; }
 
-  /* ── Intern detail header wraps ── */
   .intern-detail-header-card { gap: 10px; }
   .intern-detail-header-center { margin-left: 0; width: 100%; }
   .lb-week-dropdown-wrap { width: 100%; }
   .lb-week-select { min-width: 100%; width: 100%; }
-  /* Don't stick the detail header on small screens — avoids z-index overlap */
   .intern-detail-sticky-wrap { position: static; }
 
-  /* ── Week day cards ── */
   .lb-week-days { gap: 5px; }
-  .lb-day-card { min-height: 65px; padding: 6px 4px; }
+  .lb-day-card { min-height: 65px; }
   .lb-day-num { font-size: 15px; }
 
-  /* ════════════════════════════════
-     TASK CARD MODAL — stacks vertically
-  ════════════════════════════════ */
+  /* Task card modal stacks */
   .task-modal-modern {
     flex-direction: column;
     height: 93vh;
@@ -1474,23 +1618,26 @@ textarea { resize: none; }
     gap: 12px;
   }
 
-  /* ════════════════════════════════
-     CREATE / EDIT TASK MODAL — stacks
-  ════════════════════════════════ */
+  /* Create/Edit task modal stacks */
   .task-modal { height: 93vh; max-height: 93vh; }
   .modal-content { flex-direction: column; overflow-y: auto; }
-  .task-modal .modal-left  { max-width: 100%; overflow-y: visible; padding: 14px 16px; }
+  .task-modal .modal-left {
+    max-width: 100%;
+    overflow-y: visible;
+    padding: 14px 16px;
+    flex-shrink: 0;
+  }
   .task-modal .modal-right {
     width: 100%;
     max-width: 100%;
     border-left: none;
     border-top: 1px solid #e5e7eb;
     padding: 14px 16px;
+    height: 55vh;
+    overflow: hidden;
   }
 
-  /* ════════════════════════════════
-     LOGBOOK ENTRY MODAL — stacks
-  ════════════════════════════════ */
+  /* Logbook entry modal stacks */
   .lb-detail-modal {
     flex-direction: column;
     height: 93vh;
@@ -1506,13 +1653,9 @@ textarea { resize: none; }
   }
   .lb-entry-right { padding: 14px 16px; }
 
-  /* ════════════════════════════════
-     SUBMISSIONS MODAL
-  ════════════════════════════════ */
   .subs-file-card { flex-wrap: wrap; gap: 8px; }
   .subs-score-input-row { width: 100%; }
 
-  /* Modal footer stacked */
   .modal-footer { flex-wrap: wrap; gap: 8px; }
   .create-btn, .cancel-btn { flex: 1; justify-content: center; min-width: 0; }
 }
@@ -1530,11 +1673,9 @@ textarea { resize: none; }
   .dashboard-content { padding: 10px; }
   .dashboard-header h2 { font-size: 16px; }
 
-  /* Hide less important table columns */
   .intern-col-course,
   .intern-logbook-table td.intern-col-course { display: none; }
 
-  /* Week detail smaller */
   .lb-week-days { gap: 4px; }
   .lb-day-card  { min-height: 60px; padding: 5px 3px; }
   .lb-day-name  { font-size: 7px; }
@@ -1544,7 +1685,6 @@ textarea { resize: none; }
 
   .lb-modal-tab-btn i { display: none; }
 
-  /* Report date group stacks */
   .lb-report-date-group { flex-direction: column; gap: 8px; }
   .lb-report-date-arrow { display: none; }
   .lb-report-preview-stats { grid-template-columns: repeat(2, 1fr); }
@@ -1558,17 +1698,19 @@ textarea { resize: none; }
   .lb-entry-left  { max-height: 210px; padding: 12px; }
   .lb-entry-right { padding: 12px; }
   .task-modal .modal-left  { padding: 12px; }
-  .task-modal .modal-right { padding: 12px; }
+  .task-modal .modal-right { padding: 12px; height: 52vh; }
 
   .page-info { display: none; }
   .page { min-width: 26px; padding: 4px 6px; }
 
   .task-card-meta  { font-size: 9px; }
   .task-card-title { font-size: 11px; }
+
+  .assign-mode-btn { font-size: 10px; padding: 6px 8px; }
 }
 
 /* ════════════════════════════════════════
-   RESPONSIVE — 480px (small phone)
+   RESPONSIVE — 480px
 ════════════════════════════════════════ */
 @media (max-width: 480px) {
   app-supervisor-sidenav,
@@ -1579,14 +1721,12 @@ textarea { resize: none; }
 
   .dashboard-content { padding: 8px; }
 
-  /* Hide student ID column */
   .intern-col-sid,
   .intern-logbook-table td.intern-col-sid { display: none; }
 
   .lb-week-days { gap: 3px; }
   .lb-day-card  { min-height: 56px; }
   .lb-day-num   { font-size: 12px; }
-  /* Hide tags & chips to save space */
   .lb-day-tag, .lb-score-chip { display: none; }
 
   .tab-btn { font-size: 11px; padding: 6px 10px; gap: 4px; }
@@ -1606,10 +1746,12 @@ textarea { resize: none; }
   .intern-detail-header-card { padding: 10px 12px; }
   .intern-lb-avatar-lg { width: 42px; height: 42px; font-size: 14px; }
   .intern-detail-header-left h3 { font-size: 14px; }
+
+  .task-modal .modal-right { height: 50vh; }
 }
 
 /* ════════════════════════════════════════
-   RESPONSIVE — 360px (very small phone)
+   RESPONSIVE — 360px
 ════════════════════════════════════════ */
 @media (max-width: 360px) {
   app-supervisor-sidenav,
@@ -1640,17 +1782,18 @@ textarea { resize: none; }
   .intern-lb-avatar-lg { width: 38px; height: 38px; font-size: 12px; }
   .intern-detail-header-left h3 { font-size: 13px; }
   .score-badge { font-size: 9px; padding: 3px 7px; }
+
+  .task-modal .modal-right { height: 48vh; }
 }
 
 /* ════════════════════════════════════════
-   TOUCH DEVICES — larger tap targets
+   TOUCH DEVICES
 ════════════════════════════════════════ */
 @media (hover: none) and (pointer: coarse) {
   .task-card-actions { opacity: 1; }
   .task-action-btn { width: 34px; height: 34px; }
   .page { min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
   .page-btn { min-height: 36px; }
-  /* Remove hover transforms that feel wrong on touch */
   .lb-day-card.has-entry:hover { transform: none; }
   .task-card:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-color: #e5e7eb; }
   .intern-table-row:hover .intern-table-chevron { transform: none; }
@@ -1658,7 +1801,7 @@ textarea { resize: none; }
 }
 
 /* ════════════════════════════════════════
-   LANDSCAPE PHONE — short viewport
+   LANDSCAPE PHONE
 ════════════════════════════════════════ */
 @media (max-height: 500px) and (orientation: landscape) {
   .task-modal-modern, .lb-detail-modal, .task-modal {
@@ -1673,4 +1816,5 @@ textarea { resize: none; }
   .lb-week-detail-section { padding: 8px 10px; }
   .lb-week-days { gap: 4px; }
   .lb-day-card { min-height: 52px; padding: 4px 3px; }
+  .task-modal .modal-right { height: 60vh; }
 }
