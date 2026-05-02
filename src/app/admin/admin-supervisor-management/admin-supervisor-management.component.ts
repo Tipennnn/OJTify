@@ -125,6 +125,15 @@ export class AdminSupervisorManagementComponent implements OnInit {
   pageSize    = 10;
   realTotalAssignedInterns = 0;
 
+  // ── Required for template ──────────────────────────────────
+  readonly Math = Math;
+
+  get ghostRows(): null[] {
+    const empty = this.pageSize - this.paginatedSupervisors.length;
+    return empty > 0 ? Array(empty).fill(null) : [];
+  }
+  // ───────────────────────────────────────────────────────────
+
   esigPreviewUrl   = '';
   esigUploading    = false;
 
@@ -133,7 +142,7 @@ export class AdminSupervisorManagementComponent implements OnInit {
   readonly ENDPOINT        = 'https://sgp.cloud.appwrite.io/v1';
   readonly SUPERVISORS_COL = 'supervisors';
   readonly INTERNS_COL     = 'interns';
-  private readonly OTP_FUNCTION_ID = '69edb8fb00176781c74b'; // same ID
+  private readonly OTP_FUNCTION_ID = '69edb8fb00176781c74b';
 
   constructor(private appwrite: AppwriteService) {}
 
@@ -542,37 +551,35 @@ export class AdminSupervisorManagementComponent implements OnInit {
   }
 
   async sendSupervisorWelcomeEmail(email: string, fullName: string, password: string) {
-  try {
-    const execution = await this.appwrite.functions.createExecution(
-      this.OTP_FUNCTION_ID,
-      JSON.stringify({
-        action:         'send-supervisor-welcome',
-        email,
-        supervisorName: fullName,
-        password,
-        templateId:     environment.brevoSupervisorWelcomeTid
-      }),
-      false
-    );
+    try {
+      const execution = await this.appwrite.functions.createExecution(
+        this.OTP_FUNCTION_ID,
+        JSON.stringify({
+          action:         'send-supervisor-welcome',
+          email,
+          supervisorName: fullName,
+          password,
+          templateId:     environment.brevoSupervisorWelcomeTid
+        }),
+        false
+      );
 
-    const result = JSON.parse(execution.responseBody);
+      const result = JSON.parse(execution.responseBody);
 
-    if (!result.success) {
-      console.error('Supervisor welcome email failed:', result.message);
-    } else {
-      console.log(`Welcome email sent to ${email}`);
+      if (!result.success) {
+        console.error('Supervisor welcome email failed:', result.message);
+      } else {
+        console.log(`Welcome email sent to ${email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send supervisor welcome email:', error);
     }
-  } catch (error) {
-    console.error('Failed to send supervisor welcome email:', error);
   }
-}
 
-  // ── Called on file input change ──
   async onEsigChange(event: Event): Promise<void> {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file || !this.selectedSupervisor) return;
 
-    // ✅ PNG-only check
     if (file.type !== 'image/png') {
       const Swal = (await import('sweetalert2')).default;
       Swal.fire({
@@ -581,7 +588,6 @@ export class AdminSupervisorManagementComponent implements OnInit {
         text: 'Only PNG files are accepted for e-signatures. Please upload a .png file.',
         confirmButtonColor: '#2563eb'
       });
-      // Reset the input so the same file can be re-selected after correction
       (event.target as HTMLInputElement).value = '';
       return;
     }
@@ -589,13 +595,11 @@ export class AdminSupervisorManagementComponent implements OnInit {
     await this.uploadEsig(file);
   }
 
-  // ── Called on drag-drop ──
   async onEsigDrop(event: DragEvent): Promise<void> {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (!file || !this.selectedSupervisor) return;
 
-    // ✅ PNG-only check for drag-and-drop
     if (file.type !== 'image/png') {
       const Swal = (await import('sweetalert2')).default;
       Swal.fire({
@@ -610,11 +614,9 @@ export class AdminSupervisorManagementComponent implements OnInit {
     await this.uploadEsig(file);
   }
 
-  // ── Core upload logic ──
   private async uploadEsig(file: File): Promise<void> {
     if (!this.selectedSupervisor) return;
 
-    // ✅ Final safety guard — PNG only (covers any edge cases)
     if (file.type !== 'image/png') {
       const Swal = (await import('sweetalert2')).default;
       Swal.fire({
@@ -629,19 +631,16 @@ export class AdminSupervisorManagementComponent implements OnInit {
     this.esigUploading = true;
 
     try {
-      // Delete old file if one exists
       const oldFileId = this.selectedSupervisor.esig_file_id;
       if (oldFileId) {
         try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); }
-        catch { /* ignore — file may already be gone */ }
+        catch { /* ignore */ }
       }
 
-      // Upload new file
       const { ID } = await import('appwrite');
       const newFileId = ID.unique();
       await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
 
-      // Save file ID to DB
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
         this.SUPERVISORS_COL,
@@ -649,12 +648,10 @@ export class AdminSupervisorManagementComponent implements OnInit {
         { esig_file_id: newFileId }
       );
 
-      // Update local object
       this.selectedSupervisor = { ...this.selectedSupervisor, esig_file_id: newFileId };
       const idx = this.supervisors.findIndex(s => s.$id === this.selectedSupervisor!.$id);
       if (idx !== -1) this.supervisors[idx].esig_file_id = newFileId;
 
-      // Show base64 preview immediately (no CORS issues — local file)
       const reader = new FileReader();
       reader.onloadend = () => { this.esigPreviewUrl = reader.result as string; };
       reader.readAsDataURL(file);
@@ -675,7 +672,6 @@ export class AdminSupervisorManagementComponent implements OnInit {
     }
   }
 
-  // ── Remove e-sig ──
   async removeEsig(): Promise<void> {
     if (!this.selectedSupervisor?.esig_file_id) return;
 

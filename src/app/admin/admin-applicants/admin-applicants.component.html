@@ -1,11 +1,8 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
 
-  <!-- SIDENAV -->
   <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
 
-  <!-- MAIN SECTION -->
   <div class="main-section">
-
     <app-admin-topnav></app-admin-topnav>
 
     <div class="dashboard-content">
@@ -38,8 +35,8 @@
       <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
 
-          <!-- Table headers always visible; horizontal scroll only on table content -->
-          <div class="table-wrap" [class.has-data]="filteredApplicants.length > 0">
+          <!-- position:relative on table-wrap lets empty-state-row use position:absolute -->
+          <div class="table-wrap">
             <table class="applicants-table">
               <thead>
                 <tr>
@@ -52,10 +49,11 @@
                 </tr>
               </thead>
               <tbody>
-                <!-- Data rows — only when there are records -->
-                <tr *ngFor="let applicant of pagedApplicants"
-                    (click)="openModal(applicant)"
-                    style="cursor:pointer;">
+
+                <!-- Data rows -->
+                <tr class="data-row"
+                    *ngFor="let applicant of pagedApplicants"
+                    (click)="openModal(applicant)">
                   <td>
                     <div class="profile-name">
                       <span>{{ getFullName(applicant) }}</span>
@@ -77,30 +75,31 @@
                   </td>
                 </tr>
 
-                <!-- Ghost rows to maintain table height when list is short -->
-                <tr *ngFor="let ghost of ghostRows" style="opacity: 0; pointer-events: none;">
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
+                <!-- Ghost rows — always rendered, hold table height when list is short -->
+                <ng-container *ngFor="let ghost of ghostRows">
+                  <tr class="ghost-row">
+                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                  </tr>
+                </ng-container>
 
-                <!-- Empty state — inside table, centered in scroll area -->
-                <tr class="empty-row" *ngIf="filteredApplicants.length === 0">
+                <!-- Empty state — position:absolute overlay, centered, same as attendance -->
+                <tr class="empty-state-row" *ngIf="filteredApplicants.length === 0">
                   <td colspan="6">
-                    <div class="empty-state-content">
-                      <i class="fa-solid fa-user-slash"></i>
-                      <span>No applicants found.</span>
+                    <div class="empty-state-inner">
+                      <div class="empty-icon-wrap">
+                        <i class="fa-solid fa-user-slash"></i>
+                      </div>
+                      <p class="empty-title">No Applicants Found</p>
+                      <p class="empty-sub">No applicants match your current filter.</p>
                     </div>
                   </td>
                 </tr>
+
               </tbody>
             </table>
           </div>
 
-          <!-- PAGINATION — fixed position after table, never scrolls -->
+          <!-- Pagination -->
           <div class="pagination">
             <span class="page-info">
               Showing {{ (currentPage - 1) * itemsPerPage + 1 }}–{{ Math.min(currentPage * itemsPerPage, filteredApplicants.length) }}
@@ -133,7 +132,6 @@
 
     <button class="modal-close-btn" (click)="closeModal()">×</button>
 
-    <!-- STATUS BADGE -->
     <div style="text-align:center; margin-bottom:20px;">
       <h3 style="margin-bottom:8px;">{{ getFullName(selectedApplicant) }}</h3>
       <span class="status-badge"
@@ -169,7 +167,6 @@
         <span class="info-label">Contact Number</span>
         <span class="info-value">{{ selectedApplicant.contact_number || '—' }}</span>
       </div>
-
       <div class="info-item">
         <span class="info-label">Email</span>
         <span class="info-value">{{ selectedApplicant.email || '—' }}</span>
@@ -222,55 +219,45 @@
     <div class="form-section">
       <div class="section-header">Required Documents</div>
 
-      <!-- RESUME -->
       <div class="file-box">
         <span class="file-label">Resume / CV</span>
         <div class="file-icons" *ngIf="selectedApplicant.resume_file_id">
-          <a [href]="getFileUrl(selectedApplicant.resume_file_id, 'view')"
-             target="_blank" title="View">
+          <a [href]="getFileUrl(selectedApplicant.resume_file_id, 'view')" target="_blank" title="View">
             <i class="fa-solid fa-eye"></i>
           </a>
-          <a [href]="getFileUrl(selectedApplicant.resume_file_id, 'download')"
-             target="_blank" title="Download">
+          <a [href]="getFileUrl(selectedApplicant.resume_file_id, 'download')" target="_blank" title="Download">
             <i class="fa-solid fa-download"></i>
           </a>
         </div>
         <span *ngIf="!selectedApplicant.resume_file_id" class="no-file">No file uploaded</span>
       </div>
 
-      <!-- ENDORSEMENT -->
       <div class="file-box">
         <span class="file-label">Endorsement Letter</span>
         <div class="file-icons" *ngIf="selectedApplicant.endorsement_file_id">
-          <a [href]="getFileUrl(selectedApplicant.endorsement_file_id, 'view')"
-             target="_blank" title="View">
+          <a [href]="getFileUrl(selectedApplicant.endorsement_file_id, 'view')" target="_blank" title="View">
             <i class="fa-solid fa-eye"></i>
           </a>
-          <a [href]="getFileUrl(selectedApplicant.endorsement_file_id, 'download')"
-             target="_blank" title="Download">
+          <a [href]="getFileUrl(selectedApplicant.endorsement_file_id, 'download')" target="_blank" title="Download">
             <i class="fa-solid fa-download"></i>
           </a>
         </div>
         <span *ngIf="!selectedApplicant.endorsement_file_id" class="no-file">No file uploaded</span>
       </div>
 
-      <!-- COE -->
       <div class="file-box">
         <span class="file-label">Certificate of Enrollment</span>
         <div class="file-icons" *ngIf="selectedApplicant.coe_file_id">
-          <a [href]="getFileUrl(selectedApplicant.coe_file_id, 'view')"
-             target="_blank" title="View">
+          <a [href]="getFileUrl(selectedApplicant.coe_file_id, 'view')" target="_blank" title="View">
             <i class="fa-solid fa-eye"></i>
           </a>
-          <a [href]="getFileUrl(selectedApplicant.coe_file_id, 'download')"
-             target="_blank" title="Download">
+          <a [href]="getFileUrl(selectedApplicant.coe_file_id, 'download')" target="_blank" title="Download">
             <i class="fa-solid fa-download"></i>
           </a>
         </div>
         <span *ngIf="!selectedApplicant.coe_file_id" class="no-file">No file uploaded</span>
       </div>
 
-      <!-- ACTIONS -->
       <div class="modal-actions" *ngIf="selectedApplicant.status === 'pending'">
         <button class="accept-btn"
                 (click)="openApproveModal(selectedApplicant, $event)"
@@ -304,9 +291,7 @@
       </div>
       <div>
         <h3>Approve Application</h3>
-        <p *ngIf="pendingApproveApplicant">
-          {{ getFullName(pendingApproveApplicant) }}
-        </p>
+        <p *ngIf="pendingApproveApplicant">{{ getFullName(pendingApproveApplicant) }}</p>
       </div>
       <button class="action-modal-close" (click)="closeApproveModal()">
         <i class="fa-solid fa-xmark"></i>
@@ -314,45 +299,23 @@
     </div>
 
     <div class="action-modal-body">
-
       <div class="action-field-row">
-
-        <!-- START DATE -->
         <div class="action-field" [class.field-error]="approveFormErrors['startDate']">
-          <label>
-            <i class="fa-solid fa-calendar-day"></i>
-            Start Date <span class="req-star">*</span>
-          </label>
-          <input type="date"
-                 [(ngModel)]="approveStartDate"
-                 [min]="getTodayString()"
-                 [class.has-value]="approveStartDate">
+          <label><i class="fa-solid fa-calendar-day"></i> Start Date <span class="req-star">*</span></label>
+          <input type="date" [(ngModel)]="approveStartDate" [min]="getTodayString()">
           <span class="field-error-msg" *ngIf="approveFormErrors['startDate']">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            {{ approveFormErrors['startDate'] }}
+            <i class="fa-solid fa-circle-exclamation"></i> {{ approveFormErrors['startDate'] }}
           </span>
         </div>
-
-        <!-- REQUIRED HOURS -->
         <div class="action-field" [class.field-error]="approveFormErrors['hours']">
-          <label>
-            <i class="fa-solid fa-clock"></i>
-            Required Hours <span class="req-star">*</span>
-          </label>
-          <input type="number"
-                 [(ngModel)]="approveRequiredHours"
-                 placeholder="e.g. 400"
-                 min="1"
-                 max="9999">
+          <label><i class="fa-solid fa-clock"></i> Required Hours <span class="req-star">*</span></label>
+          <input type="number" [(ngModel)]="approveRequiredHours" placeholder="e.g. 400" min="1" max="9999">
           <span class="field-error-msg" *ngIf="approveFormErrors['hours']">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            {{ approveFormErrors['hours'] }}
+            <i class="fa-solid fa-circle-exclamation"></i> {{ approveFormErrors['hours'] }}
           </span>
         </div>
-
       </div>
 
-      <!-- ADMIN NOTE -->
       <div class="action-field">
         <label>
           <i class="fa-solid fa-note-sticky"></i>
@@ -361,8 +324,7 @@
         </label>
         <textarea [(ngModel)]="approveNote"
                   placeholder="e.g. Please report to the admin office on your first day. Bring a valid ID and 2x2 photo."
-                  rows="3"
-                  maxlength="500"></textarea>
+                  rows="3" maxlength="500"></textarea>
         <span class="char-count">{{ approveNote.length }}/500</span>
       </div>
 
@@ -373,13 +335,10 @@
           They will be able to log in immediately after approval.
         </span>
       </div>
-
     </div>
 
     <div class="action-modal-footer">
-      <button class="btn-cancel" (click)="closeApproveModal()" [disabled]="actionLoading">
-        Cancel
-      </button>
+      <button class="btn-cancel" (click)="closeApproveModal()" [disabled]="actionLoading">Cancel</button>
       <button class="btn-approve" (click)="confirmApprove()" [disabled]="actionLoading">
         <i class="fa fa-spinner fa-spin" *ngIf="actionLoading"></i>
         <i class="fa-solid fa-check" *ngIf="!actionLoading"></i>
@@ -405,9 +364,7 @@
       </div>
       <div>
         <h3>Decline Application</h3>
-        <p *ngIf="pendingDeclineApplicant">
-          {{ getFullName(pendingDeclineApplicant) }}
-        </p>
+        <p *ngIf="pendingDeclineApplicant">{{ getFullName(pendingDeclineApplicant) }}</p>
       </div>
       <button class="action-modal-close" (click)="closeDeclineModal()">
         <i class="fa-solid fa-xmark"></i>
@@ -415,8 +372,6 @@
     </div>
 
     <div class="action-modal-body">
-
-      <!-- REASON / NOTE -->
       <div class="action-field">
         <label>
           <i class="fa-solid fa-note-sticky"></i>
@@ -424,9 +379,8 @@
           <span class="optional-tag">optional</span>
         </label>
         <textarea [(ngModel)]="declineNote"
-                  placeholder="e.g. Please re-register and ensure all submitted documents are clear and complete. Your resume appears to be corrupted."
-                  rows="4"
-                  maxlength="500"></textarea>
+                  placeholder="e.g. Please re-register and ensure all submitted documents are clear and complete."
+                  rows="4" maxlength="500"></textarea>
         <span class="char-count">{{ declineNote.length }}/500</span>
       </div>
 
@@ -437,13 +391,10 @@
           the same email address. They will receive a notification email with your note.
         </span>
       </div>
-
     </div>
 
     <div class="action-modal-footer">
-      <button class="btn-cancel" (click)="closeDeclineModal()" [disabled]="actionLoading">
-        Cancel
-      </button>
+      <button class="btn-cancel" (click)="closeDeclineModal()" [disabled]="actionLoading">Cancel</button>
       <button class="btn-decline" (click)="confirmDecline()" [disabled]="actionLoading">
         <i class="fa fa-spinner fa-spin" *ngIf="actionLoading"></i>
         <i class="fa-solid fa-xmark" *ngIf="!actionLoading"></i>

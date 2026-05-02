@@ -69,12 +69,12 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
 
   // ── Geofence ──────────────────────────────────────────────
   officeLat    = 14.844539;
-officeLng    = 120.289219;
-officeRadius = 100;
+  officeLng    = 120.289219;
+  officeRadius = 100;
 
-showGeofenceModal = false;
-geofenceForm = { lat: 0, lng: 0, radius: 0 };
-savingGeofence = false;
+  showGeofenceModal = false;
+  geofenceForm = { lat: 0, lng: 0, radius: 0 };
+  savingGeofence = false;
 
   // ── Pagination ────────────────────────────────────────────
   currentPage = 1;
@@ -88,11 +88,31 @@ savingGeofence = false;
     await this.loadCurrentAdmin();
     await this.loadStudents();
     await this.loadTodayAttendance();
-    await this.autoTimeOutMissed(); 
+    await this.autoTimeOutMissed();
   }
 
   ngOnDestroy() {
     this.stopCamera();
+  }
+
+  // ── Pagination getters ────────────────────────────────────
+  get pagedLogs() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredLogs.slice(start, start + this.pageSize);
+  }
+
+  get ghostRows(): null[] {
+    const empty = this.pageSize - this.pagedLogs.length;
+    return empty > 0 ? Array(empty).fill(null) : [];
+  }
+
+  get rangeStart(): number {
+    return this.filteredLogs.length === 0
+      ? 0 : (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredLogs.length);
   }
 
   // ── Load admin identity ───────────────────────────────────
@@ -106,15 +126,15 @@ savingGeofence = false;
         this.appwrite.ADMINS_COL
       );
       const admin = (res.documents as any[]).find(a => a.auth_user_id === user.$id);
-     this.adminName = admin
-  ? `${admin.first_name ?? ''} ${admin.last_name ?? ''}`.trim() || 'Admin'
-  : 'Admin';
+      this.adminName = admin
+        ? `${admin.first_name ?? ''} ${admin.last_name ?? ''}`.trim() || 'Admin'
+        : 'Admin';
 
-if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
-  this.officeLat    = admin.geofence_lat;
-  this.officeLng    = admin.geofence_lng;
-  this.officeRadius = admin.geofence_radius;
-}
+      if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
+        this.officeLat    = admin.geofence_lat;
+        this.officeLng    = admin.geofence_lng;
+        this.officeRadius = admin.geofence_radius;
+      }
     } catch (error: any) {
       console.error('Failed to get admin:', error.message);
       this.adminName = 'Admin';
@@ -123,43 +143,43 @@ if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
 
   // ── Load students ─────────────────────────────────────────
   async loadStudents() {
-  try {
-    let allStudents: any[] = [];
-    let offset = 0;
-    const limit = 100;
+    try {
+      let allStudents: any[] = [];
+      let offset = 0;
+      const limit = 100;
 
-    while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        [Query.limit(limit), Query.offset(offset)]
-      );
-      allStudents = allStudents.concat(res.documents);
-      if (allStudents.length >= res.total || res.documents.length < limit) break;
-      offset += limit;
+      while (true) {
+        const res = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          [Query.limit(limit), Query.offset(offset)]
+        );
+        allStudents = allStudents.concat(res.documents);
+        if (allStudents.length >= res.total || res.documents.length < limit) break;
+        offset += limit;
+      }
+      this.allStudents = allStudents;
+
+      let allArchived: any[] = [];
+      offset = 0;
+      while (true) {
+        const res = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ARCHIVES_COL,
+          [Query.limit(limit), Query.offset(offset)]
+        );
+        allArchived = allArchived.concat(res.documents);
+        if (allArchived.length >= res.total || res.documents.length < limit) break;
+        offset += limit;
+      }
+      this.allArchived = allArchived;
+
+    } catch (error: any) {
+      console.error('Failed to load students:', error.message);
     }
-    this.allStudents = allStudents;
-
-    let allArchived: any[] = [];
-    offset = 0;
-    while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL,
-        [Query.limit(limit), Query.offset(offset)]
-      );
-      allArchived = allArchived.concat(res.documents);
-      if (allArchived.length >= res.total || res.documents.length < limit) break;
-      offset += limit;
-    }
-    this.allArchived = allArchived;
-
-  } catch (error: any) {
-    console.error('Failed to load students:', error.message);
   }
-}
 
-  // ── Pagination ────────────────────────────────────────────
+  // ── Pagination methods ────────────────────────────────────
   updatePagination() {
     this.totalPages  = Math.max(1, Math.ceil(this.filteredLogs.length / this.pageSize));
     this.pageNumbers = Array.from({ length: this.totalPages }, (_, i) => i + 1);
@@ -169,70 +189,64 @@ if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
   prevPage() { if (this.currentPage > 1) this.currentPage--; }
   nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; }
 
-  get pagedLogs() {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredLogs.slice(start, start + this.pageSize);
-  }
-
   // ── Load today's attendance ───────────────────────────────
   async loadTodayAttendance() {
-  this.loading = true;
-  try {
-    const now   = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    this.loading = true;
+    try {
+      const now   = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    let allDocs: any[] = [];
-    let offset = 0;
-    const limit = 100;
+      let allDocs: any[] = [];
+      let offset = 0;
+      const limit = 100;
 
-    while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [Query.limit(limit), Query.offset(offset)]
-      );
-      allDocs = allDocs.concat(res.documents);
-      if (allDocs.length >= res.total || res.documents.length < limit) break;
-      offset += limit;
+      while (true) {
+        const res = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          [Query.limit(limit), Query.offset(offset)]
+        );
+        allDocs = allDocs.concat(res.documents);
+        if (allDocs.length >= res.total || res.documents.length < limit) break;
+        offset += limit;
+      }
+
+      const todayDocs = allDocs.filter(d => {
+        if (d.date !== today) return false;
+        const student = this.allStudents.find(s => s.$id === d.student_id)
+                     ?? this.allArchived.find(s => s.student_doc_id === d.student_id);
+        return !!student;
+      });
+
+      this.todayLogs = todayDocs.map(doc => {
+        const student = this.allStudents.find(s => s.$id === doc.student_id)
+               ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
+        return {
+          $id:               doc.$id,
+          student_id:        doc.student_id,
+          student_name:      `${student.first_name} ${student.last_name}`,
+          student_photo:     student?.profile_photo_id
+            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+            : null,
+          student_id_number: student?.student_id || '—',
+          date:              doc.date,
+          time_in:           doc.time_in  || '—',
+          time_out:          doc.time_out || '—',
+          status:            doc.status,
+          scanned_by_name:   doc.scanned_by_name || '—'
+        };
+      });
+
+      this.filteredLogs = [...this.todayLogs];
+      this.currentPage  = 1;
+      this.updatePagination();
+
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    } finally {
+      this.loading = false;
     }
-
-    const todayDocs = allDocs.filter(d => {
-      if (d.date !== today) return false;
-      // Filter out unknown students
-      const student = this.allStudents.find(s => s.$id === d.student_id)
-                   ?? this.allArchived.find(s => s.student_doc_id === d.student_id);
-      return !!student;
-    });
-
-    this.todayLogs = todayDocs.map(doc => {
-      const student = this.allStudents.find(s => s.$id === doc.student_id)
-             ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
-      return {
-        $id:               doc.$id,
-        student_id:        doc.student_id,
-        student_name:      `${student.first_name} ${student.last_name}`,
-        student_photo:     student?.profile_photo_id
-          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-          : null,
-        student_id_number: student?.student_id || '—',
-        date:              doc.date,
-        time_in:           doc.time_in  || '—',
-        time_out:          doc.time_out || '—',
-        status:            doc.status,
-        scanned_by_name:   doc.scanned_by_name || '—'
-      };
-    });
-
-    this.filteredLogs = [...this.todayLogs];
-    this.currentPage  = 1;
-    this.updatePagination();
-
-  } catch (error: any) {
-    console.error('Failed to load attendance:', error.message);
-  } finally {
-    this.loading = false;
   }
-}
 
   onToggleSidebar(collapsed: boolean) {
     this.isCollapsed = collapsed;
@@ -289,27 +303,25 @@ if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
     this.scanStatus      = '';
   }
 
- onManualIdInput() {
-  const query = this.manualStudentId.trim().toLowerCase();
-  if (!query) {
-    this.manualSearchResults   = [];
-    this.selectedManualStudent = null;
-    return;
+  onManualIdInput() {
+    const query = this.manualStudentId.trim().toLowerCase();
+    if (!query) {
+      this.manualSearchResults   = [];
+      this.selectedManualStudent = null;
+      return;
+    }
+
+    this.manualSearchResults = this.allStudents
+      .filter(s => {
+        const completed = Number(s.completed_hours) || 0;
+        const required  = Number(s.required_hours)  || 500;
+        if (completed >= required) return false;
+
+        return s.student_id?.toLowerCase().includes(query) ||
+               `${s.first_name} ${s.last_name}`.toLowerCase().includes(query);
+      })
+      .slice(0, 5);
   }
-
-  // Admin sees ALL interns — no supervisor_id filter
-  this.manualSearchResults = this.allStudents
-    .filter(s => {
-      // Still block completed interns
-      const completed = Number(s.completed_hours) || 0;
-      const required  = Number(s.required_hours)  || 500;
-      if (completed >= required) return false;
-
-      return s.student_id?.toLowerCase().includes(query) ||
-             `${s.first_name} ${s.last_name}`.toLowerCase().includes(query);
-    })
-    .slice(0, 5);
-}
 
   selectManualStudent(student: any) {
     this.selectedManualStudent = student;
@@ -354,16 +366,16 @@ if (admin?.geofence_lat && admin?.geofence_lng && admin?.geofence_radius) {
       const position = await getCurrentPosition();
       const { latitude, longitude } = position.coords;
       const distance = getDistanceMeters(
-  latitude, longitude,
-  this.officeLat, this.officeLng
-);
+        latitude, longitude,
+        this.officeLat, this.officeLng
+      );
 
-if (distance > this.officeRadius) {
-  Swal.fire({
-    icon: 'error',
-    title: '📍 Outside Office Location',
-    html: `You are <b>${Math.round(distance)}m</b> away from the office.<br>
-           Must be within <b>${this.officeRadius}m</b> to record attendance.`,
+      if (distance > this.officeRadius) {
+        Swal.fire({
+          icon: 'error',
+          title: '📍 Outside Office Location',
+          html: `You are <b>${Math.round(distance)}m</b> away from the office.<br>
+                 Must be within <b>${this.officeRadius}m</b> to record attendance.`,
           confirmButtonColor: '#ef4444'
         });
         return false;
@@ -382,212 +394,211 @@ if (distance > this.officeRadius) {
   }
 
   async processManualAttendance(student: any) {
-  const studentId   = student.$id;
-  const studentName = `${student.first_name} ${student.last_name}`;
-  const now         = new Date();
-  const dayOfWeek   = now.getDay();
+    const studentId   = student.$id;
+    const studentName = `${student.first_name} ${student.last_name}`;
+    const now         = new Date();
+    const dayOfWeek   = now.getDay();
 
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    Swal.fire({
-      icon: 'warning', title: 'Weekend!',
-      text: 'Attendance is not recorded on weekends.',
-      toast: true, position: 'top-end',
-      showConfirmButton: false, timer: 3000
-    });
-    return;
-  }
-
-  const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
-  if (isActiveStudent) {
-    const studentDoc = this.allStudents.find(s => s.$id === studentId);
-    const completed  = Number(studentDoc?.completed_hours) || 0;
-    const required   = Number(studentDoc?.required_hours)  || 500;
-    if (completed >= required) {
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
       Swal.fire({
-        icon: 'info',
-        title: 'OJT Completed! 🎉',
-        html: `<b>${studentName}</b> has already completed their required <b>${required} hours</b>.<br><br>
-               <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
-        confirmButtonColor: '#111827'
+        icon: 'warning', title: 'Weekend!',
+        text: 'Attendance is not recorded on weekends.',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 3000
       });
       return;
     }
-  }
 
-  const withinZone = await this.checkGeofence();
-  if (!withinZone) return;
+    const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
+    if (isActiveStudent) {
+      const studentDoc = this.allStudents.find(s => s.$id === studentId);
+      const completed  = Number(studentDoc?.completed_hours) || 0;
+      const required   = Number(studentDoc?.required_hours)  || 500;
+      if (completed >= required) {
+        Swal.fire({
+          icon: 'info',
+          title: 'OJT Completed! 🎉',
+          html: `<b>${studentName}</b> has already completed their required <b>${required} hours</b>.<br><br>
+                 <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
+          confirmButtonColor: '#111827'
+        });
+        return;
+      }
+    }
 
-  this.scanLoading = true;
+    const withinZone = await this.checkGeofence();
+    if (!withinZone) return;
 
-  try {
-    const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    this.scanLoading = true;
 
-    // Targeted query — no more fetch-all
-    const attendRes = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL,
-      [
-        Query.equal('student_id', studentId),
-        Query.equal('date', today),
-        Query.limit(1)
-      ]
-    );
-    const existing = attendRes.documents[0] ?? null;
+    try {
+      const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const scannedById   = this.adminId;
-    const scannedByName = this.adminName;
+      const attendRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        [
+          Query.equal('student_id', studentId),
+          Query.equal('date', today),
+          Query.limit(1)
+        ]
+      );
+      const existing = attendRes.documents[0] ?? null;
 
-    if (existing) {
-      if (!existing['time_out'] || existing['time_out'] === '') {
+      const scannedById   = this.adminId;
+      const scannedByName = this.adminName;
 
-        await this.appwrite.databases.updateDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ATTENDANCE_COL,
-          existing['$id'],
-          { time_out: timeStr, scanned_by: scannedById, scanned_by_name: scannedByName }
-        );
+      if (existing) {
+        if (!existing['time_out'] || existing['time_out'] === '') {
 
-        const parseTimeToMinutes = (t: string): number => {
-          try {
-            const parts   = t.trim().split(' ');
-            const period  = parts[1];
-            const tp      = parts[0].split(':');
-            let hours     = parseInt(tp[0]);
-            const minutes = parseInt(tp[1]);
-            if (period === 'PM' && hours !== 12) hours += 12;
-            if (period === 'AM' && hours === 12)  hours  = 0;
-            return (hours * 60) + minutes;
-          } catch { return 0; }
-        };
+          await this.appwrite.databases.updateDocument(
+            this.appwrite.DATABASE_ID,
+            this.appwrite.ATTENDANCE_COL,
+            existing['$id'],
+            { time_out: timeStr, scanned_by: scannedById, scanned_by_name: scannedByName }
+          );
 
-        const timeInMinutes  = parseTimeToMinutes(existing['time_in']);
-        const timeOutMinutes = parseTimeToMinutes(timeStr);
-        let diffMinutes      = timeOutMinutes - timeInMinutes;
-        if (diffMinutes < 0) diffMinutes += 24 * 60;
-        const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
+          const parseTimeToMinutes = (t: string): number => {
+            try {
+              const parts   = t.trim().split(' ');
+              const period  = parts[1];
+              const tp      = parts[0].split(':');
+              let hours     = parseInt(tp[0]);
+              const minutes = parseInt(tp[1]);
+              if (period === 'PM' && hours !== 12) hours += 12;
+              if (period === 'AM' && hours === 12)  hours  = 0;
+              return (hours * 60) + minutes;
+            } catch { return 0; }
+          };
 
-        if (hoursWorked > 0 && isActiveStudent) {
-          try {
-            const studentDoc = await this.appwrite.databases.getDocument(
-              this.appwrite.DATABASE_ID,
-              this.appwrite.STUDENTS_COL,
-              studentId
-            );
-            const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
-            const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
-            const newCompleted     = Math.min(
-              parseFloat((currentCompleted + hoursWorked).toFixed(2)),
-              requiredHours
-            );
+          const timeInMinutes  = parseTimeToMinutes(existing['time_in']);
+          const timeOutMinutes = parseTimeToMinutes(timeStr);
+          let diffMinutes      = timeOutMinutes - timeInMinutes;
+          if (diffMinutes < 0) diffMinutes += 24 * 60;
+          const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
-            await this.appwrite.databases.updateDocument(
-              this.appwrite.DATABASE_ID,
-              this.appwrite.STUDENTS_COL,
-              studentId,
-              { completed_hours: newCompleted }
-            );
+          if (hoursWorked > 0 && isActiveStudent) {
+            try {
+              const studentDoc = await this.appwrite.databases.getDocument(
+                this.appwrite.DATABASE_ID,
+                this.appwrite.STUDENTS_COL,
+                studentId
+              );
+              const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
+              const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
+              const newCompleted     = Math.min(
+                parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+                requiredHours
+              );
 
-            const idx = this.allStudents.findIndex(s => s.$id === studentId);
-            if (idx !== -1) {
-              this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
+              await this.appwrite.databases.updateDocument(
+                this.appwrite.DATABASE_ID,
+                this.appwrite.STUDENTS_COL,
+                studentId,
+                { completed_hours: newCompleted }
+              );
+
+              const idx = this.allStudents.findIndex(s => s.$id === studentId);
+              if (idx !== -1) {
+                this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
+              }
+
+              const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
+              if (logIndex !== -1) {
+                this.todayLogs[logIndex].time_out        = timeStr;
+                this.todayLogs[logIndex].scanned_by_name = scannedByName;
+                this.filteredLogs = [...this.todayLogs];
+              }
+
+              Swal.fire({
+                icon: 'success', title: '🕐 Time Out Recorded!',
+                html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
+                       <span style="color:#16a34a;font-size:13px;font-weight:600;">
+                         +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
+                       </span>`,
+                toast: true, position: 'top-end',
+                showConfirmButton: false, timer: 5000, timerProgressBar: true
+              });
+
+            } catch (updateErr: any) {
+              Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
             }
 
+          } else {
             const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
             if (logIndex !== -1) {
               this.todayLogs[logIndex].time_out        = timeStr;
               this.todayLogs[logIndex].scanned_by_name = scannedByName;
               this.filteredLogs = [...this.todayLogs];
             }
-
             Swal.fire({
               icon: 'success', title: '🕐 Time Out Recorded!',
-              html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
-                     <span style="color:#16a34a;font-size:13px;font-weight:600;">
-                       +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
-                     </span>`,
+              html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
               toast: true, position: 'top-end',
-              showConfirmButton: false, timer: 5000, timerProgressBar: true
+              showConfirmButton: false, timer: 4000, timerProgressBar: true
             });
-
-          } catch (updateErr: any) {
-            Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
           }
 
         } else {
-          const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
-          if (logIndex !== -1) {
-            this.todayLogs[logIndex].time_out        = timeStr;
-            this.todayLogs[logIndex].scanned_by_name = scannedByName;
-            this.filteredLogs = [...this.todayLogs];
-          }
           Swal.fire({
-            icon: 'success', title: '🕐 Time Out Recorded!',
-            html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
+            icon: 'info', title: 'Already Completed',
+            html: `<b>${studentName}</b> already completed attendance today.`,
             toast: true, position: 'top-end',
-            showConfirmButton: false, timer: 4000, timerProgressBar: true
+            showConfirmButton: false, timer: 3000
           });
         }
 
       } else {
+        const doc = await this.appwrite.databases.createDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          ID.unique(),
+          {
+            student_id:      studentId,
+            date:            today,
+            time_in:         timeStr,
+            time_out:        '',
+            status:          'Present',
+            scanned_by:      scannedById,
+            scanned_by_name: scannedByName,
+            is_manual:       true
+          }
+        );
+
+        const newLog: AttendanceLog = {
+          $id:               doc.$id,
+          student_id:        studentId,
+          student_name:      studentName,
+          student_photo:     student?.profile_photo_id
+            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+            : null,
+          student_id_number: student?.student_id || '—',
+          date:              today,
+          time_in:           timeStr,
+          time_out:          '—',
+          status:            'Present',
+          scanned_by_name:   scannedByName
+        };
+
+        this.todayLogs.unshift(newLog);
+        this.filteredLogs = [...this.todayLogs];
+        this.updatePagination();
+
         Swal.fire({
-          icon: 'info', title: 'Already Completed',
-          html: `<b>${studentName}</b> already completed attendance today.`,
+          icon: 'success', title: '✅ Time In Recorded!',
+          html: `<b>${studentName}</b><br>${timeStr}`,
           toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
+          showConfirmButton: false, timer: 4000, timerProgressBar: true
         });
       }
 
-    } else {
-      const doc = await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        ID.unique(),
-        {
-          student_id:      studentId,
-          date:            today,
-          time_in:         timeStr,
-          time_out:        '',
-          status:          'Present',
-          scanned_by:      scannedById,
-          scanned_by_name: scannedByName,
-          is_manual:       true
-        }
-      );
-
-      const newLog: AttendanceLog = {
-        $id:               doc.$id,
-        student_id:        studentId,
-        student_name:      studentName,
-        student_photo:     student?.profile_photo_id
-          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-          : null,
-        student_id_number: student?.student_id || '—',
-        date:              today,
-        time_in:           timeStr,
-        time_out:          '—',
-        status:            'Present',
-        scanned_by_name:   scannedByName
-      };
-
-      this.todayLogs.unshift(newLog);
-      this.filteredLogs = [...this.todayLogs];
-      this.updatePagination();
-
-      Swal.fire({
-        icon: 'success', title: '✅ Time In Recorded!',
-        html: `<b>${studentName}</b><br>${timeStr}`,
-        toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 4000, timerProgressBar: true
-      });
+    } catch (error: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+    } finally {
+      this.scanLoading = false;
     }
-
-  } catch (error: any) {
-    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
-  } finally {
-    this.scanLoading = false;
   }
-}
 
   async startCamera() {
     this.stopCamera();
@@ -679,14 +690,12 @@ if (distance > this.officeRadius) {
       return;
     }
 
-    // ── Geofence check ──────────────────────────────────────
     const withinZone = await this.checkGeofence();
     if (!withinZone) {
       this.scanLoading = false;
       setTimeout(() => { this.lastScanned = ''; }, 3000);
       return;
     }
-    // ───────────────────────────────────────────────────────
 
     this.scanLoading = true;
 
@@ -744,21 +753,20 @@ if (distance > this.officeRadius) {
       const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const attendRes = await this.appwrite.databases.listDocuments(
-  this.appwrite.DATABASE_ID,
-  this.appwrite.ATTENDANCE_COL,
-  [
-    Query.equal('student_id', studentId),
-    Query.equal('date', today),
-    Query.limit(1)
-  ]
-);
-const existing = attendRes.documents[0] ?? null;
+      const attendRes = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        [
+          Query.equal('student_id', studentId),
+          Query.equal('date', today),
+          Query.limit(1)
+        ]
+      );
+      const existing = attendRes.documents[0] ?? null;
 
       if (existing) {
         if (!existing['time_out'] || existing['time_out'] === '') {
 
-          // ── TIME OUT ────────────────────────────────────
           await this.appwrite.databases.updateDocument(
             this.appwrite.DATABASE_ID,
             this.appwrite.ATTENDANCE_COL,
@@ -813,10 +821,7 @@ const existing = attendRes.documents[0] ?? null;
 
               const idx = this.allStudents.findIndex(s => s.$id === studentId);
               if (idx !== -1) {
-                this.allStudents[idx] = {
-                  ...this.allStudents[idx],
-                  completed_hours: newCompleted
-                };
+                this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
               }
 
               this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
@@ -874,7 +879,6 @@ const existing = attendRes.documents[0] ?? null;
         }
 
       } else {
-        // ── TIME IN ─────────────────────────────────────────
         const doc = await this.appwrite.databases.createDocument(
           this.appwrite.DATABASE_ID,
           this.appwrite.ATTENDANCE_COL,
@@ -938,189 +942,189 @@ const existing = attendRes.documents[0] ?? null;
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
+
   async autoTimeOutMissed() {
-  try {
-    const now       = new Date();
-    const isPast5PM = now.getHours() >= 17;
-    const today     = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    try {
+      const now       = new Date();
+      const isPast5PM = now.getHours() >= 17;
+      const today     = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    let allDocs: any[] = [];
-    let offset = 0;
-    const limit = 100;
+      let allDocs: any[] = [];
+      let offset = 0;
+      const limit = 100;
 
-    while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [
-          Query.equal('status', 'Present'),
-          Query.limit(limit),
-          Query.offset(offset)
-        ]
-      );
-      allDocs = allDocs.concat(res.documents);
-      if (allDocs.length >= res.total || res.documents.length < limit) break;
-      offset += limit;
+      while (true) {
+        const res = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          [
+            Query.equal('status', 'Present'),
+            Query.limit(limit),
+            Query.offset(offset)
+          ]
+        );
+        allDocs = allDocs.concat(res.documents);
+        if (allDocs.length >= res.total || res.documents.length < limit) break;
+        offset += limit;
+      }
+
+      const allStudentIds = new Set(this.allStudents.map(s => s.$id));
+
+      const missed = allDocs.filter(doc => {
+        if (!allStudentIds.has(doc.student_id)) return false;
+        if (doc.time_out && doc.time_out !== '') return false;
+
+        const isPreviousDay = doc.date < today;
+        const isTodayPast5  = doc.date === today && isPast5PM;
+        return isPreviousDay || isTodayPast5;
+      });
+
+      for (const doc of missed) {
+        const autoTimeOut = '05:00 PM';
+
+        const parseTimeToMinutes = (t: string): number => {
+          try {
+            const parts   = t.trim().split(' ');
+            const period  = parts[1];
+            const tp      = parts[0].split(':');
+            let hours     = parseInt(tp[0]);
+            const minutes = parseInt(tp[1]);
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12)  hours  = 0;
+            return (hours * 60) + minutes;
+          } catch { return 0; }
+        };
+
+        const timeInMinutes  = parseTimeToMinutes(doc.time_in);
+        const timeOutMinutes = parseTimeToMinutes(autoTimeOut);
+        let diffMinutes      = timeOutMinutes - timeInMinutes;
+        if (diffMinutes < 0) diffMinutes = 0;
+
+        const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
+
+        await this.appwrite.databases.updateDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          doc.$id,
+          {
+            time_out:        autoTimeOut,
+            scanned_by_name: doc.scanned_by_name
+              ? `${doc.scanned_by_name} (Auto Time-Out)`
+              : 'Auto Time-Out'
+          }
+        );
+
+        if (hoursWorked > 0) {
+          try {
+            const studentDoc = await this.appwrite.databases.getDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              doc.student_id
+            );
+            const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
+            const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
+            const newCompleted     = Math.min(
+              parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+              requiredHours
+            );
+
+            await this.appwrite.databases.updateDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              doc.student_id,
+              { completed_hours: newCompleted }
+            );
+
+            const idx = this.allStudents.findIndex(s => s.$id === doc.student_id);
+            if (idx !== -1) {
+              this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
+            }
+
+            console.log(`Auto timed out ${doc.student_id} at 5PM — +${hoursWorked} hrs`);
+          } catch (e: any) {
+            console.error('Failed to update hours for auto timeout:', e.message);
+          }
+        }
+      }
+
+      if (missed.length > 0) {
+        await this.loadTodayAttendance();
+      }
+
+    } catch (error: any) {
+      console.error('Auto time-out failed:', error.message);
+    }
+  }
+
+  openGeofenceModal() {
+    this.geofenceForm = {
+      lat:    this.officeLat,
+      lng:    this.officeLng,
+      radius: this.officeRadius
+    };
+    this.showGeofenceModal = true;
+  }
+
+  closeGeofenceModal() {
+    this.showGeofenceModal = false;
+  }
+
+  async saveGeofence() {
+    const { lat, lng, radius } = this.geofenceForm;
+    if (!lat || !lng || !radius || radius <= 0) {
+      Swal.fire({ icon: 'warning', title: 'Invalid Input', text: 'Please enter valid coordinates and radius.' });
+      return;
     }
 
-    const allStudentIds = new Set(this.allStudents.map(s => s.$id));
-
-    const missed = allDocs.filter(doc => {
-      if (!allStudentIds.has(doc.student_id)) return false;       // not an active student
-      if (doc.time_out && doc.time_out !== '') return false;       // already timed out
-
-      const isPreviousDay = doc.date < today;
-      const isTodayPast5  = doc.date === today && isPast5PM;
-      return isPreviousDay || isTodayPast5;
-    });
-
-    for (const doc of missed) {
-      const autoTimeOut = '05:00 PM';
-
-      const parseTimeToMinutes = (t: string): number => {
-        try {
-          const parts   = t.trim().split(' ');
-          const period  = parts[1];
-          const tp      = parts[0].split(':');
-          let hours     = parseInt(tp[0]);
-          const minutes = parseInt(tp[1]);
-          if (period === 'PM' && hours !== 12) hours += 12;
-          if (period === 'AM' && hours === 12)  hours  = 0;
-          return (hours * 60) + minutes;
-        } catch { return 0; }
-      };
-
-      const timeInMinutes  = parseTimeToMinutes(doc.time_in);
-      const timeOutMinutes = parseTimeToMinutes(autoTimeOut);
-      let diffMinutes      = timeOutMinutes - timeInMinutes;
-      if (diffMinutes < 0) diffMinutes = 0;
-
-      const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
+    this.savingGeofence = true;
+    try {
+      const user = await this.appwrite.account.get();
+      const res  = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ADMINS_COL
+      );
+      const admin = (res.documents as any[]).find(a => a.auth_user_id === user.$id);
+      if (!admin) throw new Error('Admin document not found.');
 
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        doc.$id,
-        {
-          time_out:        autoTimeOut,
-          scanned_by_name: doc.scanned_by_name ? `${doc.scanned_by_name} (Auto Time-Out)` : 'Auto Time-Out'
-        }
+        this.appwrite.ADMINS_COL,
+        admin.$id,
+        { geofence_lat: lat, geofence_lng: lng, geofence_radius: radius }
       );
 
-      if (hoursWorked > 0) {
-        try {
-          const studentDoc = await this.appwrite.databases.getDocument(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.STUDENTS_COL,
-            doc.student_id
-          );
-          const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
-          const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
-          const newCompleted     = Math.min(
-            parseFloat((currentCompleted + hoursWorked).toFixed(2)),
-            requiredHours
-          );
+      this.officeLat         = lat;
+      this.officeLng         = lng;
+      this.officeRadius      = radius;
+      this.showGeofenceModal = false;
 
-          await this.appwrite.databases.updateDocument(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.STUDENTS_COL,
-            doc.student_id,
-            { completed_hours: newCompleted }
-          );
-
-          const idx = this.allStudents.findIndex(s => s.$id === doc.student_id);
-          if (idx !== -1) {
-            this.allStudents[idx] = {
-              ...this.allStudents[idx],
-              completed_hours: newCompleted
-            };
-          }
-
-          console.log(`Auto timed out ${doc.student_id} at 5PM — +${hoursWorked} hrs`);
-        } catch (e: any) {
-          console.error('Failed to update hours for auto timeout:', e.message);
-        }
-      }
+      Swal.fire({
+        icon: 'success', title: 'Geofence Updated!',
+        html: `Lat: <b>${lat}</b> · Lng: <b>${lng}</b> · Radius: <b>${radius}m</b>`,
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 4000, timerProgressBar: true
+      });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Save Failed', text: err.message });
+    } finally {
+      this.savingGeofence = false;
     }
+  }
 
-    if (missed.length > 0) {
-      await this.loadTodayAttendance();
+  useMyLocation() {
+    if (!navigator.geolocation) {
+      Swal.fire({ icon: 'warning', title: 'Not Supported', text: 'Geolocation is not supported by your browser.' });
+      return;
     }
-
-  } catch (error: any) {
-    console.error('Auto time-out failed:', error.message);
-  }
-}
-openGeofenceModal() {
-  this.geofenceForm = {
-    lat:    this.officeLat,
-    lng:    this.officeLng,
-    radius: this.officeRadius
-  };
-  this.showGeofenceModal = true;
-}
-
-closeGeofenceModal() {
-  this.showGeofenceModal = false;
-}
-
-async saveGeofence() {
-  const { lat, lng, radius } = this.geofenceForm;
-  if (!lat || !lng || !radius || radius <= 0) {
-    Swal.fire({ icon: 'warning', title: 'Invalid Input', text: 'Please enter valid coordinates and radius.' });
-    return;
-  }
-
-  this.savingGeofence = true;
-  try {
-    const user = await this.appwrite.account.get();
-    const res  = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ADMINS_COL
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.geofenceForm.lat = parseFloat(pos.coords.latitude.toFixed(6));
+        this.geofenceForm.lng = parseFloat(pos.coords.longitude.toFixed(6));
+      },
+      (err) => {
+        Swal.fire({ icon: 'error', title: 'Location Error', text: err.message });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-    const admin = (res.documents as any[]).find(a => a.auth_user_id === user.$id);
-    if (!admin) throw new Error('Admin document not found.');
-
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ADMINS_COL,
-      admin.$id,
-      { geofence_lat: lat, geofence_lng: lng, geofence_radius: radius }
-    );
-
-    this.officeLat    = lat;
-    this.officeLng    = lng;
-    this.officeRadius = radius;
-    this.showGeofenceModal = false;
-
-    Swal.fire({
-      icon: 'success', title: 'Geofence Updated!',
-      html: `Lat: <b>${lat}</b> · Lng: <b>${lng}</b> · Radius: <b>${radius}m</b>`,
-      toast: true, position: 'top-end',
-      showConfirmButton: false, timer: 4000, timerProgressBar: true
-    });
-  } catch (err: any) {
-    Swal.fire({ icon: 'error', title: 'Save Failed', text: err.message });
-  } finally {
-    this.savingGeofence = false;
   }
-}
-
-useMyLocation() {
-  if (!navigator.geolocation) {
-    Swal.fire({ icon: 'warning', title: 'Not Supported', text: 'Geolocation is not supported by your browser.' });
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      this.geofenceForm.lat = parseFloat(pos.coords.latitude.toFixed(6));
-      this.geofenceForm.lng = parseFloat(pos.coords.longitude.toFixed(6));
-    },
-    (err) => {
-      Swal.fire({ icon: 'error', title: 'Location Error', text: err.message });
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}
-
 }

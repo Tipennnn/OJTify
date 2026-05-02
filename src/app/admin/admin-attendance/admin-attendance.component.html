@@ -17,12 +17,16 @@
         </div>
 
         <div class="header-right">
-          <button class="qr-btn" (click)="openScanner()">
-            <i class="fa-solid fa-qrcode"></i> Scan QR
-          </button>
-          <button class="qr-btn" (click)="openGeofenceModal()" style="background:#374151;">
-            <i class="fa-solid fa-location-dot"></i> Geofence
-          </button>
+          <!-- Scan QR + Geofence — side by side, grouped -->
+          <div class="action-btn-group">
+            <button class="qr-btn" (click)="openScanner()">
+              <i class="fa-solid fa-qrcode"></i> Scan QR
+            </button>
+            <button class="qr-btn btn-geofence" (click)="openGeofenceModal()">
+              <i class="fa-solid fa-location-dot"></i> Geofence
+            </button>
+          </div>
+
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" placeholder="Search intern..."
@@ -42,66 +46,92 @@
 
       <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
-          <table class="applicants-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Status</th>
-                <th>Scanned By</th>
-              </tr>
-            </thead>
-            <tbody>
 
-              <tr *ngFor="let log of pagedLogs">
-                <td class="profile-name">
-                  <img [src]="log.student_photo ||
-                              'https://ui-avatars.com/api/?name=' + log.student_name +
-                              '&background=2563eb&color=fff&size=64'"
-                       class="profile-pic" alt="Profile">
-                  <span>{{ log.student_name }}</span>
-                </td>
-                <td>{{ log.student_id_number }}</td>
-                <td>{{ log.time_in }}</td>
-                <td>{{ log.time_out }}</td>
-                <td>
-                  <span class="status-badge"
-                        [ngClass]="{
-                          'badge-approved': log.status === 'Present',
-                          'badge-pending':  log.status === 'Late',
-                          'badge-declined': log.status === 'Absent'
-                        }">
-                    {{ log.status }}
-                  </span>
-                </td>
-                <td>{{ log.scanned_by_name || '—' }}</td>
-              </tr>
+          <!-- Horizontal scroll wrapper -->
+          <div class="table-wrap">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Student ID</th>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Status</th>
+                  <th>Scanned By</th>
+                </tr>
+              </thead>
+              <tbody>
 
-              <tr *ngIf="filteredLogs.length === 0">
-                <td colspan="6"
-                    style="text-align:center; color:#9ca3af; padding:40px;">
-                  <i class="fas fa-calendar-times"
-                     style="font-size:32px; margin-bottom:10px; display:block;"></i>
-                  No attendance records for today yet.
-                </td>
-              </tr>
+                <ng-container *ngFor="let log of pagedLogs">
+                  <tr class="data-row">
+                    <td>
+                      <div class="profile-name">
+                        <img [src]="log.student_photo ||
+                                    'https://ui-avatars.com/api/?name=' + log.student_name +
+                                    '&background=2563eb&color=fff&size=64'"
+                             class="profile-pic" alt="Profile">
+                        <span>{{ log.student_name }}</span>
+                      </div>
+                    </td>
+                    <td>{{ log.student_id_number }}</td>
+                    <td>{{ log.time_in }}</td>
+                    <td>{{ log.time_out }}</td>
+                    <td>
+                      <span class="status-badge"
+                            [ngClass]="{
+                              'badge-approved': log.status === 'Present',
+                              'badge-pending':  log.status === 'Late',
+                              'badge-declined': log.status === 'Absent'
+                            }">
+                        {{ log.status }}
+                      </span>
+                    </td>
+                    <td>{{ log.scanned_by_name || '—' }}</td>
+                  </tr>
+                </ng-container>
 
-            </tbody>
-          </table>
+                <!-- Ghost rows to maintain fixed table height -->
+                <ng-container *ngFor="let ghost of ghostRows">
+                  <tr class="ghost-row">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </ng-container>
 
-          <div class="pagination" *ngIf="filteredLogs.length > 0">
+                <!-- Empty state shown only when NO data — floats above ghost rows via overlay -->
+                <tr *ngIf="filteredLogs.length === 0" class="empty-state-row">
+                  <td colspan="6">
+                    <div class="empty-state-inner">
+                      <div class="empty-icon-wrap">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                      </div>
+                      <p class="empty-title">No Attendance Today</p>
+                      <p class="empty-sub">No attendance records for today yet.</p>
+                    </div>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination — always visible -->
+          <div class="pagination">
+            <span class="page-info">
+              Showing {{ rangeStart }}–{{ rangeEnd }} of {{ filteredLogs.length }}
+            </span>
             <button class="page-btn"
                     (click)="prevPage()"
                     [disabled]="currentPage === 1">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
-
             <div class="page-numbers">
               <span class="page active">{{ currentPage }}</span>
             </div>
-
             <button class="page-btn"
                     (click)="nextPage()"
                     [disabled]="currentPage === totalPages">
@@ -231,7 +261,6 @@
         </div>
 
         <div class="manual-results-area">
-
           <div class="manual-empty-state"
                *ngIf="manualSearchResults.length === 0 && !selectedManualStudent">
             <i class="fas fa-search"></i>
@@ -254,7 +283,6 @@
             </div>
             <span class="manual-tap-hint">tap to select</span>
           </div>
-
         </div>
       </div>
     </div>
@@ -293,7 +321,6 @@
 
     <div class="modal-body" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
 
-      <!-- Use My Location button -->
       <button
         type="button"
         (click)="useMyLocation()"

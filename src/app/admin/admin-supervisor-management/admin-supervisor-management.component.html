@@ -64,50 +64,76 @@
       <!-- TABLE -->
       <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
-          <table class="supervisors-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Employee ID</th>
-                <th>Email</th>
-                <th>Grade Level</th>
-                <th>OJT Students</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let sup of paginatedSupervisors" (click)="openViewModal(sup)">
-                <td>
-                  <div class="profile-name">
-                    <img [src]="getAvatarUrl(sup)" class="profile-pic" alt="Profile">
-                    <div class="name-col">
-                      <span class="name-main">{{ getFullName(sup) }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td class="text-muted">{{ sup.employee_id || '—' }}</td>
-                <td class="text-muted">{{ sup.email }}</td>
-                <td class="text-muted">{{ sup.grade_level || '—' }}</td>
-                <td class="text-muted">{{ sup.assigned_students || 0 }}</td>
-                <td>
-                  <span class="status-badge" [ngClass]="getStatusClass(sup.status)">
-                    <span class="status-dot"></span>
-                    {{ sup.status || 'Active' }}
-                  </span>
-                </td>
-              </tr>
 
-              <tr *ngIf="filteredSupervisors.length === 0">
-                <td colspan="6" style="text-align:center; color:#9ca3af; padding:40px;">
-                  <i class="fa-solid fa-user-slash" style="font-size:28px; display:block; margin-bottom:10px;"></i>
-                  No supervisors found.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <!-- position:relative on table-wrap lets empty-state-row use position:absolute -->
+          <div class="table-wrap">
+            <table class="supervisors-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Employee ID</th>
+                  <th>Email</th>
+                  <th>Grade Level</th>
+                  <th>OJT Students</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <!-- Data rows -->
+                <tr class="data-row"
+                    *ngFor="let sup of paginatedSupervisors"
+                    (click)="openViewModal(sup)">
+                  <td>
+                    <div class="profile-name">
+                      <img [src]="getAvatarUrl(sup)" class="profile-pic" alt="Profile">
+                      <div class="name-col">
+                        <span class="name-main">{{ getFullName(sup) }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-muted">{{ sup.employee_id || '—' }}</td>
+                  <td class="text-muted">{{ sup.email }}</td>
+                  <td class="text-muted">{{ sup.grade_level || '—' }}</td>
+                  <td class="text-muted">{{ sup.assigned_students || 0 }}</td>
+                  <td>
+                    <span class="status-badge" [ngClass]="getStatusClass(sup.status)">
+                      <span class="status-dot"></span>
+                      {{ sup.status || 'Active' }}
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Ghost rows — always rendered, hold table height when list is short -->
+                <ng-container *ngFor="let ghost of ghostRows">
+                  <tr class="ghost-row">
+                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                  </tr>
+                </ng-container>
+
+                <!-- Empty state — position:absolute overlay, centered -->
+                <tr class="empty-state-row" *ngIf="filteredSupervisors.length === 0">
+                  <td colspan="6">
+                    <div class="empty-state-inner">
+                      <div class="empty-icon-wrap">
+                        <i class="fa-solid fa-user-slash"></i>
+                      </div>
+                      <p class="empty-title">No Supervisors Found</p>
+                      <p class="empty-sub">No supervisors match your current search.</p>
+                    </div>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
 
           <!-- PAGINATION -->
           <div class="pagination">
+            <span class="page-info">
+              Showing {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, filteredSupervisors.length) }}
+              of {{ filteredSupervisors.length }}
+            </span>
             <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
               <i class="fa-solid fa-chevron-left"></i>
             </button>
@@ -118,6 +144,7 @@
               <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
+
         </div>
       </div>
 
@@ -145,9 +172,9 @@
       <button class="tab-btn" [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'">
         <i class="fa-solid fa-user"></i> Profile
       </button>
-        <button class="tab-btn" [class.active]="activeTab === 'students'" (click)="switchToStudentsTab()">
-          <i class="fa-solid fa-user-graduate"></i> Assigned Students
-          <span class="tab-badge">{{ activeTab === 'students' ? assignedInterns.length : (selectedSupervisor.assigned_students || 0) }}</span>
+      <button class="tab-btn" [class.active]="activeTab === 'students'" (click)="switchToStudentsTab()">
+        <i class="fa-solid fa-user-graduate"></i> Assigned Students
+        <span class="tab-badge">{{ activeTab === 'students' ? assignedInterns.length : (selectedSupervisor.assigned_students || 0) }}</span>
       </button>
     </div>
 
@@ -200,30 +227,26 @@
             <i class="fa-solid fa-signature"></i> E-Signature
             <span class="esig-hint">PNG with transparent background only · Used on OJT Certificates</span>
           </div>
-        
+
           <div class="esig-upload-box"
                (click)="esigInput.click()"
                (dragover)="$event.preventDefault()"
                (drop)="onEsigDrop($event)">
-        
-            <!-- ✅ accept="image/png" — only PNG files allowed -->
+
             <input #esigInput type="file" accept="image/png" style="display:none"
                    (change)="onEsigChange($event)">
-        
-            <!-- No signature yet -->
+
             <div *ngIf="!esigPreviewUrl && !esigUploading" class="esig-placeholder">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <span>Upload Signature</span>
               <span class="esig-hint-small">PNG files only (transparent background recommended)</span>
             </div>
-        
-            <!-- Uploading spinner -->
+
             <div *ngIf="esigUploading" class="esig-placeholder">
               <i class="fa fa-spinner fa-spin"></i>
               <span>Uploading...</span>
             </div>
-        
-            <!-- Preview -->
+
             <div *ngIf="esigPreviewUrl && !esigUploading" class="esig-preview">
               <img [src]="esigPreviewUrl" alt="E-Signature">
               <button class="esig-remove-btn"

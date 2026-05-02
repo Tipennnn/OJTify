@@ -1,15 +1,19 @@
 /* =========================
    GLOBAL LAYOUT
 ========================= */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
   background: #f3f4f6;
 }
 
+/* Flex row — matches completed OJT pattern */
 .dashboard-wrapper {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 .sidenav {
@@ -23,75 +27,74 @@ body {
   display: flex;
   flex-direction: column;
   padding: 22px;
-  transition: all 0.3s ease;
+  transition: width 0.3s ease;
   overflow-y: auto;
+  z-index: 200;
 }
 
 .dashboard-wrapper.collapsed .sidenav {
   width: 80px;
 }
 
+/* main-section fills remaining width after sidenav */
 .main-section {
-  position: absolute;
-  top: 0;
-  left: 260px;
-  right: 0;
-  bottom: 0;
-  overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #f3f4f6;
-  transition: left 0.3s ease;
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
 }
 
 .dashboard-wrapper.collapsed .main-section {
-  left: 80px;
+  margin-left: 80px;
 }
 
+/* topnav is a natural flex child — not fixed */
 app-admin-topnav {
-  position: fixed;
-  top: 0;
-  left: 260px;
-  right: 0;
-  z-index: 100;
-  transition: left 0.3s ease;
-}
-
-.dashboard-wrapper.collapsed app-admin-topnav {
-  left: 80px;
-}
-
-.dashboard-content {
-  margin-top: 60px;
-  padding: 20px;
-  min-height: calc(100vh - 60px);
-  box-sizing: border-box;
+  flex-shrink: 0;
   width: 100%;
+  display: block;
 }
 
+/* =========================
+   DASHBOARD CONTENT
+========================= */
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* =========================
+   HEADER
+========================= */
 .dashboard-header {
   margin-bottom: 10px;
-  padding-left: 20px;
 }
 
 .dashboard-header h2 {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 600;
   color: #1f2937;
-  margin-top: 15px;
-  margin-bottom: 14px;
+  margin: 10px 0 14px;
 }
 
 .header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-right: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .dashboard-divider {
-  width: calc(100% - 20px);
+  width: 100%;
   height: 1px;
   background: #e5e7eb;
-  margin-left: 20px;
   margin-bottom: 20px;
 }
 
@@ -106,6 +109,7 @@ app-admin-topnav {
   border-radius: 10px;
   border: 1px solid #e5e7eb;
   width: 250px;
+  flex-shrink: 0;
 }
 
 .search-box i {
@@ -133,20 +137,18 @@ app-admin-topnav {
 .center-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
 }
 
 /* =========================
    TABLE CONTAINER
-   Fixed height so it never
-   shrinks on sparse pages
 ========================= */
 .table-container {
   background: #ffffff;
   padding: 15px;
   border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   width: 100%;
   box-sizing: border-box;
   display: flex;
@@ -154,22 +156,31 @@ app-admin-topnav {
 }
 
 /* =========================
-   TABLE — fixed layout so
-   columns never shift
+   TABLE SCROLL WRAP
+========================= */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================
+   TABLE
 ========================= */
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  min-width: 820px;
 }
 
 /* Column widths */
 .col-name     { width: 22%; }
-.col-course   { width: 8%;  }
-.col-email    { width: 22%; }
+.col-course   { width: 9%; }
+.col-email    { width: 20%; }
 .col-date     { width: 14%; }
-.col-progress { width: 24%; }
-.col-action   { width: 10%; }
+.col-progress { width: 22%; }
+.col-action   { width: 13%; }
 
 .applicants-table thead {
   background: #f9fafb;
@@ -186,7 +197,11 @@ app-admin-topnav {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border-bottom: 1px solid #f0f0f0;
 }
+
+.applicants-table th:first-child { border-radius: 8px 0 0 8px; }
+.applicants-table th:last-child  { border-radius: 0 8px 8px 0; }
 
 /* Data rows — fixed height */
 .applicants-table tbody .data-row {
@@ -200,7 +215,7 @@ app-admin-topnav {
   background: #f9fafb;
 }
 
-/* Ghost/filler rows — same height, no border, no hover */
+/* Ghost/filler rows */
 .applicants-table tbody .ghost-row {
   height: 68px;
   border-bottom: 1px solid #f1f5f9;
@@ -233,6 +248,14 @@ app-admin-topnav {
   gap: 10px;
   font-weight: 500;
   font-size: 13px;
+  min-width: 0;
+}
+
+.profile-name span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .profile-pic {
@@ -246,14 +269,12 @@ app-admin-topnav {
 
 /* =========================
    HOURS PROGRESS
-   Constrained width so it
-   doesn't eat the whole cell
 ========================= */
 .progress-wrap {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 180px;   /* ← key fix: limits progress bar width */
+  max-width: 180px;
 }
 
 .progress-bar {
@@ -266,7 +287,7 @@ app-admin-topnav {
 
 .progress-fill {
   height: 100%;
-  background: #2563eb;  /* ← changed from #10b981 to blue */
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
   border-radius: 6px;
   transition: width 0.3s ease;
 }
@@ -321,6 +342,7 @@ app-admin-topnav {
   padding-top: 12px;
   border-top: 1px solid #f1f5f9;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .page-info {
@@ -330,7 +352,7 @@ app-admin-topnav {
 }
 
 .page-btn {
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #e5e7eb;
   padding: 8px 12px;
   border-radius: 8px;
@@ -365,12 +387,122 @@ app-admin-topnav {
   text-align: center;
 }
 
-.page:hover {
-  background: #e5e7eb;
-}
+.page:hover { background: #e5e7eb; }
 
 .page.active {
   background: #2563eb;
   color: #ffffff;
   font-weight: 500;
+}
+
+/* =========================
+   RESPONSIVE — TABLET (≤1024px)
+========================= */
+@media (max-width: 1024px) {
+  .dashboard-content { padding: 20px; }
+}
+
+/* =========================
+   RESPONSIVE — TABLET PORTRAIT (≤768px)
+========================= */
+@media (max-width: 768px) {
+  .dashboard-content { padding: 16px; }
+
+  .header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+
+  .profile-pic {
+    width: 30px;
+    height: 30px;
+  }
+
+  .pagination { gap: 6px; }
+}
+
+/* =========================
+   RESPONSIVE — MOBILE (≤480px)
+========================= */
+@media (max-width: 480px) {
+  .dashboard-content { padding: 12px; }
+
+  .dashboard-header h2 { font-size: 17px; }
+  .dashboard-divider   { margin-bottom: 14px; }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 8px 8px;
+    font-size: 11px;
+  }
+
+  .profile-pic {
+    width: 26px;
+    height: 26px;
+  }
+
+  .profile-name { gap: 7px; }
+
+  .page-btn {
+    padding: 6px 10px;
+  }
+
+  .page {
+    padding: 5px 8px;
+    font-size: 12px;
+    min-width: 28px;
+  }
+
+  .page-info { font-size: 11px; }
+
+  .btn-archive {
+    font-size: 11px;
+    padding: 5px 8px;
+    gap: 4px;
+  }
+}
+
+/* =========================
+   RESPONSIVE — SMALL PHONES (≤390px)
+========================= */
+@media (max-width: 390px) {
+  .dashboard-content { padding: 10px; }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 7px 6px;
+    font-size: 10px;
+  }
+
+  .profile-pic {
+    width: 24px;
+    height: 24px;
+  }
 }
