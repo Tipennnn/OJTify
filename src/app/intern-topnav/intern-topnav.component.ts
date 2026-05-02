@@ -253,63 +253,64 @@ certVerificationId = '';
   }
 
   async loadInternData() {
-    try {
-      const user = await this.appwrite.account.get();
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      const docs = res.documents as any[];
-      const doc  = docs.find(d => d.$id === user.$id);
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      storedId
+    ) as any;
 
-      if (doc) {
-        // ── Profile photo ──
-        if (doc.profile_photo_id) {
-          const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
-          this.profilePhotoUrl = url;
-          this.appwrite.updateProfilePhoto(url);
-        } else {
-          const defaultUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=2563eb&color=fff&size=128`;
-          this.profilePhotoUrl = defaultUrl;
-          this.appwrite.updateProfilePhoto(defaultUrl);
-        }
-
-        // ── Full name ──
-        const firstName  = (doc.first_name  ?? '').trim();
-        const middleName = (doc.middle_name ?? '').trim();
-        const lastName   = (doc.last_name   ?? '').trim();
-        const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || user.name || 'Intern';
-
-        this.certSentByAdmin = doc.cert_sent === true;
-        if (doc.cert_verification_id) {
-  this.certVerificationId = doc.cert_verification_id;
-  this.certQrDataUrl = await this.generateQrCode(doc.cert_verification_id);
-}
-        // ── Last attendance date ──
-        const lastAttDate = await this.fetchLastAttendanceDate(doc.student_id ?? '');
-
-        // ── Load supervisor info + e-sig ──
-        await this.loadSupervisorData(doc.supervisor_id ?? '');
-
-        this.certData = {
-          studentName:    fullName,
-          school:         doc.school_name      ?? '',
-          course:         doc.course           ?? '',
-          hoursCompleted: Number(doc.completed_hours ?? 0),
-          requiredHours:  Number(doc.required_hours  ?? this.certTemplate.requiredHours),
-          startDate:      this.formatDate(doc.start_date ?? ''),
-          endDate:        lastAttDate
-                            || this.formatDate(doc.end_date       ?? '')
-                            || this.formatDate(doc.cert_sent_date ?? ''),
-          dateIssued:     this.formatDate(doc.cert_sent_date ?? ''),
-        };
-      }
-    } catch (err) {
-      console.error('loadInternData error:', err);
-      this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
+    // ── Profile photo ──
+    if (doc.profile_photo_id) {
+      const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+      this.profilePhotoUrl = url;
+      this.appwrite.updateProfilePhoto(url);
+    } else {
+      const fullName = [doc.first_name, doc.middle_name, doc.last_name].filter(Boolean).join(' ') || 'User';
+      const defaultUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=128`;
+      this.profilePhotoUrl = defaultUrl;
+      this.appwrite.updateProfilePhoto(defaultUrl);
     }
+
+    // ── Full name ──
+    const firstName  = (doc.first_name  ?? '').trim();
+    const middleName = (doc.middle_name ?? '').trim();
+    const lastName   = (doc.last_name   ?? '').trim();
+    const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Intern';
+
+    this.certSentByAdmin = doc.cert_sent === true;
+    if (doc.cert_verification_id) {
+      this.certVerificationId = doc.cert_verification_id;
+      this.certQrDataUrl = await this.generateQrCode(doc.cert_verification_id);
+    }
+
+    // ── Last attendance date ──
+    const lastAttDate = await this.fetchLastAttendanceDate(doc.student_id ?? '');
+
+    // ── Load supervisor info + e-sig ──
+    await this.loadSupervisorData(doc.supervisor_id ?? '');
+
+    this.certData = {
+      studentName:    fullName,
+      school:         doc.school_name      ?? '',
+      course:         doc.course           ?? '',
+      hoursCompleted: Number(doc.completed_hours ?? 0),
+      requiredHours:  Number(doc.required_hours  ?? this.certTemplate.requiredHours),
+      startDate:      this.formatDate(doc.start_date ?? ''),
+      endDate:        lastAttDate
+                        || this.formatDate(doc.end_date       ?? '')
+                        || this.formatDate(doc.cert_sent_date ?? ''),
+      dateIssued:     this.formatDate(doc.cert_sent_date ?? ''),
+    };
+
+  } catch (err) {
+    console.error('loadInternData error:', err);
+    this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128';
   }
+}
 
   // ── Fetch supervisor document and load their e-sig as base64 ──
   private async loadSupervisorData(supervisorId: string): Promise<void> {

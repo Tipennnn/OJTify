@@ -60,20 +60,21 @@ export class InternProfileComponent implements OnInit {
     await this.loadProfile();
   }
 
-  async loadProfile() {
-    this.loading = true;
-    try {
-      const user         = await this.appwrite.account.get();
-      this.currentUserId = user.$id;
-      this.email         = user.email;
+ async loadProfile() {
+  this.loading = true;
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
-      const res  = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
+    this.currentUserId = storedId;
 
-      const docs = res.documents as any[];
-      const doc  = docs.find(d => d.$id === this.currentUserId);
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      storedId
+    ) as any;
+
+    this.email = doc.email || '';
 
   if (doc) {
   this.documentId        = doc.$id;

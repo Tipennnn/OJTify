@@ -1,8 +1,9 @@
-import { Component, HostListener, Output, EventEmitter } from '@angular/core';
+import { Component, HostListener, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AppwriteService } from '../../services/appwrite.service';
 import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -12,45 +13,65 @@ import Swal from 'sweetalert2';
   templateUrl: './supervisor-sidenav.component.html',
   styleUrls: ['./supervisor-sidenav.component.css']
 })
-export class SupervisorSidenavComponent {
+export class SupervisorSidenavComponent implements OnDestroy {
   isCollapsed = false;
+  private isMobile = false;
+  private routerSub: Subscription;
 
   @Output() toggle = new EventEmitter<boolean>();
 
   constructor(
-    private router  : Router,
+    private router: Router,
     private appwrite: AppwriteService
   ) {
-    // On mobile (< 768px) CSS already collapses via media query.
-    // We track this flag only for the toggle button on desktop.
-    this.isCollapsed = window.innerWidth < 768;
+    this.isMobile = window.innerWidth < 768;
+    // Sync [class.collapsed] with what CSS media queries already show on mobile.
+    // Previously this was only set inside toggleNav/onResize so on first load
+    // on mobile the class was missing — tooltips and label hiding didn't work.
+    this.isCollapsed = this.isMobile;
 
-    this.router.events
+    this.routerSub = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
-        if (window.innerWidth < 768) {
+        // On mobile: re-collapse after navigating (in case it was opened)
+        if (this.isMobile) {
           this.isCollapsed = true;
+          this.toggle.emit(true);
         }
       });
   }
 
   toggleNav(): void {
-    // Only allow toggle on desktop — mobile is locked by CSS media query
-    if (window.innerWidth >= 768) {
-      this.isCollapsed = !this.isCollapsed;
-      this.toggle.emit(this.isCollapsed);
-    }
+    // Works on both mobile and desktop now.
+    // On mobile the CSS sets padding/sizing, the class drives show/hide.
+    this.isCollapsed = !this.isCollapsed;
+    this.toggle.emit(this.isCollapsed);
   }
 
   @HostListener('window:resize', ['$event'])
   onResize(event: any): void {
     const width = event.target.innerWidth;
-    if (width < 768) {
+    const wasMobile = this.isMobile;
+    this.isMobile = width < 768;
+
+    // Only auto-adjust when CROSSING the 768px breakpoint.
+    // Previously every resize above 768px reset isCollapsed to false,
+    // which wiped the user's manual desktop toggle state mid-session.
+    if (!wasMobile && this.isMobile) {
+      // Crossed into mobile → collapse
       this.isCollapsed = true;
-    } else if (width >= 768) {
+      this.toggle.emit(true);
+    } else if (wasMobile && !this.isMobile) {
+      // Crossed into desktop → expand
       this.isCollapsed = false;
+      this.toggle.emit(false);
     }
-    this.toggle.emit(this.isCollapsed);
+  }
+
+  ngOnDestroy(): void {
+    // Clean up router subscription to prevent memory leaks.
+    // The original component had no OnDestroy at all.
+    this.routerSub?.unsubscribe();
   }
 
   async onLogout(): Promise<void> {

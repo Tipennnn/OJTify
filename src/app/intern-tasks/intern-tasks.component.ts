@@ -140,13 +140,28 @@ export class InternTasksComponent implements OnInit {
     await this.loadTasks();
   }
 
-  async getCurrentUser() {
-    try {
-      const user = await this.appwrite.account.get();
-      this.currentUserId   = user.$id;
-      this.currentUserName = user.name || user.email || 'Intern';
-    } catch (error: any) { console.error('Failed to get user:', error.message); }
+ async getCurrentUser() {
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
+
+    this.currentUserId = storedId;
+
+    // Get name from student doc instead of account.get()
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      storedId
+    );
+    const fn = (doc as any).first_name  || '';
+    const mn = (doc as any).middle_name || '';
+    const ln = (doc as any).last_name   || '';
+    this.currentUserName = [fn, mn, ln].filter(Boolean).join(' ') || 'Intern';
+
+  } catch (error: any) {
+    console.error('Failed to get user:', error.message);
   }
+}
 
   async loadInternPhotos() {
     try {

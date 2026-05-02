@@ -120,16 +120,17 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   ngOnDestroy() { clearInterval(this.qrTimer); }
 
   async getCurrentUser() {
-    try {
-      const user         = await this.appwrite.account.get();
-      this.currentUserId = user.$id;
-      this.internName    = user.name || '';
-      this.generateFreshQR();
-      this.startQRCountdown();
-    } catch (error: any) {
-      console.error('Failed to get user:', error.message);
-    }
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
+
+    this.currentUserId = storedId;
+    this.generateFreshQR();
+    this.startQRCountdown();
+  } catch (error: any) {
+    console.error('Failed to get user:', error.message);
   }
+}
 
   generateFreshQR() {
     const ts         = Date.now();
@@ -162,7 +163,12 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
       this.completedHours     = (doc as any).completed_hours || 0;
       this.realStudentId      = (doc as any).student_id      || this.currentUserId;
       this.certVerificationId = (doc as any).cert_verification_id || '';
-      if (!this.internName) this.internName = (doc as any).name || '';
+      if (!this.internName) {
+  const fn = (doc as any).first_name || '';
+  const mn = (doc as any).middle_name || '';
+  const ln = (doc as any).last_name || '';
+  this.internName = [fn, mn, ln].filter(Boolean).join(' ') || '';
+}
     } catch (error: any) {
       console.error('Failed to load hours:', error.message);
     }
@@ -508,16 +514,15 @@ isPastWeekdayWithNoRecord(day: number): boolean {
       const svDoc = (svRes.documents as any[])[0];
       if (svDoc) {
         supervisorName = `${svDoc.first_name || ''} ${svDoc.last_name || ''}`.trim();
-        if (svDoc.esig_file_id) {
-          try {
-            const BUCKET_ID  = '69baaf64002ceb2490df';
-            const PROJECT_ID = '69ba8d9c0027d10c447f';
-            const ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
-            const jwt = await this.appwrite.account.createJWT();
-            const res = await fetch(
-              `${ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${svDoc.esig_file_id}/view?project=${PROJECT_ID}`,
-              { headers: { 'X-Appwrite-JWT': jwt.jwt, 'X-Appwrite-Project': PROJECT_ID } }
-            );
+       if (svDoc.esig_file_id) {
+  try {
+    const BUCKET_ID  = '69baaf64002ceb2490df';
+    const PROJECT_ID = '69ba8d9c0027d10c447f';
+    const ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+    // No JWT needed — use direct URL (requires Any read on storage bucket)
+    const res = await fetch(
+      `${ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${svDoc.esig_file_id}/view?project=${PROJECT_ID}`
+    );
             if (res.ok) {
               const blob = await res.blob();
               esigBase64 = await new Promise<string>((resolve, reject) => {
