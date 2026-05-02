@@ -468,21 +468,23 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   async getCurrentSupervisor() {
-    try {
-      const user = await this.appwrite.account.get();
-      this.currentSupervisorId = user.$id;
-      const doc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, user.$id
-      );
-      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
-      if ((doc as any).profile_photo_id) {
-        this.supervisorPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${(doc as any).profile_photo_id}/view?project=${this.PROJECT_ID}`;
-      }
-    } catch (error: any) {
-      console.error('Failed to get supervisor:', error.message);
-    }
-  }
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) return;
 
+    this.currentSupervisorId = storedId;
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, storedId
+    ) as any;
+
+    this.supervisorName = `${doc.first_name} ${doc.last_name}`;
+    if (doc.profile_photo_id) {
+      this.supervisorPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+    }
+  } catch (error: any) {
+    console.error('Failed to get supervisor:', error.message);
+  }
+}
   async loadAssignedInterns() {
     try {
       const [studentsRes, archivesRes] = await Promise.all([
@@ -1548,14 +1550,20 @@ export class SupervisorTasksComponent implements OnInit {
   }
 
   async sendSupervisorComment() {
-    if (!this.newSupervisorComment.trim() || !this.selectedTask.$id) return;
-    this.supervisorCommentLoading = true;
-    try {
-      const user = await this.appwrite.account.get();
-      const doc  = await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, ID.unique(),
-        { task_id: this.selectedTask.$id, user_id: user.$id, user_name: this.supervisorName || user.name || user.email, role: 'supervisor', message: this.newSupervisorComment.trim(), created_at: new Date().toLocaleString() }
-      );
+  if (!this.newSupervisorComment.trim() || !this.selectedTask.$id) return;
+  this.supervisorCommentLoading = true;
+  try {
+    const doc = await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID, this.appwrite.COMMENTS_COL, ID.unique(),
+      {
+        task_id:    this.selectedTask.$id,
+        user_id:    this.currentSupervisorId,
+        user_name:  this.supervisorName,
+        role:       'supervisor',
+        message:    this.newSupervisorComment.trim(),
+        created_at: new Date().toLocaleString()
+      }
+    );
       this.taskComments.push(doc as any); this.newSupervisorComment = '';
     } catch (error: any) { Swal.fire({ icon: 'error', title: 'Failed to send', text: error.message }); }
     finally { this.supervisorCommentLoading = false; }

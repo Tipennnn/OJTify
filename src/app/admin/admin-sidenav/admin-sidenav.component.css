@@ -41,6 +41,7 @@ body {
   font-family: 'Poppins', sans-serif;
   transition: all .3s ease;
   overflow-y: auto;
+  z-index: 300;
 }
 
 .sidenav.collapsed {
@@ -67,6 +68,7 @@ body {
   font-size: 18px;
   box-shadow: 0 6px 14px rgba(0,0,0,.15);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .toggle-btn {
@@ -77,6 +79,7 @@ body {
   font-size: 22px;
   font-weight: 700;
   color: #111827;
+  white-space: nowrap;
 }
 
 .divider {
@@ -114,6 +117,7 @@ body {
   justify-content: center;
   font-size: 14px;
   transition: all .25s ease;
+  flex-shrink: 0;
 }
 
 .nav-item:hover {
@@ -164,6 +168,7 @@ body {
 .sidenav.collapsed .nav-item span { display: none; }
 .sidenav.collapsed .nav-item      { justify-content: center; }
 .sidenav.collapsed .brand-section { justify-content: center; padding-left: 0; }
+.sidenav.collapsed .nav-item.active::before { display: none; }
 
 /* ========================= */
 /* TOPNAV OFFSET             */
@@ -666,7 +671,7 @@ app-admin-topnav {
   letter-spacing: 0.4px;
 }
 
-.req     { color: #ef4444; margin-left: 2px; }
+.req      { color: #ef4444; margin-left: 2px; }
 .optional {
   color: #9ca3af;
   font-weight: 400;
@@ -831,16 +836,105 @@ app-admin-topnav {
 .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ========================= */
+/* MOBILE BACKDROP           */
+/* ========================= */
+.sidenav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 299;
+  cursor: pointer;
+}
+
+.sidenav-backdrop.active {
+  display: block;
+}
+
+/* ========================= */
+/* MOBILE HAMBURGER BUTTON   */
+/* Shown on ≤768px — floats  */
+/* top-left over the topnav  */
+/* ========================= */
+.mobile-hamburger {
+  display: none;
+}
+
+/* ========================= */
 /* RESPONSIVE                */
 /* ========================= */
 @media (max-width: 1024px) {
-  .sidenav    { width: 220px; }
+  .sidenav      { width: 220px; }
   .main-section { margin-left: 220px; }
 }
 
 @media (max-width: 768px) {
-  .sidenav      { width: 180px; padding: 18px; }
-  .main-section { margin-left: 180px; }
+  /* ── SIDENAV: becomes a slide-in overlay ── */
+  /* On mobile, sidenav slides in from the left OVER the content.
+     It does NOT push or offset the main section at all.        */
+  .sidenav {
+    width: 240px !important;
+    left: -260px;            /* hidden off-screen by default */
+    transition: left 0.3s ease, box-shadow 0.3s ease;
+    z-index: 300;
+  }
+
+  /* Open state (not collapsed) */
+  .sidenav:not(.collapsed) {
+    left: 0 !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Closed state (collapsed) — keep full width for smooth slide */
+  .sidenav.collapsed {
+    left: -260px !important;
+    width: 240px !important;
+  }
+
+  /* Restore full label visibility when open on mobile */
+  .sidenav:not(.collapsed) .brand-title        { display: block !important; }
+  .sidenav:not(.collapsed) .nav-item span      { display: inline !important; }
+  .sidenav:not(.collapsed) .nav-item           { justify-content: flex-start !important; }
+  .sidenav:not(.collapsed) .brand-section      { justify-content: flex-start !important; padding-left: 12px !important; }
+  .sidenav:not(.collapsed) .nav-item.active::before { display: block !important; }
+
+  /* ── MAIN SECTION: always full width on mobile ── */
+  .main-section,
+  .sidenav.collapsed ~ .main-section {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  /* ── TOPNAV: always full width on mobile ── */
+  app-admin-topnav,
+  .dashboard-wrapper.collapsed app-admin-topnav {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* ── HAMBURGER: show on mobile ── */
+  .mobile-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 10px;
+    left: 12px;
+    z-index: 200;
+    width: 40px;
+    height: 40px;
+    background: #111827;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  /* General layout */
+  .sidenav      { padding: 18px; }
   .brand-title  { font-size: 18px; }
   .nav-item     { font-size: 14px; padding: 10px; }
   .icon-box     { width: 30px; height: 30px; }
@@ -849,17 +943,34 @@ app-admin-topnav {
 }
 
 @media (max-width: 480px) {
-  .sidenav      { width: 140px; padding: 16px; }
-  .main-section { margin-left: 140px; }
+  .sidenav,
+  .sidenav.collapsed {
+    width: 220px !important;
+    left: -230px;
+  }
+
+  .sidenav:not(.collapsed) {
+    left: 0 !important;
+    width: 220px !important;
+  }
+
+  .sidenav { padding: 16px; }
   .brand-title  { font-size: 16px; }
   .nav-item     { font-size: 13px; gap: 10px; }
   .icon-box     { width: 26px; height: 26px; font-size: 12px; }
 }
 
 @media (max-width: 360px) {
-  .sidenav          { width: 120px; }
-  .main-section     { margin-left: 120px; }
-  .brand-title      { display: none; }
-  .nav-item span    { display: none; }
-  .nav-item         { justify-content: center; }
+  .sidenav,
+  .sidenav.collapsed {
+    width: 200px !important;
+    left: -210px;
+  }
+
+  .sidenav:not(.collapsed) {
+    left: 0 !important;
+    width: 200px !important;
+  }
+
+  .brand-title          { display: none; }
 }

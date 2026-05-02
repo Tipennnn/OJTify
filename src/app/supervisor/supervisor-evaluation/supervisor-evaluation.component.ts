@@ -418,17 +418,25 @@ export class SupervisorEvaluationComponent implements OnInit {
   moveRemarksSectionDown(i: number) { if (i < this.editableRemarksSections.length - 1) { const t = this.editableRemarksSections[i]; this.editableRemarksSections[i] = this.editableRemarksSections[i+1]; this.editableRemarksSections[i+1] = t; } }
 
   async loadCurrentSupervisor() {
-    try {
-      const account = await this.appwrite.account.get();
-      const res     = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL, [Query.equal('email', account.email)]
-      );
-      this.currentSupervisor = res.documents[0] ?? { $id: account.$id, first_name: account.name?.split(' ')[0] ?? '', last_name: account.name?.split(' ').slice(1).join(' ') ?? '', email: account.email };
-    } catch (err: any) {
-      console.warn('Could not load supervisor:', err.message);
+  try {
+    const storedId = sessionStorage.getItem('currentDocId');
+    if (!storedId) {
       this.currentSupervisor = null;
+      return;
     }
+
+    const doc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      storedId
+    ) as any;
+
+    this.currentSupervisor = doc;
+  } catch (err: any) {
+    console.warn('Could not load supervisor:', err.message);
+    this.currentSupervisor = null;
   }
+}
 
   get supervisorFullName(): string {
     if (!this.currentSupervisor) return 'Unknown Supervisor';
@@ -815,18 +823,12 @@ setSignatureMode(mode: 'draw' | 'upload') {
     if (!ev?.evaluated_at) return '—';
     return new Date(ev.evaluated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
-  private async loadSupervisorEsig(): Promise<void> {
+ private async loadSupervisorEsig(): Promise<void> {
   const esigFileId = this.currentSupervisor?.esig_file_id;
   if (!esigFileId) return;
   try {
-    const jwt = await this.appwrite.account.createJWT();
     const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${esigFileId}/view?project=${this.PROJECT_ID}`;
-    const res = await fetch(url, {
-      headers: {
-        'X-Appwrite-JWT': jwt.jwt,
-        'X-Appwrite-Project': this.PROJECT_ID
-      }
-    });
+    const res = await fetch(url); // No JWT needed
     if (!res.ok) return;
     const blob = await res.blob();
     const reader = new FileReader();

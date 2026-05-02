@@ -6,7 +6,7 @@
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  background: #f3f4f6;  /* ← dati #f6f8fc */
+  background: #f3f4f6;
 }
 
 .dashboard-wrapper { display: flex; height: 100vh; }
@@ -18,7 +18,7 @@ body {
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #f3f4f6;  /* ← dati #f6f8fc */
+  background: #f3f4f6;
   transition: margin-left 0.3s ease;
   width: calc(100% - 260px);
 }
@@ -50,8 +50,9 @@ app-admin-topnav {
   padding: 30px;
   min-height: calc(100vh - 60px);
   width: 100%;
-  background: #f3f4f6;  /* ← dati #f6f8fc */
+  background: #f3f4f6;
 }
+
 /* =========================
    HEADER
 ========================= */
@@ -66,6 +67,7 @@ app-admin-topnav {
   align-items: center;
   margin-bottom: 10px;
 }
+
 .header-flex {
   display: flex;
   justify-content: space-between;
@@ -81,6 +83,7 @@ app-admin-topnav {
   margin-bottom: 14px;
   margin-left: -10px;
 }
+
 .dashboard-divider {
   width: calc(100% - 20px);
   height: 1px;
@@ -104,7 +107,7 @@ app-admin-topnav {
 ========================= */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
 }
 
@@ -356,7 +359,11 @@ app-admin-topnav {
 /* =========================
    TABLE
 ========================= */
-.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 table { width: 100%; border-collapse: collapse; min-width: 480px; }
 
@@ -452,28 +459,133 @@ tbody tr:hover td { background: #fafbff; }
 .completed { background: #d0e7ff; color: #0b61d8; border: 1px solid #93c5fd; }
 
 /* =========================
-   RESPONSIVE
+   RESPONSIVE — 1280px
+   (large tablets / small laptops)
 ========================= */
 @media (max-width: 1280px) {
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
   .chart-wide   { flex: 1 1 100%; }
   .chart-narrow { flex: 1 1 45%; max-width: 100%; }
 }
 
+/* =========================
+   RESPONSIVE — 1024px
+========================= */
 @media (max-width: 1024px) {
   .dashboard-content { padding: 20px; }
   .cards { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* =========================
+   RESPONSIVE — 768px (tablet)
+   Sidenav is typically hidden/overlaid here
+========================= */
 @media (max-width: 768px) {
+  /* Assume sidenav is hidden on mobile — override margin */
+  .main-section {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  app-admin-topnav {
+    left: 0 !important;
+    width: 100% !important;
+  }
+
   .dashboard-content { padding: 16px; }
+
   .cards { grid-template-columns: repeat(2, 1fr); }
-  .chart-narrow, .chart-third { flex: 1 1 100%; }
+
+  /* Make card numbers slightly smaller so they fit */
+  .card-number { font-size: 24px; }
+  .card { height: auto; min-height: 80px; padding: 14px 16px; }
+
+  /* Charts: stack all to full width */
+  .chart-wide,
+  .chart-narrow,
+  .chart-third {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  /* Give stacked charts a fixed comfortable height */
+  .chart-wide   { height: 260px; }
+  .chart-narrow { height: 280px; }
+  .chart-third  { height: 240px; }
+
   .table-card { padding: 16px; }
   .half-card  { flex: 1 1 100%; }
+
+  /* Reduce header font */
+  .dashboard-header h2 { font-size: 18px; }
 }
 
+/* =========================
+   RESPONSIVE — 480px (mobile)
+========================= */
 @media (max-width: 480px) {
   .dashboard-content { padding: 12px; }
-  .cards { grid-template-columns: 1fr 1fr; }
+
+  /* 2-column cards but more compact */
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .card {
+    padding: 12px 14px;
+    height: auto;
+    min-height: 72px;
+    border-radius: 12px;
+  }
+
+  .card-icon { width: 32px; height: 32px; font-size: 14px; }
+  .card-label { font-size: 11px; }
+  .card-number { font-size: 22px; }
+
+  /* Charts full width, slightly shorter on very small screens */
+  .chart-wide   { height: 220px; }
+  .chart-narrow { height: 260px; }
+  .chart-third  { height: 220px; }
+
+  /* Shrink chart title text */
+  .chart-title-group h3 { font-size: 13px; }
+  .chart-container { padding: 14px 14px; }
+
+  /* Tables */
   td, th { padding: 10px 8px; font-size: 12px; }
+  .table-card { padding: 12px; border-radius: 12px; }
+  .table-header h3 { font-size: 13px; }
+
+  /* Profile pic smaller */
+  .profile-pic { width: 28px; height: 28px; }
+
+  /* Mini progress bar narrower */
+  .mini-progress-bar { width: 60px; }
+
+  .dashboard-divider { width: 100%; margin-left: 0; }
+  .dashboard-header { padding-left: 0; }
+  .header-flex { padding-right: 0; }
+  .dashboard-header h2 { margin-left: 0; font-size: 16px; }
+
+  /* Hours tiers readable */
+  .tier-label { font-size: 11px; }
+
+  /* Donut center number */
+  .donut-total { font-size: 20px; }
+}
+
+/* =========================
+   RESPONSIVE — 360px (very small phones)
+========================= */
+@media (max-width: 360px) {
+  .cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card-number { font-size: 20px; }
+  .card-label { font-size: 10px; }
+
+  .chart-wide, .chart-third { height: 200px; }
+  .chart-narrow { height: 240px; }
 }
