@@ -9,70 +9,111 @@ body {
   background: #f3f4f6;
 }
 
-.dashboard-wrapper { display: flex; height: 100vh; }
+/* Match supervisor OJT — flex row, no absolute positioning */
+.dashboard-wrapper {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
 
 .sidenav {
-  width: 260px; height: 100vh;
-  position: fixed; top: 0; left: 0;
-  transition: width 0.3s ease; z-index: 200;
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  transition: width 0.3s ease;
+  z-index: 200;
 }
 
 .dashboard-wrapper.collapsed .sidenav { width: 80px; }
 
+/* main-section fills remaining width after sidenav */
 .main-section {
-  position: absolute;
-  top: 0; left: 260px; right: 0; bottom: 0;
-  overflow-y: auto; overflow-x: hidden;
-  transition: left 0.3s ease;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #f3f4f6;
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
 }
 
-.dashboard-wrapper.collapsed .main-section { left: 80px; }
+.dashboard-wrapper.collapsed .main-section { margin-left: 80px; }
 
+/* topnav is a natural flex child — not fixed */
 app-admin-topnav {
-  position: fixed; top: 0; left: 260px; right: 0;
-  z-index: 100; transition: left 0.3s ease;
+  flex-shrink: 0;
+  width: 100%;
+  display: block;
 }
 
-.dashboard-wrapper.collapsed app-admin-topnav { left: 80px; }
-
+/* =========================
+   DASHBOARD CONTENT
+========================= */
 .dashboard-content {
-  margin-top: 60px; padding: 20px;
-  min-height: calc(100vh - 60px); width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.dashboard-header { margin-bottom: 10px; padding-left: 20px; }
+/* =========================
+   HEADER
+========================= */
+.dashboard-header {
+  margin-bottom: 10px;
+}
 
 .dashboard-header h2 {
-  font-size: 22px; font-weight: 600;
-  color: #1f2937; margin-top: 15px; margin-bottom: 14px;
+  font-size: 21px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 10px 0 14px;
 }
 
 .header-flex {
-  display: flex; justify-content: space-between;
-  align-items: center; padding-right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .dashboard-divider {
-  width: calc(100% - 20px); height: 1px;
-  background: #e5e7eb; margin-left: 20px; margin-bottom: 20px;
+  width: 100%;
+  height: 1px;
+  background: #e5e7eb;
+  margin-bottom: 20px;
 }
 
 /* =========================
    SEARCH BAR
 ========================= */
 .search-box {
-  display: flex; align-items: center;
-  background: #fff; padding: 8px 12px;
-  border-radius: 10px; border: 1px solid #e5e7eb;
-  width: 250px; flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  width: 250px;
+  flex-shrink: 0;
 }
 
-.search-box i { color: #9ca3af; margin-right: 8px; font-size: 14px; }
+.search-box i {
+  color: #9ca3af;
+  margin-right: 8px;
+  font-size: 14px;
+}
 
 .search-box input {
-  border: none; outline: none; width: 100%;
-  font-size: 13px; background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  background: transparent;
   font-family: 'Poppins', sans-serif;
 }
 
@@ -82,27 +123,43 @@ app-admin-topnav {
    CENTER WRAPPER
 ========================= */
 .center-wrapper {
-  display: flex; flex-direction: column;
-  align-items: stretch; width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
 }
 
 /* =========================
    TABLE CONTAINER
 ========================= */
 .table-container {
-  background: #fff; padding: 15px;
+  background: #fff;
+  padding: 15px;
   border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  width: 100%; box-sizing: border-box;
-  display: flex; flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================
+   TABLE SCROLL WRAP
+========================= */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* =========================
    TABLE
 ========================= */
 .applicants-table {
-  width: 100%; border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
   table-layout: fixed;
+  min-width: 760px;
 }
 
 .col-name   { width: 24%; }
@@ -113,110 +170,162 @@ app-admin-topnav {
 .applicants-table thead { background: #f9fafb; }
 
 .applicants-table th {
-  text-align: left; padding: 14px;
-  font-size: 12px; font-weight: 600;
-  color: #6b7280; text-transform: uppercase;
-  letter-spacing: 0.5px; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
+  text-align: left;
+  padding: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid #f0f0f0;
 }
 
+.applicants-table th:first-child { border-radius: 8px 0 0 8px; }
+.applicants-table th:last-child  { border-radius: 0 8px 8px 0; }
+
 .applicants-table tbody .data-row {
-  height: 68px; border-bottom: 1px solid #f1f5f9;
-  transition: background 0.2s ease; cursor: pointer;
+  height: 68px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.2s ease;
+  cursor: pointer;
 }
 
 .applicants-table tbody .data-row:hover { background: #f9fafb; }
 
 .applicants-table tbody .ghost-row {
-  height: 68px; border-bottom: 1px solid #f1f5f9;
+  height: 68px;
+  border-bottom: 1px solid #f1f5f9;
   pointer-events: none;
 }
 
 .applicants-table tbody .ghost-row:last-child { border-bottom: none; }
 
 .applicants-table td {
-  padding: 10px 14px; font-size: 13px;
-  color: #111827; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   vertical-align: middle;
 }
 
-.applicants-table td.col-name { white-space: normal; word-break: break-word; }
+.applicants-table td.col-name {
+  white-space: normal;
+  word-break: break-word;
+}
 
 .profile-name {
-  display: flex; align-items: center;
-  gap: 10px; font-weight: 500; font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.profile-name span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .profile-pic {
-  width: 36px; height: 36px; border-radius: 50%;
-  object-fit: cover; border: 2px solid #e5e7eb; flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 /* =========================
    PAGINATION
 ========================= */
 .pagination {
-  display: flex; justify-content: flex-end;
-  align-items: center; gap: 10px;
-  margin-top: 15px; padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 12px;
   border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .page-info { font-size: 13px; color: #6b7280; margin-right: 6px; }
 
 .page-btn {
-  background: #fff; border: 1px solid #e5e7eb;
-  padding: 8px 12px; border-radius: 8px;
-  cursor: pointer; transition: 0.2s ease; color: #374151;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  color: #374151;
 }
 
 .page-btn:hover:not(:disabled) { background: #f3f4f6; }
 
 .page-btn:disabled {
-  opacity: 0.35; cursor: not-allowed; pointer-events: none;
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .page-numbers { display: flex; gap: 6px; }
 
 .page {
-  padding: 6px 10px; border-radius: 6px;
-  font-size: 13px; cursor: pointer; color: #374151;
-  transition: 0.2s ease; min-width: 32px; text-align: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: 0.2s ease;
+  min-width: 32px;
+  text-align: center;
 }
 
 .page:hover { background: #e5e7eb; }
 
 .page.active {
-  background: #2563eb; color: #fff; font-weight: 500;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
 }
 
 /* =========================
    MODAL BACKDROP
 ========================= */
 .modal-backdrop {
-  position: fixed; top: 0; left: 0;
+  position: fixed;
+  top: 0; left: 0;
   width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex; justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
   align-items: center;
-  z-index: 1000; padding: 24px;
+  z-index: 1000;
+  padding: 24px;
 }
 
 /* =========================
-   MODAL CARD — shared by
-   profile & attendance
-   Same size for both
+   MODAL CARD
 ========================= */
 .modal-card {
   background: #fff;
   border-radius: 20px;
   width: 100%;
-  max-width: 860px;        /* same width both modals */
-  height: 88vh;            /* fixed height — same both */
+  max-width: 860px;
+  height: 88vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
   overflow: hidden;
   animation: modalIn 0.22s ease;
 }
@@ -316,9 +425,9 @@ app-admin-topnav {
   display: flex; align-items: center; gap: 8px;
 }
 
-.section-header i { 
-  color: #111827; 
-  font-size: 13px; 
+.section-header i {
+  color: #111827;
+  font-size: 13px;
 }
 
 .info-row { display: grid; gap: 14px; }
@@ -342,7 +451,7 @@ app-admin-topnav {
   color: #111827;
 }
 
-/* Completed badge — premium, eye-catching */
+/* Completed badge */
 .completed-badge {
   display: inline-flex;
   align-items: center;
@@ -365,10 +474,8 @@ app-admin-topnav {
 .completed-badge::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   transform: translateX(-100%);
   animation: shimmer 3s infinite;
@@ -381,15 +488,9 @@ app-admin-topnav {
 }
 
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  50% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(100%);  }
+  100% { transform: translateX(100%);  }
 }
 
 .completed-badge i {
@@ -451,7 +552,7 @@ app-admin-topnav {
 ========================= */
 .attendance-header { gap: 0; }
 
-/* Back button — dark, matches QR button style */
+/* Back button */
 .back-btn {
   width: 38px; height: 38px;
   border-radius: 50%;
@@ -505,7 +606,6 @@ app-admin-topnav {
 
 .att-filter-select:focus { border-color: #2563eb; }
 
-/* Reset button — only show when filter is active */
 .att-clear-btn {
   padding: 8px 14px;
   border-radius: 8px;
@@ -538,7 +638,7 @@ app-admin-topnav {
   align-self: flex-end; white-space: nowrap;
 }
 
-/* Download / Export button — Icon only, dark color like QR button */
+/* Download / Export button */
 .download-btn {
   margin-left: auto;
   width: 36px; height: 36px;
@@ -561,9 +661,7 @@ app-admin-topnav {
   transform: translateY(-1px);
 }
 
-.download-btn i { 
-  font-size: 16px; 
-}
+.download-btn i { font-size: 16px; }
 
 /* =========================
    ATTENDANCE BODY — scrolls
@@ -581,8 +679,8 @@ app-admin-topnav {
 }
 .attendance-body::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
-/* Attendance table — sticky header, improved styling */
-.attendance-log-table { 
+/* Attendance table */
+.attendance-log-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: auto;
@@ -660,11 +758,171 @@ app-admin-topnav {
 }
 
 /* =========================
-   RESPONSIVE
+   RESPONSIVE — TABLET (≤1024px)
+========================= */
+@media (max-width: 1024px) {
+  .dashboard-content { padding: 20px; }
+}
+
+/* =========================
+   RESPONSIVE — TABLET PORTRAIT (≤768px)
 ========================= */
 @media (max-width: 768px) {
+  .dashboard-content { padding: 16px; }
+
+  .header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+
+  .profile-pic {
+    width: 30px;
+    height: 30px;
+  }
+
   .three-col { grid-template-columns: 1fr; }
   .two-col   { grid-template-columns: 1fr; }
-  .attendance-filter-bar { flex-direction: column; align-items: stretch; }
+
+  .attendance-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 20px;
+  }
+
+  .att-filter-select { min-width: unset; width: 100%; }
+
   .download-btn { margin-left: 0; }
+
+  .modal-header { padding: 18px 20px; }
+  .modal-body   { padding: 20px; }
+
+  .modal-card {
+    height: 92vh;
+    border-radius: 16px;
+  }
+
+  .profile-avatar-ring {
+    width: 50px; height: 50px;
+  }
+
+  .modal-name   { font-size: 16px; }
+  .modal-email  { font-size: 12px; }
+
+  .pagination { gap: 6px; }
+}
+
+/* =========================
+   RESPONSIVE — MOBILE (≤480px)
+========================= */
+@media (max-width: 480px) {
+  .dashboard-content { padding: 12px; }
+
+  .dashboard-header h2 { font-size: 17px; }
+  .dashboard-divider   { margin-bottom: 14px; }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 8px 8px;
+    font-size: 11px;
+  }
+
+  .profile-pic {
+    width: 26px;
+    height: 26px;
+  }
+
+  .profile-name { gap: 7px; }
+
+  .page-btn {
+    padding: 6px 10px;
+  }
+
+  .page {
+    padding: 5px 8px;
+    font-size: 12px;
+    min-width: 28px;
+  }
+
+  .page-info { font-size: 11px; }
+
+  .modal-backdrop { padding: 0; }
+
+  .modal-card {
+    height: 100vh;
+    border-radius: 0;
+    max-width: 100%;
+  }
+
+  .modal-header { padding: 14px 16px; }
+  .modal-body   { padding: 16px; gap: 16px; }
+
+  .profile-avatar-ring {
+    width: 44px; height: 44px;
+  }
+
+  .modal-name  { font-size: 15px; }
+  .modal-email { font-size: 11px; }
+
+  .attendance-filter-bar { padding: 12px 16px; }
+
+  .att-filter-select { font-size: 12px; }
+  .att-count-badge   { font-size: 11px; }
+
+  .attendance-log-table th,
+  .attendance-log-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .info-value { font-size: 12px; padding: 8px 12px; }
+
+  .attendance-toggle-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* =========================
+   RESPONSIVE — SMALL PHONES (≤390px)
+========================= */
+@media (max-width: 390px) {
+  .dashboard-content { padding: 10px; }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 7px 6px;
+    font-size: 10px;
+  }
+
+  .profile-pic {
+    width: 24px;
+    height: 24px;
+  }
 }

@@ -63,6 +63,12 @@ export class AdminApplicantsComponent implements OnInit {
   itemsPerPage = 10;
   readonly Math = Math;
 
+  // Ghost rows to maintain layout consistency
+  get ghostRows(): null[] {
+    const empty = this.itemsPerPage - this.pagedApplicants.length;
+    return empty > 0 ? Array(empty).fill(null) : [];
+  }
+
   // ── APPROVE MODAL STATE ───────────────────────────────────
   showApproveModal        = false;
   pendingApproveApplicant : Applicant | null = null;

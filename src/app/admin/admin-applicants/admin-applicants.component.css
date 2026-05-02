@@ -1,16 +1,19 @@
 /* =========================
    GLOBAL LAYOUT
 ========================= */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
   background: #f3f4f6;
 }
 
-/* DASHBOARD WRAPPER */
+/* Match supervisor OJT — flex row layout */
 .dashboard-wrapper {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* SIDENAV */
@@ -27,79 +30,70 @@ body {
   padding: 22px;
   transition: all 0.3s ease;
   overflow-y: auto;
+  z-index: 200;
 }
 
 .dashboard-wrapper.collapsed .sidenav {
   width: 80px;
 }
 
-/* MAIN SECTION */
+/* MAIN SECTION — flex fills remaining width */
 .main-section {
-  position: absolute;
-  top: 0;
-  left: 260px;
-  right: 0;
-  bottom: 0;
-  overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #f3f4f6;
-  transition: left 0.3s ease;
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
 }
 
 .dashboard-wrapper.collapsed .main-section {
-  left: 80px;
+  margin-left: 80px;
 }
 
-/* TOP NAV */
+/* TOP NAV — natural flex child, not fixed */
 app-admin-topnav {
-  position: fixed;
-  top: 0;
-  left: 260px;
-  right: 0;
-  z-index: 100;
-  transition: left 0.3s ease;
-}
-
-.dashboard-wrapper.collapsed app-admin-topnav {
-  left: 80px;
-}
-
-/* DASHBOARD CONTENT */
-.dashboard-content {
-  margin-top: 60px;
-  padding: 20px;
-  min-height: calc(100vh - 60px);
-  box-sizing: border-box;
+  flex-shrink: 0;
   width: 100%;
+  display: block;
 }
 
-/* DASHBOARD HEADER */
+/* DASHBOARD CONTENT — scrollable area */
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* =========================
+   HEADER
+========================= */
 .dashboard-header {
   margin-bottom: 10px;
-  padding-left: 20px;
 }
 
 .dashboard-header h2 {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 600;
   color: #1f2937;
-  margin-top: 15px;
-  margin-bottom: 14px;
+  margin: 10px 0 14px;
 }
 
-/* FLEX HEADER */
 .header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-right: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-/* DIVIDER */
 .dashboard-divider {
-  width: calc(100% - 20px);
+  width: 100%;
   height: 1px;
   background: #e5e7eb;
-  margin-left: 20px;
   margin-bottom: 20px;
 }
 
@@ -110,6 +104,7 @@ app-admin-topnav {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* DROPDOWN FILTER */
@@ -121,6 +116,7 @@ app-admin-topnav {
   font-size: 13px;
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
+  outline: none;
 }
 
 .status-filter:hover {
@@ -165,31 +161,87 @@ app-admin-topnav {
 .center-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
-  gap: 40px;
 }
 
 /* =========================
-   TABLE STYLING
+   TABLE CONTAINER — flex column for proper stacking
 ========================= */
 .table-container {
   background: #fff;
   padding: 15px;
   border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   width: 100%;
-  margin: 0 auto;
-  min-height: 600px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  box-sizing: border-box;
 }
 
+/* =========================
+   TABLE SCROLL WRAP — manages horizontal scroll only
+========================= */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-wrap.has-data {
+  min-height: 400px;
+}
+
+/* =========================
+   EMPTY STATE CONTAINER
+========================= */
+.empty-row {
+  height: auto;
+  border-bottom: none;
+  margin-top: -15px;
+}
+
+.empty-row td {
+  padding: 0;
+  text-align: center;
+  vertical-align: top;
+}
+
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 340px;
+  color: #9ca3af;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.empty-state-content i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: #d1d5db;
+}
+
+.empty-state-content span {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* =========================
+   TABLE
+========================= */
 .applicants-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 700px;
+  height: 100%;
 }
 
 .applicants-table thead {
@@ -199,28 +251,37 @@ app-admin-topnav {
 .applicants-table th {
   text-align: left;
   padding: 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  border-bottom: 1px solid #f0f0f0;
 }
 
+.applicants-table th:first-child { border-radius: 8px 0 0 8px; }
+.applicants-table th:last-child  { border-radius: 0 8px 8px 0; }
+
 .applicants-table tbody tr {
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
   border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  height: 60px;
 }
 
 .applicants-table tbody tr:hover {
   background: #f9fafb;
-  transform: scale(1.002);
-  cursor: pointer;
 }
 
 .applicants-table td {
-  padding: 16px 14px;
-  font-size: 14px;
+  padding: 14px;
+  font-size: 13px;
   color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
 .profile-name {
@@ -228,6 +289,14 @@ app-admin-topnav {
   align-items: center;
   gap: 12px;
   font-weight: 500;
+  min-width: 0;
+}
+
+.profile-name span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* =========================
@@ -242,25 +311,15 @@ app-admin-topnav {
   letter-spacing: 0.3px;
   text-transform: capitalize;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.badge-pending {
-  background: #fff7ed;
-  color: #f59e0b;
-}
-
-.badge-approved {
-  background: #e8f7ee;
-  color: #16a34a;
-}
-
-.badge-declined {
-  background: #fdeaea;
-  color: #dc2626;
-}
+.badge-pending  { background: #fff7ed; color: #f59e0b; }
+.badge-approved { background: #e8f7ee; color: #16a34a; }
+.badge-declined { background: #fdeaea; color: #dc2626; }
 
 /* =========================
-   PAGINATION
+   PAGINATION — fixed position after table
 ========================= */
 .pagination {
   display: flex;
@@ -268,6 +327,10 @@ app-admin-topnav {
   align-items: center;
   gap: 10px;
   margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .page-info {
@@ -286,19 +349,15 @@ app-admin-topnav {
   color: #374151;
 }
 
-.page-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-}
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
 
 .page-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-.page-numbers {
-  display: flex;
-  gap: 6px;
-}
+.page-numbers { display: flex; gap: 6px; }
 
 .page {
   padding: 6px 10px;
@@ -311,9 +370,7 @@ app-admin-topnav {
   text-align: center;
 }
 
-.page:hover {
-  background: #e5e7eb;
-}
+.page:hover { background: #e5e7eb; }
 
 .page.active {
   background: #2563eb;
@@ -326,37 +383,40 @@ app-admin-topnav {
 ========================= */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 20px;
 }
 
 /* =========================
    DETAIL MODAL
 ========================= */
 .modern-modal {
-  width: 650px;
+  width: 100%;
+  max-width: 650px;
   max-height: 90vh;
   overflow-y: auto;
   background: #ffffff;
   padding: 30px;
   border-radius: 20px;
-  box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
   position: relative;
-  transition: all 0.3s ease;
   font-family: 'Poppins', sans-serif;
 }
 
+.modern-modal::-webkit-scrollbar { width: 5px; }
+.modern-modal::-webkit-scrollbar-track { background: transparent; }
+.modern-modal::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+.modern-modal::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
 .modal-close-btn {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 20px; right: 20px;
   border: none;
   background: none;
   font-size: 22px;
@@ -365,9 +425,7 @@ app-admin-topnav {
   transition: color 0.2s ease;
 }
 
-.modal-close-btn:hover {
-  color: #111827;
-}
+.modal-close-btn:hover { color: #111827; }
 
 /* =========================
    MODAL FORM SECTIONS
@@ -377,8 +435,7 @@ app-admin-topnav {
   padding: 20px;
   border-radius: 14px;
   margin-bottom: 20px;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
@@ -391,18 +448,11 @@ app-admin-topnav {
 }
 
 /* INFO GRID */
-.info-row {
-  display: grid;
-  gap: 20px;
-}
-
+.info-row { display: grid; gap: 20px; }
 .three-col { grid-template-columns: repeat(3, 1fr); }
 .two-col   { grid-template-columns: repeat(2, 1fr); }
 
-.info-item {
-  display: flex;
-  flex-direction: column;
-}
+.info-item { display: flex; flex-direction: column; }
 
 .info-label {
   font-size: 11px;
@@ -422,7 +472,7 @@ app-admin-topnav {
   border-radius: 10px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 /* FILE BOX */
@@ -436,16 +486,20 @@ app-admin-topnav {
   border: 1px dashed #d1d5db;
   margin-bottom: 12px;
   transition: all 0.3s ease;
+  gap: 10px;
 }
 
-.file-box:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
+.file-box:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 
 .file-label {
   font-size: 14px;
   font-weight: 600;
   color: #111827;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-icons a {
@@ -460,10 +514,7 @@ app-admin-topnav {
   transform: scale(1.2);
 }
 
-.no-file {
-  font-size: 13px;
-  color: #9ca3af;
-}
+.no-file { font-size: 13px; color: #9ca3af; }
 
 /* MODAL ACTION BUTTONS */
 .modal-actions {
@@ -471,6 +522,7 @@ app-admin-topnav {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 20px;
+  flex-wrap: wrap;
 }
 
 .modal-actions button {
@@ -481,6 +533,7 @@ app-admin-topnav {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: 'Poppins', sans-serif;
 }
 
 .modal-actions .accept-btn {
@@ -488,10 +541,7 @@ app-admin-topnav {
   color: #fff;
 }
 
-.modal-actions .accept-btn:hover {
-  background: #1e40af;
-  transform: scale(1.05);
-}
+.modal-actions .accept-btn:hover { background: #1e40af; }
 
 .modal-actions .decline-btn {
   background: #fef3f3;
@@ -501,20 +551,13 @@ app-admin-topnav {
 .modal-actions .decline-btn:hover {
   background: #ef4444;
   color: #fff;
-  transform: scale(1.05);
 }
 
+/* =========================
+   ACTION MODALS
+========================= */
+.action-modal-overlay { z-index: 1100; }
 
-/* ═══════════════════════════════════════════════════════════
-   ACTION MODALS  (Approve / Decline)
-   ═══════════════════════════════════════════════════════════ */
-
-/* Sits on top of the detail modal */
-.action-modal-overlay {
-  z-index: 1100;
-}
-
-/* Card */
 .action-modal {
   background: #ffffff;
   border-radius: 16px;
@@ -531,7 +574,7 @@ app-admin-topnav {
   to   { opacity: 1; transform: translateY(0)     scale(1);    }
 }
 
-/* ── Header ── */
+/* Header */
 .action-modal-header {
   display: flex;
   align-items: center;
@@ -554,85 +597,59 @@ app-admin-topnav {
   color: #6b7280;
 }
 
-/* Coloured left accent strip */
 .approve-header { border-left: 4px solid #16a34a; }
 .decline-header  { border-left: 4px solid #dc2626; }
 
-/* Icon bubble */
 .action-modal-icon {
-  width: 42px;
-  height: 42px;
+  width: 42px; height: 42px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-  background: #dcfce7;
-  color: #16a34a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+  background: #dcfce7; color: #16a34a;
 }
 
 .action-modal-icon.decline-icon {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #fee2e2; color: #dc2626;
 }
 
-/* Close button (top-right) */
 .action-modal-close {
   position: absolute;
-  right: 18px;
-  top: 18px;
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 4px 6px;
+  right: 18px; top: 18px;
+  background: none; border: none;
+  color: #9ca3af; font-size: 16px;
+  cursor: pointer; padding: 4px 6px;
   border-radius: 6px;
   transition: background 0.15s, color 0.15s;
 }
 
 .action-modal-close:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: #f3f4f6; color: #374151;
 }
 
-/* ── Body ── */
+/* Body */
 .action-modal-body {
   padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+  display: flex; flex-direction: column; gap: 18px;
 }
 
-/* Side-by-side fields row */
 .action-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
-/* Individual field */
 .action-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  position: relative;
+  display: flex; flex-direction: column;
+  gap: 6px; position: relative;
 }
 
 .action-field label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13px; font-weight: 600;
   color: #374151;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 6px;
 }
 
-.action-field label i {
-  color: #9ca3af;
-  font-size: 12px;
-}
+.action-field label i { color: #9ca3af; font-size: 12px; }
 
 .action-field input[type="date"],
 .action-field input[type="number"],
@@ -640,8 +657,7 @@ app-admin-topnav {
   border: 1.5px solid #e5e7eb;
   border-radius: 8px;
   padding: 10px 12px;
-  font-size: 14px;
-  color: #111827;
+  font-size: 14px; color: #111827;
   background: #f9fafb;
   transition: border-color 0.15s, background 0.15s;
   font-family: 'Poppins', sans-serif;
@@ -650,121 +666,66 @@ app-admin-topnav {
 
 .action-field input:focus,
 .action-field textarea:focus {
-  outline: none;
-  border-color: #2563eb;
-  background: #ffffff;
+  outline: none; border-color: #2563eb; background: #ffffff;
 }
 
 .action-field.field-error input,
 .action-field.field-error textarea {
-  border-color: #ef4444;
-  background: #fff7f7;
+  border-color: #ef4444; background: #fff7f7;
 }
 
-/* Optional tag */
 .optional-tag {
-  font-size: 11px;
-  font-weight: 500;
-  color: #9ca3af;
-  background: #f3f4f6;
-  padding: 1px 7px;
-  border-radius: 10px;
-  margin-left: 2px;
+  font-size: 11px; font-weight: 500; color: #9ca3af;
+  background: #f3f4f6; padding: 1px 7px; border-radius: 10px; margin-left: 2px;
 }
 
-/* Required star */
 .req-star { color: #ef4444; }
 
-/* Field error message */
 .field-error-msg {
-  font-size: 12px;
-  color: #ef4444;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 12px; color: #ef4444;
+  display: flex; align-items: center; gap: 4px;
 }
 
-/* Character counter */
-.char-count {
-  font-size: 11px;
-  color: #9ca3af;
-  text-align: right;
-  margin-top: -2px;
-}
+.char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: -2px; }
 
-/* Info banners */
 .action-modal-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.55;
+  display: flex; align-items: flex-start;
+  gap: 10px; padding: 12px 14px;
+  border-radius: 10px; font-size: 13px; line-height: 1.55;
 }
 
-.action-modal-info i {
-  font-size: 15px;
-  margin-top: 1px;
-  flex-shrink: 0;
-}
+.action-modal-info i { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
 
-.approve-info {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
-}
-
+.approve-info { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
 .approve-info i { color: #16a34a; }
 
-.decline-info {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-}
-
+.decline-info { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 .decline-info i { color: #dc2626; }
 
-/* ── Footer ── */
+/* Footer */
 .action-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px;
-  background: #f9fafb;
-  border-top: 1px solid #f3f4f6;
+  display: flex; justify-content: flex-end;
+  gap: 10px; padding: 16px 24px;
+  background: #f9fafb; border-top: 1px solid #f3f4f6;
+  flex-wrap: wrap;
 }
 
 .btn-cancel {
-  padding: 9px 20px;
-  border-radius: 8px;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
-  color: #374151;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
+  padding: 9px 20px; border-radius: 8px;
+  border: 1.5px solid #e5e7eb; background: #ffffff;
+  color: #374151; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'Poppins', sans-serif;
   transition: background 0.15s, border-color 0.15s;
 }
 
-.btn-cancel:hover:not(:disabled) {
-  background: #f3f4f6;
-}
+.btn-cancel:hover:not(:disabled) { background: #f3f4f6; }
 
 .btn-approve {
-  padding: 9px 22px;
-  border-radius: 8px;
-  border: none;
-  background: #16a34a;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+  padding: 9px 22px; border-radius: 8px; border: none;
+  background: #16a34a; color: #ffffff;
+  font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  display: flex; align-items: center; gap: 7px;
   transition: background 0.15s, opacity 0.15s;
 }
 
@@ -772,36 +733,209 @@ app-admin-topnav {
 .btn-approve:disabled              { opacity: 0.65; cursor: not-allowed; }
 
 .btn-decline {
-  padding: 9px 22px;
-  border-radius: 8px;
-  border: none;
-  background: #dc2626;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+  padding: 9px 22px; border-radius: 8px; border: none;
+  background: #dc2626; color: #ffffff;
+  font-size: 14px; font-weight: 600; cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  display: flex; align-items: center; gap: 7px;
   transition: background 0.15s, opacity 0.15s;
 }
 
 .btn-decline:hover:not(:disabled) { background: #b91c1c; }
 .btn-decline:disabled              { opacity: 0.65; cursor: not-allowed; }
 
-/* ── Responsive ── */
-@media (max-width: 540px) {
-  .action-field-row {
-    grid-template-columns: 1fr;
+/* =========================
+   RESPONSIVE — TABLET (≤1024px)
+========================= */
+@media (max-width: 1024px) {
+  .dashboard-content { padding: 20px; }
+}
+
+/* =========================
+   RESPONSIVE — TABLET PORTRAIT (≤768px)
+========================= */
+@media (max-width: 768px) {
+  .dashboard-content { padding: 16px; }
+
+  .header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .status-filter {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container { 
+    padding: 14px; 
+    border-radius: 12px; 
+  }
+
+  .table-wrap { 
+    min-height: 350px; 
+  }
+
+  .empty-row {
+    margin-top: -10px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+
+  .applicants-table tbody tr {
+    height: auto;
+  }
+
+  .three-col { grid-template-columns: 1fr; }
+  .two-col   { grid-template-columns: 1fr; }
+
+  .action-field-row { grid-template-columns: 1fr; }
+
+  .modern-modal {
+    padding: 20px;
+    border-radius: 16px;
+    max-height: 92vh;
+  }
+
+  .modal-overlay { padding: 16px; }
+
+  .action-modal-header { padding: 18px 20px 14px; }
+  .action-modal-body   { padding: 18px 20px; }
+  .action-modal-footer { padding: 14px 20px; }
+
+  .pagination { gap: 6px; }
+}
+
+/* =========================
+   RESPONSIVE — MOBILE (≤480px)
+========================= */
+@media (max-width: 480px) {
+  .dashboard-content { padding: 12px; }
+
+  .dashboard-header h2 { font-size: 17px; }
+  .dashboard-divider   { margin-bottom: 14px; }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .status-filter {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .search-box {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .table-container { 
+    padding: 10px; 
+    border-radius: 12px; 
+  }
+
+  .table-wrap { 
+    min-height: 300px; 
+  }
+
+  .empty-row {
+    margin-top: -5px;
+  }
+
+  .applicants-table {
+    min-width: 600px;
+  }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 8px 8px;
+    font-size: 11px;
+  }
+
+  .applicants-table tbody tr {
+    height: auto;
+  }
+
+  .page-btn  { padding: 6px 10px; }
+  .page      { padding: 5px 8px; font-size: 12px; min-width: 28px; }
+  .page-info { font-size: 11px; }
+
+  .modal-overlay { padding: 0; }
+
+  .modern-modal {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 16px;
+    padding-bottom: 30px;
+  }
+
+  .form-section { padding: 14px; }
+  .section-header { font-size: 14px; }
+
+  .info-value { font-size: 12px; padding: 8px 10px; }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions button {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
   }
 
   .action-modal {
-    border-radius: 12px 12px 0 0;
+    border-radius: 16px 16px 0 0;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     max-width: 100%;
+  }
+
+  .action-modal-header h3 { font-size: 15px; }
+  .action-modal-body   { padding: 16px; }
+  .action-modal-footer {
+    padding: 12px 16px;
+    flex-direction: column;
+  }
+
+  .btn-cancel,
+  .btn-approve,
+  .btn-decline {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .file-label { font-size: 12px; }
+  .file-icons a { font-size: 14px; margin-left: 8px; }
+}
+
+/* =========================
+   RESPONSIVE — SMALL PHONES (≤390px)
+========================= */
+@media (max-width: 390px) {
+  .dashboard-content { padding: 10px; }
+
+  .applicants-table th,
+  .applicants-table td {
+    padding: 7px 6px;
+    font-size: 10px;
   }
 }

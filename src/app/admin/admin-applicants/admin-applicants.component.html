@@ -37,50 +37,70 @@
 
       <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
-          <table class="applicants-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Student ID</th>
-                <th>Course</th>
-                <th>Email</th>
-                <th>Applied Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
 
-              <tr *ngFor="let applicant of pagedApplicants"
-                  (click)="openModal(applicant)"
-                  style="cursor:pointer;">
-                <td class="profile-name">
-                  <span>{{ getFullName(applicant) }}</span>
-                </td>
-                <td>{{ applicant.student_id }}</td>
-                <td>{{ abbreviateCourse(applicant.course) }}</td>
-                <td>{{ applicant.email }}</td>
-                <td>{{ formatDate(applicant.$createdAt) }}</td>
-                <td>
-                  <span class="status-badge"
-                        [ngClass]="{
-                          'badge-pending':  applicant.status === 'pending',
-                          'badge-approved': applicant.status === 'approved',
-                          'badge-declined': applicant.status === 'declined'
-                        }">
-                    {{ applicant.status | titlecase }}
-                  </span>
-                </td>
-              </tr>
+          <!-- Table headers always visible; horizontal scroll only on table content -->
+          <div class="table-wrap" [class.has-data]="filteredApplicants.length > 0">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Student ID</th>
+                  <th>Course</th>
+                  <th>Email</th>
+                  <th>Applied Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Data rows — only when there are records -->
+                <tr *ngFor="let applicant of pagedApplicants"
+                    (click)="openModal(applicant)"
+                    style="cursor:pointer;">
+                  <td>
+                    <div class="profile-name">
+                      <span>{{ getFullName(applicant) }}</span>
+                    </div>
+                  </td>
+                  <td>{{ applicant.student_id }}</td>
+                  <td>{{ abbreviateCourse(applicant.course) }}</td>
+                  <td>{{ applicant.email }}</td>
+                  <td>{{ formatDate(applicant.$createdAt) }}</td>
+                  <td>
+                    <span class="status-badge"
+                          [ngClass]="{
+                            'badge-pending':  applicant.status === 'pending',
+                            'badge-approved': applicant.status === 'approved',
+                            'badge-declined': applicant.status === 'declined'
+                          }">
+                      {{ applicant.status | titlecase }}
+                    </span>
+                  </td>
+                </tr>
 
-              <tr *ngIf="filteredApplicants.length === 0">
-                <td colspan="6" style="text-align:center; color:#9ca3af; padding:30px;">
-                  No applicants found.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <!-- Ghost rows to maintain table height when list is short -->
+                <tr *ngFor="let ghost of ghostRows" style="opacity: 0; pointer-events: none;">
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
 
-          <!-- PAGINATION -->
+                <!-- Empty state — inside table, centered in scroll area -->
+                <tr class="empty-row" *ngIf="filteredApplicants.length === 0">
+                  <td colspan="6">
+                    <div class="empty-state-content">
+                      <i class="fa-solid fa-user-slash"></i>
+                      <span>No applicants found.</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PAGINATION — fixed position after table, never scrolls -->
           <div class="pagination">
             <span class="page-info">
               Showing {{ (currentPage - 1) * itemsPerPage + 1 }}–{{ Math.min(currentPage * itemsPerPage, filteredApplicants.length) }}
@@ -186,7 +206,6 @@
       </div>
       <div class="info-item">
         <span class="info-label">Course</span>
-        <!-- Full course name shown in modal, not abbreviated -->
         <span class="info-value">{{ selectedApplicant.course || '—' }}</span>
       </div>
       <div class="info-item">
@@ -251,7 +270,7 @@
         <span *ngIf="!selectedApplicant.coe_file_id" class="no-file">No file uploaded</span>
       </div>
 
-      <!-- ACTIONS (modal only) -->
+      <!-- ACTIONS -->
       <div class="modal-actions" *ngIf="selectedApplicant.status === 'pending'">
         <button class="accept-btn"
                 (click)="openApproveModal(selectedApplicant, $event)"
