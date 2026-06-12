@@ -50,7 +50,8 @@ interface HoursTier {
 })
 export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
-  isCollapsed = false;
+isCollapsed = false;
+isMobile = window.innerWidth < 768;
 
   // ── Stat cards ────────────────────────────────────────────
   totalInterns      = 0;
@@ -92,8 +93,11 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy
 
   constructor(private appwrite: AppwriteService) {}
 
-  onToggleSidebar(state: boolean) { this.isCollapsed = state; }
-
+onToggleSidebar(state: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  // On mobile, never add .collapsed to the wrapper — sidenav overlays, doesn't push
+  this.isCollapsed = this.isMobile ? false : state;
+}
   // ── Greeting ──────────────────────────────────────────────
   get greetingTime(): string {
     const h = new Date().getHours();

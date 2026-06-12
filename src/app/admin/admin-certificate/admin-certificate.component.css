@@ -981,3 +981,20 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
   text-align: center;
   letter-spacing: 0.3px;
 }
+@media (max-width: 768px) {
+  .main-section {
+    left: 0 !important;
+  }
+
+  .stats-row {
+    flex-direction: column;
+  }
+
+  .filter-sort-bar {
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+}

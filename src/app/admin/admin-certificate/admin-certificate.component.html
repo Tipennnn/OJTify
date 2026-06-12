@@ -3,10 +3,10 @@
 ================================================ -->
 
 <div class="dashboard-wrapper" [class.collapsed]="sidenavCollapsed">
-    <app-admin-sidenav (toggle)="onSidenavToggle($event)"></app-admin-sidenav>
+    <app-admin-sidenav #sidenavRef (toggle)="onSidenavToggle($event)"></app-admin-sidenav>
   
     <div class="main-section">
-      <app-admin-topnav></app-admin-topnav>
+      <app-admin-topnav (hamburgerClick)="sidenavRef.toggleNav()"></app-admin-topnav>
   
       <div class="dashboard-content">
   

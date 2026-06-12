@@ -37,6 +37,7 @@ interface AttendanceLog {
 })
 export class AdminAttendanceComponent implements OnInit, OnDestroy {
   isCollapsed = false;
+  isMobile = window.innerWidth < 768;
 
   todayLogs    : AttendanceLog[] = [];
   filteredLogs : AttendanceLog[] = [];
@@ -248,9 +249,10 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  onToggleSidebar(collapsed: boolean) {
-    this.isCollapsed = collapsed;
-  }
+onToggleSidebar(collapsed: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  this.isCollapsed = this.isMobile ? false : collapsed;
+}
 
   onSearch(event: any) {
     this.searchQuery  = event.target.value.toLowerCase();

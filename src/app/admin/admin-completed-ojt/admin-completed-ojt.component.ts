@@ -76,6 +76,8 @@ const DEFAULT_CERT_TEMPLATE: CertTemplate = {
 export class AdminCompletedOjtComponent implements OnInit {
 
   isCollapsed = false;
+  isMobile = window.innerWidth < 768;
+
   loading     = false;
 
   students        : Student[] = [];
@@ -416,8 +418,10 @@ export class AdminCompletedOjtComponent implements OnInit {
       .join('') || course;
   }
 
-  onToggleSidebar(c: boolean) { this.isCollapsed = c; }
-
+onToggleSidebar(c: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  this.isCollapsed = this.isMobile ? false : c;
+}
   populateYears() {
     const y = new Date().getFullYear();
     this.years = Array.from({ length: 6 }, (_, i) => y - i);

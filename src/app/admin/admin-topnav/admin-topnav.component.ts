@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,6 +14,11 @@ import { environment } from '../../../environments/environment';
   styleUrls: ['./admin-topnav.component.css']
 })
 export class AdminTopnavComponent implements OnInit, OnDestroy {
+  @Output() hamburgerClick = new EventEmitter<void>();
+
+  onHamburger() {
+    this.hamburgerClick.emit();
+  }
 
   menuOpen          = false;
   showPasswordModal = false;

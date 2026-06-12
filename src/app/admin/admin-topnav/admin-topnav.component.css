@@ -15,6 +15,8 @@
 }
 
 .topnav-left {
+  display: flex;
+  align-items: center;
   min-width: 0;
   flex-shrink: 1;
   overflow: hidden;
@@ -362,6 +364,22 @@
   transform: none;
 }
 
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
 /* =============================
    ANIMATIONS
 ============================= */
@@ -388,11 +406,15 @@
 /* ── Tablet portrait (≤768px) ── */
 @media (max-width: 768px) {
   .topnav { padding: 0 14px; }
-  .topnav-left .greeting { font-size: 13px; }
+  .topnav-left .greeting { font-size: 13px; margin-left: 8px;}
   .topnav-right { gap: 8px; }
   .datetime-date { display: none; }
   .datetime-dot  { display: none; }
   .datetime-time { font-size: 12px; }
+  .hamburger-btn {
+    display: flex;
+  }
+
 }
 
 /* ── Small phones (≤600px) ── */

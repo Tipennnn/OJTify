@@ -49,6 +49,7 @@ export class AdminApplicantsComponent implements OnInit {
 
   // SIDENAV STATE
   isCollapsed = false;
+  isMobile = window.innerWidth < 768;
 
   // DATA
   applicants        : Applicant[] = [];
@@ -132,9 +133,10 @@ export class AdminApplicantsComponent implements OnInit {
 
   constructor(private appwrite: AppwriteService) {}
 
-  onToggleSidebar(state: boolean) {
-    this.isCollapsed = state;
-  }
+onToggleSidebar(state: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  this.isCollapsed = this.isMobile ? false : state;
+}
 
   async ngOnInit() {
     await this.loadApplicants();

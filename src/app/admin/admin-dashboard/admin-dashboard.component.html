@@ -1,9 +1,7 @@
 <div class="dashboard-wrapper" [class.collapsed]="isCollapsed">
-
-  <app-admin-sidenav (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
-
+  <app-admin-sidenav #sidenavRef (toggle)="onToggleSidebar($event)"></app-admin-sidenav>
   <div class="main-section">
-    <app-admin-topnav></app-admin-topnav>
+    <app-admin-topnav (hamburgerClick)="sidenavRef.toggleNav()"></app-admin-topnav>
 
     <div class="dashboard-content">
 

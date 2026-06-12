@@ -755,6 +755,17 @@ app-admin-topnav {
   .action-modal-body   { padding: 18px 20px; }
   .action-modal-footer { padding: 14px 20px; }
   .pagination { gap: 6px; }
+
+    .main-section {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  app-admin-topnav {
+    left: 0 !important;
+    width: 100% !important;
+  }
+
 }
 
 /* =========================

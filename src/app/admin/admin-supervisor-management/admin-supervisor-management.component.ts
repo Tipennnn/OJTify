@@ -107,6 +107,8 @@ export class AdminSupervisorManagementComponent implements OnInit {
   filteredSupervisors: Supervisor[] = [];
   loading            = false;
   isCollapsed        = false;
+  isMobile = window.innerWidth < 768;
+
 
   showModal          = false;
   isEditing          = false;
@@ -574,8 +576,10 @@ export class AdminSupervisorManagementComponent implements OnInit {
     return { first_name: '', last_name: '', employee_id: '', email: '', password: '', grade_level: '' };
   }
 
-  onToggleSidebar(c: boolean) { this.isCollapsed = c; }
-
+onToggleSidebar(c: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  this.isCollapsed = this.isMobile ? false : c;
+}
   getFullName(s: Supervisor)   { return `${s.first_name} ${s.last_name}`; }
   getInternFullName(i: Intern) { return `${i.first_name} ${i.last_name}`; }
 

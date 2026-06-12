@@ -113,6 +113,8 @@ export class AdminCertificateComponent implements OnInit {
 
   // ── Layout
   sidenavCollapsed = false;
+  isMobile = window.innerWidth < 768;
+
 
   // ── UI State
   activeTab: 'completed' | 'ongoing' | 'sent' = 'completed';
@@ -396,9 +398,10 @@ expandDragOriginY = 0;
     await this.loadInterns();
   }
 
-  onSidenavToggle(collapsed: boolean) {
-    this.sidenavCollapsed = collapsed;
-  }
+ onSidenavToggle(collapsed: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  this.sidenavCollapsed = this.isMobile ? false : collapsed;
+}
 
   // ── Tab ───────────────────────────────────────────────────────────────────────
 

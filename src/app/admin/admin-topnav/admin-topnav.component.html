@@ -1,5 +1,12 @@
 <header class="topnav">
   <div class="topnav-left">
+
+    <!-- Hamburger: only visible on mobile -->
+    <button class="hamburger-btn" (click)="onHamburger()">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+
+
     <span class="greeting">{{ greeting }}</span>
   </div>
   <div class="topnav-right">

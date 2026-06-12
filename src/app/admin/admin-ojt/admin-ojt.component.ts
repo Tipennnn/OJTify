@@ -44,6 +44,7 @@ export class AdminOjtComponent implements OnInit {
   loading         = false;
   searchQuery     = '';
   isCollapsed     = false;
+  isMobile = window.innerWidth < 768;
   archivingId: string | null = null;
   evaluatedStudentIds: Set<string> = new Set();
 
@@ -293,10 +294,10 @@ export class AdminOjtComponent implements OnInit {
   prevPage() { this.goToPage(this.currentPage - 1); }
   nextPage() { this.goToPage(this.currentPage + 1); }
 
-  onToggleSidebar(collapsed: boolean) {
-    this.isCollapsed = collapsed;
-  }
-
+ onToggleSidebar(collapsed: boolean) {
+  this.isMobile = window.innerWidth < 768;
+  this.isCollapsed = this.isMobile ? false : collapsed;
+}
   openProfile(student: Student) {
     this.router.navigate(['/admin-ojt-profile', student.$id]);
   }
