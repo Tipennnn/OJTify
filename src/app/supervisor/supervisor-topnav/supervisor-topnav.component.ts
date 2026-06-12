@@ -32,14 +32,12 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
 
   profilePhotoUrl = 'https://ui-avatars.com/api/?name=Supervisor&background=0818A8&color=fff&size=128';
 
-  // Profile Modal
   showProfileModal  = false;
   profileLoading    = false;
   profileSaving     = false;
   profileError      = '';
   profileSuccess    = '';
 
-  // Photo upload
   photoUploading   = false;
   photoPreviewUrl  = '';
 
@@ -51,12 +49,10 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
     grade_level : '',
   };
 
-  // E-Signature
   esigPreviewUrl = '';
   esigUploading  = false;
   currentDoc: any = null;
 
-  // DateTime
   currentDayDate = '';
   currentTime    = '';
   private clockInterval: any;
@@ -71,19 +67,16 @@ export class SupervisorTopnavComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
-  await this.loadProfilePhoto();
-  this.updateClock();
-  this.clockInterval = setInterval(() => this.updateClock(), 1000);
-  // ← ADD THIS
-  window.addEventListener('open-esig-upload', this.esigUploadListener);
-}
+    await this.loadProfilePhoto();
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+    window.addEventListener('open-esig-upload', this.esigUploadListener);
+  }
 
-ngOnDestroy() {
-  if (this.clockInterval) clearInterval(this.clockInterval);
-  // ← ADD THIS
-  window.removeEventListener('open-esig-upload', this.esigUploadListener);
-}
-
+  ngOnDestroy() {
+    if (this.clockInterval) clearInterval(this.clockInterval);
+    window.removeEventListener('open-esig-upload', this.esigUploadListener);
+  }
 
   private updateClock(): void {
     const now = new Date();
@@ -98,69 +91,69 @@ ngOnDestroy() {
   }
 
   async loadProfilePhoto() {
-  try {
-    const storedId = sessionStorage.getItem('currentDocId');
-    if (!storedId) return;
+    try {
+      const storedId = sessionStorage.getItem('currentDocId');
+      if (!storedId) return;
 
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      storedId
-    ) as any;
-    this.currentDoc = doc || null;
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        storedId
+      ) as any;
+      this.currentDoc = doc || null;
 
-    if (doc?.profile_photo_id) {
-      this.profilePhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
-    } else {
-      const name = `${doc?.first_name || 'Supervisor'} ${doc?.last_name || ''}`.trim();
-      this.profilePhotoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0818A8&color=fff&size=128`;
+      if (doc?.profile_photo_id) {
+        this.profilePhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`;
+      } else {
+        const name = `${doc?.first_name || 'Supervisor'} ${doc?.last_name || ''}`.trim();
+        this.profilePhotoUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0818A8&color=fff&size=128`;
+      }
+    } catch {
+      this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=Supervisor&background=0818A8&color=fff&size=128';
     }
-  } catch {
-    this.profilePhotoUrl = 'https://ui-avatars.com/api/?name=Supervisor&background=0818A8&color=fff&size=128';
   }
-}
 
   toggleMenu() { this.menuOpen = !this.menuOpen; }
 
   async goProfile() {
-  this.menuOpen         = false;
-  this.profileError     = '';
-  this.profileSuccess   = '';
-  this.esigPreviewUrl   = '';
-  this.photoPreviewUrl  = '';
-  this.profileLoading   = true;
-  this.showProfileModal = true;
+    this.menuOpen         = false;
+    this.profileError     = '';
+    this.profileSuccess   = '';
+    this.esigPreviewUrl   = '';
+    this.photoPreviewUrl  = '';
+    this.profileLoading   = true;
+    this.showProfileModal = true;
 
-  try {
-    const storedId = sessionStorage.getItem('currentDocId');
-    if (!storedId) return;
+    try {
+      const storedId = sessionStorage.getItem('currentDocId');
+      if (!storedId) return;
 
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      storedId
-    ) as any;
-    this.currentDoc = doc || null;
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        storedId
+      ) as any;
+      this.currentDoc = doc || null;
 
-    this.profileForm = {
-      first_name  : doc?.first_name   || '',
-      last_name   : doc?.last_name    || '',
-      email       : doc?.email        || '',
-      employee_id : doc?.employee_id  || '',
-      grade_level : doc?.grade_level  || '',
-    };
+      this.profileForm = {
+        first_name  : doc?.first_name   || '',
+        last_name   : doc?.last_name    || '',
+        email       : doc?.email        || '',
+        employee_id : doc?.employee_id  || '',
+        grade_level : doc?.grade_level  || '',
+      };
 
-    this.photoPreviewUrl = this.profilePhotoUrl;
+      this.photoPreviewUrl = this.profilePhotoUrl;
 
-    if (doc?.esig_file_id) {
-      await this.loadEsigPreview(doc.esig_file_id);
+      if (doc?.esig_file_id) {
+        await this.loadEsigPreview(doc.esig_file_id);
+      }
+    } catch (err: any) {
+      this.profileError = 'Failed to load profile data.';
+    } finally {
+      this.profileLoading = false;
     }
-  } catch (err: any) {
-    this.profileError = 'Failed to load profile data.';
-  } finally {
-    this.profileLoading = false;
   }
-}
 
   closeProfileModal() {
     this.showProfileModal = false;
@@ -170,7 +163,6 @@ ngOnDestroy() {
     this.photoPreviewUrl  = '';
   }
 
-  // ── Employee ID: alphanumeric + hyphens only, max 20 chars ──
   onEmployeeIdInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     let val = input.value.replace(/[^a-zA-Z0-9\-]/g, '');
@@ -179,94 +171,92 @@ ngOnDestroy() {
     input.value = val;
   }
 
-  // ── Profile Photo Upload ──
   async onPhotoChange(event: Event): Promise<void> {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
 
-  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  if (!allowed.includes(file.type)) {
-    Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a JPG, PNG, or WEBP image.', confirmButtonColor: '#0818A8' });
-    (event.target as HTMLInputElement).value = '';
-    return;
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    Swal.fire({ icon: 'error', title: 'File Too Large', text: 'Profile photo must be less than 5MB.', confirmButtonColor: '#0818A8' });
-    (event.target as HTMLInputElement).value = '';
-    return;
-  }
-
-  this.photoUploading = true;
-  try {
-    const storedId = sessionStorage.getItem('currentDocId');
-    if (!storedId) return;
-
-    const oldPhotoId = this.currentDoc?.profile_photo_id;
-    if (oldPhotoId) {
-      try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldPhotoId); } catch {}
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a JPG, PNG, or WEBP image.', confirmButtonColor: '#0818A8' });
+      (event.target as HTMLInputElement).value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({ icon: 'error', title: 'File Too Large', text: 'Profile photo must be less than 5MB.', confirmButtonColor: '#0818A8' });
+      (event.target as HTMLInputElement).value = '';
+      return;
     }
 
-    const { ID } = await import('appwrite');
-    const newFileId = ID.unique();
-    await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
+    this.photoUploading = true;
+    try {
+      const storedId = sessionStorage.getItem('currentDocId');
+      if (!storedId) return;
 
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      storedId, // ← use storedId instead of user.$id
-      { profile_photo_id: newFileId }
-    );
-
-    if (this.currentDoc) this.currentDoc.profile_photo_id = newFileId;
-
-    const newPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${newFileId}/view?project=${this.PROJECT_ID}`;
-    this.profilePhotoUrl = newPhotoUrl;
-    this.photoPreviewUrl = newPhotoUrl;
-    (event.target as HTMLInputElement).value = '';
-
-    Swal.fire({ icon: 'success', title: 'Photo Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-
-  } catch (err: any) {
-    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
-  } finally {
-    this.photoUploading = false;
-  }
-}
-
- async saveProfile() {
-  this.profileError   = '';
-  this.profileSuccess = '';
-  this.profileSaving  = true;
-  try {
-    const storedId = sessionStorage.getItem('currentDocId');
-    if (!storedId) return;
-
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      storedId, // ← use storedId instead of user.$id
-      {
-        employee_id : this.profileForm.employee_id.trim(),
-        grade_level : this.profileForm.grade_level,
+      const oldPhotoId = this.currentDoc?.profile_photo_id;
+      if (oldPhotoId) {
+        try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldPhotoId); } catch {}
       }
-    );
 
-    await this.loadProfilePhoto();
-    this.profileSuccess = 'Profile updated successfully!';
+      const { ID } = await import('appwrite');
+      const newFileId = ID.unique();
+      await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
 
-    setTimeout(() => {
-      this.closeProfileModal();
-      Swal.fire({ icon: 'success', title: 'Profile Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
-    }, 1200);
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        storedId,
+        { profile_photo_id: newFileId }
+      );
 
-  } catch (err: any) {
-    this.profileError = err.message || 'Failed to save profile.';
-  } finally {
-    this.profileSaving = false;
+      if (this.currentDoc) this.currentDoc.profile_photo_id = newFileId;
+
+      const newPhotoUrl = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${newFileId}/view?project=${this.PROJECT_ID}`;
+      this.profilePhotoUrl = newPhotoUrl;
+      this.photoPreviewUrl = newPhotoUrl;
+      (event.target as HTMLInputElement).value = '';
+
+      Swal.fire({ icon: 'success', title: 'Photo Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
+    } finally {
+      this.photoUploading = false;
+    }
   }
-}
 
-  // ── E-Signature ──
+  async saveProfile() {
+    this.profileError   = '';
+    this.profileSuccess = '';
+    this.profileSaving  = true;
+    try {
+      const storedId = sessionStorage.getItem('currentDocId');
+      if (!storedId) return;
+
+      // Only employee_id is editable by the supervisor — grade_level is admin-only
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        storedId,
+        {
+          employee_id: this.profileForm.employee_id.trim(),
+        }
+      );
+
+      await this.loadProfilePhoto();
+      this.profileSuccess = 'Profile updated successfully!';
+
+      setTimeout(() => {
+        this.closeProfileModal();
+        Swal.fire({ icon: 'success', title: 'Profile Updated!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+      }, 1200);
+
+    } catch (err: any) {
+      this.profileError = err.message || 'Failed to save profile.';
+    } finally {
+      this.profileSaving = false;
+    }
+  }
+
   async onEsigChange(event: Event): Promise<void> {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -290,69 +280,67 @@ ngOnDestroy() {
   }
 
   private async uploadEsig(file: File): Promise<void> {
-  if (file.type !== 'image/png') return;
-  this.esigUploading = true;
-  try {
+    if (file.type !== 'image/png') return;
+    this.esigUploading = true;
+    try {
+      const storedId = sessionStorage.getItem('currentDocId');
+      if (!storedId) return;
+
+      const oldFileId = this.currentDoc?.esig_file_id;
+      if (oldFileId) {
+        try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); } catch {}
+      }
+      const { ID } = await import('appwrite');
+      const newFileId = ID.unique();
+      await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL,
+        storedId,
+        { esig_file_id: newFileId }
+      );
+      if (this.currentDoc) this.currentDoc.esig_file_id = newFileId;
+
+      const reader = new FileReader();
+      reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
+      reader.readAsDataURL(file);
+
+      Swal.fire({ icon: 'success', title: 'E-Signature Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
+    } finally {
+      this.esigUploading = false;
+    }
+  }
+
+  async removeEsig(): Promise<void> {
+    if (!this.currentDoc?.esig_file_id) return;
+    try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.currentDoc.esig_file_id); } catch {}
+
     const storedId = sessionStorage.getItem('currentDocId');
     if (!storedId) return;
 
-    const oldFileId = this.currentDoc?.esig_file_id;
-    if (oldFileId) {
-      try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, oldFileId); } catch {}
-    }
-    const { ID } = await import('appwrite');
-    const newFileId = ID.unique();
-    await this.appwrite.storage.createFile(this.BUCKET_ID, newFileId, file);
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL,
-      storedId, // ← use storedId instead of user.$id
-      { esig_file_id: newFileId }
+      storedId,
+      { esig_file_id: '' }
     );
-    if (this.currentDoc) this.currentDoc.esig_file_id = newFileId;
-
-    const reader = new FileReader();
-    reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
-    reader.readAsDataURL(file);
-
-    Swal.fire({ icon: 'success', title: 'E-Signature Saved!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-  } catch (err: any) {
-    Swal.fire({ icon: 'error', title: 'Upload Failed', text: err.message, confirmButtonColor: '#0818A8' });
-  } finally {
-    this.esigUploading = false;
+    if (this.currentDoc) this.currentDoc.esig_file_id = '';
+    this.esigPreviewUrl = '';
   }
-}
 
-  async removeEsig(): Promise<void> {
-  if (!this.currentDoc?.esig_file_id) return;
-  try { await this.appwrite.storage.deleteFile(this.BUCKET_ID, this.currentDoc.esig_file_id); } catch {}
+  private async loadEsigPreview(fileId: string): Promise<void> {
+    try {
+      const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
+        reader.readAsDataURL(blob);
+      }
+    } catch (err) { console.warn('Could not load esig preview:', err); }
+  }
 
-  const storedId = sessionStorage.getItem('currentDocId');
-  if (!storedId) return;
-
-  await this.appwrite.databases.updateDocument(
-    this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL,
-    storedId, // ← use storedId instead of user.$id
-    { esig_file_id: '' }
-  );
-  if (this.currentDoc) this.currentDoc.esig_file_id = '';
-  this.esigPreviewUrl = '';
-}
-
- private async loadEsigPreview(fileId: string): Promise<void> {
-  try {
-    // No JWT needed — direct URL fetch
-    const url = `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${this.PROJECT_ID}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const blob = await res.blob();
-      const reader = new FileReader();
-      reader.onloadend = () => { this.upscaleEsig(reader.result as string); };
-      reader.readAsDataURL(blob);
-    }
-  } catch (err) { console.warn('Could not load esig preview:', err); }
-}
-
-  // ── Change Password ──
   openChangePassword() {
     this.showPasswordModal = true;
     this.menuOpen          = false;
@@ -379,6 +367,7 @@ ngOnDestroy() {
     this.pwSuccess     = '';
     this.pwFieldErrors = { current: '', newPw: '', confirm: '' };
     let hasError = false;
+
     if (!this.currentPassword) { this.pwFieldErrors.current = 'Current password is required.'; hasError = true; }
     if (!this.newPassword) {
       this.pwFieldErrors.newPw = 'New password is required.'; hasError = true;
@@ -428,64 +417,61 @@ ngOnDestroy() {
     if (!/[!@#$%^&*(),.?":{}|<>_\-\\[\]=+;/']/.test(password)) return 'Password must contain at least one special character.';
     return '';
   }
+
   private esigUploadListener = () => this.goProfileAndOpenEsig();
-  
+
   private async goProfileAndOpenEsig(): Promise<void> {
-  await this.goProfile(); // opens the profile modal with all data loaded
-  // Give it a moment to render, then trigger the esig input click
-  setTimeout(() => {
-    const esigInput = document.querySelector('input[accept="image/png"]') as HTMLInputElement;
-    if (esigInput) esigInput.click();
-  }, 600);
-}
-private upscaleEsig(dataUrl: string): void {
-  const img = new Image();
-  img.onload = () => {
-    const TARGET_W = 800;
-    const TARGET_H = 300;
+    await this.goProfile();
+    setTimeout(() => {
+      const esigInput = document.querySelector('input[accept="image/png"]') as HTMLInputElement;
+      if (esigInput) esigInput.click();
+    }, 600);
+  }
 
-    const offscreen = document.createElement('canvas');
-    offscreen.width  = TARGET_W;
-    offscreen.height = TARGET_H;
-    const ctx = offscreen.getContext('2d')!;
+  private upscaleEsig(dataUrl: string): void {
+    const img = new Image();
+    img.onload = () => {
+      const TARGET_W = 800;
+      const TARGET_H = 300;
 
-    // Draw on transparent background
-    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+      const offscreen = document.createElement('canvas');
+      offscreen.width  = TARGET_W;
+      offscreen.height = TARGET_H;
+      const ctx = offscreen.getContext('2d')!;
 
-    const canvasRatio = TARGET_W / TARGET_H;
-    const imgRatio    = img.width / img.height;
-    let drawW = TARGET_W, drawH = TARGET_H, drawX = 0, drawY = 0;
-    if (imgRatio > canvasRatio) {
-      drawH = TARGET_W / imgRatio;
-      drawY = (TARGET_H - drawH) / 2;
-    } else {
-      drawW = TARGET_H * imgRatio;
-      drawX = (TARGET_W - drawW) / 2;
-    }
+      ctx.clearRect(0, 0, TARGET_W, TARGET_H);
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, drawX, drawY, drawW, drawH);
-
-    // ── Remove white/near-white background ──────────────────
-    const imageData = ctx.getImageData(0, 0, TARGET_W, TARGET_H);
-    const data      = imageData.data;
-    const THRESHOLD = 230; // 0-255, higher = removes more near-white
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      // If pixel is white or near-white, make it transparent
-      if (r >= THRESHOLD && g >= THRESHOLD && b >= THRESHOLD) {
-        data[i + 3] = 0; // set alpha to 0 (fully transparent)
+      const canvasRatio = TARGET_W / TARGET_H;
+      const imgRatio    = img.width / img.height;
+      let drawW = TARGET_W, drawH = TARGET_H, drawX = 0, drawY = 0;
+      if (imgRatio > canvasRatio) {
+        drawH = TARGET_W / imgRatio;
+        drawY = (TARGET_H - drawH) / 2;
+      } else {
+        drawW = TARGET_H * imgRatio;
+        drawX = (TARGET_W - drawW) / 2;
       }
-    }
 
-    ctx.putImageData(imageData, 0, 0);
-    this.esigPreviewUrl = offscreen.toDataURL('image/png');
-  };
-  img.src = dataUrl;
-}
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      const imageData = ctx.getImageData(0, 0, TARGET_W, TARGET_H);
+      const data      = imageData.data;
+      const THRESHOLD = 230;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        if (r >= THRESHOLD && g >= THRESHOLD && b >= THRESHOLD) {
+          data[i + 3] = 0;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      this.esigPreviewUrl = offscreen.toDataURL('image/png');
+    };
+    img.src = dataUrl;
+  }
 }

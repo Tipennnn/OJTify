@@ -4,7 +4,6 @@
   </div>
   <div class="topnav-right">
 
-    <!-- DateTime Display -->
     <div class="datetime-display">
       <i class="fa-regular fa-calendar datetime-icon"></i>
       <span class="datetime-date">{{ currentDayDate }}</span>
@@ -32,7 +31,6 @@
 <div class="modal-overlay" *ngIf="showProfileModal" (click)="closeProfileModal()">
   <div class="profile-modal-box" (click)="$event.stopPropagation()">
 
-    <!-- Header -->
     <div class="pm-header">
       <div class="pm-header-left">
         <div class="pm-header-icon">
@@ -48,19 +46,15 @@
       </button>
     </div>
 
-    <!-- Divider -->
     <div class="pm-divider"></div>
 
-    <!-- Loading -->
     <div class="pm-loading" *ngIf="profileLoading">
       <i class="fa fa-spinner fa-spin"></i>
       <span>Loading profile...</span>
     </div>
 
-    <!-- Body -->
     <div class="pm-body" *ngIf="!profileLoading">
 
-      <!-- Hero Section -->
       <div class="pm-hero">
         <div class="pm-avatar-wrapper">
           <img [src]="photoPreviewUrl || profilePhotoUrl" class="pm-avatar" alt="Profile Photo">
@@ -80,7 +74,6 @@
         </div>
       </div>
 
-      <!-- Error / Success -->
       <div class="pm-error-box" *ngIf="profileError">
         <i class="fa fa-circle-exclamation"></i> {{ profileError }}
       </div>
@@ -89,24 +82,23 @@
       </div>
 
       <!-- Name Row -->
-      <!-- Name Row -->
-<div class="pm-form-row">
-  <div class="pm-form-group">
-    <label>First Name</label>
-    <div class="pm-input-wrap pm-input-disabled">
-      <i class="fa-solid fa-user pm-input-icon"></i>
-      <input type="text" [value]="profileForm.first_name" disabled placeholder="Juan">
-    </div>
-    <span class="pm-field-hint"><i class="fa-solid fa-lock"></i> Name cannot be changed here</span>
-  </div>
-  <div class="pm-form-group">
-    <label>Last Name</label>
-    <div class="pm-input-wrap pm-input-disabled">
-      <i class="fa-solid fa-user pm-input-icon"></i>
-      <input type="text" [value]="profileForm.last_name" disabled placeholder="Dela Cruz">
-    </div>
-  </div>
-</div>
+      <div class="pm-form-row">
+        <div class="pm-form-group">
+          <label>First Name</label>
+          <div class="pm-input-wrap pm-input-disabled">
+            <i class="fa-solid fa-user pm-input-icon"></i>
+            <input type="text" [value]="profileForm.first_name" disabled placeholder="Juan">
+          </div>
+          <span class="pm-field-hint"><i class="fa-solid fa-lock"></i> Name cannot be changed here</span>
+        </div>
+        <div class="pm-form-group">
+          <label>Last Name</label>
+          <div class="pm-input-wrap pm-input-disabled">
+            <i class="fa-solid fa-user pm-input-icon"></i>
+            <input type="text" [value]="profileForm.last_name" disabled placeholder="Dela Cruz">
+          </div>
+        </div>
+      </div>
 
       <!-- Email + Employee ID -->
       <div class="pm-form-row">
@@ -127,22 +119,17 @@
         </div>
       </div>
 
-      <!-- Grade Level -->
+      <!-- Position / Role — READ ONLY -->
       <div class="pm-form-row">
         <div class="pm-form-group">
-          <label>Grade Level</label>
-          <div class="pm-input-wrap pm-select-wrap">
-            <i class="fa-solid fa-graduation-cap pm-input-icon"></i>
-            <select [(ngModel)]="profileForm.grade_level">
-              <option value="">Select grade level</option>
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
-              <option value="Grade 4">Grade 4</option>
-              <option value="Grade 5">Grade 5</option>
-              <option value="Grade 6">Grade 6</option>
-            </select>
+          <label>Position / Role</label>
+          <div class="pm-input-wrap pm-input-disabled">
+            <i class="fa-solid fa-briefcase pm-input-icon"></i>
+            <input type="text" [value]="profileForm.grade_level || '—'" disabled>
           </div>
+          <span class="pm-field-hint">
+            <i class="fa-solid fa-lock"></i> Assigned by the administrator
+          </span>
         </div>
       </div>
 
@@ -161,20 +148,17 @@
           <input #esigInput type="file" accept="image/png" style="display:none"
                  (change)="onEsigChange($event)">
 
-          <!-- No signature yet -->
           <div *ngIf="!esigPreviewUrl && !esigUploading" class="pm-esig-placeholder">
             <i class="fa-solid fa-cloud-arrow-up"></i>
             <span>Upload Signature</span>
             <span class="pm-esig-hint-small">PNG files only (transparent background recommended)</span>
           </div>
 
-          <!-- Uploading spinner -->
           <div *ngIf="esigUploading" class="pm-esig-placeholder">
             <i class="fa fa-spinner fa-spin"></i>
             <span>Uploading...</span>
           </div>
 
-          <!-- Preview -->
           <div *ngIf="esigPreviewUrl && !esigUploading" class="pm-esig-preview">
             <img [src]="esigPreviewUrl" alt="E-Signature">
             <button class="pm-esig-remove-btn"
@@ -188,7 +172,6 @@
 
     </div>
 
-    <!-- Footer -->
     <div class="pm-footer" *ngIf="!profileLoading">
       <button class="pm-cancel-btn" (click)="closeProfileModal()" [disabled]="profileSaving">
         Cancel
@@ -220,12 +203,10 @@
 
     <div class="modal-divider"></div>
 
-    <!-- Error banner -->
     <div class="pw-error" *ngIf="pwError">
       <i class="fa fa-circle-exclamation"></i> {{ pwError }}
     </div>
 
-    <!-- Success banner -->
     <div class="pw-success" *ngIf="pwSuccess">
       <i class="fa fa-circle-check"></i> {{ pwSuccess }}
     </div>

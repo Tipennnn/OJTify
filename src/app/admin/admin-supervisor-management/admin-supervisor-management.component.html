@@ -65,7 +65,6 @@
       <div class="center-wrapper" *ngIf="!loading">
         <div class="table-container">
 
-          <!-- position:relative on table-wrap lets empty-state-row use position:absolute -->
           <div class="table-wrap">
             <table class="supervisors-table">
               <thead>
@@ -73,14 +72,13 @@
                   <th>Name</th>
                   <th>Employee ID</th>
                   <th>Email</th>
-                  <th>Grade Level</th>
+                  <th>Position / Role</th>
                   <th>OJT Students</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
 
-                <!-- Data rows -->
                 <tr class="data-row"
                     *ngFor="let sup of paginatedSupervisors"
                     (click)="openViewModal(sup)">
@@ -104,14 +102,12 @@
                   </td>
                 </tr>
 
-                <!-- Ghost rows — always rendered, hold table height when list is short -->
                 <ng-container *ngFor="let ghost of ghostRows">
                   <tr class="ghost-row">
                     <td></td><td></td><td></td><td></td><td></td><td></td>
                   </tr>
                 </ng-container>
 
-                <!-- Empty state — position:absolute overlay, centered -->
                 <tr class="empty-state-row" *ngIf="filteredSupervisors.length === 0">
                   <td colspan="6">
                     <div class="empty-state-inner">
@@ -191,7 +187,7 @@
             <span class="detail-card-value">{{ selectedSupervisor.email }}</span>
           </div>
           <div class="detail-card">
-            <span class="detail-card-label"><i class="fa-solid fa-graduation-cap"></i> Grade Level</span>
+            <span class="detail-card-label"><i class="fa-solid fa-briefcase"></i> Position / Role</span>
             <span class="detail-card-value">{{ selectedSupervisor.grade_level || '—' }}</span>
           </div>
           <div class="detail-card">
@@ -221,7 +217,7 @@
           </label>
         </div>
 
-        <!-- E-SIGNATURE UPLOAD — PNG only -->
+        <!-- E-SIGNATURE -->
         <div class="esig-section">
           <div class="esig-section-label">
             <i class="fa-solid fa-signature"></i> E-Signature
@@ -352,6 +348,7 @@
           </div>
         </div>
       </div>
+
       <div class="form-row">
         <div class="form-group">
           <label>Email Address <span class="req">*</span></label>
@@ -368,30 +365,117 @@
           </div>
         </div>
       </div>
+
       <div class="form-row">
+        <!-- PASSWORD -->
         <div class="form-group">
           <label>Password <span class="req">*</span></label>
-          <div class="input-wrap">
+          <div class="input-wrap" [class.input-error]="form.password && !isPasswordValid()">
             <i class="fa-solid fa-lock input-icon"></i>
-            <input [type]="showPassword ? 'text' : 'password'" placeholder="••••••••" [(ngModel)]="form.password">
+            <input [type]="showPassword ? 'text' : 'password'"
+                   placeholder="••••••••"
+                   [(ngModel)]="form.password"
+                   (ngModelChange)="onPasswordChange()">
             <button class="toggle-pw" type="button" (click)="showPassword = !showPassword">
               <i [class]="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
             </button>
           </div>
+
+          <!-- PASSWORD STRENGTH INDICATOR — redesigned -->
+          <div class="pw-strength-panel" *ngIf="form.password">
+            <div class="pw-strength-bars">
+              <div class="pw-bar" [class.bar-filled]="pwChecks.minLength || pwChecks.hasUpper || pwChecks.hasNumber || pwChecks.hasSpecial"></div>
+              <div class="pw-bar" [class.bar-filled]="(pwChecks.hasUpper ? 1 : 0) + (pwChecks.hasNumber ? 1 : 0) + (pwChecks.hasSpecial ? 1 : 0) >= 2"></div>
+              <div class="pw-bar" [class.bar-filled]="pwChecks.minLength && pwChecks.hasUpper && pwChecks.hasNumber && pwChecks.hasSpecial"></div>
+              <div class="pw-bar" [class.bar-filled]="pwChecks.minLength && pwChecks.hasUpper && pwChecks.hasNumber && pwChecks.hasSpecial && form.password.length >= 12"></div>
+            </div>
+            <span class="pw-strength-label"
+              [class.label-weak]="!pwChecks.minLength"
+              [class.label-fair]="pwChecks.minLength && !(pwChecks.hasUpper && pwChecks.hasNumber && pwChecks.hasSpecial)"
+              [class.label-strong]="pwChecks.minLength && pwChecks.hasUpper && pwChecks.hasNumber && pwChecks.hasSpecial">
+              {{ !pwChecks.minLength ? 'Too short' : (pwChecks.minLength && pwChecks.hasUpper && pwChecks.hasNumber && pwChecks.hasSpecial) ? 'Strong' : 'Fair' }}
+            </span>
+
+            <ul class="pw-checklist">
+              <li [class.check-pass]="pwChecks.minLength" [class.check-fail]="!pwChecks.minLength">
+                <i [class]="pwChecks.minLength ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+                At least 8 characters
+              </li>
+              <li [class.check-pass]="pwChecks.hasUpper" [class.check-fail]="!pwChecks.hasUpper">
+                <i [class]="pwChecks.hasUpper ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+                First letter uppercase
+              </li>
+              <li [class.check-pass]="pwChecks.hasNumber" [class.check-fail]="!pwChecks.hasNumber">
+                <i [class]="pwChecks.hasNumber ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+                Contains a number
+              </li>
+              <li [class.check-pass]="pwChecks.hasSpecial" [class.check-fail]="!pwChecks.hasSpecial">
+                <i [class]="pwChecks.hasSpecial ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
+                Contains a special character
+              </li>
+            </ul>
+          </div>
         </div>
+
+        <!-- POSITION / ROLE DROPDOWN — redesigned -->
         <div class="form-group">
-          <label>Grade Level</label>
-          <div class="input-wrap select-wrap">
-            <i class="fa-solid fa-graduation-cap input-icon"></i>
-            <select [(ngModel)]="form.grade_level">
-              <option value="">Select grade level</option>
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
-              <option value="Grade 4">Grade 4</option>
-              <option value="Grade 5">Grade 5</option>
-              <option value="Grade 6">Grade 6</option>
-            </select>
+          <label>Position / Role</label>
+          <div class="position-dropdown-wrap">
+            <button type="button"
+                    class="position-trigger-btn"
+                    [class.has-value]="!!form.grade_level"
+                    [class.dropdown-open]="positionDropdownOpen"
+                    (click)="togglePositionDropdown()">
+              <span class="pos-trigger-left">
+                <i class="fa-solid fa-briefcase pos-trigger-icon"></i>
+                <span class="pos-trigger-text" [class.is-placeholder]="!form.grade_level">
+                  {{ form.grade_level || 'Select a position' }}
+                </span>
+              </span>
+              <i class="fa-solid fa-chevron-down pos-chevron" [class.rotated]="positionDropdownOpen"></i>
+            </button>
+
+            <div class="position-dropdown-panel" *ngIf="positionDropdownOpen">
+              <div class="pos-panel-header">Positions</div>
+              <div class="pos-option-list">
+                <div class="pos-option-item"
+                     *ngFor="let opt of positionOptions"
+                     [class.pos-selected]="form.grade_level === opt"
+                     (click)="selectPosition(opt)">
+                  <span class="pos-option-label">
+                    <i class="fa-solid fa-check pos-check-icon" *ngIf="form.grade_level === opt"></i>
+                    {{ opt }}
+                  </span>
+                  <button type="button"
+                          class="pos-remove-btn"
+                          (click)="$event.stopPropagation(); confirmDeletePosition(opt)"
+                          title="Remove position">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <div class="pos-empty-state" *ngIf="positionOptions.length === 0">
+                  <i class="fa-solid fa-inbox"></i>
+                  <span>No positions yet</span>
+                </div>
+              </div>
+              <div class="pos-add-row">
+                <div class="pos-add-input-wrap">
+                  <i class="fa-solid fa-plus pos-add-icon"></i>
+                  <input type="text"
+                         class="pos-add-input"
+                         placeholder="Add new position..."
+                         [(ngModel)]="newPositionInput"
+                         (keydown.enter)="addPositionOption()"
+                         maxlength="40">
+                </div>
+                <button type="button"
+                        class="pos-add-btn"
+                        (click)="addPositionOption()"
+                        [disabled]="!newPositionInput.trim()">
+                  Add
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -465,18 +549,64 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Grade Level</label>
-          <div class="input-wrap select-wrap">
-            <i class="fa-solid fa-graduation-cap input-icon"></i>
-            <select [(ngModel)]="form.grade_level">
-              <option value="">Select grade level</option>
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
-              <option value="Grade 4">Grade 4</option>
-              <option value="Grade 5">Grade 5</option>
-              <option value="Grade 6">Grade 6</option>
-            </select>
+          <label>Position / Role</label>
+          <!-- POSITION DROPDOWN (Edit) -->
+          <div class="position-dropdown-wrap">
+            <button type="button"
+                    class="position-trigger-btn"
+                    [class.has-value]="!!form.grade_level"
+                    [class.dropdown-open]="positionDropdownOpen"
+                    (click)="togglePositionDropdown()">
+              <span class="pos-trigger-left">
+                <i class="fa-solid fa-briefcase pos-trigger-icon"></i>
+                <span class="pos-trigger-text" [class.is-placeholder]="!form.grade_level">
+                  {{ form.grade_level || 'Select a position' }}
+                </span>
+              </span>
+              <i class="fa-solid fa-chevron-down pos-chevron" [class.rotated]="positionDropdownOpen"></i>
+            </button>
+
+            <div class="position-dropdown-panel" *ngIf="positionDropdownOpen">
+              <div class="pos-panel-header">Positions</div>
+              <div class="pos-option-list">
+                <div class="pos-option-item"
+                     *ngFor="let opt of positionOptions"
+                     [class.pos-selected]="form.grade_level === opt"
+                     (click)="selectPosition(opt)">
+                  <span class="pos-option-label">
+                    <i class="fa-solid fa-check pos-check-icon" *ngIf="form.grade_level === opt"></i>
+                    {{ opt }}
+                  </span>
+                  <button type="button"
+                          class="pos-remove-btn"
+                          (click)="$event.stopPropagation(); confirmDeletePosition(opt)"
+                          title="Remove position">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+                <div class="pos-empty-state" *ngIf="positionOptions.length === 0">
+                  <i class="fa-solid fa-inbox"></i>
+                  <span>No positions yet</span>
+                </div>
+              </div>
+              <div class="pos-add-row">
+                <div class="pos-add-input-wrap">
+                  <i class="fa-solid fa-plus pos-add-icon"></i>
+                  <input type="text"
+                         class="pos-add-input"
+                         placeholder="Add new position..."
+                         [(ngModel)]="newPositionInput"
+                         (keydown.enter)="addPositionOption()"
+                         maxlength="40">
+                </div>
+                <button type="button"
+                        class="pos-add-btn"
+                        (click)="addPositionOption()"
+                        [disabled]="!newPositionInput.trim()">
+                  Add
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -497,7 +627,7 @@
   </div>
 </div>
 
-<!-- DELETE CONFIRM -->
+<!-- DELETE SUPERVISOR CONFIRM -->
 <div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
   <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -526,6 +656,39 @@
       <button class="btn-danger" [disabled]="submitting" (click)="deleteSupervisor()">
         <span *ngIf="!submitting"><i class="fa-solid fa-trash"></i> Yes, Delete</span>
         <span *ngIf="submitting"><i class="fa fa-spinner fa-spin"></i> Deleting...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE POSITION CONFIRM -->
+<div class="modal-overlay" *ngIf="showDeletePositionConfirm" (click)="showDeletePositionConfirm = false">
+  <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-icon danger-mode">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3>Remove Position</h3>
+          <p>Confirm deletion of this role</p>
+        </div>
+      </div>
+      <button class="modal-close" (click)="showDeletePositionConfirm = false">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="delete-msg">
+        Are you sure you want to remove the position
+        <strong>{{ positionToDelete }}</strong>?
+        Supervisors currently assigned this role will have their position cleared.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="showDeletePositionConfirm = false">Cancel</button>
+      <button class="btn-danger" (click)="removePositionOption(positionToDelete)">
+        <i class="fa-solid fa-trash"></i> Yes, Remove
       </button>
     </div>
   </div>

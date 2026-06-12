@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule }       from '@angular/common';
 import { FormsModule }        from '@angular/forms';
 import { RouterModule }       from '@angular/router';
@@ -45,6 +45,13 @@ interface SupervisorForm {
   grade_level : string;
 }
 
+interface PasswordChecks {
+  minLength  : boolean;
+  hasUpper   : boolean;
+  hasNumber  : boolean;
+  hasSpecial : boolean;
+}
+
 const DUMMY_SUPERVISORS: Supervisor[] = [
   { $id: '1', first_name: 'Maria',  last_name: 'Santos',     employee_id: 'EMP-001', email: 'maria.santos@ojtify.edu',     grade_level: 'Grade 3', status: 'Active',   assigned_students: 3,  $createdAt: '2024-06-01' },
   { $id: '2', first_name: 'Jose',   last_name: 'Reyes',      employee_id: 'EMP-002', email: 'jose.reyes@ojtify.edu',      grade_level: 'Grade 5', status: 'Active',   assigned_students: 2,  $createdAt: '2024-06-03' },
@@ -80,6 +87,12 @@ const DUMMY_INTERNS: Record<string, Intern[]> = {
     { $id: 'i11', first_name: 'Dan', last_name: 'Lim', school_name: 'TIP', course: 'BSECE', status: 'Active', supervisor_id: '7', completed_hours: 410, required_hours: 500 },
   ],
 };
+
+const DEFAULT_POSITIONS = [
+  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'
+];
+
+const POSITIONS_STORAGE_KEY = 'supervisor_position_options';
 
 @Component({
   selector   : 'app-admin-supervisor-management',
@@ -125,14 +138,29 @@ export class AdminSupervisorManagementComponent implements OnInit {
   pageSize    = 10;
   realTotalAssignedInterns = 0;
 
-  // ── Required for template ──────────────────────────────────
+  // ── Position / Role options ───────────────────────────────
+  positionOptions         : string[] = [];
+  newPositionInput        : string   = '';
+  positionDropdownOpen    : boolean  = false;
+  showDeletePositionConfirm: boolean = false;
+  positionToDelete        : string   = '';
+  // ─────────────────────────────────────────────────────────
+
+  // ── Password strength checks ──────────────────────────────
+  pwChecks: PasswordChecks = {
+    minLength  : false,
+    hasUpper   : false,
+    hasNumber  : false,
+    hasSpecial : false,
+  };
+  // ─────────────────────────────────────────────────────────
+
   readonly Math = Math;
 
   get ghostRows(): null[] {
     const empty = this.pageSize - this.paginatedSupervisors.length;
     return empty > 0 ? Array(empty).fill(null) : [];
   }
-  // ───────────────────────────────────────────────────────────
 
   esigPreviewUrl   = '';
   esigUploading    = false;
@@ -147,9 +175,104 @@ export class AdminSupervisorManagementComponent implements OnInit {
   constructor(private appwrite: AppwriteService) {}
 
   async ngOnInit() {
+    this.loadPositionOptions();
     await this.loadSupervisors();
     await this.loadTotalAssignedCount();
   }
+
+  // ── Close dropdown when clicking outside ─────────────────
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.position-dropdown-wrap')) {
+      this.positionDropdownOpen = false;
+    }
+  }
+
+  // ── Position dropdown methods ─────────────────────────────
+
+  togglePositionDropdown(): void {
+    this.positionDropdownOpen = !this.positionDropdownOpen;
+  }
+
+  selectPosition(opt: string): void {
+    this.form.grade_level    = opt;
+    this.positionDropdownOpen = false;
+  }
+
+  confirmDeletePosition(opt: string): void {
+    this.positionToDelete          = opt;
+    this.showDeletePositionConfirm = true;
+    // Don't close the dropdown so user sees context, but close after confirm opens
+    this.positionDropdownOpen      = false;
+  }
+
+  // ── Position / Role management ────────────────────────────
+
+  private loadPositionOptions(): void {
+    try {
+      const stored = localStorage.getItem(POSITIONS_STORAGE_KEY);
+      this.positionOptions = stored ? JSON.parse(stored) : [...DEFAULT_POSITIONS];
+    } catch {
+      this.positionOptions = [...DEFAULT_POSITIONS];
+    }
+  }
+
+  private savePositionOptions(): void {
+    try {
+      localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(this.positionOptions));
+    } catch { /* ignore quota errors */ }
+  }
+
+  addPositionOption(): void {
+    const val = this.newPositionInput.trim();
+    if (!val) return;
+
+    const duplicate = this.positionOptions.some(
+      o => o.toLowerCase() === val.toLowerCase()
+    );
+    if (duplicate) {
+      this.newPositionInput = '';
+      return;
+    }
+
+    this.positionOptions = [...this.positionOptions, val];
+    this.savePositionOptions();
+    this.newPositionInput = '';
+  }
+
+  removePositionOption(opt: string): void {
+    this.positionOptions = this.positionOptions.filter(o => o !== opt);
+    if (this.form.grade_level === opt) {
+      this.form.grade_level = '';
+    }
+    this.savePositionOptions();
+    this.showDeletePositionConfirm = false;
+    this.positionToDelete          = '';
+  }
+
+  // ─────────────────────────────────────────────────────────
+
+  // ── Password validation ───────────────────────────────────
+
+  onPasswordChange(): void {
+    const pw = this.form.password;
+    this.pwChecks = {
+      minLength  : pw.length >= 8,
+      hasUpper   : pw.length > 0 && pw[0] === pw[0].toUpperCase() && /[A-Z]/.test(pw[0]),
+      hasNumber  : /\d/.test(pw),
+      hasSpecial : /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw),
+    };
+  }
+
+  isPasswordValid(): boolean {
+    return this.pwChecks.minLength &&
+           this.pwChecks.hasUpper  &&
+           this.pwChecks.hasNumber &&
+           this.pwChecks.hasSpecial;
+  }
+
+  // ─────────────────────────────────────────────────────────
 
   async loadTotalAssignedCount() {
     try {
@@ -223,13 +346,15 @@ export class AdminSupervisorManagementComponent implements OnInit {
   }
 
   openViewModal(sup: Supervisor) {
-    this.selectedSupervisor = sup;
-    this.isEditing          = false;
-    this.formError          = '';
-    this.showPassword       = false;
-    this.activeTab          = 'profile';
-    this.assignedInterns    = [];
-    this.isAccountActive    = (sup.status || 'Active') === 'Active';
+    this.selectedSupervisor  = sup;
+    this.isEditing           = false;
+    this.formError           = '';
+    this.showPassword        = false;
+    this.activeTab           = 'profile';
+    this.assignedInterns     = [];
+    this.isAccountActive     = (sup.status || 'Active') === 'Active';
+    this.newPositionInput    = '';
+    this.positionDropdownOpen = false;
     this.form = {
       first_name  : sup.first_name,
       last_name   : sup.last_name,
@@ -250,24 +375,33 @@ export class AdminSupervisorManagementComponent implements OnInit {
   }
 
   openAddModal() {
-    this.selectedSupervisor = null;
-    this.isEditing          = false;
-    this.editingId          = '';
-    this.form               = this.emptyForm();
-    this.formError          = '';
-    this.showPassword       = false;
-    this.assignedInterns    = [];
-    this.showModal          = true;
+    this.selectedSupervisor  = null;
+    this.isEditing           = false;
+    this.editingId           = '';
+    this.form                = this.emptyForm();
+    this.formError           = '';
+    this.showPassword        = false;
+    this.assignedInterns     = [];
+    this.newPositionInput    = '';
+    this.positionDropdownOpen = false;
+    this.pwChecks = { minLength: false, hasUpper: false, hasNumber: false, hasSpecial: false };
+    this.showModal = true;
   }
 
-  enableEdit() { this.isEditing = true; }
+  enableEdit() {
+    this.newPositionInput    = '';
+    this.positionDropdownOpen = false;
+    this.isEditing           = true;
+  }
 
   closeModal() {
-    this.showModal          = false;
-    this.isEditing          = false;
-    this.selectedSupervisor = null;
-    this.formError          = '';
-    this.assignedInterns    = [];
+    this.showModal           = false;
+    this.isEditing           = false;
+    this.selectedSupervisor  = null;
+    this.formError           = '';
+    this.assignedInterns     = [];
+    this.newPositionInput    = '';
+    this.positionDropdownOpen = false;
   }
 
   openDeleteConfirm() {
@@ -349,12 +483,13 @@ export class AdminSupervisorManagementComponent implements OnInit {
       this.formError = 'Please enter a valid email address.'; return;
     }
 
-    if (!this.selectedSupervisor && !this.form.password.trim()) {
-      this.formError = 'Password is required when creating a new account.'; return;
-    }
-
-    if (!this.selectedSupervisor && this.form.password.trim().length < 8) {
-      this.formError = 'Password must be at least 8 characters.'; return;
+    if (!this.selectedSupervisor) {
+      if (!this.form.password.trim()) {
+        this.formError = 'Password is required when creating a new account.'; return;
+      }
+      if (!this.isPasswordValid()) {
+        this.formError = 'Password does not meet the requirements. Please check the indicators below the password field.'; return;
+      }
     }
 
     this.submitting = true;
@@ -691,7 +826,9 @@ export class AdminSupervisorManagementComponent implements OnInit {
     if (idx !== -1) this.supervisors[idx].esig_file_id = '';
     this.esigPreviewUrl = '';
   }
-
+getStrengthScore(): number {
+  return Object.values(this.pwChecks).filter(Boolean).length;
+}
   private async loadEsigPreview(fileId: string): Promise<void> {
     try {
       const jwt = await this.appwrite.account.createJWT();
