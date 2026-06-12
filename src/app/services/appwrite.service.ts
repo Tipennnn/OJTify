@@ -13,24 +13,28 @@ export class AppwriteService {
   storage  : Storage;
   functions: Functions;
 
-  readonly DATABASE_ID        = '69ba9274002d52cdef63';
-  readonly BUCKET_ID          = '69baaf64002ceb2490df';  // ← added
-  readonly STUDENTS_COL       = 'students';
-  readonly ADMINS_COL         = 'admins';
-  readonly TASKS_COL          = 'tasks';
-  readonly SUBMISSIONS_COL    = 'submissions';
-  readonly COMMENTS_COL       = 'comments';
-  readonly APPLICANTS_COL     = 'applicants';
-  readonly ATTENDANCE_COL     = 'attendance';
-  readonly ARCHIVES_COL       = 'archives';
-  readonly SUPERVISORS_COL    = 'supervisors';
-  readonly EVALUATIONS_COL    = 'evaluations';
-  readonly LOGBOOK_COL        = 'logbook_entries';
-  readonly LOGBOOK_PHOTOS_COL = 'logbook_photos';
-  readonly DTR_RECORDS_COL = 'dtr_records'
+  // ── Cache layer ──────────────────────────────────────────────
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private CACHE_TTL = 5 * 60 * 1000; // 5 minutes (adjust as needed)
+  // ─────────────────────────────────────────────────────────────
+
+  readonly DATABASE_ID         = '69ba9274002d52cdef63';
+  readonly BUCKET_ID           = '69baaf64002ceb2490df';
+  readonly STUDENTS_COL        = 'students';
+  readonly ADMINS_COL          = 'admins';
+  readonly TASKS_COL           = 'tasks';
+  readonly SUBMISSIONS_COL     = 'submissions';
+  readonly COMMENTS_COL        = 'comments';
+  readonly APPLICANTS_COL      = 'applicants';
+  readonly ATTENDANCE_COL      = 'attendance';
+  readonly ARCHIVES_COL        = 'archives';
+  readonly SUPERVISORS_COL     = 'supervisors';
+  readonly EVALUATIONS_COL     = 'evaluations';
+  readonly LOGBOOK_COL         = 'logbook_entries';
+  readonly LOGBOOK_PHOTOS_COL  = 'logbook_photos';
+  readonly DTR_RECORDS_COL     = 'dtr_records';
   readonly LOGBOOK_RECORDS_COL = 'logbook_records';
-  readonly DELETE_USER_FN     = '69e75aef0017bf366386';
-  
+  readonly DELETE_USER_FN      = '69e75aef0017bf366386';
 
   private photoUrl = new BehaviorSubject<string>(
     'https://ui-avatars.com/api/?name=User&background=2563eb&color=fff&size=128'
@@ -52,9 +56,115 @@ export class AppwriteService {
     this.functions = new Functions(this.client);
   }
 
+  // ── Cache Helpers ────────────────────────────────────────────
+
+  private getCached(key: string): any | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > this.CACHE_TTL) {
+      this.cache.delete(key); // expired — remove it
+      return null;
+    }
+    return entry.data;
+  }
+
+  private setCached(key: string, data: any): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  /**
+   * Use this instead of databases.listDocuments() directly.
+   * Automatically caches results for CACHE_TTL duration.
+   *
+   * @param collectionId  - collection to query (use readonly constants above)
+   * @param queries       - Appwrite Query array (optional)
+   * @param skipCache     - set true to force a fresh fetch (e.g. after mutations)
+   */
+  async listDocumentsCached(
+    collectionId: string,
+    queries: any[] = [],
+    skipCache = false
+  ): Promise<any> {
+    const key = `${collectionId}-${JSON.stringify(queries)}`;
+
+    if (!skipCache) {
+      const cached = this.getCached(key);
+      if (cached) {
+        console.log(`[CACHE HIT] ${collectionId}`);
+        return cached;
+      }
+    }
+
+    const result = await this.databases.listDocuments(
+      this.DATABASE_ID,
+      collectionId,
+      queries
+    );
+
+    this.setCached(key, result);
+    return result;
+  }
+
+  /**
+   * Use this instead of databases.getDocument() directly.
+   * Caches single document fetches by document ID.
+   *
+   * @param collectionId - collection name
+   * @param documentId   - document ID to fetch
+   * @param skipCache    - set true to force fresh fetch
+   */
+  async getDocumentCached(
+    collectionId: string,
+    documentId: string,
+    skipCache = false
+  ): Promise<any> {
+    const key = `${collectionId}-doc-${documentId}`;
+
+    if (!skipCache) {
+      const cached = this.getCached(key);
+      if (cached) {
+        console.log(`[CACHE HIT] ${collectionId}/${documentId}`);
+        return cached;
+      }
+    }
+
+    const result = await this.databases.getDocument(
+      this.DATABASE_ID,
+      collectionId,
+      documentId
+    );
+
+    this.setCached(key, result);
+    return result;
+  }
+
+  /**
+   * Call this after any create / update / delete operation
+   * to keep the cache consistent with the database.
+   *
+   * @param collectionId - pass a collection ID to clear only that collection,
+   *                       or omit to clear the entire cache.
+   */
+  clearCache(collectionId?: string): void {
+    if (collectionId) {
+      for (const key of this.cache.keys()) {
+        if (key.startsWith(collectionId)) {
+          this.cache.delete(key);
+        }
+      }
+      console.log(`[CACHE CLEARED] ${collectionId}`);
+    } else {
+      this.cache.clear();
+      console.log('[CACHE CLEARED] all');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+
   async signOut() {
     try {
       await this.account.deleteSession('current');
+      this.cache.clear(); // clear cache on logout
       return { error: null };
     } catch (error) {
       return { error };
@@ -63,8 +173,8 @@ export class AppwriteService {
 
   async checkAndArchiveStudent(studentDocId: string) {
     try {
-      const student = await this.databases.getDocument(
-        this.DATABASE_ID,
+      // Uses cached getDocument
+      const student = await this.getDocumentCached(
         this.STUDENTS_COL,
         studentDocId
       );
@@ -75,15 +185,13 @@ export class AppwriteService {
       if (completed < required) return;
       if (!student['cert_sent']) return;
 
-      const evalRes = await this.databases.listDocuments(
-        this.DATABASE_ID,
+      const evalRes = await this.listDocumentsCached(
         this.EVALUATIONS_COL,
         [Query.equal('student_id_ref', studentDocId), Query.limit(1)]
       );
       if (evalRes.total === 0) return;
 
-      const existing = await this.databases.listDocuments(
-        this.DATABASE_ID,
+      const existing = await this.listDocumentsCached(
         this.ARCHIVES_COL,
         [Query.equal('student_doc_id', studentDocId)]
       );
@@ -121,6 +229,10 @@ export class AppwriteService {
         }
       );
 
+      // Clear relevant caches after write
+      this.clearCache(this.ARCHIVES_COL);
+      this.clearCache(this.STUDENTS_COL);
+
       console.log(`Student ${studentDocId} archived — all 3 conditions met.`);
 
     } catch (error: any) {
@@ -128,10 +240,10 @@ export class AppwriteService {
     }
   }
 
-  // ── Build a direct file view URL — bypasses SDK type issues ──
+  // ── Build a direct file view URL ─────────────────────────────
   getFileViewUrl(fileId: string): string {
-    const endpoint = (this.client as any).config?.endpoint || 'https://cloud.appwrite.io/v1';
-    const projectId = (this.client as any).config?.project || '';
+    const endpoint  = (this.client as any).config?.endpoint  || 'https://cloud.appwrite.io/v1';
+    const projectId = (this.client as any).config?.project   || '';
     return `${endpoint}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${projectId}`;
   }
 }

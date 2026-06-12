@@ -456,11 +456,10 @@ expandDragOriginY = 0;
 
       let adminDoc: any = null;
       try {
-        const res = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ADMINS_COL,
-          [Query.equal('auth_user_id', user.$id)]
-        );
+       const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.ADMINS_COL,
+  [Query.equal('auth_user_id', user.$id)]
+);
         if (res.documents.length > 0) adminDoc = res.documents[0];
       } catch { /* ignore */ }
 
@@ -588,7 +587,7 @@ expandDragOriginY = 0;
         { ...payload, auth_user_id: user.$id, email: user.email }
       );
     }
-
+      this.appwrite.clearCache(this.appwrite.ADMINS_COL);
   } catch (err) {
     console.error('Could not save template to DB:', err);
     Swal.fire({
@@ -660,10 +659,9 @@ expandDragOriginY = 0;
 
   async loadInterns(): Promise<void> {
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
+      const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.STUDENTS_COL
+);
 
       const docs = res.documents as any[];
 
@@ -957,6 +955,7 @@ expandDragOriginY = 0;
       intern.$id,
       { cert_sent: true, cert_sent_date: todayIso, cert_verification_id: verificationId }
     );
+    this.appwrite.clearCache(this.appwrite.STUDENTS_COL);
   } catch (err) {
     console.error('Failed to update cert_sent in DB:', err);
     Swal.fire({ icon: 'error', title: 'DB Error', text: 'Could not save cert status.', confirmButtonColor: '#2563eb' });
@@ -1185,11 +1184,10 @@ expandDragOriginY = 0;
   private async fetchSupervisors(): Promise<Map<string, any>> {
     const map = new Map<string, any>();
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL,
-        [Query.limit(500)]
-      );
+      const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.SUPERVISORS_COL,
+  [Query.limit(500)]
+);
       for (const doc of res.documents as any[]) {
         map.set(doc.$id, doc);
       }

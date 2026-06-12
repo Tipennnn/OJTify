@@ -7,6 +7,7 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
+import { Query } from 'appwrite'; // ← ADD THIS IMPORT
 
 
 interface Applicant {
@@ -139,21 +140,24 @@ export class AdminApplicantsComponent implements OnInit {
     await this.loadApplicants();
   }
 
-  async loadApplicants() {
+  // ── FIX: fetch ALL applicants with a high limit, skip cache on init ───
+  async loadApplicants(skipCache = false) {
     this.loading = true;
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL
+      const res = await this.appwrite.listDocumentsCached(
+        this.appwrite.APPLICANTS_COL,
+        [
+          Query.limit(5000),                        // ← was missing; Appwrite defaults to 25
+          Query.orderDesc('$createdAt'),             // ← sort server-side instead of client-side
+        ],
+        skipCache                                    // ← pass true after mutations
       );
-  
-      this.applicants = (res.documents as any[]).sort((a, b) =>
-        new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
-      );
-  
-      this.applyFilter(); // apply default filter
+
+      this.applicants = res.documents as Applicant[];
+      this.applyFilter();
     } catch (error: any) {
       console.error('Failed to load applicants:', error.message);
+      Swal.fire({ icon: 'error', title: 'Load Failed', text: error.message });
     } finally {
       this.loading = false;
     }
@@ -268,30 +272,31 @@ export class AdminApplicantsComponent implements OnInit {
     this.actionLoading = true;
 
     try {
-     // 1. Create student document
-await this.appwrite.databases.createDocument(
-  this.appwrite.DATABASE_ID,
-  this.appwrite.STUDENTS_COL,
-  applicant.auth_user_id,
-  {
-    first_name:          applicant.first_name,
-    middle_name:         applicant.middle_name,
-    last_name:           applicant.last_name,
-    email:               applicant.email,
-    contact_number:      applicant.contact_number,
-    birthday:            applicant.birthday,
-    gender:              applicant.gender,
-    home_address:        applicant.home_address,
-    student_id:          applicant.student_id,
-    school_name:         applicant.school_name,
-    course:              applicant.course,
-    year_level:          applicant.year_level,
-    resume_file_id:      applicant.resume_file_id      || '',
-    endorsement_file_id: applicant.endorsement_file_id || '',
-    coe_file_id:         applicant.coe_file_id         || '',
-    required_hours:      this.approveRequiredHours   // ← add this line
-  }
-);
+      // 1. Create student document
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        applicant.auth_user_id,
+        {
+          first_name:          applicant.first_name,
+          middle_name:         applicant.middle_name,
+          last_name:           applicant.last_name,
+          email:               applicant.email,
+          contact_number:      applicant.contact_number,
+          birthday:            applicant.birthday,
+          gender:              applicant.gender,
+          home_address:        applicant.home_address,
+          student_id:          applicant.student_id,
+          school_name:         applicant.school_name,
+          course:              applicant.course,
+          year_level:          applicant.year_level,
+          resume_file_id:      applicant.resume_file_id      || '',
+          endorsement_file_id: applicant.endorsement_file_id || '',
+          coe_file_id:         applicant.coe_file_id         || '',
+          required_hours:      this.approveRequiredHours
+        }
+      );
+
       // 2. Update applicant status
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
@@ -300,14 +305,18 @@ await this.appwrite.databases.createDocument(
         { status: 'approved' }
       );
 
-      // 3. Send approval email with start date, hours, and optional note
+      // 3. Clear caches then reload fresh from server
+      this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
+      this.appwrite.clearCache(this.appwrite.STUDENTS_COL);
+
+      // 4. Send approval email
       await this.sendEmail(applicant, 'approved', {
         start_date:     this.formatDisplayDate(this.approveStartDate),
         required_hours: String(this.approveRequiredHours),
         admin_note:     this.approveNote.trim()
       });
 
-      // 4. Update local state
+      // 5. Update local state immediately (no extra network call needed)
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'approved';
       this.applyFilter();
@@ -366,24 +375,26 @@ await this.appwrite.databases.createDocument(
         { status: 'declined' }
       );
 
-      // 2. Send decline email with optional note
+      // 2. Clear cache
+      this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
+
+      // 3. Send decline email
       await this.sendEmail(applicant, 'declined', {
         admin_note: this.declineNote.trim()
       });
 
-      // 3. Delete Appwrite auth user so the email can be re-used to register
-     try {
-  await this.appwrite.functions.createExecution(
-    this.appwrite.DELETE_USER_FN,
-    JSON.stringify({ userId: applicant.auth_user_id }),
-    false
-  );
-} catch (fnErr: any) {
-  console.warn('Could not delete auth user:', fnErr);
-  // Add this to surface it in the UI temporarily:
-  throw new Error('Delete user failed: ' + fnErr.message);
-}
-      // 4. Update local state
+      // 4. Delete Appwrite auth user
+      try {
+        await this.appwrite.functions.createExecution(
+          this.appwrite.DELETE_USER_FN,
+          JSON.stringify({ userId: applicant.auth_user_id }),
+          false
+        );
+      } catch (fnErr: any) {
+        console.warn('Could not delete auth user:', fnErr);
+      }
+
+      // 5. Update local state
       const index = this.applicants.findIndex(a => a.$id === applicant.$id);
       if (index !== -1) this.applicants[index].status = 'declined';
       this.applyFilter();
@@ -412,41 +423,40 @@ await this.appwrite.databases.createDocument(
   }
 
   // ── Send email via Brevo ──────────────────────────────────
- async sendEmail(
-  applicant: Applicant,
-  type: 'approved' | 'declined',
-  extraParams: Record<string, string> = {}
-) {
-  try {
-    const action     = type === 'approved' ? 'send-approval' : 'send-decline';
-    const templateId = type === 'approved'
-      ? environment.brevoApprovedTid
-      : environment.brevoDeclinedTid;
+  async sendEmail(
+    applicant: Applicant,
+    type: 'approved' | 'declined',
+    extraParams: Record<string, string> = {}
+  ) {
+    try {
+      const action     = type === 'approved' ? 'send-approval' : 'send-decline';
+      const templateId = type === 'approved'
+        ? environment.brevoApprovedTid
+        : environment.brevoDeclinedTid;
 
-    const execution = await this.appwrite.functions.createExecution(
-      this.OTP_FUNCTION_ID,
-      JSON.stringify({
-        action,
-        email:          applicant.email,
-        applicantName:  `${applicant.first_name} ${applicant.last_name}`,
-        firstName:      applicant.first_name,
-        templateId,
-        ...extraParams
-      }),
-      false
-    );
+      const execution = await this.appwrite.functions.createExecution(
+        this.OTP_FUNCTION_ID,
+        JSON.stringify({
+          action,
+          email:          applicant.email,
+          applicantName:  `${applicant.first_name} ${applicant.last_name}`,
+          firstName:      applicant.first_name,
+          templateId,
+          ...extraParams
+        }),
+        false
+      );
 
-    const result = JSON.parse(execution.responseBody);
-
-    if (!result.success) {
-      console.error('Email send failed:', result.message);
-    } else {
-      console.log(`Email sent to ${applicant.email}`);
+      const result = JSON.parse(execution.responseBody);
+      if (!result.success) {
+        console.error('Email send failed:', result.message);
+      } else {
+        console.log(`Email sent to ${applicant.email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send email:', error);
     }
-  } catch (error) {
-    console.error('Failed to send email:', error);
   }
-}
 
   // ── Kept for template backward-compatibility ──────────────
   approveApplicant(applicant: Applicant, event: Event) {

@@ -106,11 +106,11 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
 
       await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
 
-      const result = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ADMINS_COL,
-        [Query.equal('email', this.email)]
-      );
+    const result = await this.appwrite.listDocumentsCached(
+  this.appwrite.ADMINS_COL,
+  [Query.equal('email', this.email)]
+);
+
 
       if (result.total === 0) {
         await this.appwrite.account.deleteSession('current');

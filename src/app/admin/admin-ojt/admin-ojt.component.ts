@@ -206,11 +206,10 @@ export class AdminOjtComponent implements OnInit {
       let hasMore = true;
 
       while (hasMore) {
-        const res = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL,
-          [Query.limit(this.APPWRITE_PAGE_SIZE), Query.offset(offset)]
-        );
+      const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.STUDENTS_COL,
+  [Query.limit(this.APPWRITE_PAGE_SIZE), Query.offset(offset)]
+);
         allStudents = [...allStudents, ...res.documents];
         hasMore = res.documents.length === this.APPWRITE_PAGE_SIZE;
         offset += this.APPWRITE_PAGE_SIZE;

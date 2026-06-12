@@ -100,10 +100,9 @@ export class AdminAttendanceHistoryComponent implements OnInit {
     try {
       const user = await this.appwrite.account.get();
 
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ADMINS_COL
-      );
+     const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.ADMINS_COL
+);
       const admins = res.documents as any[];
 
       this.currentAdmin =
@@ -132,11 +131,11 @@ export class AdminAttendanceHistoryComponent implements OnInit {
     const limit = 100;
 
     while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        [Query.limit(limit), Query.offset(offset)]
-      );
+      const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.STUDENTS_COL,
+  [Query.limit(limit), Query.offset(offset)]
+);
+
       allStudents = allStudents.concat(res.documents);
       if (allStudents.length >= res.total || res.documents.length < limit) break;
       offset += limit;
@@ -146,11 +145,10 @@ export class AdminAttendanceHistoryComponent implements OnInit {
     let allArchived: any[] = [];
     offset = 0;
     while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL,
-        [Query.limit(limit), Query.offset(offset)]
-      );
+      const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.ARCHIVES_COL,
+  [Query.limit(limit), Query.offset(offset)]
+);
       allArchived = allArchived.concat(res.documents);
       if (allArchived.length >= res.total || res.documents.length < limit) break;
       offset += limit;
@@ -393,7 +391,8 @@ export class AdminAttendanceHistoryComponent implements OnInit {
         is_manual:       true,
       }
     );
-
+    this.appwrite.clearCache(this.appwrite.ATTENDANCE_COL);
+    
     if (this.addForm.time_out && this.computedHours !== null) {
       await this.updateStudentHours(studentDocId, this.computedHours);
     }

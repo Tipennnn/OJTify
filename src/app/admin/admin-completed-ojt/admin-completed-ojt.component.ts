@@ -217,12 +217,10 @@ export class AdminCompletedOjtComponent implements OnInit {
   async loadCompletedStudents() {
     this.loading = true;
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL,
-        [Query.limit(500)]
-      );
-
+     const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.ARCHIVES_COL,
+  [Query.limit(500)]
+);
       const docs = (res.documents as any[]).sort((a, b) =>
         new Date(b.ojt_start || b.archived_at).getTime() -
         new Date(a.ojt_start || a.archived_at).getTime()
@@ -248,11 +246,10 @@ export class AdminCompletedOjtComponent implements OnInit {
     const supervisorMap: Record<string, string> = {};
     await Promise.all(supervisorIds.map(async (id) => {
       try {
-        const doc = await this.appwrite.databases.getDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.SUPERVISORS_COL,
-          id!
-        );
+      const doc = await this.appwrite.getDocumentCached(
+  this.appwrite.SUPERVISORS_COL,
+  id!
+);
         supervisorMap[id!] = `${doc['first_name']} ${doc['last_name']}`;
       } catch { supervisorMap[id!] = 'Unknown'; }
     }));

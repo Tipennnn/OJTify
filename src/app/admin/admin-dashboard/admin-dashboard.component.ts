@@ -146,10 +146,10 @@ async loadAllData() {
   // ── Load students ─────────────────────────────────────────
  async loadStudents() {
   try {
-    const res  = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL,
-      [Query.limit(500)]
-    );
+    const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.STUDENTS_COL,
+  [Query.limit(500)]
+);
     const docs = res.documents as any[];
     this.totalInterns = docs.length;
  
@@ -198,10 +198,10 @@ async loadAllData() {
   // ── Load supervisors count ────────────────────────────────
 async loadSupervisors() {
   try {
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.SUPERVISORS_COL,
-      [Query.limit(500)]
-    );
+    const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.SUPERVISORS_COL,
+  [Query.limit(500)]
+);
     this.totalSupervisors = res.total;
   } catch {}
 }
@@ -209,10 +209,10 @@ async loadSupervisors() {
   // ── Load applicant counts ─────────────────────────────────
 async loadCounts() {
   try {
-    const res  = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.APPLICANTS_COL,
-      [Query.limit(500)]
-    );
+    const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.APPLICANTS_COL,
+  [Query.limit(500)]
+);
     const docs = res.documents as any[];
     this.pendingApplicants = docs.filter(a => a.status === 'pending').length;
     this.approvedCount     = docs.filter(a => a.status === 'approved').length;
@@ -222,10 +222,10 @@ async loadCounts() {
   // ── Load tasks ────────────────────────────────────────────
   async loadTasks() {
   try {
-    const res  = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID, this.appwrite.TASKS_COL,
-      [Query.limit(500)]
-    );
+    const res = await this.appwrite.listDocumentsCached(
+  this.appwrite.TASKS_COL,
+  [Query.limit(500)]
+);
     const docs = res.documents as any[];
     this.totalTasks    = docs.length;
     this.taskCompleted = docs.filter(t => t.status === 'completed').length;
