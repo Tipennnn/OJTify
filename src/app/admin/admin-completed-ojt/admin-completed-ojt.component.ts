@@ -242,25 +242,39 @@ export class AdminCompletedOjtComponent implements OnInit {
   }
 
   async loadSupervisorNames() {
-    const supervisorIds = [...new Set(
-      this.students.map(s => s.supervisor_id).filter(Boolean)
-    )];
-    const supervisorMap: Record<string, string> = {};
-    await Promise.all(supervisorIds.map(async (id) => {
-      try {
+  // Fallback: archived row has no supervisor_id -> take it from the original student record
+  await Promise.all(this.students.map(async (s) => {
+    if (s.supervisor_id || !s.student_doc_id) return;
+    try {
       const doc = await this.appwrite.getDocumentCached(
-  this.appwrite.SUPERVISORS_COL,
-  id!
-);
-        supervisorMap[id!] = `${doc['first_name']} ${doc['last_name']}`;
-      } catch { supervisorMap[id!] = 'Unknown'; }
-    }));
-    this.students = this.students.map(s => ({
-      ...s,
-      supervisorName: s.supervisor_id ? supervisorMap[s.supervisor_id] ?? '—' : '—'
-    }));
-    this.filteredStudents = [...this.students];
-  }
+        this.appwrite.STUDENTS_COL,
+        s.student_doc_id
+      );
+      if (doc['supervisor_id']) s.supervisor_id = doc['supervisor_id'];
+    } catch { /* student doc may no longer exist */ }
+  }));
+
+  const supervisorIds = [...new Set(
+    this.students.map(s => s.supervisor_id).filter(Boolean)
+  )];
+  const supervisorMap: Record<string, string> = {};
+
+  await Promise.all(supervisorIds.map(async (id) => {
+    try {
+      const doc = await this.appwrite.getDocumentCached(
+        this.appwrite.SUPERVISORS_COL,
+        id!
+      );
+      supervisorMap[id!] = `${doc['first_name']} ${doc['last_name']}`;
+    } catch { supervisorMap[id!] = 'Unknown'; }
+  }));
+
+  this.students = this.students.map(s => ({
+    ...s,
+    supervisorName: s.supervisor_id ? supervisorMap[s.supervisor_id] ?? '—' : '—'
+  }));
+  this.filteredStudents = [...this.students];
+}
 
   async fillMissingOjtDates() {
     const need = this.students.filter(s => !s.ojt_start || !s.ojt_end);

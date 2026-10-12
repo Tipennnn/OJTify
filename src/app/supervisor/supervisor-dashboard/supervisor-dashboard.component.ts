@@ -316,25 +316,30 @@ export class SupervisorDashboardComponent implements OnInit {
 }
 
   // ── Recent attendance — latest first, max 3 ───────────────
- async loadRecentAttendance() {
+ // ── Recent attendance — TODAY only, latest first, max 3 ───
+async loadRecentAttendance() {
   this.attendanceLoading = true;
   try {
+    const now   = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    // Ask Appwrite for today's records only, newest first
     const res = await this.appwrite.databases.listDocuments(
       this.appwrite.DATABASE_ID,
       this.appwrite.ATTENDANCE_COL,
-      [Query.limit(100)]
+      [
+        Query.equal('date', today),
+        Query.orderDesc('$createdAt'),
+        Query.limit(100)
+      ]
     );
+
     const internIds = Array.from(this.studentMap.keys());
 
-    const allDocs = (res.documents as any[])
-      .filter(d => internIds.includes(d.student_id))
-      .sort((a, b) => {
-        const dateCompare = b.date.localeCompare(a.date);
-        if (dateCompare !== 0) return dateCompare;
-        return (b.time_in || '').localeCompare(a.time_in || '');
-      });
+    const todayDocs = (res.documents as any[])
+      .filter(d => internIds.includes(d.student_id));
 
-    this.recentAttendance = allDocs.slice(0, 3).map(doc => {
+    this.recentAttendance = todayDocs.slice(0, 3).map(doc => {
       const student = this.studentMap.get(doc.student_id);
       return {
         intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',

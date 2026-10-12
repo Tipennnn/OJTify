@@ -192,6 +192,7 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
 
   // ── Load today's attendance ───────────────────────────────
   async loadTodayAttendance() {
+    const archivedIds = new Set(this.allArchived.map(a => a.student_doc_id));
     this.loading = true;
     try {
       const now   = new Date();
@@ -212,31 +213,29 @@ export class AdminAttendanceComponent implements OnInit, OnDestroy {
         offset += limit;
       }
 
-      const todayDocs = allDocs.filter(d => {
-        if (d.date !== today) return false;
-        const student = this.allStudents.find(s => s.$id === d.student_id)
-                     ?? this.allArchived.find(s => s.student_doc_id === d.student_id);
-        return !!student;
-      });
+     const todayDocs = allDocs.filter(d =>
+  d.date === today &&
+  !archivedIds.has(d.student_id) &&
+  this.allStudents.some(s => s.$id === d.student_id)
+);
 
-      this.todayLogs = todayDocs.map(doc => {
-        const student = this.allStudents.find(s => s.$id === doc.student_id)
-               ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
-        return {
-          $id:               doc.$id,
-          student_id:        doc.student_id,
-          student_name:      `${student.first_name} ${student.last_name}`,
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              doc.date,
-          time_in:           doc.time_in  || '—',
-          time_out:          doc.time_out || '—',
-          status:            doc.status,
-          scanned_by_name:   doc.scanned_by_name || '—'
-        };
-      });
+    this.todayLogs = todayDocs.map(doc => {
+  const student = this.allStudents.find(s => s.$id === doc.student_id)!;
+  return {
+    $id:               doc.$id,
+    student_id:        doc.student_id,
+    student_name:      `${student.first_name} ${student.last_name}`,
+    student_photo:     student.profile_photo_id
+      ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+      : null,
+    student_id_number: student.student_id || '—',
+    date:              doc.date,
+    time_in:           doc.time_in  || '—',
+    time_out:          doc.time_out || '—',
+    status:            doc.status,
+    scanned_by_name:   doc.scanned_by_name || '—'
+  };
+});
 
       this.filteredLogs = [...this.todayLogs];
       this.currentPage  = 1;
@@ -396,211 +395,210 @@ onToggleSidebar(collapsed: boolean) {
   }
 
   async processManualAttendance(student: any) {
-    const studentId   = student.$id;
-    const studentName = `${student.first_name} ${student.last_name}`;
-    const now         = new Date();
-    const dayOfWeek   = now.getDay();
+  const studentId   = student.$id;
+  const studentName = `${student.first_name} ${student.last_name}`;
+  const now         = new Date();
+  const dayOfWeek   = now.getDay();
 
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      Swal.fire({
-        icon: 'warning', title: 'Weekend!',
-        text: 'Attendance is not recorded on weekends.',
-        toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 3000
-      });
-      return;
-    }
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    Swal.fire({
+      icon: 'warning', title: 'Weekend!',
+      text: 'Attendance is not recorded on weekends.',
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 3000
+    });
+    return;
+  }
 
-    const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
-    if (isActiveStudent) {
-      const studentDoc = this.allStudents.find(s => s.$id === studentId);
-      const completed  = Number(studentDoc?.completed_hours) || 0;
-      const required   = Number(studentDoc?.required_hours)  || 500;
-      if (completed >= required) {
-        Swal.fire({
-          icon: 'info',
-          title: 'OJT Completed! 🎉',
-          html: `<b>${studentName}</b> has already completed their required <b>${required} hours</b>.<br><br>
-                 <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
-          confirmButtonColor: '#111827'
-        });
-        return;
-      }
-    }
+  // NEW: archived or hours already met -> cannot scan
+  if (this.isInternLocked(studentId, studentName)) return;
 
-    const withinZone = await this.checkGeofence();
-    if (!withinZone) return;
+  const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
 
-    this.scanLoading = true;
+  const withinZone = await this.checkGeofence();
+  if (!withinZone) return;
 
-    try {
-      const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  this.scanLoading = true;
 
-      const attendRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [
-          Query.equal('student_id', studentId),
-          Query.equal('date', today),
-          Query.limit(1)
-        ]
-      );
-      const existing = attendRes.documents[0] ?? null;
+  try {
+    const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      const scannedById   = this.adminId;
-      const scannedByName = this.adminName;
+    const attendRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [
+        Query.equal('student_id', studentId),
+        Query.equal('date', today),
+        Query.limit(1)
+      ]
+    );
+    const existing = attendRes.documents[0] ?? null;
 
-      if (existing) {
-        if (!existing['time_out'] || existing['time_out'] === '') {
+    const scannedById   = this.adminId;
+    const scannedByName = this.adminName;
 
-          await this.appwrite.databases.updateDocument(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.ATTENDANCE_COL,
-            existing['$id'],
-            { time_out: timeStr, scanned_by: scannedById, scanned_by_name: scannedByName }
-          );
+    if (existing) {
+      if (!existing['time_out'] || existing['time_out'] === '') {
 
-          const parseTimeToMinutes = (t: string): number => {
-            try {
-              const parts   = t.trim().split(' ');
-              const period  = parts[1];
-              const tp      = parts[0].split(':');
-              let hours     = parseInt(tp[0]);
-              const minutes = parseInt(tp[1]);
-              if (period === 'PM' && hours !== 12) hours += 12;
-              if (period === 'AM' && hours === 12)  hours  = 0;
-              return (hours * 60) + minutes;
-            } catch { return 0; }
-          };
+        await this.appwrite.databases.updateDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          existing['$id'],
+          { time_out: timeStr, scanned_by: scannedById, scanned_by_name: scannedByName }
+        );
 
-          const timeInMinutes  = parseTimeToMinutes(existing['time_in']);
-          const timeOutMinutes = parseTimeToMinutes(timeStr);
-          let diffMinutes      = timeOutMinutes - timeInMinutes;
-          if (diffMinutes < 0) diffMinutes += 24 * 60;
-          const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
+        const parseTimeToMinutes = (t: string): number => {
+          try {
+            const parts   = t.trim().split(' ');
+            const period  = parts[1];
+            const tp      = parts[0].split(':');
+            let hours     = parseInt(tp[0]);
+            const minutes = parseInt(tp[1]);
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12)  hours  = 0;
+            return (hours * 60) + minutes;
+          } catch { return 0; }
+        };
 
-          if (hoursWorked > 0 && isActiveStudent) {
-            try {
-              const studentDoc = await this.appwrite.databases.getDocument(
-                this.appwrite.DATABASE_ID,
-                this.appwrite.STUDENTS_COL,
-                studentId
-              );
-              const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
-              const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
-              const newCompleted     = Math.min(
-                parseFloat((currentCompleted + hoursWorked).toFixed(2)),
-                requiredHours
-              );
+        const timeInMinutes  = parseTimeToMinutes(existing['time_in']);
+        const timeOutMinutes = parseTimeToMinutes(timeStr);
+        let diffMinutes      = timeOutMinutes - timeInMinutes;
+        if (diffMinutes < 0) diffMinutes += 24 * 60;
+        const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
-              await this.appwrite.databases.updateDocument(
-                this.appwrite.DATABASE_ID,
-                this.appwrite.STUDENTS_COL,
-                studentId,
-                { completed_hours: newCompleted }
-              );
+        if (hoursWorked > 0 && isActiveStudent) {
+          try {
+            const studentDoc = await this.appwrite.databases.getDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              studentId
+            );
+            const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
+            const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
+            const newCompleted     = Math.min(
+              parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+              requiredHours
+            );
 
-              const idx = this.allStudents.findIndex(s => s.$id === studentId);
-              if (idx !== -1) {
-                this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
-              }
+            await this.appwrite.databases.updateDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              studentId,
+              { completed_hours: newCompleted }
+            );
 
-              const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
-              if (logIndex !== -1) {
-                this.todayLogs[logIndex].time_out        = timeStr;
-                this.todayLogs[logIndex].scanned_by_name = scannedByName;
-                this.filteredLogs = [...this.todayLogs];
-              }
-
-              Swal.fire({
-                icon: 'success', title: '🕐 Time Out Recorded!',
-                html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
-                       <span style="color:#16a34a;font-size:13px;font-weight:600;">
-                         +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
-                       </span>`,
-                toast: true, position: 'top-end',
-                showConfirmButton: false, timer: 5000, timerProgressBar: true
-              });
-
-            } catch (updateErr: any) {
-              Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
+            const idx = this.allStudents.findIndex(s => s.$id === studentId);
+            if (idx !== -1) {
+              this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
             }
 
-          } else {
             const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
             if (logIndex !== -1) {
               this.todayLogs[logIndex].time_out        = timeStr;
               this.todayLogs[logIndex].scanned_by_name = scannedByName;
               this.filteredLogs = [...this.todayLogs];
             }
+
             Swal.fire({
               icon: 'success', title: '🕐 Time Out Recorded!',
-              html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
+              html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
+                     <span style="color:#16a34a;font-size:13px;font-weight:600;">
+                       +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
+                     </span>`,
               toast: true, position: 'top-end',
-              showConfirmButton: false, timer: 4000, timerProgressBar: true
+              showConfirmButton: false, timer: 5000, timerProgressBar: true
             });
+
+          } catch (updateErr: any) {
+            Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
           }
 
         } else {
+          const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
+          if (logIndex !== -1) {
+            this.todayLogs[logIndex].time_out        = timeStr;
+            this.todayLogs[logIndex].scanned_by_name = scannedByName;
+            this.filteredLogs = [...this.todayLogs];
+          }
           Swal.fire({
-            icon: 'info', title: 'Already Completed',
-            html: `<b>${studentName}</b> already completed attendance today.`,
+            icon: 'success', title: '🕐 Time Out Recorded!',
+            html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
             toast: true, position: 'top-end',
-            showConfirmButton: false, timer: 3000
+            showConfirmButton: false, timer: 4000, timerProgressBar: true
           });
         }
 
       } else {
-        const doc = await this.appwrite.databases.createDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ATTENDANCE_COL,
-          ID.unique(),
-          {
-            student_id:      studentId,
-            date:            today,
-            time_in:         timeStr,
-            time_out:        '',
-            status:          'Present',
-            scanned_by:      scannedById,
-            scanned_by_name: scannedByName,
-            is_manual:       true
-          }
-        );
-
-        const newLog: AttendanceLog = {
-          $id:               doc.$id,
-          student_id:        studentId,
-          student_name:      studentName,
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              today,
-          time_in:           timeStr,
-          time_out:          '—',
-          status:            'Present',
-          scanned_by_name:   scannedByName
-        };
-
-        this.todayLogs.unshift(newLog);
-        this.filteredLogs = [...this.todayLogs];
-        this.updatePagination();
-
         Swal.fire({
-          icon: 'success', title: '✅ Time In Recorded!',
-          html: `<b>${studentName}</b><br>${timeStr}`,
+          icon: 'info', title: 'Already Completed',
+          html: `<b>${studentName}</b> already completed attendance today.`,
           toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 4000, timerProgressBar: true
+          showConfirmButton: false, timer: 3000
         });
       }
 
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: error.message });
-    } finally {
-      this.scanLoading = false;
+    } else {
+      if (this.isTimeInBlocked()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Time In Closed',
+          text: 'Time in is not allowed from 5:00 PM to 5:59 AM.',
+          toast: true, position: 'top-end',
+          showConfirmButton: false, timer: 4000
+        });
+        return;
+      }
+
+      const doc = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        ID.unique(),
+        {
+          student_id:      studentId,
+          date:            today,
+          time_in:         timeStr,
+          time_out:        '',
+          status:          'Present',
+          scanned_by:      scannedById,
+          scanned_by_name: scannedByName,
+          is_manual:       true
+        }
+      );
+
+      const newLog: AttendanceLog = {
+        $id:               doc.$id,
+        student_id:        studentId,
+        student_name:      studentName,
+        student_photo:     student?.profile_photo_id
+          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+          : null,
+        student_id_number: student?.student_id || '—',
+        date:              today,
+        time_in:           timeStr,
+        time_out:          '—',
+        status:            'Present',
+        scanned_by_name:   scannedByName
+      };
+
+      this.todayLogs.unshift(newLog);
+      this.filteredLogs = [...this.todayLogs];
+      this.updatePagination();
+
+      Swal.fire({
+        icon: 'success', title: '✅ Time In Recorded!',
+        html: `<b>${studentName}</b><br>${timeStr}`,
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 4000, timerProgressBar: true
+      });
     }
+
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+  } finally {
+    this.scanLoading = false;
   }
+}
 
   async startCamera() {
     this.stopCamera();
@@ -663,195 +661,161 @@ onToggleSidebar(collapsed: boolean) {
 
   // ── Process QR ────────────────────────────────────────────
   async processQR(data: string, skipTimestamp = false) {
-    if (!data.startsWith('OJTIFY_ATTENDANCE:')) {
+  if (!data.startsWith('OJTIFY_ATTENDANCE:')) {
+    Swal.fire({
+      icon: 'warning', title: 'Invalid QR Code',
+      text: 'This QR code is not from OJTify.',
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 3000
+    });
+    setTimeout(() => { this.lastScanned = ''; }, 3000);
+    return;
+  }
+
+  const parts     = data.replace('OJTIFY_ATTENDANCE:', '').split(':');
+  const studentId = parts[0];
+  const timestamp = parseInt(parts[1] || '0', 10);
+  const ageMs     = Date.now() - timestamp;
+
+  if (!skipTimestamp && (!timestamp || ageMs > 60_000 || ageMs < -5_000)) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'QR Code Expired',
+      text: 'This QR code has expired. Ask the intern to generate a new one.',
+      toast: true, position: 'top-end',
+      showConfirmButton: false, timer: 4000
+    });
+    this.scanLoading = false;
+    setTimeout(() => { this.lastScanned = ''; }, 4000);
+    return;
+  }
+
+  const withinZone = await this.checkGeofence();
+  if (!withinZone) {
+    this.scanLoading = false;
+    setTimeout(() => { this.lastScanned = ''; }, 3000);
+    return;
+  }
+
+  this.scanLoading = true;
+
+  try {
+    const student = this.allStudents.find(s => s.$id === studentId)
+      ?? this.allArchived.find(s => s.student_doc_id === studentId);
+
+    if (!student) {
       Swal.fire({
-        icon: 'warning', title: 'Invalid QR Code',
-        text: 'This QR code is not from OJTify.',
+        icon: 'error', title: 'Student Not Found',
+        text: 'This QR code does not match any registered intern.',
         toast: true, position: 'top-end',
         showConfirmButton: false, timer: 3000
       });
+      this.scanLoading = false;
       setTimeout(() => { this.lastScanned = ''; }, 3000);
       return;
     }
 
-    const parts     = data.replace('OJTIFY_ATTENDANCE:', '').split(':');
-    const studentId = parts[0];
-    const timestamp = parseInt(parts[1] || '0', 10);
-    const ageMs     = Date.now() - timestamp;
+    const studentName = `${student.first_name} ${student.last_name}`;
 
-    if (!skipTimestamp && (!timestamp || ageMs > 15_000 || ageMs < -5_000)) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'QR Code Expired',
-        text: 'This QR code has expired. Ask the intern to generate a new one.',
-        toast: true, position: 'top-end',
-        showConfirmButton: false, timer: 4000
-      });
+    // NEW: archived or hours already met -> cannot scan
+    if (this.isInternLocked(studentId, studentName)) {
       this.scanLoading = false;
       setTimeout(() => { this.lastScanned = ''; }, 4000);
       return;
     }
 
-    const withinZone = await this.checkGeofence();
-    if (!withinZone) {
+    const now       = new Date();
+    const dayOfWeek = now.getDay();
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      Swal.fire({
+        icon: 'warning', title: 'Weekend!',
+        text: 'Attendance is not recorded on weekends.',
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 3000
+      });
       this.scanLoading = false;
       setTimeout(() => { this.lastScanned = ''; }, 3000);
       return;
     }
 
-    this.scanLoading = true;
+    const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
 
-    try {
-      const student = this.allStudents.find(s => s.$id === studentId)
-        ?? this.allArchived.find(s => s.student_doc_id === studentId);
+    const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      if (!student) {
-        Swal.fire({
-          icon: 'error', title: 'Student Not Found',
-          text: 'This QR code does not match any registered intern.',
-          toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
-        });
-        this.scanLoading = false;
-        setTimeout(() => { this.lastScanned = ''; }, 3000);
-        return;
-      }
+    const attendRes = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [
+        Query.equal('student_id', studentId),
+        Query.equal('date', today),
+        Query.limit(1)
+      ]
+    );
+    const existing = attendRes.documents[0] ?? null;
 
-      const studentName = `${student.first_name} ${student.last_name}`;
-      const now         = new Date();
-      const dayOfWeek   = now.getDay();
+    if (existing) {
+      if (!existing['time_out'] || existing['time_out'] === '') {
 
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        Swal.fire({
-          icon: 'warning', title: 'Weekend!',
-          text: 'Attendance is not recorded on weekends.',
-          toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 3000
-        });
-        this.scanLoading = false;
-        setTimeout(() => { this.lastScanned = ''; }, 3000);
-        return;
-      }
+        await this.appwrite.databases.updateDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.ATTENDANCE_COL,
+          existing.$id,
+          {
+            time_out:        timeStr,
+            scanned_by:      this.adminId,
+            scanned_by_name: this.adminName
+          }
+        );
 
-      const isActiveStudent = this.allStudents.some(s => s.$id === studentId);
-      if (isActiveStudent) {
-        const studentDoc = this.allStudents.find(s => s.$id === studentId);
-        const completed  = Number(studentDoc?.completed_hours) || 0;
-        const required   = Number(studentDoc?.required_hours)  || 500;
-        if (completed >= required) {
-          Swal.fire({
-            icon: 'info',
-            title: 'OJT Completed! 🎉',
-            html: `<b>${student.first_name} ${student.last_name}</b> has already completed their required <b>${required} hours</b>.<br><br>
-                   <span style="color:#16a34a; font-weight:600;">No further attendance needed.</span>`,
-            confirmButtonColor: '#111827'
-          });
-          this.scanLoading = false;
-          setTimeout(() => { this.lastScanned = ''; }, 3000);
-          return;
-        }
-      }
+        const parseTimeToMinutes = (t: string): number => {
+          try {
+            const parts   = t.trim().split(' ');
+            const period  = parts[1];
+            const tp      = parts[0].split(':');
+            let hours     = parseInt(tp[0]);
+            const minutes = parseInt(tp[1]);
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12)  hours  = 0;
+            return (hours * 60) + minutes;
+          } catch { return 0; }
+        };
 
-      const today   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const timeInMinutes  = parseTimeToMinutes(existing['time_in']);
+        const timeOutMinutes = parseTimeToMinutes(timeStr);
+        let diffMinutes      = timeOutMinutes - timeInMinutes;
+        if (diffMinutes < 0) diffMinutes += 24 * 60;
+        const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
 
-      const attendRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [
-          Query.equal('student_id', studentId),
-          Query.equal('date', today),
-          Query.limit(1)
-        ]
-      );
-      const existing = attendRes.documents[0] ?? null;
+        if (hoursWorked > 0 && isActiveStudent) {
+          try {
+            const studentDoc = await this.appwrite.databases.getDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              studentId
+            );
 
-      if (existing) {
-        if (!existing['time_out'] || existing['time_out'] === '') {
+            const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
+            const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
+            const newCompleted     = Math.min(
+              parseFloat((currentCompleted + hoursWorked).toFixed(2)),
+              requiredHours
+            );
 
-          await this.appwrite.databases.updateDocument(
-            this.appwrite.DATABASE_ID,
-            this.appwrite.ATTENDANCE_COL,
-            existing.$id,
-            {
-              time_out:        timeStr,
-              scanned_by:      this.adminId,
-              scanned_by_name: this.adminName
-            }
-          );
+            await this.appwrite.databases.updateDocument(
+              this.appwrite.DATABASE_ID,
+              this.appwrite.STUDENTS_COL,
+              studentId,
+              { completed_hours: newCompleted }
+            );
 
-          const parseTimeToMinutes = (t: string): number => {
-            try {
-              const parts   = t.trim().split(' ');
-              const period  = parts[1];
-              const tp      = parts[0].split(':');
-              let hours     = parseInt(tp[0]);
-              const minutes = parseInt(tp[1]);
-              if (period === 'PM' && hours !== 12) hours += 12;
-              if (period === 'AM' && hours === 12)  hours  = 0;
-              return (hours * 60) + minutes;
-            } catch { return 0; }
-          };
-
-          const timeInMinutes  = parseTimeToMinutes(existing['time_in']);
-          const timeOutMinutes = parseTimeToMinutes(timeStr);
-          let diffMinutes      = timeOutMinutes - timeInMinutes;
-          if (diffMinutes < 0) diffMinutes += 24 * 60;
-          const hoursWorked = parseFloat((diffMinutes / 60).toFixed(2));
-
-          if (hoursWorked > 0 && isActiveStudent) {
-            try {
-              const studentDoc = await this.appwrite.databases.getDocument(
-                this.appwrite.DATABASE_ID,
-                this.appwrite.STUDENTS_COL,
-                studentId
-              );
-
-              const currentCompleted = Number((studentDoc as any).completed_hours) || 0;
-              const requiredHours    = Number((studentDoc as any).required_hours)  || 500;
-              const newCompleted     = Math.min(
-                parseFloat((currentCompleted + hoursWorked).toFixed(2)),
-                requiredHours
-              );
-
-              await this.appwrite.databases.updateDocument(
-                this.appwrite.DATABASE_ID,
-                this.appwrite.STUDENTS_COL,
-                studentId,
-                { completed_hours: newCompleted }
-              );
-
-              const idx = this.allStudents.findIndex(s => s.$id === studentId);
-              if (idx !== -1) {
-                this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
-              }
-
-              this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
-              this.scanStatus = 'timeout';
-
-              const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
-              if (logIndex !== -1) {
-                this.todayLogs[logIndex].time_out        = timeStr;
-                this.todayLogs[logIndex].scanned_by_name = this.adminName;
-                this.filteredLogs = [...this.todayLogs];
-              }
-
-              Swal.fire({
-                icon: 'success', title: '🕐 Time Out Recorded!',
-                html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
-                       <span style="color:#16a34a;font-size:13px;font-weight:600;">
-                         +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
-                       </span>`,
-                toast: true, position: 'top-end',
-                showConfirmButton: false, timer: 5000, timerProgressBar: true
-              });
-
-            } catch (updateErr: any) {
-              Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
+            const idx = this.allStudents.findIndex(s => s.$id === studentId);
+            if (idx !== -1) {
+              this.allStudents[idx] = { ...this.allStudents[idx], completed_hours: newCompleted };
             }
 
-          } else {
-            this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
+            this.scanResult = `Time Out: ${studentName} at ${timeStr} (+${hoursWorked} hrs added)`;
             this.scanStatus = 'timeout';
 
             const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
@@ -863,81 +827,119 @@ onToggleSidebar(collapsed: boolean) {
 
             Swal.fire({
               icon: 'success', title: '🕐 Time Out Recorded!',
-              html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
+              html: `<b>${studentName}</b><br>Time Out: ${timeStr}<br>
+                     <span style="color:#16a34a;font-size:13px;font-weight:600;">
+                       +${hoursWorked} hrs added (Total: ${newCompleted} / ${requiredHours} hrs)
+                     </span>`,
               toast: true, position: 'top-end',
-              showConfirmButton: false, timer: 4000, timerProgressBar: true
+              showConfirmButton: false, timer: 5000, timerProgressBar: true
             });
+
+          } catch (updateErr: any) {
+            Swal.fire({ icon: 'error', title: 'Hours Update Failed', text: updateErr.message });
           }
 
         } else {
-          this.scanResult = `${studentName} already completed attendance today.`;
-          this.scanStatus = 'already';
+          this.scanResult = `Time Out: ${studentName} at ${timeStr}`;
+          this.scanStatus = 'timeout';
+
+          const logIndex = this.todayLogs.findIndex(l => l.student_id === studentId);
+          if (logIndex !== -1) {
+            this.todayLogs[logIndex].time_out        = timeStr;
+            this.todayLogs[logIndex].scanned_by_name = this.adminName;
+            this.filteredLogs = [...this.todayLogs];
+          }
+
           Swal.fire({
-            icon: 'info', title: 'Already Completed',
-            html: `<b>${studentName}</b> already completed attendance today.`,
+            icon: 'success', title: '🕐 Time Out Recorded!',
+            html: `<b>${studentName}</b><br>Time Out: ${timeStr}`,
             toast: true, position: 'top-end',
-            showConfirmButton: false, timer: 3000
+            showConfirmButton: false, timer: 4000, timerProgressBar: true
           });
         }
 
       } else {
-        const doc = await this.appwrite.databases.createDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ATTENDANCE_COL,
-          ID.unique(),
-          {
-            student_id:      studentId,
-            date:            today,
-            time_in:         timeStr,
-            time_out:        '',
-            status:          'Present',
-            scanned_by:      this.adminId,
-            scanned_by_name: this.adminName
-          }
-        );
-
-        this.scanResult = `Time In: ${studentName} at ${timeStr}`;
-        this.scanStatus = 'timein';
-
-        const newLog: AttendanceLog = {
-          $id:               doc.$id,
-          student_id:        studentId,
-          student_name:      studentName,
-          student_photo:     student?.profile_photo_id
-            ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
-            : null,
-          student_id_number: student?.student_id || '—',
-          date:              today,
-          time_in:           timeStr,
-          time_out:          '—',
-          status:            'Present',
-          scanned_by_name:   this.adminName
-        };
-
-        this.todayLogs.unshift(newLog);
-        this.filteredLogs = [...this.todayLogs];
-        this.updatePagination();
-
+        this.scanResult = `${studentName} already completed attendance today.`;
+        this.scanStatus = 'already';
         Swal.fire({
-          icon: 'success', title: '✅ Time In Recorded!',
-          html: `<b>${studentName}</b><br>${timeStr}`,
+          icon: 'info', title: 'Already Completed',
+          html: `<b>${studentName}</b> already completed attendance today.`,
           toast: true, position: 'top-end',
-          showConfirmButton: false, timer: 4000, timerProgressBar: true
+          showConfirmButton: false, timer: 3000
         });
       }
 
-      setTimeout(() => {
-        this.lastScanned = '';
-        this.scanResult  = '';
-        this.scanStatus  = '';
-      }, 5000);
+    } else {
+      if (this.isTimeInBlocked()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Time In Closed',
+          text: 'Time in is not allowed from 5:00 PM to 5:59 AM.',
+          toast: true, position: 'top-end',
+          showConfirmButton: false, timer: 4000
+        });
+        this.scanLoading = false;
+        setTimeout(() => { this.lastScanned = ''; }, 4000);
+        return;
+      }
 
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: error.message });
-    } finally {
-      this.scanLoading = false;
+      const doc = await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ATTENDANCE_COL,
+        ID.unique(),
+        {
+          student_id:      studentId,
+          date:            today,
+          time_in:         timeStr,
+          time_out:        '',
+          status:          'Present',
+          scanned_by:      this.adminId,
+          scanned_by_name: this.adminName
+        }
+      );
+
+      this.scanResult = `Time In: ${studentName} at ${timeStr}`;
+      this.scanStatus = 'timein';
+
+      const newLog: AttendanceLog = {
+        $id:               doc.$id,
+        student_id:        studentId,
+        student_name:      studentName,
+        student_photo:     student?.profile_photo_id
+          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${student.profile_photo_id}/view?project=${this.PROJECT_ID}`
+          : null,
+        student_id_number: student?.student_id || '—',
+        date:              today,
+        time_in:           timeStr,
+        time_out:          '—',
+        status:            'Present',
+        scanned_by_name:   this.adminName
+      };
+
+      this.todayLogs.unshift(newLog);
+      this.filteredLogs = [...this.todayLogs];
+      this.updatePagination();
+
+      Swal.fire({
+        icon: 'success', title: '✅ Time In Recorded!',
+        html: `<b>${studentName}</b><br>${timeStr}`,
+        toast: true, position: 'top-end',
+        showConfirmButton: false, timer: 4000, timerProgressBar: true
+      });
     }
+
+    setTimeout(() => {
+      this.lastScanned = '';
+      this.scanResult  = '';
+      this.scanStatus  = '';
+    }, 5000);
+
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+  } finally {
+    this.scanLoading = false;
   }
+}
 
   getToday(): string {
     return new Date().toLocaleDateString('en-US', {
@@ -1129,4 +1131,29 @@ onToggleSidebar(collapsed: boolean) {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }
+  /** Time-in is not allowed from 5:00 PM until 5:59 AM */
+private isTimeInBlocked(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 17 || hour < 6;
+}
+/** Returns true (and shows a message) if the intern is archived or has met required hours */
+private isInternLocked(studentId: string, name: string): boolean {
+  const archived = this.allArchived.some(a => a.student_doc_id === studentId);
+
+  const active    = this.allStudents.find(s => s.$id === studentId);
+  const completed = Number(active?.completed_hours) || 0;
+  const required  = Number(active?.required_hours)  || 500;
+  const hoursMet  = !!active && completed >= required;
+
+  if (!archived && !hoursMet) return false;
+
+  Swal.fire({
+    icon: 'info',
+    title: 'OJT Completed! 🎉',
+    text: `${name} has already completed OJT. No further attendance is needed.`,
+    toast: true, position: 'top-end',
+    showConfirmButton: false, timer: 4000
+  });
+  return true;
+}
 }

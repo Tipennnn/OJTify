@@ -294,9 +294,9 @@
 
       <div class="qr-countdown-wrap">
         <div class="qr-countdown-bar"
-             [style.width]="(qrExpiresIn / 10 * 100) + '%'"
-             [class.qr-bar-urgent]="qrExpiresIn <= 3">
-        </div>
+     [style.width]="(qrExpiresIn / 60 * 100) + '%'"
+     [class.qr-bar-urgent]="qrExpiresIn <= 10">
+</div>
       </div>
 
       <span class="qr-note">

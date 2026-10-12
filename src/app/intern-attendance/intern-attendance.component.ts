@@ -132,16 +132,18 @@ export class InternAttendanceComponent implements OnInit, OnDestroy {
   }
 }
 
-  generateFreshQR() {
-    const ts         = Date.now();
-    this.qrData      = `OJTIFY_ATTENDANCE:${this.currentUserId}:${ts}`;
-    this.qrExpiresIn = 10;
-  }
+ generateFreshQR() {
+  const ts         = Date.now();
+  this.qrData      = `OJTIFY_ATTENDANCE:${this.currentUserId}:${ts}`;
+  this.qrExpiresIn = 60;   // was 10
+}
 
   startQRCountdown() {
-    clearInterval(this.qrTimer);
-    this.qrTimer = setInterval(() => { this.qrExpiresIn--; }, 1000);
-  }
+  clearInterval(this.qrTimer);
+  this.qrTimer = setInterval(() => {
+    if (this.qrExpiresIn > 0) this.qrExpiresIn--;
+  }, 1000);
+}
 
   refreshQRManually() {
     clearInterval(this.qrTimer);
