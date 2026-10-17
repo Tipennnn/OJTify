@@ -71,87 +71,89 @@ export class SupervisorLoginComponent implements OnInit, OnDestroy {
   togglePassword() { this.showPassword = !this.showPassword; }
 
   // ── LOGIN ─────────────────────────────────────────────────
-  async onLogin() {
-    this.errorMessage = '';
-    this.fieldErrors  = { email: '', password: '' };
+ async onLogin() {
+  this.errorMessage = '';
+  this.fieldErrors  = { email: '', password: '' };
 
-    let hasError = false;
+  let hasError = false;
 
-    if (!this.email) {
-      this.fieldErrors.email = 'Email is required.';
+  if (!this.email) {
+    this.fieldErrors.email = 'Email is required.';
+    hasError = true;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+    this.fieldErrors.email = 'Please enter a valid email address.';
+    hasError = true;
+  }
+
+  if (!this.password) {
+    this.fieldErrors.password = 'Password is required.';
+    hasError = true;
+  } else {
+    const passwordError = this.validateStrongPassword(this.password);
+    if (passwordError) {
+      this.fieldErrors.password = passwordError;
       hasError = true;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
-      this.fieldErrors.email = 'Please enter a valid email address.';
-      hasError = true;
-    }
-
-    if (!this.password) {
-      this.fieldErrors.password = 'Password is required.';
-      hasError = true;
-    } else {
-      const passwordError = this.validateStrongPassword(this.password);
-      if (passwordError) {
-        this.fieldErrors.password = passwordError;
-        hasError = true;
-      }
-    }
-
-    if (hasError) return;
-
-    this.loading = true;
-
-    try {
-      try { await this.appwrite.account.deleteSession('current'); } catch { }
-
-      await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
-
-      const user = await this.appwrite.account.get();
-
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
-
-      const supervisor = (res.documents as any[])
-        .find(s => s.$id === user.$id);
-
-      if (!supervisor) {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'No supervisor account found. Please contact the admin.';
-        return;
-      }
-
-      if ((supervisor.status || 'Active') === 'Inactive') {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'Your account has been deactivated. Please contact the admin.';
-        return;
-      }
-
-      sessionStorage.removeItem('supervisorWelcomeShown');
-      sessionStorage.removeItem('esigReminderShown');
-      sessionStorage.removeItem('role');
-      sessionStorage.setItem('role', 'supervisor');
-      sessionStorage.setItem('currentDocId', supervisor.$id);
-      this.router.navigate(['/supervisor-dashboard']);
-
-    } catch (error: any) {
-      const msg: string = error.message ?? '';
-
-      if (msg.toLowerCase().includes('invalid credentials') ||
-          msg.toLowerCase().includes('password') ||
-          error.code === 401) {
-        this.fieldErrors.password = 'Incorrect email or password.';
-      } else if (msg.toLowerCase().includes('rate limit') || error.code === 429) {
-        this.errorMessage = 'Too many attempts. Please wait a moment and try again.';
-      } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
-        this.errorMessage = 'Network error. Please check your connection.';
-      } else {
-        this.errorMessage = 'Something went wrong. Please try again.';
-      }
-    } finally {
-      this.loading = false;
     }
   }
+
+  if (hasError) return;
+
+  this.loading = true;
+
+  try {
+    try { await this.appwrite.account.deleteSession('current'); } catch { }
+
+    await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
+
+    const user = await this.appwrite.account.get();
+
+    // Fetch supervisor document directly by ID (works for any number of supervisors)
+    let supervisor: any = null;
+    try {
+      supervisor = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        user.$id
+      );
+    } catch { /* not found */ }
+
+    if (!supervisor) {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'No supervisor account found. Please contact the admin.';
+      return;
+    }
+
+    if ((supervisor.status || 'Active') === 'Inactive') {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'Your account has been deactivated. Please contact the admin.';
+      return;
+    }
+
+    sessionStorage.removeItem('supervisorWelcomeShown');
+    sessionStorage.removeItem('esigReminderShown');
+    sessionStorage.removeItem('role');
+    sessionStorage.setItem('role', 'supervisor');
+    sessionStorage.setItem('currentDocId', supervisor.$id);
+    this.router.navigate(['/supervisor-dashboard']);
+
+  } catch (error: any) {
+    const msg: string = error.message ?? '';
+
+    if (msg.toLowerCase().includes('invalid credentials') ||
+        msg.toLowerCase().includes('password') ||
+        error.code === 401) {
+      this.fieldErrors.password = 'Incorrect email or password.';
+    } else if (msg.toLowerCase().includes('rate limit') || error.code === 429) {
+      this.errorMessage = 'Too many attempts. Please wait a moment and try again.';
+    } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+      this.errorMessage = 'Network error. Please check your connection.';
+    } else {
+      this.errorMessage = 'Something went wrong. Please try again.';
+    }
+  } finally {
+    this.loading = false;
+  }
+}
 
   // ── FORGOT PASSWORD ───────────────────────────────────────
   openForgotPassword() {
@@ -172,64 +174,54 @@ export class SupervisorLoginComponent implements OnInit, OnDestroy {
 
   // STEP 1 — Send OTP via Appwrite Function
   async sendOtp() {
-    if (!this.fpEmail) {
-      this.fpError = 'Please enter your email address.';
+  const email = this.fpEmail.trim().toLowerCase();
+
+  if (!email) {
+    this.fpError = 'Please enter your email address.';
+    return;
+  }
+
+  this.fpLoading = true;
+  this.fpError   = '';
+
+  try {
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:       'send-otp-student', // generic lookup route, reused for supervisors
+        email,
+        templateId:   environment.brevoOtpTid,
+        databaseId:   this.appwrite.DATABASE_ID,
+        collectionId: this.appwrite.SUPERVISORS_COL
+      }),
+      false
+    );
+
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      this.fpError = result.message?.includes('No account')
+        ? 'No supervisor account found with this email.'
+        : (result.message || 'Failed to send OTP. Please try again.');
       return;
     }
 
-    this.fpLoading = true;
-    this.fpError   = '';
+    this.fpEmail     = email;
+    this.fpUserId    = result.userId;
+    this.fpUserName  = result.userName;
+    this.fpOtp       = result.otp;
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
 
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
+    this.startResendCooldown();
+    this.forgotStep = 2;
 
-      const supervisor = (res.documents as any[])
-        .find(s => s.email === this.fpEmail);
-
-      if (!supervisor) {
-        this.fpError = 'No supervisor account found with this email.';
-        return;
-      }
-
-      this.fpUserName  = `${supervisor.first_name} ${supervisor.last_name}`;
-      this.fpUserId    = supervisor.$id;
-      this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
-
-      // Send via Appwrite Function
-      const execution = await this.appwrite.functions.createExecution(
-        this.OTP_FUNCTION_ID,
-        JSON.stringify({
-          action:     'send-otp',
-          email:      this.fpEmail,
-          userName:   this.fpUserName,
-          otp:        this.fpOtp,
-          templateId: environment.brevoOtpTid
-        }),
-        false
-      );
-
-      const result = JSON.parse(execution.responseBody);
-
-      if (!result.success) {
-        this.fpError = 'Failed to send OTP. Please try again.';
-        return;
-      }
-
-      this.startResendCooldown();
-      this.forgotStep = 2;
-
-    } catch (error: any) {
-      this.fpError = 'Failed to send OTP. Please try again.';
-      console.error(error);
-    } finally {
-      this.fpLoading = false;
-    }
+  } catch (error: any) {
+    this.fpError = 'Failed to send OTP. Please try again.';
+    console.error(error);
+  } finally {
+    this.fpLoading = false;
   }
-
+}
   // STEP 2 — Verify OTP
   verifyOtp() {
     this.fpError = '';
@@ -248,44 +240,43 @@ export class SupervisorLoginComponent implements OnInit, OnDestroy {
 
   // Resend OTP
   async resendOtp() {
-    if (this.fpResendCooldown > 0) return;
+  if (this.fpResendCooldown > 0) return;
 
-    this.fpEnteredOtp = '';
-    this.fpError      = '';
-    this.fpLoading    = true;
+  this.fpEnteredOtp = '';
+  this.fpError      = '';
+  this.fpLoading    = true;
 
-    try {
-      this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+  try {
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:       'send-otp-student',
+        email:        this.fpEmail,
+        templateId:   environment.brevoOtpTid,
+        databaseId:   this.appwrite.DATABASE_ID,
+        collectionId: this.appwrite.SUPERVISORS_COL
+      }),
+      false
+    );
 
-      const execution = await this.appwrite.functions.createExecution(
-        this.OTP_FUNCTION_ID,
-        JSON.stringify({
-          action:     'send-otp',
-          email:      this.fpEmail,
-          userName:   this.fpUserName,
-          otp:        this.fpOtp,
-          templateId: environment.brevoOtpTid
-        }),
-        false
-      );
+    const result = JSON.parse(execution.responseBody);
 
-      const result = JSON.parse(execution.responseBody);
-
-      if (!result.success) {
-        this.fpError = 'Failed to resend OTP. Please try again.';
-        return;
-      }
-
-      this.startResendCooldown();
-
-    } catch (error: any) {
-      this.fpError = 'Failed to resend OTP. Please try again.';
-      console.error(error);
-    } finally {
-      this.fpLoading = false;
+    if (!result.success) {
+      this.fpError = result.message || 'Failed to resend OTP. Please try again.';
+      return;
     }
+
+    this.fpOtp       = result.otp;
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+    this.startResendCooldown();
+
+  } catch (error: any) {
+    this.fpError = 'Failed to resend OTP. Please try again.';
+    console.error(error);
+  } finally {
+    this.fpLoading = false;
   }
+}
 
   // STEP 3 — Reset Password via Appwrite Function
   async resetPassword() {

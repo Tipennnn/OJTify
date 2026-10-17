@@ -718,9 +718,27 @@
         <input type="text" placeholder="Search intern by name, school, course..."
                (input)="onInternSearch($event)">
       </div>
+<div class="assign-filter-row">
+  <button class="filter-chip" [class.active]="assignFilter === 'all'"
+          (click)="setAssignFilter('all')">
+    All <span class="chip-count">{{ allInterns.length }}</span>
+  </button>
+  <button class="filter-chip" [class.active]="assignFilter === 'unassigned'"
+          (click)="setAssignFilter('unassigned')">
+    Not Assigned <span class="chip-count">{{ unassignedCount }}</span>
+  </button>
+  <button class="filter-chip" [class.active]="assignFilter === 'assigned'"
+          (click)="setAssignFilter('assigned')">
+    Assigned <span class="chip-count">{{ assignedCount }}</span>
+  </button>
+</div>
+            <div class="interns-loading" *ngIf="assignLoading">
+        <i class="fa fa-spinner fa-spin"></i>
+        <span>Loading interns...</span>
+      </div>
 
-      <div class="assign-intern-list">
-        <div *ngFor="let intern of filteredInterns" class="assign-intern-row"
+       <div class="assign-intern-list" *ngIf="!assignLoading">
+        <div *ngFor="let intern of paginatedInterns" class="assign-intern-row"
              [class.already-assigned-self]="(intern)['supervisor_id'] === selectedSupervisor?.$id"
              [class.already-assigned-other]="(intern)['supervisor_id'] && (intern)['supervisor_id'] !== selectedSupervisor?.$id">
           <img [src]="getInternAvatarUrl(intern)" class="intern-avatar" alt="Intern">
@@ -746,6 +764,21 @@
           <i class="fa-solid fa-user-slash"></i>
           <p>No interns found.</p>
         </div>
+      </div>
+        <!-- ASSIGN PAGINATION -->
+      <div class="pagination assign-pagination" *ngIf="!assignLoading && filteredInterns.length > 0">
+        <span class="page-info">
+          Showing {{ assignShowingFrom }}–{{ assignShowingTo }} of {{ filteredInterns.length }}
+        </span>
+        <button class="page-btn" [disabled]="assignPage === 1" (click)="changeAssignPage(assignPage - 1)">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="page-numbers">
+          <span class="page active">{{ assignPage }}</span>
+        </div>
+        <button class="page-btn" [disabled]="assignPage === assignTotalPages" (click)="changeAssignPage(assignPage + 1)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
       </div>
     </div>
 

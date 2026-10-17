@@ -198,63 +198,59 @@ export class AdminOjtComponent implements OnInit {
   }
 
   async loadStudents() {
-    this.loading = true;
-    try {
-      const { Query } = await import('appwrite');
+  this.loading = true;
+  try {
+    const { Query } = await import('appwrite');
 
-      let allStudents: any[] = [];
-      let offset = 0;
-      let hasMore = true;
+    let allStudents: any[] = [];
+    let offset = 0;
+    let hasMore = true;
 
-      while (hasMore) {
+    while (hasMore) {
       const res = await this.appwrite.listDocumentsCached(
-  this.appwrite.STUDENTS_COL,
-  [Query.limit(this.APPWRITE_PAGE_SIZE), Query.offset(offset)]
-);
-        allStudents = [...allStudents, ...res.documents];
-        hasMore = res.documents.length === this.APPWRITE_PAGE_SIZE;
-        offset += this.APPWRITE_PAGE_SIZE;
-      }
-
-      const [archiveRes, evalRes] = await Promise.all([
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.ARCHIVES_COL,
-          [Query.limit(500)]
-        ),
-        this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.EVALUATIONS_COL,
-          [Query.limit(500)]
-        )
-      ]);
-
-      const archivedIds = new Set(
-        archiveRes.documents.map((d: any) => d.student_doc_id)
+        this.appwrite.STUDENTS_COL,
+        [Query.limit(this.APPWRITE_PAGE_SIZE), Query.offset(offset)]
       );
-
-      this.evaluatedStudentIds = new Set(
-        evalRes.documents.map((e: any) => e.student_id_ref)
-      );
-
-      const active = allStudents.filter(s => !archivedIds.has(s.$id));
-
-      // Sort by OJT start date descending (latest first)
-      active.sort((a, b) => {
-        const dateA = new Date(a.ojt_start || a.$createdAt).getTime();
-        const dateB = new Date(b.ojt_start || b.$createdAt).getTime();
-        return dateB - dateA;
-      });
-
-      this.students         = active;
-      this.filteredStudents = [...this.students];
-
-    } catch (error: any) {
-      console.error('Failed to load students:', error.message);
-    } finally {
-      this.loading = false;
+      allStudents = [...allStudents, ...res.documents];
+      hasMore = res.documents.length === this.APPWRITE_PAGE_SIZE;
+      offset += this.APPWRITE_PAGE_SIZE;
     }
+
+    const [archiveRes, evalRes] = await Promise.all([
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.ARCHIVES_COL,
+        [Query.limit(500)]
+      ),
+      this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.EVALUATIONS_COL,
+        [Query.limit(500)]
+      )
+    ]);
+
+    const archivedIds = new Set(
+      archiveRes.documents.map((d: any) => d.student_doc_id)
+    );
+
+    this.evaluatedStudentIds = new Set(
+      evalRes.documents.map((e: any) => e.student_id_ref)
+    );
+
+    const active = allStudents.filter(s => !archivedIds.has(s.$id));
+
+    // Sort alphabetically by last name (A-Z), then first name
+    active.sort((a, b) => this.compareByLastName(a, b));
+
+    this.students         = active;
+    this.filteredStudents = [...this.students];
+
+  } catch (error: any) {
+    console.error('Failed to load students:', error.message);
+  } finally {
+    this.loading = false;
   }
+}
 
   // PAGINATION
   get pagedStudents(): Student[] {
@@ -476,4 +472,22 @@ export class AdminOjtComponent implements OnInit {
 
     return 'Cannot archive yet:\n' + missing.join('\n');
   }
+  private compareByLastName(a: Student, b: Student): number {
+  const opts: Intl.CollatorOptions = { sensitivity: 'base' };
+
+  const lastNameResult = (a.last_name || '').trim()
+    .localeCompare((b.last_name || '').trim(), undefined, opts);
+  if (lastNameResult !== 0) return lastNameResult;
+
+  return (a.first_name || '').trim()
+    .localeCompare((b.first_name || '').trim(), undefined, opts);
+}
+getListName(s: Student): string {
+  const last   = (s.last_name   || '').trim();
+  const first  = (s.first_name  || '').trim();
+  const middle = (s.middle_name || '').trim();
+  const middleInitial = middle ? ` ${middle.charAt(0).toUpperCase()}.` : '';
+
+  return `${last}, ${first}${middleInitial}`;
+}
 }

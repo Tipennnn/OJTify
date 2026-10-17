@@ -135,6 +135,33 @@ export class AdminSupervisorManagementComponent implements OnInit {
   filteredInterns: Intern[] = [];
   internsSearchQuery = '';
   assigningIntern = false;
+    // ── Assign modal pagination ──
+  assignPage     = 1;
+  assignPageSize = 10;
+  assignLoading  = false;
+  assignFilter: 'all' | 'assigned' | 'unassigned' = 'all';
+
+    get assignTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredInterns.length / this.assignPageSize));
+  }
+
+  get paginatedInterns(): Intern[] {
+    const sorted = this.sortInternsByLastName(this.filteredInterns);
+    const start  = (this.assignPage - 1) * this.assignPageSize;
+    return sorted.slice(start, start + this.assignPageSize);
+  }
+
+  get assignShowingFrom(): number {
+    return this.filteredInterns.length === 0 ? 0 : (this.assignPage - 1) * this.assignPageSize + 1;
+  }
+
+  get assignShowingTo(): number {
+    return Math.min(this.assignPage * this.assignPageSize, this.filteredInterns.length);
+  }
+
+  changeAssignPage(p: number) {
+    if (p >= 1 && p <= this.assignTotalPages) this.assignPage = p;
+  }
 
   currentPage = 1;
   pageSize    = 10;
@@ -276,35 +303,34 @@ export class AdminSupervisorManagementComponent implements OnInit {
 
   // ─────────────────────────────────────────────────────────
 
-  async loadTotalAssignedCount() {
+    async loadTotalAssignedCount() {
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      this.realTotalAssignedInterns = (res.documents as any[])
+      const docs = await this.fetchAllDocuments(this.appwrite.STUDENTS_COL);
+      this.realTotalAssignedInterns = docs
         .filter(s => s.supervisor_id && s.supervisor_id !== '').length;
     } catch (err: any) {
       console.error('Failed to count assigned interns:', err.message);
     }
   }
 
-  async loadSupervisors() {
-    this.loading = true;
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.SUPERVISORS_COL
-      );
-      this.supervisors         = res.documents.length ? res.documents as any[] : DUMMY_SUPERVISORS;
-      this.filteredSupervisors = [...this.supervisors];
-    } catch {
-      this.supervisors         = DUMMY_SUPERVISORS;
-      this.filteredSupervisors = [...this.supervisors];
-    } finally {
-      this.loading = false;
-    }
+ async loadSupervisors() {
+  this.loading = true;
+  try {
+    const { Query } = await import('appwrite');
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.SUPERVISORS_COL,
+      [Query.limit(100)]
+    );
+    this.supervisors = this.sortAlphabetically(res.documents as any[]);
+  } catch (err: any) {
+    console.error('Failed to load supervisors:', err);
+    this.supervisors = [];
+  } finally {
+    this.filteredSupervisors = [...this.supervisors];
+    this.loading = false;
   }
+}
 
   get totalAssignedInterns(): number {
     return this.supervisors.reduce((s, sup) => s + (sup.assigned_students || 0), 0);
@@ -426,7 +452,7 @@ export class AdminSupervisorManagementComponent implements OnInit {
         this.appwrite.STUDENTS_COL,
         [Query.equal('supervisor_id', this.selectedSupervisor.$id)]
       );
-      this.assignedInterns = res.documents as any[];
+      this.assignedInterns = this.sortInternsByLastName(res.documents as any[]);
 
       const realCount = this.assignedInterns.length;
       this.selectedSupervisor = { ...this.selectedSupervisor, assigned_students: realCount };
@@ -473,90 +499,109 @@ export class AdminSupervisorManagementComponent implements OnInit {
     }
   }
 
-  async submitForm() {
-    this.formError = '';
-
-    if (!this.form.first_name.trim() || !this.form.last_name.trim() || !this.form.email.trim()) {
-      this.formError = 'First name, last name, and email are required.'; return;
+ async submitForm() {
+  this.formError = '';
+ 
+  if (!this.form.first_name.trim() || !this.form.last_name.trim() || !this.form.email.trim()) {
+    this.formError = 'First name, last name, and email are required.'; return;
+  }
+ 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(this.form.email.trim())) {
+    this.formError = 'Please enter a valid email address.'; return;
+  }
+ 
+  if (!this.selectedSupervisor) {
+    if (!this.form.password.trim()) {
+      this.formError = 'Password is required when creating a new account.'; return;
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.form.email.trim())) {
-      this.formError = 'Please enter a valid email address.'; return;
-    }
-
-    if (!this.selectedSupervisor) {
-      if (!this.form.password.trim()) {
-        this.formError = 'Password is required when creating a new account.'; return;
-      }
-      if (!this.isPasswordValid()) {
-        this.formError = 'Password does not meet the requirements. Please check the indicators below the password field.'; return;
-      }
-    }
-
-    this.submitting = true;
-
-    try {
-      const emailToCheck = this.form.email.trim().toLowerCase();
-
-      if (!this.selectedSupervisor) {
-        const { Query } = await import('appwrite');
-
-        const existingSupRes = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.SUPERVISORS_COL,
-          [Query.equal('email', emailToCheck)]
-        );
-        if (existingSupRes.documents.length > 0) {
-          this.formError = 'A supervisor with this email is already registered.';
-          this.submitting = false; return;
-        }
-
-        const existingInternRes = await this.appwrite.databases.listDocuments(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL,
-          [Query.equal('email', emailToCheck)]
-        );
-        if (existingInternRes.documents.length > 0) {
-          this.formError = 'This email is already registered as an OJT student account. Supervisors and students cannot share the same email.';
-          this.submitting = false; return;
-        }
-      }
-
-      const payload: any = {
-        first_name  : this.form.first_name.trim(),
-        last_name   : this.form.last_name.trim(),
-        employee_id : this.form.employee_id.trim(),
-        email       : this.form.email.trim(),
-        grade_level : this.form.grade_level,
-        status      : 'Active',
-      };
-      if (this.selectedSupervisor) {
-        payload.status = this.selectedSupervisor.status || 'Active';
-        await this.appwrite.databases.updateDocument(
-          this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, this.editingId, payload);
-      } else {
-        const account = await this.appwrite.account.create(
-          ID.unique(), this.form.email.trim(), this.form.password,
-          `${this.form.first_name} ${this.form.last_name}`);
-        await this.appwrite.databases.createDocument(
-          this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, account.$id,
-          { ...payload, assigned_students: 0 });
-
-        await this.sendSupervisorWelcomeEmail(
-          this.form.email.trim(),
-          `${this.form.first_name.trim()} ${this.form.last_name.trim()}`,
-          this.form.password
-        );
-      }
-      await this.loadSupervisors();
-      this.closeModal();
-    } catch (err: any) {
-      this.formError = err.message || 'Something went wrong.';
-    } finally {
-      this.submitting = false;
+    if (!this.isPasswordValid()) {
+      this.formError = 'Password does not meet the requirements. Please check the indicators below the password field.'; return;
     }
   }
+ 
+  this.submitting = true;
+  let createdAuthId = '';
+ 
+  try {
+    const email = this.form.email.trim().toLowerCase();
+    const { Query } = await import('appwrite');
+ 
+    // ── Duplicate checks (new accounts only) ──
+    if (!this.selectedSupervisor) {
+      const sup = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, [Query.equal('email', email)]);
+      if (sup.documents.length > 0) {
+        this.formError = 'A supervisor with this email is already registered.';
+        return;
+      }
+ 
+      const stu = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, this.appwrite.STUDENTS_COL, [Query.equal('email', email)]);
+      if (stu.documents.length > 0) {
+        this.formError = 'This email is already registered as an OJT student account. Supervisors and students cannot share the same email.';
+        return;
+      }
+    }
+ 
+    const payload: any = {
+      first_name  : this.form.first_name.trim(),
+      last_name   : this.form.last_name.trim(),
+      employee_id : this.form.employee_id.trim(),
+      email,                                   // saved lowercased
+      grade_level : this.form.grade_level,
+      status      : 'Active',
+    };
+ 
+    if (this.selectedSupervisor) {
+      // ── EDIT ──
+      payload.status = this.selectedSupervisor.status || 'Active';
+      await this.appwrite.databases.updateDocument(
+        this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, this.editingId, payload);
+    } else {
+      // ── CREATE ──
+      const account = await this.appwrite.account.create(
+        ID.unique(), email, this.form.password,
+        `${this.form.first_name.trim()} ${this.form.last_name.trim()}`);
+      createdAuthId = account.$id;
+ 
+      await this.appwrite.databases.createDocument(
+        this.appwrite.DATABASE_ID, this.SUPERVISORS_COL, account.$id,
+        { ...payload, assigned_students: 0 });
+      createdAuthId = '';   // row saved successfully, nothing to roll back
+ 
+      await this.sendSupervisorWelcomeEmail(
+        email,
+        `${this.form.first_name.trim()} ${this.form.last_name.trim()}`,
+        this.form.password
+      );
+    }
+ 
+    await this.loadSupervisors();
+    this.closeModal();
+ 
+  } catch (err: any) {
+    console.error('submitForm failed:', err);
+ 
+    // Roll back the orphaned Auth user if the row insert failed.
+    // ⚠ ADJUST the body to whatever your DELETE_USER_FN expects.
+    if (createdAuthId) {
+      try {
+        await this.appwrite.functions.createExecution(
+          this.appwrite.DELETE_USER_FN,
+          JSON.stringify({ userId: createdAuthId }),
+          false
+        );
+      } catch (rollbackErr) {
+        console.error('Rollback failed — delete this user manually in Auth:', createdAuthId, rollbackErr);
+      }
+    }
+ 
+    this.formError = err.message || 'Something went wrong.';
+  } finally {
+    this.submitting = false;
+  }
+}
 
   async deleteSupervisor() {
     if (!this.supervisorToDelete) return;
@@ -581,7 +626,14 @@ onToggleSidebar(c: boolean) {
   this.isCollapsed = this.isMobile ? false : c;
 }
   getFullName(s: Supervisor)   { return `${s.first_name} ${s.last_name}`; }
-  getInternFullName(i: Intern) { return `${i.first_name} ${i.last_name}`; }
+  getInternFullName(i: Intern): string {
+  const last  = (i.last_name  || '').trim();
+  const first = (i.first_name || '').trim();   // includes middle name(s)
+
+  if (!last) return first;      // no last name saved, show as is
+  if (!first) return last;
+  return `${last}, ${first}`;
+}
 
   getAvatarUrl(s: Supervisor): string {
     if (s.profile_photo_id)
@@ -607,30 +659,22 @@ onToggleSidebar(c: boolean) {
     return status === 'Inactive' ? 'status-inactive' : 'status-active';
   }
 
-  async openAssignModal() {
-    this.showAssignModal = true;
-    this.internsSearchQuery = '';
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-      this.allInterns = res.documents as any[];
-      this.filteredInterns = [...this.allInterns];
-    } catch (err: any) {
-      console.error('Failed to load interns:', err.message);
-    }
+async openAssignModal() {
+  this.showAssignModal    = true;
+  this.internsSearchQuery = '';
+  this.assignFilter       = 'all';
+  this.assignPage         = 1;
+  this.assignLoading      = true;
+  try {
+    const docs      = await this.fetchAllDocuments(this.appwrite.STUDENTS_COL);
+    this.allInterns = this.sortInternsByLastName(docs);
+    this.applyInternFilters(true);
+  } catch (err: any) {
+    console.error('Failed to load interns:', err.message);
+  } finally {
+    this.assignLoading = false;
   }
-
-  onInternSearch(event: any) {
-    const q = event.target.value.toLowerCase();
-    this.internsSearchQuery = q;
-    this.filteredInterns = this.allInterns.filter(i =>
-      `${i.first_name} ${i.last_name}`.toLowerCase().includes(q) ||
-      (i.school_name || '').toLowerCase().includes(q) ||
-      (i.course || '').toLowerCase().includes(q)
-    );
-  }
+}
 
   getInternSupervisorLabel(intern: Intern): string {
     const supId = (intern as any).supervisor_id;
@@ -658,6 +702,7 @@ onToggleSidebar(c: boolean) {
       await this.loadTotalAssignedCount();
 
       (intern as any).supervisor_id = this.selectedSupervisor.$id;
+      this.applyInternFilters();
     } catch (err: any) {
       console.error('Failed to assign intern:', err.message);
     } finally {
@@ -681,6 +726,7 @@ onToggleSidebar(c: boolean) {
 
       const idx = this.allInterns.findIndex(i => i.$id === intern.$id);
       if (idx !== -1) (this.allInterns[idx] as any).supervisor_id = null;
+      this.applyInternFilters();
 
     } catch (err: any) {
       console.error('Failed to unassign intern:', err.message);
@@ -850,4 +896,104 @@ getStrengthScore(): number {
       console.warn('Could not load esig preview:', err);
     }
   }
+
+  private sortAlphabetically(list: Supervisor[]): Supervisor[] {
+  return [...list].sort((a, b) =>
+    `${a.first_name} ${a.last_name}`.localeCompare(
+      `${b.first_name} ${b.last_name}`,
+      undefined,
+      { sensitivity: 'base' }
+    )
+  );
+}
+   private async fetchAllDocuments(collectionId: string, queries: string[] = []): Promise<any[]> {
+    const { Query } = await import('appwrite');
+    const all: any[] = [];
+    const batchSize = 100;
+    let lastId: string | null = null;
+
+    while (true) {
+      const q = [...queries, Query.limit(batchSize)];
+      if (lastId) q.push(Query.cursorAfter(lastId));
+
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID, collectionId, q
+      );
+      all.push(...res.documents);
+
+      if (res.documents.length < batchSize) break;
+      lastId = res.documents[res.documents.length - 1].$id;
+    }
+    return all;
+  }
+      private getSortKey(i: Intern): string {
+    let last = (i.last_name || '').trim();
+    if (!last) {
+      const parts = (i.first_name || '').trim().split(/\s+/);
+      last = parts.length > 1 ? parts[parts.length - 1] : '';
+    }
+    return last;
+  }
+
+  private sortInternsByLastName(list: Intern[]): Intern[] {
+    return [...list].sort((a, b) => {
+      const la = this.getSortKey(a);
+      const lb = this.getSortKey(b);
+
+      // blank last names go to the bottom
+      if (!la && lb) return 1;
+      if (la && !lb) return -1;
+
+      return (
+        la.localeCompare(lb, 'en', { sensitivity: 'base' }) ||
+        (a.first_name || '').trim().localeCompare((b.first_name || '').trim(), 'en', { sensitivity: 'base' })
+      );
+    });
+  }
+  onInternSearch(event: any) {
+  this.internsSearchQuery = event.target.value.toLowerCase();
+  this.applyInternFilters(true);
+}
+
+setAssignFilter(f: 'all' | 'assigned' | 'unassigned') {
+  this.assignFilter = f;
+  this.applyInternFilters(true);
+}
+
+get assignedCount(): number {
+  return this.allInterns.filter(i => !!i.supervisor_id).length;
+}
+
+get unassignedCount(): number {
+  return this.allInterns.filter(i => !i.supervisor_id).length;
+}
+
+// Single place that does search + filter + A–Z sort
+applyInternFilters(resetPage = false) {
+  const q = this.internsSearchQuery.trim().toLowerCase();
+
+  const result = this.allInterns.filter(i => {
+    const matchesSearch =
+      !q ||
+      `${i.first_name} ${i.last_name}`.toLowerCase().includes(q) ||
+      (i.school_name || '').toLowerCase().includes(q) ||
+      (i.course || '').toLowerCase().includes(q);
+
+    const isAssigned = !!i.supervisor_id;
+    const matchesFilter =
+      this.assignFilter === 'all' ||
+      (this.assignFilter === 'assigned' && isAssigned) ||
+      (this.assignFilter === 'unassigned' && !isAssigned);
+
+    return matchesSearch && matchesFilter;
+  });
+
+  this.filteredInterns = this.sortInternsByLastName(result); // always A–Z
+
+  if (resetPage) {
+    this.assignPage = 1;
+  } else if (this.assignPage > this.assignTotalPages) {
+    this.assignPage = this.assignTotalPages; // keep the page valid after changes
+  }
+}
 }

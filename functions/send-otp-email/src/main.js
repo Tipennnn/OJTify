@@ -221,7 +221,50 @@ export default async ({ req, res, log, error }) => {
       return res.json({ success: false, message: err.message }, 500);
     }
   }
+// ── ROUTE: Send OTP Student ───────────────────────────────
+if (action === 'send-otp-student') {
+  const { email, templateId, databaseId, collectionId } = body;
+  if (!email) {
+    return res.json({ success: false, message: 'email is required' }, 400);
+  }
+  try {
+    const cleanEmail = email.trim().toLowerCase();
 
+    const result = await databases.listDocuments(
+      databaseId, collectionId,
+      [Query.equal('email', cleanEmail), Query.limit(1)]
+    );
+    if (result.total === 0) {
+      return res.json({ success: false, message: 'No account found with this email address.' }, 404);
+    }
+
+    const student  = result.documents[0];
+    const userName = `${student.first_name} ${student.last_name}`;
+    const otp      = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+      body: JSON.stringify({
+        sender: { name: 'OJTify Admin', email: 'adminojtify@gmail.com' },
+        to: [{ email: cleanEmail, name: userName }],
+        templateId,
+        params: { user_name: userName, otp_code: otp }
+      })
+    });
+    const emailData = await emailResponse.json();
+    if (!emailResponse.ok) {
+      error('Brevo error: ' + JSON.stringify(emailData));
+      return res.json({ success: false, message: 'Failed to send email' }, 400);
+    }
+
+    log('Student OTP sent to ' + cleanEmail);
+    return res.json({ success: true, userId: student.$id, userName, otp });
+  } catch (err) {
+    error('send-otp-student error: ' + err.message);
+    return res.json({ success: false, message: err.message }, 500);
+  }
+}
   // ── Fallback — MUST BE LAST ───────────────────────────────
   return res.json({ success: false, message: 'Unknown action: ' + action }, 400);
 };

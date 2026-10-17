@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
+import { Query } from 'appwrite';
 
 @Component({
   selector: 'app-intern-login',
@@ -92,66 +93,52 @@ export class InternLoginComponent implements OnInit, OnDestroy {
 
   // STEP 1 — Send OTP via Appwrite Function
   async sendOtp() {
-    if (!this.fpEmail) {
-      this.fpError = 'Please enter your email address.';
+  const email = this.fpEmail.trim().toLowerCase();
+
+  if (!email) {
+    this.fpError = 'Please enter your email address.';
+    return;
+  }
+
+  this.fpLoading = true;
+  this.fpError   = '';
+
+  try {
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:       'send-otp-student',
+        email,
+        templateId:   environment.brevoOtpTid,
+        databaseId:   this.appwrite.DATABASE_ID,
+        collectionId: this.appwrite.STUDENTS_COL
+      }),
+      false
+    );
+
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.success) {
+      this.fpError = result.message || 'Failed to send OTP. Please try again.';
       return;
     }
 
-    this.fpLoading = true;
-    this.fpError   = '';
+    this.fpEmail     = email;
+    this.fpUserId    = result.userId;
+    this.fpUserName  = result.userName;
+    this.fpOtp       = result.otp;
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
 
-    try {
-      // Check if email exists in students table
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
+    this.startResendCooldown();
+    this.forgotStep = 2;
 
-      const student = (res.documents as any[])
-        .find(s => s.email === this.fpEmail);
-
-      if (!student) {
-        this.fpError = 'No account found with this email address.';
-        return;
-      }
-
-      this.fpUserName = `${student.first_name} ${student.last_name}`;
-      this.fpUserId   = student.$id;
-
-      // Generate 6-digit OTP
-      this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
-
-      // Send via Appwrite Function (not directly to Brevo)
-      const execution = await this.appwrite.functions.createExecution(
-        this.OTP_FUNCTION_ID,
-        JSON.stringify({
-          action:     'send-otp',
-          email:      this.fpEmail,
-          userName:   this.fpUserName,
-          otp:        this.fpOtp,
-          templateId: environment.brevoOtpTid
-        }),
-        false
-      );
-
-      const result = JSON.parse(execution.responseBody);
-
-      if (!result.success) {
-        this.fpError = 'Failed to send OTP. Please try again.';
-        return;
-      }
-
-      this.startResendCooldown();
-      this.forgotStep = 2;
-
-    } catch (error: any) {
-      this.fpError = 'Failed to send OTP. Please try again.';
-      console.error(error);
-    } finally {
-      this.fpLoading = false;
-    }
+  } catch (error: any) {
+    this.fpError = 'Failed to send OTP. Please try again.';
+    console.error(error);
+  } finally {
+    this.fpLoading = false;
   }
+}
 
   // STEP 2 — Verify OTP
   verifyOtp() {
@@ -177,43 +164,42 @@ export class InternLoginComponent implements OnInit, OnDestroy {
   }
 
   // Resend OTP
-  async resendOtp() {
-    this.fpEnteredOtp = '';
-    this.fpError      = '';
-    this.fpLoading    = true;
+ async resendOtp() {
+  this.fpEnteredOtp = '';
+  this.fpError      = '';
+  this.fpLoading    = true;
 
-    try {
-      this.fpOtp       = Math.floor(100000 + Math.random() * 900000).toString();
-      this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+  try {
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:       'send-otp-student',
+        email:        this.fpEmail,
+        templateId:   environment.brevoOtpTid,
+        databaseId:   this.appwrite.DATABASE_ID,
+        collectionId: this.appwrite.STUDENTS_COL
+      }),
+      false
+    );
 
-      const execution = await this.appwrite.functions.createExecution(
-        this.OTP_FUNCTION_ID,
-        JSON.stringify({
-          action:     'send-otp',
-          email:      this.fpEmail,
-          userName:   this.fpUserName,
-          otp:        this.fpOtp,
-          templateId: environment.brevoOtpTid
-        }),
-        false
-      );
+    const result = JSON.parse(execution.responseBody);
 
-      const result = JSON.parse(execution.responseBody);
-
-      if (!result.success) {
-        this.fpError = 'Failed to resend OTP. Please try again.';
-        return;
-      }
-
-      this.startResendCooldown();
-
-    } catch (error: any) {
-      this.fpError = 'Failed to resend OTP. Please try again.';
-      console.error(error);
-    } finally {
-      this.fpLoading = false;
+    if (!result.success) {
+      this.fpError = result.message || 'Failed to resend OTP. Please try again.';
+      return;
     }
+
+    this.fpOtp       = result.otp;
+    this.fpOtpExpiry = Date.now() + (10 * 60 * 1000);
+    this.startResendCooldown();
+
+  } catch (error: any) {
+    this.fpError = 'Failed to resend OTP. Please try again.';
+    console.error(error);
+  } finally {
+    this.fpLoading = false;
   }
+}
 
   // STEP 3 — Reset Password via Appwrite Function
   async resetPassword() {
@@ -293,116 +279,138 @@ export class InternLoginComponent implements OnInit, OnDestroy {
 
   // ── LOGIN ─────────────────────────────────────────────────
   async onLogin() {
-    this.errorMessage = '';
-    this.fieldErrors  = { email: '', password: '' };
+  this.errorMessage = '';
+  this.fieldErrors  = { email: '', password: '' };
 
-    let hasError = false;
+  let hasError = false;
 
-    if (!this.email) {
-      this.fieldErrors.email = 'Email is required.';
+  if (!this.email) {
+    this.fieldErrors.email = 'Email is required.';
+    hasError = true;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+    this.fieldErrors.email = 'Please enter a valid email address.';
+    hasError = true;
+  }
+
+  if (!this.password) {
+    this.fieldErrors.password = 'Password is required.';
+    hasError = true;
+  } else {
+    const passwordError = this.validateStrongPassword(this.password);
+    if (passwordError) {
+      this.fieldErrors.password = passwordError;
       hasError = true;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
-      this.fieldErrors.email = 'Please enter a valid email address.';
-      hasError = true;
-    }
-
-    if (!this.password) {
-      this.fieldErrors.password = 'Password is required.';
-      hasError = true;
-    } else {
-      const passwordError = this.validateStrongPassword(this.password);
-      if (passwordError) {
-        this.fieldErrors.password = passwordError;
-        hasError = true;
-      }
-    }
-
-    if (hasError) return;
-
-    this.loading = true;
-
-    try {
-      try { await this.appwrite.account.deleteSession('current'); } catch { }
-
-      await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
-
-      const user = await this.appwrite.account.get();
-
-      const supervisorRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL
-      );
-
-      const isSupervisor = (supervisorRes.documents as any[])
-        .some(s => s.$id === user.$id || s.auth_user_id === user.$id);
-
-      if (isSupervisor) {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'This account is registered as a Supervisor. Please use the Supervisor portal to log in.';
-        return;
-      }
-
-      const applicantRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL
-      );
-
-      const applicant = (applicantRes.documents as any[])
-        .find(a => a.auth_user_id === user.$id);
-
-      if (applicant) {
-        if (applicant.status === 'pending') {
-          await this.appwrite.account.deleteSession('current');
-          this.errorMessage = 'Your application is still pending admin approval.';
-          return;
-        }
-        if (applicant.status === 'declined') {
-          await this.appwrite.account.deleteSession('current');
-          this.errorMessage = 'Your application has been declined. Please contact the admin.';
-          return;
-        }
-      }
-
-      const studentsRes = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
-
-      const student = (studentsRes.documents as any[])
-        .find(s => s.$id === user.$id);
-
-      if (!student) {
-        await this.appwrite.account.deleteSession('current');
-        this.errorMessage = 'Your account is not yet approved. Please wait for admin approval.';
-        return;
-      }
-
-      sessionStorage.removeItem('welcomeShown');
-      sessionStorage.removeItem('role');
-      sessionStorage.removeItem('profilePhotoReminderShown');
-      sessionStorage.removeItem('profileAlertShown');
-      sessionStorage.setItem('role', 'intern');
-      sessionStorage.setItem('currentDocId', student.$id);
-      this.router.navigate(['/intern-dashboard']);
-
-    } catch (error: any) {
-      const msg: string = error.message ?? '';
-
-      if (msg.toLowerCase().includes('invalid credentials') ||
-          msg.toLowerCase().includes('password') ||
-          error.code === 401) {
-        this.fieldErrors.password = 'Incorrect email or password.';
-      } else if (msg.toLowerCase().includes('rate limit') || error.code === 429) {
-        this.errorMessage = 'Too many attempts. Please wait a moment and try again.';
-      } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
-        this.errorMessage = 'Network error. Please check your connection.';
-      } else {
-        this.errorMessage = 'Something went wrong. Please try again.';
-      }
-    } finally {
-      this.loading = false;
     }
   }
+
+  if (hasError) return;
+
+  this.loading = true;
+
+  try {
+    try { await this.appwrite.account.deleteSession('current'); } catch { }
+
+    await this.appwrite.account.createEmailPasswordSession(this.email, this.password);
+    const user = await this.appwrite.account.get();
+
+    // ── 1. Supervisor check ──────────────────────────────
+    let isSupervisor = false;
+    try {
+      await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        user.$id
+      );
+      isSupervisor = true;
+    } catch { /* not found by $id */ }
+
+    if (!isSupervisor) {
+      try {
+        const res = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.SUPERVISORS_COL,
+          [Query.equal('auth_user_id', user.$id), Query.limit(1)]
+        );
+        isSupervisor = res.total > 0;
+      } catch { /* no access / no index → treat as not supervisor */ }
+    }
+
+    if (isSupervisor) {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'This account is registered as a Supervisor. Please use the Supervisor portal to log in.';
+      return;
+    }
+
+    // ── 2. Applicant status check ────────────────────────
+    let applicant: any = null;
+    try {
+      const res = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.APPLICANTS_COL,
+        [Query.equal('auth_user_id', user.$id), Query.limit(1)]
+      );
+      applicant = res.documents[0] ?? null;
+    } catch (e) {
+      console.warn('Applicant lookup failed:', e);
+    }
+
+    if (applicant) {
+      if (applicant.status === 'pending') {
+        await this.appwrite.account.deleteSession('current');
+        this.errorMessage = 'Your application is still pending admin approval.';
+        return;
+      }
+      if (applicant.status === 'declined') {
+        await this.appwrite.account.deleteSession('current');
+        this.errorMessage = 'Your application has been declined. Please contact the admin.';
+        return;
+      }
+    }
+
+    // ── 3. Student document (direct fetch by ID) ─────────
+    let student: any = null;
+    try {
+      student = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        user.$id
+      );
+    } catch (e: any) {
+      console.warn('Student lookup failed:', e?.code, e?.message);
+    }
+
+    if (!student) {
+      await this.appwrite.account.deleteSession('current');
+      this.errorMessage = 'Your account is not yet approved. Please wait for admin approval.';
+      return;
+    }
+
+    sessionStorage.removeItem('welcomeShown');
+    sessionStorage.removeItem('role');
+    sessionStorage.removeItem('profilePhotoReminderShown');
+    sessionStorage.removeItem('profileAlertShown');
+    sessionStorage.setItem('role', 'intern');
+    sessionStorage.setItem('currentDocId', student.$id);
+    this.router.navigate(['/intern-dashboard']);
+
+  } catch (error: any) {
+    const msg: string = error.message ?? '';
+
+    if (msg.toLowerCase().includes('invalid credentials') ||
+        msg.toLowerCase().includes('password') ||
+        error.code === 401) {
+      this.fieldErrors.password = 'Incorrect email or password.';
+    } else if (msg.toLowerCase().includes('rate limit') || error.code === 429) {
+      this.errorMessage = 'Too many attempts. Please wait a moment and try again.';
+    } else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+      this.errorMessage = 'Network error. Please check your connection.';
+    } else {
+      this.errorMessage = 'Something went wrong. Please try again.';
+    }
+  } finally {
+    this.loading = false;
+  }
+}
 
   onOverlayClick(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('fp-overlay')) {

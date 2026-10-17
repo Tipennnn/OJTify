@@ -7,7 +7,7 @@ import { AdminTopnavComponent } from '../admin-topnav/admin-topnav.component';
 import { AppwriteService } from '../../services/appwrite.service';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
-import { Query } from 'appwrite'; // ← ADD THIS IMPORT
+import { Query, Permission, Role } from 'appwrite'; // ← ADD THIS IMPORT
 
 
 interface Applicant {
@@ -264,87 +264,98 @@ onToggleSidebar(state: boolean) {
       this.approveFormErrors['hours'] = 'Please enter a valid number of required hours.';
     return Object.keys(this.approveFormErrors).length === 0;
   }
+async confirmApprove() {
+  if (!this.pendingApproveApplicant) return;
+  if (!this.validateApproveForm()) return;
 
-  async confirmApprove() {
-    if (!this.pendingApproveApplicant) return;
-    if (!this.validateApproveForm()) return;
+  const applicant = this.pendingApproveApplicant;
+  this.closeApproveModal();
+  this.actionLoading = true;
 
-    const applicant = this.pendingApproveApplicant;
-    this.closeApproveModal();
-    this.actionLoading = true;
+  try {
+    // Current admin (so the admin keeps access to the doc they create)
+    const admin = await this.appwrite.account.get();
 
-    try {
-      // 1. Create student document
-      await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        applicant.auth_user_id,
-        {
-          first_name:          applicant.first_name,
-          middle_name:         applicant.middle_name,
-          last_name:           applicant.last_name,
-          email:               applicant.email,
-          contact_number:      applicant.contact_number,
-          birthday:            applicant.birthday,
-          gender:              applicant.gender,
-          home_address:        applicant.home_address,
-          student_id:          applicant.student_id,
-          school_name:         applicant.school_name,
-          course:              applicant.course,
-          year_level:          applicant.year_level,
-          resume_file_id:      applicant.resume_file_id      || '',
-          endorsement_file_id: applicant.endorsement_file_id || '',
-          coe_file_id:         applicant.coe_file_id         || '',
-          required_hours:      this.approveRequiredHours
-        }
-      );
+    // 1. Create student document WITH permissions for the intern
+    await this.appwrite.databases.createDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.STUDENTS_COL,
+      applicant.auth_user_id,
+      {
+        first_name:          applicant.first_name,
+        middle_name:         applicant.middle_name,
+        last_name:           applicant.last_name,
+        email:               applicant.email,
+        contact_number:      applicant.contact_number,
+        birthday:            applicant.birthday,
+        gender:              applicant.gender,
+        home_address:        applicant.home_address,
+        student_id:          applicant.student_id,
+        school_name:         applicant.school_name,
+        course:              applicant.course,
+        year_level:          applicant.year_level,
+        resume_file_id:      applicant.resume_file_id      || '',
+        endorsement_file_id: applicant.endorsement_file_id || '',
+        coe_file_id:         applicant.coe_file_id         || '',
+        required_hours:      this.approveRequiredHours
+      },
+      [
+        // intern
+        Permission.read(Role.user(applicant.auth_user_id)),
+        Permission.update(Role.user(applicant.auth_user_id)),
+        // admin who approved
+        Permission.read(Role.user(admin.$id)),
+        Permission.update(Role.user(admin.$id)),
+        Permission.delete(Role.user(admin.$id)),
+      ]
+    );
 
-      // 2. Update applicant status
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL,
-        applicant.$id,
-        { status: 'approved' }
-      );
+    // 2. Update applicant status
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.APPLICANTS_COL,
+      applicant.$id,
+      { status: 'approved' }
+    );
 
-      // 3. Clear caches then reload fresh from server
-      this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
-      this.appwrite.clearCache(this.appwrite.STUDENTS_COL);
+    // 3. Clear caches
+    this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
+    this.appwrite.clearCache(this.appwrite.STUDENTS_COL);
 
-      // 4. Send approval email
-      await this.sendEmail(applicant, 'approved', {
-        start_date:     this.formatDisplayDate(this.approveStartDate),
-        required_hours: String(this.approveRequiredHours),
-        admin_note:     this.approveNote.trim()
-      });
+    // 4. Send approval email
+    await this.sendEmail(applicant, 'approved', {
+      start_date:     this.formatDisplayDate(this.approveStartDate),
+      required_hours: String(this.approveRequiredHours),
+      admin_note:     this.approveNote.trim()
+    });
 
-      // 5. Update local state immediately (no extra network call needed)
-      const index = this.applicants.findIndex(a => a.$id === applicant.$id);
-      if (index !== -1) this.applicants[index].status = 'approved';
-      this.applyFilter();
-      if (this.selectedApplicant?.$id === applicant.$id)
-        this.selectedApplicant.status = 'approved';
+    // 5. Update local state
+    const index = this.applicants.findIndex(a => a.$id === applicant.$id);
+    if (index !== -1) this.applicants[index].status = 'approved';
+    this.applyFilter();
+    if (this.selectedApplicant?.$id === applicant.$id)
+      this.selectedApplicant.status = 'approved';
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Approved!',
-        html: `<b>${applicant.first_name} ${applicant.last_name}</b> is now an active intern.<br>
-               <span style="font-size:13px; color:#6b7280;">
-                 An email notification has been sent to ${applicant.email}
-               </span>`,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 4000,
-        timerProgressBar: true
-      });
+    Swal.fire({
+      icon: 'success',
+      title: 'Approved!',
+      html: `<b>${applicant.first_name} ${applicant.last_name}</b> is now an active intern.<br>
+             <span style="font-size:13px; color:#6b7280;">
+               An email notification has been sent to ${applicant.email}
+             </span>`,
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 4000,
+      timerProgressBar: true
+    });
 
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
-    } finally {
-      this.actionLoading = false;
-    }
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
+  } finally {
+    this.actionLoading = false;
   }
+}
 
   // ══════════════════════════════════════════════════════════
   //  DECLINE FLOW
