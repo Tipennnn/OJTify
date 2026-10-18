@@ -128,14 +128,16 @@
 
             <div class="date-wrapper" [class.has-error]="fieldErrors['birthday']">
               <span class="icon"><i class="fa fa-calendar"></i></span>
-              <input
-                type="date"
-                [(ngModel)]="birthday"
-                name="birthday"
-                required
-                [class.has-value]="birthday"
-                (change)="birthday = $any($event.target).value; onBlur('birthday')"
-                (blur)="onBlur('birthday')">
+             <input
+  type="date"
+  [(ngModel)]="birthday"
+  name="birthday"
+  required
+  [max]="maxBirthday"
+  [min]="minBirthday"
+  [class.has-value]="birthday"
+  (change)="birthday = $any($event.target).value; onBlur('birthday')"
+  (blur)="onBlur('birthday')">
               <span class="date-label">Birthday</span>
               <span class="field-error" *ngIf="fieldErrors['birthday']">
                 <i class="fa fa-circle-exclamation"></i> {{ fieldErrors['birthday'] }}

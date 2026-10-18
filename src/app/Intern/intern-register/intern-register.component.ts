@@ -127,6 +127,8 @@ export class InternRegisterComponent {
   birthday      = '';
   gender        = '';
   homeAddress   = '';
+  maxBirthday = this.getDateYearsAgo(18);
+minBirthday = this.getDateYearsAgo(100);
 
   // Academic
   studentId  = '';
@@ -293,17 +295,17 @@ export class InternRegisterComponent {
     return '';
   }
 
-  private validateBirthday(value: string): string {
-    if (!value) return 'Birthday is required.';
-    const dob   = new Date(value);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    if (age < 13)  return 'You must be at least 13 years old to register.';
-    if (age > 100) return 'Please enter a valid birthday.';
-    return '';
-  }
+ private validateBirthday(value: string): string {
+  if (!value) return 'Birthday is required.';
+  const dob   = new Date(value);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  if (age < 18)  return 'You must be at least 18 years old to register.';
+  if (age > 100) return 'Please enter a valid birthday.';
+  return '';
+}
 
   private validateRequired(value: string, label: string): string {
     return value.trim() ? '' : `${label} is required.`;
@@ -492,5 +494,13 @@ if (duplicateErrors.length > 0) {
   } finally {
     this.loading = false;
   }
+}
+private getDateYearsAgo(years: number): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - years);
+  const y  = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${da}`;
 }
 }
