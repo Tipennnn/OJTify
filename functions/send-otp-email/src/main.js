@@ -265,6 +265,109 @@ if (action === 'send-otp-student') {
     return res.json({ success: false, message: err.message }, 500);
   }
 }
+// ── ROUTE: Approve Intern ─────────────────────────────────
+if (action === 'approve-intern') {
+  const DATABASE_ID    = '69ba9274002d52cdef63';
+  const callerId       = req.headers['x-appwrite-user-id'];
+
+  if (!callerId) {
+    return res.json({ success: false, message: 'Not authenticated.' }, 401);
+  }
+
+  try {
+    const adminCheck = await databases.listDocuments(
+      DATABASE_ID, 'admins',
+      [Query.equal('auth_user_id', callerId), Query.limit(1)]
+    );
+    if (adminCheck.total === 0) {
+      return res.json({ success: false, message: 'Not authorized.' }, 403);
+    }
+
+    const { applicantDocId, requiredHours } = body;
+    if (!applicantDocId || !requiredHours || Number(requiredHours) <= 0) {
+      return res.json({ success: false, message: 'Invalid input.' }, 400);
+    }
+
+    const a = await databases.getDocument(DATABASE_ID, 'applicants', applicantDocId);
+
+    if (a.status !== 'pending') {
+      return res.json({ success: false, message: `Applicant is already ${a.status}.` }, 409);
+    }
+
+    await databases.createDocument(
+      DATABASE_ID, 'students', a.auth_user_id,
+      {
+        first_name:          a.first_name,
+        middle_name:         a.middle_name,
+        last_name:           a.last_name,
+        email:               a.email,
+        contact_number:      a.contact_number,
+        birthday:            a.birthday,
+        gender:              a.gender,
+        home_address:        a.home_address,
+        student_id:          a.student_id,
+        school_name:         a.school_name,
+        course:              a.course,
+        year_level:          a.year_level,
+        resume_file_id:      a.resume_file_id      || '',
+        endorsement_file_id: a.endorsement_file_id || '',
+        coe_file_id:         a.coe_file_id         || '',
+        required_hours:      Number(requiredHours)
+      },
+      [
+        Permission.read(Role.user(a.auth_user_id)),
+        Permission.update(Role.user(a.auth_user_id)),
+        Permission.read(Role.user(callerId)),
+        Permission.update(Role.user(callerId)),
+        Permission.delete(Role.user(callerId)),
+      ]
+    );
+
+    await databases.updateDocument(
+      DATABASE_ID, 'applicants', applicantDocId, { status: 'approved' }
+    );
+
+    log('Approved ' + applicantDocId + ' by admin ' + callerId);
+    return res.json({ success: true });
+  } catch (err) {
+    error('approve-intern error: ' + err.message);
+    return res.json({ success: false, message: err.message }, 500);
+  }
+}
+
+// ── ROUTE: Decline Intern ─────────────────────────────────
+if (action === 'decline-intern') {
+  const DATABASE_ID = '69ba9274002d52cdef63';
+  const callerId    = req.headers['x-appwrite-user-id'];
+
+  if (!callerId) {
+    return res.json({ success: false, message: 'Not authenticated.' }, 401);
+  }
+
+  try {
+    const adminCheck = await databases.listDocuments(
+      DATABASE_ID, 'admins',
+      [Query.equal('auth_user_id', callerId), Query.limit(1)]
+    );
+    if (adminCheck.total === 0) {
+      return res.json({ success: false, message: 'Not authorized.' }, 403);
+    }
+
+    const { applicantDocId } = body;
+    if (!applicantDocId) {
+      return res.json({ success: false, message: 'Invalid input.' }, 400);
+    }
+
+    await databases.updateDocument(
+      DATABASE_ID, 'applicants', applicantDocId, { status: 'declined' }
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    error('decline-intern error: ' + err.message);
+    return res.json({ success: false, message: err.message }, 500);
+  }
+}
   // ── Fallback — MUST BE LAST ───────────────────────────────
   return res.json({ success: false, message: 'Unknown action: ' + action }, 400);
 };

@@ -269,54 +269,26 @@ async confirmApprove() {
   if (!this.validateApproveForm()) return;
 
   const applicant = this.pendingApproveApplicant;
+  const startDate = this.approveStartDate;
+  const hours     = this.approveRequiredHours;
+  const note      = this.approveNote.trim();
+
   this.closeApproveModal();
   this.actionLoading = true;
 
   try {
-    // Current admin (so the admin keeps access to the doc they create)
-    const admin = await this.appwrite.account.get();
-
-    // 1. Create student document WITH permissions for the intern
-    await this.appwrite.databases.createDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      applicant.auth_user_id,
-      {
-        first_name:          applicant.first_name,
-        middle_name:         applicant.middle_name,
-        last_name:           applicant.last_name,
-        email:               applicant.email,
-        contact_number:      applicant.contact_number,
-        birthday:            applicant.birthday,
-        gender:              applicant.gender,
-        home_address:        applicant.home_address,
-        student_id:          applicant.student_id,
-        school_name:         applicant.school_name,
-        course:              applicant.course,
-        year_level:          applicant.year_level,
-        resume_file_id:      applicant.resume_file_id      || '',
-        endorsement_file_id: applicant.endorsement_file_id || '',
-        coe_file_id:         applicant.coe_file_id         || '',
-        required_hours:      this.approveRequiredHours
-      },
-      [
-        // intern
-        Permission.read(Role.user(applicant.auth_user_id)),
-        Permission.update(Role.user(applicant.auth_user_id)),
-        // admin who approved
-        Permission.read(Role.user(admin.$id)),
-        Permission.update(Role.user(admin.$id)),
-        Permission.delete(Role.user(admin.$id)),
-      ]
+    // 1+2. Create student + mark applicant approved (done server-side)
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:         'approve-intern',
+        applicantDocId: applicant.$id,
+        requiredHours:  hours
+      }),
+      false
     );
-
-    // 2. Update applicant status
-    await this.appwrite.databases.updateDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.APPLICANTS_COL,
-      applicant.$id,
-      { status: 'approved' }
-    );
+    const result = JSON.parse(execution.responseBody || '{}');
+    if (!result.success) throw new Error(result.message || 'Approval failed.');
 
     // 3. Clear caches
     this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
@@ -324,9 +296,9 @@ async confirmApprove() {
 
     // 4. Send approval email
     await this.sendEmail(applicant, 'approved', {
-      start_date:     this.formatDisplayDate(this.approveStartDate),
-      required_hours: String(this.approveRequiredHours),
-      admin_note:     this.approveNote.trim()
+      start_date:     this.formatDisplayDate(startDate),
+      required_hours: String(hours),
+      admin_note:     note
     });
 
     // 5. Update local state
@@ -356,7 +328,6 @@ async confirmApprove() {
     this.actionLoading = false;
   }
 }
-
   // ══════════════════════════════════════════════════════════
   //  DECLINE FLOW
   // ══════════════════════════════════════════════════════════
@@ -374,66 +345,70 @@ async confirmApprove() {
   }
 
   async confirmDecline() {
-    if (!this.pendingDeclineApplicant) return;
-    const applicant = this.pendingDeclineApplicant;
-    this.closeDeclineModal();
-    this.actionLoading = true;
+  if (!this.pendingDeclineApplicant) return;
+  const applicant = this.pendingDeclineApplicant;
+  const note      = this.declineNote.trim();
 
+  this.closeDeclineModal();
+  this.actionLoading = true;
+
+  try {
+    // 1. Mark applicant declined (done server-side)
+    const execution = await this.appwrite.functions.createExecution(
+      this.OTP_FUNCTION_ID,
+      JSON.stringify({
+        action:         'decline-intern',
+        applicantDocId: applicant.$id
+      }),
+      false
+    );
+    const result = JSON.parse(execution.responseBody || '{}');
+    if (!result.success) throw new Error(result.message || 'Decline failed.');
+
+    // 2. Clear cache
+    this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
+
+    // 3. Send decline email
+    await this.sendEmail(applicant, 'declined', { admin_note: note });
+
+    // 4. Delete Appwrite auth user
     try {
-      // 1. Update applicant status
-      await this.appwrite.databases.updateDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL,
-        applicant.$id,
-        { status: 'declined' }
+      await this.appwrite.functions.createExecution(
+        this.appwrite.DELETE_USER_FN,
+        JSON.stringify({ userId: applicant.auth_user_id }),
+        false
       );
-
-      // 2. Clear cache
-      this.appwrite.clearCache(this.appwrite.APPLICANTS_COL);
-
-      // 3. Send decline email
-      await this.sendEmail(applicant, 'declined', {
-        admin_note: this.declineNote.trim()
-      });
-
-      // 4. Delete Appwrite auth user
-      try {
-        await this.appwrite.functions.createExecution(
-          this.appwrite.DELETE_USER_FN,
-          JSON.stringify({ userId: applicant.auth_user_id }),
-          false
-        );
-      } catch (fnErr: any) {
-        console.warn('Could not delete auth user:', fnErr);
-      }
-
-      // 5. Update local state
-      const index = this.applicants.findIndex(a => a.$id === applicant.$id);
-      if (index !== -1) this.applicants[index].status = 'declined';
-      this.applyFilter();
-      if (this.selectedApplicant?.$id === applicant.$id)
-        this.selectedApplicant.status = 'declined';
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Declined',
-        html: `<b>${applicant.first_name} ${applicant.last_name}</b>'s application has been declined.<br>
-               <span style="font-size:13px; color:#6b7280;">
-                 An email notification has been sent to ${applicant.email}
-               </span>`,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 4000,
-        timerProgressBar: true
-      });
-
-    } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
-    } finally {
-      this.actionLoading = false;
+    } catch (fnErr: any) {
+      console.warn('Could not delete auth user:', fnErr);
     }
+
+    // 5. Update local state
+    const index = this.applicants.findIndex(a => a.$id === applicant.$id);
+    if (index !== -1) this.applicants[index].status = 'declined';
+    this.applyFilter();
+    if (this.selectedApplicant?.$id === applicant.$id)
+      this.selectedApplicant.status = 'declined';
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Declined',
+      html: `<b>${applicant.first_name} ${applicant.last_name}</b>'s application has been declined.<br>
+             <span style="font-size:13px; color:#6b7280;">
+               An email notification has been sent to ${applicant.email}
+             </span>`,
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 4000,
+      timerProgressBar: true
+    });
+
+  } catch (error: any) {
+    Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
+  } finally {
+    this.actionLoading = false;
   }
+}
 
   // ── Send email via Brevo ──────────────────────────────────
   async sendEmail(
