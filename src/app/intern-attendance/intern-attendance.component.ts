@@ -421,6 +421,16 @@ isPastWeekdayWithNoRecord(day: number): boolean {
     } catch { return null; }
   }
 
+  // ── Get natural size of a base64 image ────────────────────────────────
+  private getImageSize(dataUrl: string): Promise<{ w: number; h: number }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload  = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve({ w: 3, h: 1 }); // fallback ratio
+      img.src = dataUrl;
+    });
+  }
+
   // ── Build QR code as base64 PNG ───────────────────────────────────────
   private buildQrBase64(text: string, size: number): Promise<string> {
     return new Promise(async (resolve, reject) => {
@@ -538,6 +548,11 @@ isPastWeekdayWithNoRecord(day: number): boolean {
         }
       }
     } catch {}
+
+    // Natural size of e-signature (for standardized fitting)
+    const esigSize = esigBase64
+      ? await this.getImageSize(esigBase64)
+      : { w: 3, h: 1 };
 
     // ════════════════════════════════════════════════════════════════════
     //  COLORS
@@ -877,47 +892,46 @@ isPastWeekdayWithNoRecord(day: number): boolean {
     y += 8 + 55;
 
     // ════════════════════════════════════════════════════════════════════
-    //  SIGNATURE BLOCK — LOWER RIGHT of PAGE (BEFORE FOOTER LINE)
-    //  👉 FIND THIS SECTION: Line 842-872 in downloadDTRPdf() method
-    //  👉 EDIT HERE: E-SIGNATURE SIZE, SUPERVISOR NAME, TITLE, DATE
+    //  SIGNATURE BLOCK — standardized size (fits inside a fixed box)
     // ════════════════════════════════════════════════════════════════════
-    // Position signature on the far right side, ABOVE footer divider
-    const sigX = ML + CW - 55;      // even further right
-    const sigY = FY - 38;            // positioned HIGHER so it doesn't go below footer line
-    const sigBlockWidth = 53;
+    const sigBlockWidth = 55;
+    const sigX          = ML + CW - sigBlockWidth;   // right aligned
+    const sigCenterX    = sigX + sigBlockWidth / 2;
 
-    // 👉 E-SIGNATURE IMAGE — MUCH LARGER NOW: 75x40 (significantly bigger than supervisor name)
-    //    Change esigW to 75 and esigH to 40 to make the signature even bigger
+    // 👉 STANDARD E-SIG BOX — change these 2 values to resize ALL signatures
+    const ESIG_MAX_W = 40;   // mm
+    const ESIG_MAX_H = 16;   // mm
+
+    const sigTopY = FY - 30; // top of the signature box (above footer line)
+
     if (esigBase64) {
-      const esigW = 75, esigH = 40;  // Increased from 65x32 to 75x40 — much more prominent
-      const esigXCenter = sigX + (sigBlockWidth - esigW) / 2 - 3;  // slight left offset for centering
-      doc.addImage(esigBase64, 'PNG', esigXCenter, sigY, esigW, esigH);
+      // scale to fit inside the box, keep aspect ratio
+      const scale = Math.min(ESIG_MAX_W / esigSize.w, ESIG_MAX_H / esigSize.h);
+      const esigW = esigSize.w * scale;
+      const esigH = esigSize.h * scale;
+
+      // center horizontally, sit at the bottom of the box (just above the name)
+      const esigX = sigCenterX - esigW / 2;
+      const ESIG_DROP = 0;  // mm
+      const esigY = sigTopY + (ESIG_MAX_H - esigH) + ESIG_DROP;
+
+      doc.addImage(esigBase64, 'PNG', esigX, esigY, esigW, esigH);
     }
 
-    // 👉 SUPERVISOR NAME + TITLE + DATE section
-    //    nameY value controls the gap between e-signature image and the supervisor name
-    //    Decrease the value to bring name CLOSER to signature, increase to move it further away
-    let nameY = esigBase64 ? sigY + 25: sigY;  // 40mm signature + gap = 8mm spacing
+    // Name sits right below the signature box
+    const nameY = sigTopY + ESIG_MAX_H + 3;
 
-    // 👉 SUPERVISOR NAME — Displays the supervisor's full name (e.g., "Juan Delacruz")
-    //    Font: 7.5pt bold, color: dark gray
-    //    This comes from the Appwrite SUPERVISORS_COL database
     const coordName = supervisorName || '________________________________';
     doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); tc(DARK);
-    doc.text(coordName, sigX + sigBlockWidth / 2, nameY, { align: 'center' });
+    doc.text(coordName, sigCenterX, nameY, { align: 'center' });
 
-    // 👉 SUPERVISOR TITLE — Shows job position (always "OJT Coordinator / Immediate Supervisor")
-    //    Font: 6.5pt normal, color: gray
     doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(GRAY);
-    doc.text('Supervisor/Cooperating Teacher', sigX + sigBlockWidth / 2, nameY + 3, { align: 'center' });
+    doc.text('Supervisor/Cooperating Teacher', sigCenterX, nameY + 3, { align: 'center' });
 
-    // 👉 DOWNLOAD DATE — Shows the current date when PDF is generated
-    //    Font: 6.5pt normal, color: dark gray
-    //    Format: "April 28, 2026" (automatically updates based on system date)
     const downloadDate = new Date().toLocaleDateString('en-US',
       { year: 'numeric', month: 'long', day: 'numeric' });
     doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); tc(DARK);
-    doc.text(`Date: ${downloadDate}`, sigX + sigBlockWidth / 2, nameY + 6, { align: 'center' });
+    doc.text(`Date: ${downloadDate}`, sigCenterX, nameY + 6, { align: 'center' });
 
     // ════════════════════════════════════════════════════════════════════
     //  STAMP FOOTER ON EVERY PAGE
