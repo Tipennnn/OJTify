@@ -263,6 +263,14 @@ export class InternEvaluationComponent implements OnInit {
           this.buildSupervisorFromName(ev);
         }
 
+                // ── Force supervisor signature to black ink ──
+                if (this.supervisorEsigB64) {
+                  this.supervisorEsigB64 = await this.blackenSignature(this.supervisorEsigB64);
+                }
+                if (this.evaluation?.signature_data) {
+                  this.evaluation.signature_data = await this.blackenSignature(this.evaluation.signature_data);
+                }
+
         // NOTE: Canvas init is deferred until the user clicks "View My Evaluation"
         // because the canvas element doesn't exist in the DOM until viewingEvaluation = true.
         // initCanvas() is called instead from the view button click via setTimeout.
@@ -334,6 +342,36 @@ export class InternEvaluationComponent implements OnInit {
     }, 300);
   }
 
+
+
+  // Converts any signature image to black ink (keeps transparency)
+private blackenSignature(src: string): Promise<string> {
+  return new Promise(resolve => {
+    if (!src) { resolve(''); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width  = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      if (!ctx) { resolve(src); return; }
+      ctx.drawImage(img, 0, 0);
+      const d = ctx.getImageData(0, 0, c.width, c.height);
+      const p = d.data;
+      for (let i = 0; i < p.length; i += 4) {
+        const lum = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255;
+        const a   = p[i + 3] * (1 - lum);      // white -> transparent, dark ink -> solid
+        p[i] = p[i + 1] = p[i + 2] = 0;        // black
+        p[i + 3] = Math.min(255, a * 1.4);
+      }
+      ctx.putImageData(d, 0, 0);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(src);          // if it fails, keep original
+    img.src = src;
+  });
+}
   // ── Rating helpers ────────────────────────────────────────────────────────
   getRating(key: string): number {
     return this.scores[key] ?? 0;
@@ -428,7 +466,7 @@ export class InternEvaluationComponent implements OnInit {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
     if (this.ctx) {
-      this.ctx.strokeStyle = '#0818A8';
+      this.ctx.strokeStyle = '#000000';   // dati '#0818A8'
       this.ctx.lineWidth   = 2;
       this.ctx.lineCap     = 'round';
       this.ctx.lineJoin    = 'round';
