@@ -137,145 +137,85 @@ export class AdminOjtProfileComponent implements OnInit {
 
   this.saveLoading = true;
   try {
-    const willComplete = this.editCompletedHours >= this.editRequiredHours;
+    const oldSupervisorId = (this.student as any).supervisor_id || '';
 
-    if (willComplete) {
-      // 1. Get OJT start date from first attendance record
-      // ✅ FIXED - using Query helper
-  const attendance = await this.appwrite.databases.listDocuments(
-  this.appwrite.DATABASE_ID,
-  this.appwrite.ATTENDANCE_COL,
-  [
-    Query.equal('student_id', this.student.student_id),
-    Query.orderAsc('date'),
-    Query.limit(1)
-  ]
-);
-      const firstAttendance = attendance.documents[0];
-      const ojtStart = firstAttendance
-        ? firstAttendance['date']
-        : this.student.$createdAt.split('T')[0];
-
-      const ojtEnd = new Date().toISOString().split('T')[0];
-
-      // 2. Copy student to archives collection
-      await this.appwrite.databases.createDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ARCHIVES_COL,
-        'unique()',
-        {
-          student_doc_id:       this.student.$id,
-          first_name:           this.editFirstName,
-          middle_name:          this.editMiddleName,
-          last_name:            this.editLastName,
-          email:                this.student.email,
-          contact_number:       this.editContactNumber,
-          birthday:             this.editBirthday,
-          gender:               this.editGender,
-          home_address:         this.editHomeAddress,
-          student_id:           this.editStudentId,
-          school_name:          this.editSchoolName,
-          course:               this.editCourse,
-          year_level:           this.editYearLevel,
-          profile_photo_id:     this.student.profile_photo_id     || null,
-          resume_file_id:       this.student.resume_file_id       || null,
-          endorsement_file_id:  this.student.endorsement_file_id  || null,
-          coe_file_id:          this.student.coe_file_id          || null,
-          required_hours:       this.editRequiredHours,
-          completed_hours:      this.editCompletedHours,
-          ojt_start:            ojtStart,
-          ojt_end:              ojtEnd,
-          archived_at:          new Date().toISOString()
-        }
-      );
-
-      // 3. Delete student from students collection
-      await this.appwrite.databases.deleteDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL,
-        this.student.$id
-      );
-
-      Swal.fire({
-        icon: 'success',
-        title: 'OJT Completed!',
-        text: `${this.editFirstName} ${this.editLastName} has been archived.`,
-        confirmButtonColor: '#2563eb'
-      }).then(() => {
-        this.router.navigate(['/admin-ojt']);
-      });
-
-    } else {
-      // Not yet complete — just update normally
-     await this.appwrite.databases.updateDocument(
-  this.appwrite.DATABASE_ID,
-  this.appwrite.STUDENTS_COL,
-  this.student.$id,
-  {
-    first_name:      this.editFirstName,
-    middle_name:     this.editMiddleName,
-    last_name:       this.editLastName,
-    contact_number:  this.editContactNumber,
-    birthday:        this.editBirthday,
-    gender:          this.editGender,
-    home_address:    this.editHomeAddress,
-    student_id:      this.editStudentId,
-    school_name:     this.editSchoolName,
-    course:          this.editCourse,
-    year_level:      this.editYearLevel,
-    required_hours:  this.editRequiredHours,
-    completed_hours: this.editCompletedHours,
-    supervisor_id:   this.editSupervisorId || null  // ← add this
-  }
-);
-// ✅ Update assigned_students count on the supervisor
-if (this.editSupervisorId) {
-  try {
-    // Count how many students have this supervisor
-    const { Query } = await import('appwrite');
-    const countRes = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      [Query.equal('supervisor_id', this.editSupervisorId)]
-    );
+    // Always just update the student — no auto-archive
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      this.editSupervisorId,
-      { assigned_students: countRes.total }
+      this.appwrite.STUDENTS_COL,
+      this.student.$id,
+      {
+        first_name:      this.editFirstName,
+        middle_name:     this.editMiddleName,
+        last_name:       this.editLastName,
+        contact_number:  this.editContactNumber,
+        birthday:        this.editBirthday,
+        gender:          this.editGender,
+        home_address:    this.editHomeAddress,
+        student_id:      this.editStudentId,
+        school_name:     this.editSchoolName,
+        course:          this.editCourse,
+        year_level:      this.editYearLevel,
+        required_hours:  this.editRequiredHours,
+        completed_hours: this.editCompletedHours,
+        supervisor_id:   this.editSupervisorId || null
+      }
     );
-  } catch (e) {
-    console.error('Failed to update supervisor student count:', e);
-  }
-}
 
-      // Update local object
-      this.student.first_name      = this.editFirstName;
-      this.student.middle_name     = this.editMiddleName;
-      this.student.last_name       = this.editLastName;
-      this.student.contact_number  = this.editContactNumber;
-      this.student.birthday        = this.editBirthday;
-      this.student.gender          = this.editGender;
-      this.student.home_address    = this.editHomeAddress;
-      this.student.student_id      = this.editStudentId;
-      this.student.school_name     = this.editSchoolName;
-      this.student.course          = this.editCourse;
-      this.student.year_level      = this.editYearLevel;
-      this.student.required_hours  = this.editRequiredHours;
-      this.student.completed_hours = this.editCompletedHours;
+    // Refresh assigned_students count for new AND old supervisor
+    const supervisorIds = new Set<string>();
+    if (this.editSupervisorId) supervisorIds.add(this.editSupervisorId);
+    if (oldSupervisorId)       supervisorIds.add(oldSupervisorId);
 
-      this.editMode = false;
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Profile Updated!',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-      });
+    for (const supId of supervisorIds) {
+      try {
+        const countRes = await this.appwrite.databases.listDocuments(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.STUDENTS_COL,
+          [Query.equal('supervisor_id', supId)]
+        );
+        await this.appwrite.databases.updateDocument(
+          this.appwrite.DATABASE_ID,
+          this.appwrite.SUPERVISORS_COL,
+          supId,
+          { assigned_students: countRes.total }
+        );
+      } catch (e) {
+        console.error('Failed to update supervisor student count:', e);
+      }
     }
+
+    // Keep cached data fresh
+    this.appwrite.clearCache(this.appwrite.STUDENTS_COL);
+    this.appwrite.clearCache(this.appwrite.SUPERVISORS_COL);
+
+    // Update local object
+    this.student.first_name      = this.editFirstName;
+    this.student.middle_name     = this.editMiddleName;
+    this.student.last_name       = this.editLastName;
+    this.student.contact_number  = this.editContactNumber;
+    this.student.birthday        = this.editBirthday;
+    this.student.gender          = this.editGender;
+    this.student.home_address    = this.editHomeAddress;
+    this.student.student_id      = this.editStudentId;
+    this.student.school_name     = this.editSchoolName;
+    this.student.course          = this.editCourse;
+    this.student.year_level      = this.editYearLevel;
+    this.student.required_hours  = this.editRequiredHours;
+    this.student.completed_hours = this.editCompletedHours;
+    this.student.supervisor_id   = this.editSupervisorId || undefined;
+
+    this.editMode = false;
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Profile Updated!',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    });
 
   } catch (error: any) {
     Swal.fire({ icon: 'error', title: 'Failed', text: error.message });
