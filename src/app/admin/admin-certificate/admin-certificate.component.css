@@ -981,6 +981,12 @@ app-admin-topnav { position: sticky; top: 0; z-index: 100; }
   text-align: center;
   letter-spacing: 0.3px;
 }
+.cert-period {
+  text-align: center;
+  font-size: 13px;
+  color: #374151;
+  margin: 4px 0 8px;
+}
 @media (max-width: 768px) {
   .main-section {
     left: 0 !important;

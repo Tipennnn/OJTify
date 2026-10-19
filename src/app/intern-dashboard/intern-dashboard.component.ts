@@ -67,6 +67,10 @@ export class InternDashboardComponent implements OnInit {
   totalPresent   = 0;
   totalAbsent    = 0;
 
+  // ── Shared fetches (one request set, reused by several methods) ──
+  private attendancePromise: Promise<any[]> | null = null;
+  private tasksPromise     : Promise<any[]> | null = null;
+
   constructor(
     private appwrite: AppwriteService,
     private router  : Router
@@ -74,6 +78,8 @@ export class InternDashboardComponent implements OnInit {
 
   async ngOnInit() {
     await this.getCurrentUser();
+    if (!this.currentUserId) return; // not logged in as intern — already redirected
+
     this.loadRecentTasks();
     this.loadStudentData();
     this.loadRecentAttendance();
@@ -83,29 +89,91 @@ export class InternDashboardComponent implements OnInit {
     await this.checkAndShowAlerts();
   }
 
- async getCurrentUser() {
-  try {
-    const storedId = sessionStorage.getItem('currentDocId');
-    const storedRole = sessionStorage.getItem('role');
+  async getCurrentUser() {
+    try {
+      const storedId = sessionStorage.getItem('currentDocId');
+      const storedRole = sessionStorage.getItem('role');
 
-    if (!storedId || storedRole !== 'intern') {
+      if (!storedId || storedRole !== 'intern') {
+        this.router.navigate(['/intern-login']);
+        return;
+      }
+
+      this.currentUserId = storedId;
+
+      // Get name from the student doc, not account.get()
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        storedId
+      );
+      this.firstName = (doc as any).first_name || 'Student';
+    } catch {
       this.router.navigate(['/intern-login']);
-      return;
     }
-
-    this.currentUserId = storedId;
-
-    // Get name from the student doc, not account.get()
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      storedId
-    );
-    this.firstName = (doc as any).first_name || 'Student';
-  } catch {
-    this.router.navigate(['/intern-login']);
   }
-}
+
+  // ── Fetch ALL docs of a collection (no 25/100 cap) ────────
+  // Cursor pagination — does NOT require any DB index.
+  private async fetchAll(collectionId: string, queries: string[] = []): Promise<any[]> {
+    const PAGE = 100;
+    let all: any[] = [];
+    let cursor: string | null = null;
+
+    while (true) {
+      const q = [...queries, Query.limit(PAGE)];
+      if (cursor) q.push(Query.cursorAfter(cursor));
+
+      const res: any = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        collectionId,
+        q
+      );
+
+      all = all.concat(res.documents);
+      if (res.documents.length < PAGE) break;
+      cursor = res.documents[res.documents.length - 1].$id;
+    }
+    return all;
+  }
+
+  // ── All of THIS intern's attendance (fetched once, shared) ─
+  private getMyAttendance(): Promise<any[]> {
+    if (!this.attendancePromise) {
+      this.attendancePromise = (async () => {
+        try {
+          // Fast path: filtered by student_id (needs an index on student_id)
+          return await this.fetchAll(
+            this.appwrite.ATTENDANCE_COL,
+            [Query.equal('student_id', this.currentUserId)]
+          );
+        } catch (err: any) {
+          // Fallback: no index → fetch everything, filter in code
+          console.warn('[Dashboard] attendance filter failed, using fallback:', err?.message);
+          const all = await this.fetchAll(this.appwrite.ATTENDANCE_COL);
+          return all.filter(d => d.student_id === this.currentUserId);
+        }
+      })();
+    }
+    return this.attendancePromise;
+  }
+
+  // ── All tasks assigned to THIS intern (fetched once, shared) ─
+  private getMyTasks(): Promise<any[]> {
+    if (!this.tasksPromise) {
+      this.tasksPromise = (async () => {
+        const all = await this.fetchAll(this.appwrite.TASKS_COL);
+        return all.filter(task => {
+          if (!task.assigned_intern_ids) return false;
+          return task.assigned_intern_ids
+            .split(',').map((id: string) => id.trim())
+            .includes(this.currentUserId);
+        });
+      })();
+    }
+    return this.tasksPromise;
+  }
+
   // ── Greeting by time of day ───────────────────────────────
   get greetingTime(): string {
     const h = new Date().getHours();
@@ -145,54 +213,47 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load student hours + today attendance ─────────────────
- async loadStudentData() {
-  try {
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      this.currentUserId
-    );
-    this.requiredHours  = (doc as any).required_hours  || 500;
-    this.completedHours = (doc as any).completed_hours || 0;
+  async loadStudentData() {
+    try {
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      this.requiredHours  = (doc as any).required_hours  || 500;
+      this.completedHours = (doc as any).completed_hours || 0;
 
-    const start = new Date((doc as any).$createdAt);
-    start.setHours(0, 0, 0, 0);
-    this.internStartDate = start;
+      const start = new Date((doc as any).$createdAt);
+      start.setHours(0, 0, 0, 0);
+      this.internStartDate = start;
 
-    // Load supervisor info
-    const supervisorId = (doc as any).supervisor_id;
-    if (supervisorId) {
-      this.loadSupervisorInfo(supervisorId);
+      // Load supervisor info
+      const supervisorId = (doc as any).supervisor_id;
+      if (supervisorId) {
+        this.loadSupervisorInfo(supervisorId);
+      }
+
+      // Today (both stored formats: 2026-10-20 and October 20, 2026)
+      const now    = new Date();
+      const iso    = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const pretty = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      const mine     = await this.getMyAttendance();
+      const todayDoc = mine.find(d => d.date === iso || d.date === pretty);
+
+      if (todayDoc) {
+        this.todayStatus = todayDoc.status;
+      } else {
+        const startDate = new Date((doc as any).$createdAt);
+        startDate.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0);
+        this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
+      }
+
+    } catch (error: any) {
+      console.error('Failed to load student data:', error.message);
     }
-
-    // ── FIX: build today string ONCE and reuse ────────────
-    const now   = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    // ── FIX: query with filters instead of fetching all ───
-    const { Query } = await import('appwrite');
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL,
-      [
-        Query.equal('student_id', this.currentUserId),
-        Query.equal('date', today)
-      ]
-    );
-
-    if (res.documents.length > 0) {
-      this.todayStatus = (res.documents[0] as any).status;
-    } else {
-      const startDate = new Date((doc as any).$createdAt);
-      startDate.setHours(0, 0, 0, 0);
-      now.setHours(0, 0, 0, 0);
-      this.todayStatus = startDate < now ? 'Absent' : 'No Record Yet';
-    }
-
-  } catch (error: any) {
-    console.error('Failed to load student data:', error.message);
   }
-}
 
   // ── Load supervisor info ──────────────────────────────────
   async loadSupervisorInfo(supervisorId: string) {
@@ -212,7 +273,6 @@ export class InternDashboardComponent implements OnInit {
       if (s.profile_photo_id?.trim()) {
         // Use direct URL construction — avoids all SDK type issues
         this.supervisorPhotoUrl = this.appwrite.getFileViewUrl(s.profile_photo_id.trim());
-        console.log('Supervisor photo URL:', this.supervisorPhotoUrl);
       }
     } catch (error: any) {
       console.error('Failed to load supervisor info:', error.message);
@@ -220,78 +280,64 @@ export class InternDashboardComponent implements OnInit {
   }
 
   // ── Load all task stats (totals) ──────────────────────────
-async loadAllTaskStats() {
-  try {
-    const { Query } = await import('appwrite');
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.TASKS_COL,
-      [Query.limit(100)]
-    );
-    const allTasks = (res.documents as any[]).filter(task => {
-      if (!task.assigned_intern_ids) return false;
-      return task.assigned_intern_ids
-        .split(',').map((id: string) => id.trim())
-        .includes(this.currentUserId);
-    });
-    this.totalTasks     = allTasks.length;
-    this.completedTasks = allTasks.filter(t => t.status === 'completed').length;
-    this.pendingTasks   = allTasks.filter(t => t.status === 'pending').length;
-  } catch (error: any) {
-    console.error('Failed to load task stats:', error.message);
+  async loadAllTaskStats() {
+    try {
+      const allTasks = await this.getMyTasks();
+      this.totalTasks     = allTasks.length;
+      this.completedTasks = allTasks.filter(t => t.status === 'completed').length;
+      this.pendingTasks   = allTasks.filter(t => t.status === 'pending').length;
+    } catch (error: any) {
+      console.error('Failed to load task stats:', error.message);
+    }
   }
-}
 
   // ── Load all attendance stats ──────────────────────────────
   async loadAllAttendanceStats() {
-  try {
-    const { Query } = await import('appwrite');
-
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL,
-      [
-        Query.equal('student_id', this.currentUserId),
-        Query.limit(5000)
-      ]
-    );
-
-    const mine        = res.documents as any[];
-    this.totalPresent = mine.filter(d => d.status === 'Present').length;
-    this.totalAbsent  = mine.filter(d => d.status === 'Absent').length;
-
-  } catch (error: any) {
-    console.error('Failed to load attendance stats:', error.message);
+    try {
+      const mine        = await this.getMyAttendance();
+      this.totalPresent = mine.filter(d => d.status === 'Present').length;
+      this.totalAbsent  = mine.filter(d => d.status === 'Absent').length;
+    } catch (error: any) {
+      console.error('Failed to load attendance stats:', error.message);
+    }
   }
-}
 
   // ── Load recent attendance (last 3 records) ───────────────
- async loadRecentAttendance() {
-  try {
-    const { Query } = await import('appwrite');
+  async loadRecentAttendance() {
+    try {
+      const mine = await this.getMyAttendance();
 
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL,
-      [
-        Query.equal('student_id', this.currentUserId),
-        Query.orderDesc('date'),
-        Query.limit(3)
-      ]
-    );
+      // Newest date first (handles both date formats), createdAt as tie-breaker
+      const latest = [...mine]
+        .sort((a, b) =>
+          (this.dateTime(b.date) - this.dateTime(a.date)) ||
+          (new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+        )
+        .slice(0, 3);
 
-    this.recentAttendance = (res.documents as any[]).map(record => ({
-      date          : this.formatDate(record.date),
-      time_in       : record.time_in  || '—',
-      time_out      : record.time_out || '—',
-      status        : record.status,
-      hours_rendered: this.calcHours(record.time_in, record.time_out)
-    }));
+      this.recentAttendance = latest.map(record => ({
+        date          : this.formatDate(record.date),
+        time_in       : record.time_in  || '—',
+        time_out      : record.time_out || '—',
+        status        : record.status,
+        hours_rendered: this.calcHours(record.time_in, record.time_out)
+      }));
 
-  } catch (error: any) {
-    console.error('Failed to load attendance:', error.message);
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    }
   }
-}
+
+  // ── Turn a stored date string into a sortable number ──────
+  private dateTime(dateStr: string): number {
+    if (!dateStr) return 0;
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+      return new Date(y, m - 1, d).getTime();
+    }
+    const t = new Date(dateStr).getTime();
+    return isNaN(t) ? 0 : t;
+  }
 
   // ── Calculate hours between time_in and time_out ──────────
   calcHours(timeIn: string, timeOut: string): string {
@@ -315,7 +361,6 @@ async loadAllTaskStats() {
   isOverdue(dueDateStr: string, status: string): boolean {
     if (status === 'completed' || !dueDateStr || dueDateStr === '—') return false;
     try {
-      const parts = dueDateStr.split(' ');
       // dueDateStr is formatted like "April 21, 2026"
       const d = new Date(dueDateStr);
       return d < new Date();
@@ -325,14 +370,10 @@ async loadAllTaskStats() {
   }
 
   // ── Load application info ─────────────────────────────────
-  // ── Load application info ─────────────────────────────────
   async loadApplicationInfo() {
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL,
-        [Query.limit(500)]
-      );
+      // all applicants (was capped at 500)
+      const applicants = await this.fetchAll(this.appwrite.APPLICANTS_COL);
 
       // kunin ang email ng student para i-match sa applicant
       const studentDoc: any = await this.appwrite.databases.getDocument(
@@ -342,7 +383,7 @@ async loadAllTaskStats() {
       );
       const studentEmail = (studentDoc.email || '').trim().toLowerCase();
 
-      const applicant = (res.documents as any[]).find(a =>
+      const applicant = applicants.find(a =>
         a.auth_user_id === this.currentUserId ||
         a.$id === this.currentUserId ||
         (studentEmail && (a.email || '').trim().toLowerCase() === studentEmail)
@@ -370,8 +411,10 @@ async loadAllTaskStats() {
   // ── Format date helper ─────────────────────────────────────
   formatDate(dateStr: string): string {
     if (!dateStr || dateStr === '—') return '—';
+    // Already a readable date (e.g. "October 20, 2026") — leave as is
+    if (!/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
     try {
-      const parts = dateStr.split('-');
+      const parts = dateStr.split('T')[0].split('-');
       const d     = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       return d.toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric'
@@ -390,23 +433,23 @@ async loadAllTaskStats() {
     return Math.max(this.requiredHours - this.completedHours, 0);
   }
 
-async checkAndShowAlerts() {
-  try {
-    // Use stored first name instead of account.get()
-    const firstName = this.firstName || 'Student';
+  async checkAndShowAlerts() {
+    try {
+      // Use stored first name instead of account.get()
+      const firstName = this.firstName || 'Student';
 
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.STUDENTS_COL,
-      this.currentUserId
-    );
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
 
-    const missingFields: string[] = [];
-    if (!(doc as any).profile_photo_id?.trim()) missingFields.push('Profile photo');
-    if (!(doc as any).contact_number?.trim())   missingFields.push('Contact number');
-    if (!(doc as any).home_address?.trim())     missingFields.push('Home address');
+      const missingFields: string[] = [];
+      if (!(doc as any).profile_photo_id?.trim()) missingFields.push('Profile photo');
+      if (!(doc as any).contact_number?.trim())   missingFields.push('Contact number');
+      if (!(doc as any).home_address?.trim())     missingFields.push('Home address');
 
-    this.profileIncomplete = missingFields.length > 0;
+      this.profileIncomplete = missingFields.length > 0;
 
       if (!sessionStorage.getItem('welcomeShown')) {
         sessionStorage.setItem('welcomeShown', 'true');
@@ -478,40 +521,28 @@ async checkAndShowAlerts() {
   }
 
   // ── Load recent tasks ─────────────────────────────────────
-async loadRecentTasks() {
-  this.tasksLoading = true;
-  try {
-    const { Query } = await import('appwrite');
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.TASKS_COL,
-      [Query.limit(100)]
-    );
-    const allTasks = res.documents as any[];
-    const myTasks  = allTasks.filter(task => {
-      if (!task.assigned_intern_ids) return false;
-      return task.assigned_intern_ids
-        .split(',').map((id: string) => id.trim())
-        .includes(this.currentUserId);
-    });
+  async loadRecentTasks() {
+    this.tasksLoading = true;
+    try {
+      const myTasks = await this.getMyTasks();
 
-    this.recentTasks = myTasks
-      .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
-      .slice(0, 3)
-      .map(task => ({
-        $id            : task.$id,
-        title          : task.title           || '—',
-        description    : task.description     || '—',
-        posted         : this.formatDate(task.$createdAt.split('T')[0]),
-        due            : task.due ? this.formatDate(task.due) : '—',
-        status         : task.status          || 'pending',
-        supervisor_name: task.supervisor_name || '—'
-      }));
+      this.recentTasks = [...myTasks]
+        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+        .slice(0, 3)
+        .map(task => ({
+          $id            : task.$id,
+          title          : task.title           || '—',
+          description    : task.description     || '—',
+          posted         : this.formatDate(task.$createdAt.split('T')[0]),
+          due            : task.due ? this.formatDate(task.due) : '—',
+          status         : task.status          || 'pending',
+          supervisor_name: task.supervisor_name || '—'
+        }));
 
-  } catch (error: any) {
-    console.error('Failed to load tasks:', error.message);
-  } finally {
-    this.tasksLoading = false;
+    } catch (error: any) {
+      console.error('Failed to load tasks:', error.message);
+    } finally {
+      this.tasksLoading = false;
+    }
   }
-}
 }

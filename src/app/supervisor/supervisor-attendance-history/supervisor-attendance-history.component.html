@@ -93,7 +93,9 @@
             <th>Time In</th>
             <th>Time Out</th>
             <th>Status</th>
-            <th>Source</th>  <!-- NEW column -->
+            <th>Source</th> 
+            <th>Note</th>  <!-- NEW column -->
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -142,10 +144,25 @@
 </ng-template>
             </td>
 
+              <td class="note-cell">
+              <span class="note-text" *ngIf="log.reason; else noNote" [title]="log.reason">
+                {{ log.reason }}
+              </span>
+              <ng-template #noNote><span class="muted-dash">—</span></ng-template>
+            </td>
+
+              <!-- NEW: Actions column -->
+  <td>
+    <button class="edit-btn" (click)="openEditModal(log)" title="Edit time in / out">
+      <i class="fa-solid fa-pen"></i> Edit
+    </button>
+  </td>
+
+
           </tr>
 
           <tr *ngIf="filteredLogs.length === 0">
-            <td colspan="6" class="empty-row">
+            <td colspan="8" class="empty-row">
               <i class="fas fa-calendar-times" style="font-size:32px; margin-bottom:10px; display:block;"></i>
               No attendance records for this day.
             </td>
@@ -192,6 +209,8 @@
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
+
+  
 
   <!-- Supervisor attribution banner -->
   <div class="supervisor-banner" *ngIf="currentSupervisor">
@@ -256,6 +275,7 @@
       </div>
     </div>
 
+    
     <!-- Time Fields -->
     <div class="form-row">
       <div class="form-group">
@@ -305,5 +325,91 @@
       </button>
     </div>
 
+  </div>
+</div>
+<!-- ============================
+     EDIT ATTENDANCE MODAL
+============================= -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()"></div>
+
+<div class="modal-card" *ngIf="showEditModal && editingLog">
+  <div class="modal-header">
+    <div>
+      <div class="modal-title-row">
+        <div class="modal-title-icon">
+          <i class="fa-solid fa-pen"></i>
+        </div>
+        <h4 class="modal-title">Edit Attendance</h4>
+      </div>
+      <p class="modal-subtitle">{{ formatDisplayDate(editingLog.date) }}</p>
+    </div>
+    <button class="modal-close" (click)="closeEditModal()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="modal-success" *ngIf="editSuccess">
+    <i class="fa-solid fa-circle-check"></i>
+    <span>Record updated &amp; hours adjusted!</span>
+  </div>
+
+  <div *ngIf="!editSuccess">
+
+    <!-- Intern (read-only) -->
+    <div class="selected-student" style="margin-top:0; margin-bottom:18px;">
+      <img [src]="editingLog.student_photo ||
+                  'https://ui-avatars.com/api/?name=' + editingLog.student_name + '&background=0818A8&color=fff&size=64'"
+           class="mini-avatar" alt="">
+      <span>{{ editingLog.student_name }}</span>
+      <span class="student-id-tag">{{ editingLog.student_id_number }}</span>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Time In <span class="required">*</span></label>
+        <input type="time" class="form-input" [(ngModel)]="editForm.time_in">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Time Out <span class="optional">(optional)</span></label>
+        <input type="time" class="form-input" [(ngModel)]="editForm.time_out">
+      </div>
+    </div>
+
+    <!-- Hours change preview -->
+    <div class="hours-preview" *ngIf="editHoursChanged">
+      <i class="fa-solid fa-hourglass-half"></i>
+      <span>
+        <strong>{{ editOldHours }} hrs</strong> → <strong>{{ editNewHours }} hrs</strong>
+        ({{ editDelta > 0 ? '+' : '' }}{{ editDelta }} hrs will be applied to completed hours)
+      </span>
+    </div>
+    <div class="hours-preview hours-preview--warn" *ngIf="!editHoursChanged">
+      <i class="fa-solid fa-circle-info"></i>
+      <span>No change in hours — completed hours will stay the same.</span>
+    </div>
+
+     <!-- NEW: Note field -->
+    <div class="form-group">
+      <label class="form-label">Note <span class="optional">(optional)</span></label>
+      <input
+        type="text"
+        class="form-input"
+        placeholder="e.g. Intern forgot to scan QR code"
+        [(ngModel)]="editForm.reason"
+        maxlength="200">
+    </div>
+
+
+    <div class="modal-error" *ngIf="editError">
+      <i class="fa-solid fa-triangle-exclamation"></i> {{ editError }}
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="closeEditModal()">Cancel</button>
+      <button class="btn-submit" (click)="submitEdit()" [disabled]="editLoading">
+        <span *ngIf="!editLoading"><i class="fa-solid fa-floppy-disk"></i> Save Changes</span>
+        <span *ngIf="editLoading"><i class="fa fa-spinner fa-spin"></i> Saving...</span>
+      </button>
+    </div>
   </div>
 </div>

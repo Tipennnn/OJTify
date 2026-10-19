@@ -76,8 +76,7 @@ const DEFAULT_TEMPLATE: CertTemplate = {
   mainTitle:         'Certificate of Completion',
   subtitleTag:       'On-the-Job Training Program',
   awardedText:       'This certificate is proudly awarded to',
-  bodyText:          'for successfully completing the {hours}-hour On-the-Job Training (OJT), taking up {course} from {school}, conducted at {host}.',
-  givenText:         'Given this {date}, at {location}.',
+  bodyText:          'for successfully completing the {hours}-hour On-the-Job Training (OJT), taking up {course} from {school}, conducted at {host} from {startDate} to {endDate}.',  givenText:         'Given this {date}, at {location}.',
   supervisorName:    'Maria Santos',
   supervisorPos:     'OJT Supervisor',
   leftSignatoryName: 'Juan Dela Cruz',
@@ -163,7 +162,7 @@ expandDragOriginY = 0;
     mainTitle:         30,   // "Certificate of Completion" = 25 chars
     subtitleTag:       40,   // "On-the-Job Training Program" = 28 chars
     awardedText:       50,   // short preamble line
-    bodyText:          220,  // main body paragraph
+    bodyText:          260,  // main body paragraph
     givenText:         80,   // "Given this {date}, at {location}."
     leftSignatoryName: 35,   // full name
     leftSignatoryPos:  35,   // position/title
@@ -864,19 +863,22 @@ expandDragOriginY = 0;
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
   }
 
-  getBodyText(intern: Intern): string {
-    const raw = this.certTemplate.bodyText || '';
-    const escaped = raw
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    return escaped
-      .replace(/\{name\}/g,   `<strong>${this.escapeHtml(intern.name)}</strong>`)
-      .replace(/\{hours\}/g,  `<strong>${intern.hoursCompleted}</strong>`)
-      .replace(/\{course\}/g, `<strong>${this.escapeHtml(intern.course)}</strong>`)
-      .replace(/\{school\}/g, `<strong>${this.escapeHtml(intern.school)}</strong>`)
-      .replace(/\{host\}/g,   `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`);
-  }
+getBodyText(intern: Intern): string {
+  const raw = this.certTemplate.bodyText || '';
+  const escaped = raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escaped
+    .replace(/\{name\}/g,      `<strong>${this.escapeHtml(intern.name)}</strong>`)
+    .replace(/\{hours\}/g,     `<strong>${intern.hoursCompleted}</strong>`)
+    .replace(/\{course\}/g,    `<strong>${this.escapeHtml(intern.course)}</strong>`)
+    .replace(/\{school\}/g,    `<strong>${this.escapeHtml(intern.school)}</strong>`)
+    .replace(/\{host\}/g,      `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`)
+    .replace(/\{startDate\}/g, `<strong>${this.escapeHtml(intern.startDate || '—')}</strong>`)
+    .replace(/\{endDate\}/g,   `<strong>${this.escapeHtml(intern.endDate || 'Present')}</strong>`)
+    .replace(/\{period\}/g,    `<strong>${this.escapeHtml(this.getPeriodText(intern))}</strong>`);
+}
 
   getGivenText(intern: Intern): string {
     const date = intern.endDate
@@ -1274,13 +1276,15 @@ getPreviewBodyText(): string {
   const raw = this.certTemplate.bodyText || '';
   const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return escaped
-    .replace(/\{name\}/g,   `<strong>Sample Intern Name</strong>`)
-    .replace(/\{hours\}/g,  `<strong>${this.certTemplate.requiredHours}</strong>`)
-    .replace(/\{course\}/g, `<strong>Bachelor of Science in Information Technology</strong>`)
-    .replace(/\{school\}/g, `<strong>Sample University</strong>`)
-    .replace(/\{host\}/g,   `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`);
+    .replace(/\{name\}/g,      `<strong>Sample Intern Name</strong>`)
+    .replace(/\{hours\}/g,     `<strong>${this.certTemplate.requiredHours}</strong>`)
+    .replace(/\{course\}/g,    `<strong>Bachelor of Science in Information Technology</strong>`)
+    .replace(/\{school\}/g,    `<strong>Sample University</strong>`)
+    .replace(/\{host\}/g,      `<strong>${this.escapeHtml(this.certTemplate.hostSchool)}</strong>`)
+    .replace(/\{startDate\}/g, `<strong>April 3, 2026</strong>`)
+    .replace(/\{endDate\}/g,   `<strong>June 4, 2026</strong>`)
+    .replace(/\{period\}/g,    `<strong>April 3, 2026 to June 4, 2026</strong>`);
 }
-
 getPreviewGivenText(): string {
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   return (this.certTemplate.givenText || '')
@@ -1338,11 +1342,28 @@ private async buildSnapshot(intern: Intern, givenDate: string): Promise<string> 
       school:         intern.school,
       hoursCompleted: intern.hoursCompleted,
       requiredHours:  intern.requiredHours,
+      startDate:      intern.startDate,
       endDate:        givenDate,
       supervisorName: intern.supervisorName,
       supervisorPos:  intern.supervisorPos,
     },
   });
+}
+
+getPeriodText(intern: Intern | null): string {
+  if (!intern) return '';
+  const start = intern.startDate || '—';
+  const end   = intern.endDate   || 'Present';
+  return `${start} to ${end}`;
+}
+
+getPreviewPeriodText(): string {
+  return 'April 3, 2026 to June 4, 2026';
+}
+
+// true when the admin already put {startDate}, {endDate} or {period} in the body text
+hasPeriodPlaceholder(): boolean {
+  return /\{(startDate|endDate|period)\}/.test(this.certTemplate.bodyText || '');
 }
 
 }

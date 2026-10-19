@@ -132,17 +132,61 @@ export class SupervisorDashboardComponent implements OnInit {
     return 'Good evening';
   }
 
+  // ── Fetch ALL docs of a collection (no 25-doc default cap) ─
+  // Uses cursor pagination, so it does NOT require any DB index.
+  private async fetchAll(collectionId: string, queries: string[] = []): Promise<any[]> {
+    const PAGE = 100;
+    let all: any[] = [];
+    let cursor: string | null = null;
+
+    while (true) {
+      const q = [...queries, Query.limit(PAGE)];
+      if (cursor) q.push(Query.cursorAfter(cursor));
+
+      const res: any = await this.appwrite.databases.listDocuments(
+        this.appwrite.DATABASE_ID,
+        collectionId,
+        q
+      );
+
+      all = all.concat(res.documents);
+      if (res.documents.length < PAGE) break;
+      cursor = res.documents[res.documents.length - 1].$id;
+    }
+    return all;
+  }
+
+  // ── Today's attendance docs for my interns (newest first) ──
+  // Filters by date in code (the `date` column has no index, so
+  // Query.equal('date', ...) would make Appwrite throw).
+  private async getTodayAttendanceDocs(): Promise<any[]> {
+    const now   = new Date();
+    const iso   = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const pretty = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const res = await this.appwrite.databases.listDocuments(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      [Query.orderDesc('$createdAt'), Query.limit(200)]
+    );
+
+    const internIds = Array.from(this.studentMap.keys());
+    return (res.documents as any[]).filter(d =>
+      internIds.includes(d.student_id) && (d.date === iso || d.date === pretty)
+    );
+  }
+
   // ── E-sig reminder ─────────────────────────────────────────
   private async checkEsigReminder(): Promise<void> {
-  if (sessionStorage.getItem('esigReminderShown')) return;
-  try {
-    if (!this.currentSupervisorId) return; // guard — no ID means getCurrentSupervisor failed
+    if (sessionStorage.getItem('esigReminderShown')) return;
+    try {
+      if (!this.currentSupervisorId) return; // guard — no ID means getCurrentSupervisor failed
 
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      this.currentSupervisorId
-    );
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        this.currentSupervisorId
+      );
       const hasEsig = !!(doc as any).esig_file_id;
       sessionStorage.setItem('esigReminderShown', 'true');
       if (hasEsig) return;
@@ -174,38 +218,37 @@ export class SupervisorDashboardComponent implements OnInit {
 
   // ── Get logged-in supervisor ──────────────────────────────
   async getCurrentSupervisor() {
-  try {
-    const storedId = sessionStorage.getItem('currentDocId');
-    const storedRole = sessionStorage.getItem('role');
+    try {
+      // sessionStorage first, localStorage as fallback
+      const storedId   = sessionStorage.getItem('currentDocId') || localStorage.getItem('currentDocId');
+      const storedRole = sessionStorage.getItem('role')         || localStorage.getItem('role');
 
-    if (!storedId || storedRole !== 'supervisor') {
-      // Don't redirect — just silently fail so other tabs aren't affected
-      return;
+      if (!storedId || storedRole !== 'supervisor') {
+        console.warn('[Dashboard] No supervisor id/role in storage:', { storedId, storedRole });
+        return;
+      }
+
+      this.currentSupervisorId = storedId;
+      const doc = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.SUPERVISORS_COL,
+        storedId
+      );
+      this.supervisorFirstName = (doc as any).first_name || '';
+      this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
+    } catch (error: any) {
+      console.error('Failed to get supervisor:', error.message);
     }
-
-    this.currentSupervisorId = storedId;
-    const doc = await this.appwrite.databases.getDocument(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.SUPERVISORS_COL,
-      storedId
-    );
-    this.supervisorFirstName = (doc as any).first_name || '';
-    this.supervisorName = `${(doc as any).first_name} ${(doc as any).last_name}`;
-  } catch (error: any) {
-    console.error('Failed to get supervisor:', error.message);
   }
-}
 
   // ── Load assigned students ────────────────────────────────
   async loadAssignedStudents() {
     this.studentsLoading = true;
     try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.STUDENTS_COL
-      );
+      // fetch ALL students (default Appwrite limit is only 25)
+      const allStudents = await this.fetchAll(this.appwrite.STUDENTS_COL);
 
-      const assigned = (res.documents as any[]).filter(
+      const assigned = allStudents.filter(
         s => s.supervisor_id === this.currentSupervisorId
       );
 
@@ -228,7 +271,7 @@ export class SupervisorDashboardComponent implements OnInit {
       });
 
       // Build progress list — sorted by latest ($createdAt desc), max 3
-      this.internProgress = assigned
+      this.internProgress = [...assigned]
         .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
         .slice(0, 3)
         .map(s => ({
@@ -254,124 +297,74 @@ export class SupervisorDashboardComponent implements OnInit {
 
   // ── All task stats ────────────────────────────────────────
   async loadAllTaskStats() {
-  try {
-    let allTasks: any[] = [];
-    let offset = 0;
-    const pageSize = 100;
+    try {
+      const allTasks = await this.fetchAll(this.appwrite.TASKS_COL);
 
-    while (true) {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL,
-        [Query.limit(pageSize), Query.offset(offset)]
-      );
-      allTasks = allTasks.concat(res.documents);
-      if (res.documents.length < pageSize) break;
-      offset += pageSize;
-    }
-
-    const internIds = Array.from(this.studentMap.keys());
-    const myTasks = allTasks.filter(task => {
-      if (!task.assigned_intern_ids) return false;
-      const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
-      return ids.some((id: string) => internIds.includes(id));
-    });
-
-    this.totalTasks     = myTasks.length;
-    this.completedTasks = myTasks.filter(t => t.status === 'completed').length;
-    this.pendingTasks   = myTasks.filter(t => t.status === 'pending').length;
-  } catch (error: any) {
-    console.error('Failed to load task stats:', error.message);
-  }
-}
-  // ── Today's stats ─────────────────────────────────────────
-  async loadTodayStats() {
-  try {
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    // Also build the formatted version since some records may already be formatted
-    const todayFormatted = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL,
-      [Query.limit(100)]
-    );
-
-    const internIds = Array.from(this.studentMap.keys());
-    const todayRecords = (res.documents as any[])
-      .filter(d => {
-        const matchesIntern = internIds.includes(d.student_id);
-        const matchesDate   = d.date === today || d.date === todayFormatted;
-        return matchesIntern && matchesDate;
+      const internIds = Array.from(this.studentMap.keys());
+      const myTasks = allTasks.filter(task => {
+        if (!task.assigned_intern_ids) return false;
+        const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
+        return ids.some((id: string) => internIds.includes(id));
       });
 
-    const isWeekend   = now.getDay() === 0 || now.getDay() === 6;
-    this.presentToday = todayRecords.filter(d => d.status === 'Present').length;
-    this.absentToday  = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
-  } catch (error: any) {
-    console.error('Failed to load today stats:', error.message);
+      this.totalTasks     = myTasks.length;
+      this.completedTasks = myTasks.filter(t => t.status === 'completed').length;
+      this.pendingTasks   = myTasks.filter(t => t.status === 'pending').length;
+    } catch (error: any) {
+      console.error('Failed to load task stats:', error.message);
+    }
   }
-}
 
-  // ── Recent attendance — latest first, max 3 ───────────────
- // ── Recent attendance — TODAY only, latest first, max 3 ───
-async loadRecentAttendance() {
-  this.attendanceLoading = true;
-  try {
-    const now   = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // ── Today's stats ─────────────────────────────────────────
+  async loadTodayStats() {
+    try {
+      const now = new Date();
+      const todayRecords = await this.getTodayAttendanceDocs();
 
-    // Ask Appwrite for today's records only, newest first
-    const res = await this.appwrite.databases.listDocuments(
-      this.appwrite.DATABASE_ID,
-      this.appwrite.ATTENDANCE_COL,
-      [
-        Query.equal('date', today),
-        Query.orderDesc('$createdAt'),
-        Query.limit(100)
-      ]
-    );
-
-    const internIds = Array.from(this.studentMap.keys());
-
-    const todayDocs = (res.documents as any[])
-      .filter(d => internIds.includes(d.student_id));
-
-    this.recentAttendance = todayDocs.slice(0, 3).map(doc => {
-      const student = this.studentMap.get(doc.student_id);
-      return {
-        intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
-        profile_photo_id: student?.profile_photo_id,
-        student_id:       doc.student_id,
-        date:             this.formatDate(doc.date),
-        time_in:          doc.time_in  || '—',
-        time_out:         doc.time_out || '—',
-        status:           doc.status   || 'Absent',
-        hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
-      };
-    });
-
-  } catch (error: any) {
-    console.error('Failed to load attendance:', error.message);
-  } finally {
-    this.attendanceLoading = false;
+      const isWeekend   = now.getDay() === 0 || now.getDay() === 6;
+      this.presentToday = todayRecords.filter(d => d.status === 'Present').length;
+      this.absentToday  = isWeekend ? 0 : Math.max(this.totalInterns - this.presentToday, 0);
+    } catch (error: any) {
+      console.error('Failed to load today stats:', error.message);
+    }
   }
-}
+
+  // ── Recent attendance — TODAY only, latest first, max 3 ───
+  async loadRecentAttendance() {
+    this.attendanceLoading = true;
+    try {
+      const todayDocs = await this.getTodayAttendanceDocs();
+
+      this.recentAttendance = todayDocs.slice(0, 3).map(doc => {
+        const student = this.studentMap.get(doc.student_id);
+        return {
+          intern_name:      student ? this.buildFullName(student.first_name, student.middle_name, student.last_name) : 'Unknown',
+          profile_photo_id: student?.profile_photo_id,
+          student_id:       doc.student_id,
+          date:             this.formatDate(doc.date),
+          time_in:          doc.time_in  || '—',
+          time_out:         doc.time_out || '—',
+          status:           doc.status   || 'Absent',
+          hours_rendered:   this.calcHours(doc.time_in, doc.time_out),
+        };
+      });
+
+    } catch (error: any) {
+      console.error('Failed to load attendance:', error.message);
+    } finally {
+      this.attendanceLoading = false;
+    }
+  }
 
 
   // ── Recent tasks — latest first, max 3, truncated names ──
   async loadRecentTasks() {
     this.tasksLoading = true;
     try {
-      const res       = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.TASKS_COL
-      );
+      const allTasks  = await this.fetchAll(this.appwrite.TASKS_COL);
       const internIds = Array.from(this.studentMap.keys());
 
-      const myTasks = (res.documents as any[]).filter(task => {
+      const myTasks = allTasks.filter(task => {
         if (!task.assigned_intern_ids) return false;
         const ids = task.assigned_intern_ids.split(',').map((id: string) => id.trim());
         return ids.some((id: string) => internIds.includes(id));
@@ -446,8 +439,10 @@ async loadRecentAttendance() {
 
   formatDate(dateStr: string): string {
     if (!dateStr || dateStr === '—') return '—';
+    // Already a readable date (e.g. "October 20, 2026") — leave as is
+    if (!/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
     try {
-      const parts = dateStr.split('-');
+      const parts = dateStr.split('T')[0].split('-');
       const d     = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     } catch { return dateStr; }

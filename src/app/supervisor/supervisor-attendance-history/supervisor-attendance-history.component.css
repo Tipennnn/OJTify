@@ -802,3 +802,34 @@ body {
   margin-top: 3px;
   padding-left: 2px;
 }
+/* Edit button */
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #0818A8;
+  border: 1px solid #bfdbfe;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.edit-btn:hover { background: #dbeafe; }
+
+/* Note column */
+.note-cell { max-width: 220px; }
+
+.note-text {
+  display: block;
+  font-size: 12px;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}

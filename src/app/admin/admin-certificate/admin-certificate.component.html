@@ -509,7 +509,7 @@
 </div>
 
 <div class="form-group">
-  <label>Body Text <span class="hint">use &#123;name&#125; &#123;hours&#125; &#123;course&#125; &#123;school&#125; &#123;host&#125;</span></label>
+  <label>Body Text <span class="hint">use &#123;name&#125; &#123;hours&#125; &#123;course&#125; &#123;school&#125; &#123;host&#125; &#123;startDate&#125; &#123;endDate&#125; &#123;period&#125;</span></label>
   <div class="input-wrap textarea-wrap" [class.warn]="isNearLimit('bodyText')" [class.over]="isOverLimit('bodyText')">
     <i class="fa-solid fa-align-left input-icon" style="margin-top:10px;"></i>
     <textarea rows="3" [(ngModel)]="certTemplate.bodyText"
@@ -853,7 +853,10 @@
                 <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">Sample Intern Name</p>
                 <div class="cert-name-line" [style.background]="certTemplate.primaryColor"></div>
               </div>
-              <p class="cert-body-para" [innerHTML]="getPreviewBodyText()"></p>
+              <<p class="cert-body-para" [innerHTML]="getPreviewBodyText()"></p>
+              <p class="cert-period" *ngIf="!hasPeriodPlaceholder()">
+                OJT Period: <strong>{{ getPreviewPeriodText() }}</strong>
+              </p>
               <p class="cert-given-text">{{ getPreviewGivenText() }}</p>
               <div class="cert-sig-row">
                 <div class="cert-sig-block">
@@ -978,8 +981,11 @@
                     <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">{{ sendTarget.name }}</p>
                     <div class="cert-name-line" [style.background]="certTemplate.primaryColor"></div>
                   </div>
-                  <p class="cert-body-para" [innerHTML]="getBodyText(sendTarget)"></p>
-                  <p class="cert-given-text">{{ getGivenText(sendTarget) }}</p>
+                        <p class="cert-body-para" [innerHTML]="getBodyText(sendTarget)"></p>
+                      <p class="cert-period" *ngIf="!hasPeriodPlaceholder()">
+                        OJT Period: <strong>{{ getPeriodText(sendTarget) }}</strong>
+                      </p>
+                      <p class="cert-given-text">{{ getGivenText(sendTarget) }}</p>
                   <div class="cert-sig-row">
   <!-- LEFT signatory — School Principal (from certTemplate, global) -->
   <div class="cert-sig-block">
@@ -1118,8 +1124,11 @@
                   <p class="cert-cursive-name" [style.color]="certTemplate.primaryColor">{{ selectedIntern.name }}</p>
                   <div class="cert-name-line" [style.background]="certTemplate.primaryColor"></div>
                 </div>
-                <p class="cert-body-para" [innerHTML]="getBodyText(selectedIntern)"></p>
-                <p class="cert-given-text">{{ getGivenText(selectedIntern) }}</p>
+                     <p class="cert-body-para" [innerHTML]="getBodyText(selectedIntern)"></p>
+                      <p class="cert-period" *ngIf="!hasPeriodPlaceholder()">
+                        OJT Period: <strong>{{ getPeriodText(selectedIntern) }}</strong>
+                      </p>
+                      <p class="cert-given-text">{{ getGivenText(selectedIntern) }}</p>
                 <div class="cert-sig-row">
                   <div class="cert-sig-block">
                     <img *ngIf="certTemplate.leftSigUrl" [src]="certTemplate.leftSigUrl" class="cert-sig-image">

@@ -17,6 +17,7 @@ interface AttendanceLog {
   status: string;
   is_manual?: boolean;
   scanned_by_name?: string;
+    reason?: string | null;   // ← NEW
 }
 
 @Component({
@@ -68,6 +69,15 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
     status  : 'Present',
     reason  : ''      // ← NEW: reason for manual entry
   };
+
+  // Edit Modal
+showEditModal = false;
+editLoading   = false;
+editError     = '';
+editSuccess   = false;
+editingLog    : AttendanceLog | null = null;
+editForm      = { time_in: '', time_out: '', reason: '' }; 
+
 
   // Computed hours preview shown in the modal
   get computedHours(): number | null {
@@ -208,7 +218,7 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
   }
 }
 
-  private mapDoc(doc: any): AttendanceLog {
+private mapDoc(doc: any): AttendanceLog {
   const student = this.allStudents.find(s => s.$id === doc.student_id)
         ?? this.allArchived.find(s => s.student_doc_id === doc.student_id);
   return {
@@ -223,11 +233,11 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
     time_in:           doc.time_in  || '—',
     time_out:          doc.time_out || '—',
     status:            doc.status,
-    is_manual:         doc.is_manual === true,  // ← only true if explicitly set
-    scanned_by_name:   doc.scanned_by_name || null
+    is_manual:         doc.is_manual === true,
+    scanned_by_name:   doc.scanned_by_name || null,
+    reason:            doc.reason || null          // NEW
   };
 }
-
   // ── Calendar ──────────────────────────────────────────
 
   generateCalendar() {
@@ -397,9 +407,10 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
                            ? this.formatTimeTo12h(this.addForm.time_out)
                            : null,
         status:          this.addForm.status,
-        scanned_by:      this.currentSupervisor?.$id   ?? null,
-        scanned_by_name: this.supervisorFullName        ?? null,
+        scanned_by:      this.currentSupervisor?.$id ?? null,
+        scanned_by_name: this.supervisorFullName     ?? null,
         is_manual:       true,
+        reason:          this.addForm.reason?.trim() || null   // NEW
       }
     );
 
@@ -420,18 +431,144 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
     this.addLoading = false;
   }
 }
+
+// ── Edit Log ──────────────────────────────────────────
+
+/** Parses "05:00 PM" or "17:00" into minutes since midnight. */
+private timeToMinutes(t: string | null | undefined): number | null {
+  if (!t || t === '—') return null;
+  const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const period = m[3]?.toUpperCase();
+  if (period === 'PM' && h < 12) h += 12;
+  if (period === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+/** Converts "05:00 PM" to "17:00" for <input type="time">. */
+private to24hInput(t: string | null | undefined): string {
+  const mins = this.timeToMinutes(t);
+  if (mins === null) return '';
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+}
+
+private hoursBetween(timeIn: string | null, timeOut: string | null): number {
+  const a = this.timeToMinutes(timeIn);
+  const b = this.timeToMinutes(timeOut);
+  if (a === null || b === null || b <= a) return 0;
+  return Math.round(((b - a) / 60) * 100) / 100;
+}
+
+get editOldHours(): number {
+  if (!this.editingLog) return 0;
+  return this.hoursBetween(this.editingLog.time_in, this.editingLog.time_out);
+}
+
+get editNewHours(): number {
+  return this.hoursBetween(this.editForm.time_in, this.editForm.time_out);
+}
+
+get editDelta(): number {
+  return Math.round((this.editNewHours - this.editOldHours) * 100) / 100;
+}
+
+get editHoursChanged(): boolean {
+  return this.editDelta !== 0;
+}
+
+openEditModal(log: AttendanceLog) {
+  this.editingLog  = log;
+  this.editError   = '';
+  this.editSuccess = false;
+  this.editForm = {
+    time_in : this.to24hInput(log.time_in),
+    time_out: this.to24hInput(log.time_out),
+    reason  : log.reason ?? ''                // ← NEW
+  };
+  this.showEditModal = true;
+}
+
+closeEditModal() {
+  this.showEditModal = false;
+  this.editingLog = null;
+}
+
+async submitEdit() {
+  this.editError = '';
+  const log = this.editingLog;
+  if (!log || !log.$id) return;
+
+  if (!this.editForm.time_in) {
+    this.editError = 'Time In is required.';
+    return;
+  }
+
+  if (this.editForm.time_out) {
+    const inM  = this.timeToMinutes(this.editForm.time_in)!;
+    const outM = this.timeToMinutes(this.editForm.time_out)!;
+    if (outM <= inM) {
+      this.editError = 'Time Out must be after Time In.';
+      return;
+    }
+  }
+
+  const newTimeIn  = this.formatTimeTo12h(this.editForm.time_in);
+  const newTimeOut = this.editForm.time_out
+    ? this.formatTimeTo12h(this.editForm.time_out)
+    : null;
+  const newReason  = this.editForm.reason?.trim() || null;   // ← NEW
+
+  this.editLoading = true;
+  try {
+    // 1. Update the attendance record
+    await this.appwrite.databases.updateDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.ATTENDANCE_COL,
+      log.$id,
+      {
+        time_in:  newTimeIn,
+        time_out: newTimeOut,
+        reason:   newReason            // ← NEW
+      }
+    );
+
+    // 2. Adjust the intern's completed hours by the difference
+    const delta = this.editDelta;
+    if (delta !== 0) {
+      await this.updateStudentHours(log.student_id, delta);
+    }
+
+    // 3. Reflect in the table (same object reference as allLogs / filteredLogs)
+    log.time_in  = newTimeIn;
+    log.time_out = newTimeOut ?? '—';
+    log.reason   = newReason;          // ← NEW
+
+    this.editSuccess = true;
+    setTimeout(() => this.closeEditModal(), 1200);
+  } catch (error: any) {
+    this.editError = error.message || 'Failed to update record.';
+  } finally {
+    this.editLoading = false;
+  }
+}
+
+
+
+
   /**
    * Adds `hoursToAdd` to the student's completed_hours field.
    * Works for both active students and archived ones.
    */
-  private async updateStudentHours(studentDocId: string, hoursToAdd: number) {
+    private async updateStudentHours(studentDocId: string, hoursToAdd: number) {
     // Find in active students first, then archived
-    const activeStudent  = this.allStudents.find(s => s.$id === studentDocId);
+    const activeStudent   = this.allStudents.find(s => s.$id === studentDocId);
     const archivedStudent = this.allArchived.find(s => s.student_doc_id === studentDocId);
 
     if (activeStudent) {
-      const current = activeStudent.completed_hours ?? 0;
-      const updated = Math.round((current + hoursToAdd) * 100) / 100;
+      const current = Number(activeStudent.completed_hours) || 0;                        // ← changed
+      const updated = Math.max(0, Math.round((current + hoursToAdd) * 100) / 100);       // ← changed
 
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
@@ -444,9 +581,8 @@ export class SupervisorAttendanceHistoryComponent implements OnInit {
       activeStudent.completed_hours = updated;
 
     } else if (archivedStudent) {
-      // Archives may have a different collection — adjust if needed
-      const current = archivedStudent.completed_hours ?? 0;
-      const updated = Math.round((current + hoursToAdd) * 100) / 100;
+      const current = Number(archivedStudent.completed_hours) || 0;                      // ← changed
+      const updated = Math.max(0, Math.round((current + hoursToAdd) * 100) / 100);       // ← changed
 
       await this.appwrite.databases.updateDocument(
         this.appwrite.DATABASE_ID,
