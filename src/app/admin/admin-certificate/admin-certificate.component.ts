@@ -635,36 +635,35 @@ expandDragOriginY = 0;
   // ── Data loading ──────────────────────────────────────────────────────────────
 
   private async fetchLastAttendanceDates(studentIds: string[]): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    if (!studentIds.length) return map;
+  const map = new Map<string, string>();
+  if (!studentIds.length) return map;
 
-    try {
-      const res = await this.appwrite.databases.listDocuments(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.ATTENDANCE_COL,
-        [
-          Query.equal('status', 'Present'),
-          Query.orderDesc('date'),
-          Query.limit(5000)
-        ]
-      );
-      for (const doc of res.documents as any[]) {
-        const sid = doc.student_id as string;
-        if (sid && studentIds.includes(sid) && !map.has(sid) && doc.date) {
-          map.set(sid, doc.date as string);
-        }
+  try {
+    const res = await this.appwrite.listAllDocumentsCached(
+      this.appwrite.ATTENDANCE_COL,
+      [
+        Query.equal('status', 'Present'),
+        Query.orderDesc('date')
+      ]
+    );
+    const idSet = new Set(studentIds);
+    for (const doc of res.documents as any[]) {
+      const sid = doc.student_id as string;
+      if (sid && idSet.has(sid) && !map.has(sid) && doc.date) {
+        map.set(sid, doc.date as string);
       }
-    } catch (err) {
-      console.warn('Could not fetch attendance dates:', err);
     }
-    return map;
+  } catch (err) {
+    console.warn('Could not fetch attendance dates:', err);
   }
+  return map;
+}
 
   async loadInterns(): Promise<void> {
-    try {
-      const res = await this.appwrite.listDocumentsCached(
-  this.appwrite.STUDENTS_COL
-);
+     try {
+    const res = await this.appwrite.listAllDocumentsCached(
+      this.appwrite.STUDENTS_COL
+    );
 
       const docs = res.documents as any[];
 
@@ -1185,20 +1184,19 @@ expandDragOriginY = 0;
   }
 
   private async fetchSupervisors(): Promise<Map<string, any>> {
-    const map = new Map<string, any>();
-    try {
-      const res = await this.appwrite.listDocumentsCached(
-  this.appwrite.SUPERVISORS_COL,
-  [Query.limit(500)]
-);
-      for (const doc of res.documents as any[]) {
-        map.set(doc.$id, doc);
-      }
-    } catch (err) {
-      console.warn('Could not fetch supervisors:', err);
+  const map = new Map<string, any>();
+  try {
+    const res = await this.appwrite.listAllDocumentsCached(
+      this.appwrite.SUPERVISORS_COL
+    );
+    for (const doc of res.documents as any[]) {
+      map.set(doc.$id, doc);
     }
-    return map;
+  } catch (err) {
+    console.warn('Could not fetch supervisors:', err);
   }
+  return map;
+}
 
   // ── Character limit helpers ───────────────────────────────────────────────────
 
@@ -1286,4 +1284,5 @@ private async generateQrCode(verificationId: string): Promise<string> {
     });
   } catch { return ''; }
 }
+
 }

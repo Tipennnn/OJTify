@@ -246,4 +246,43 @@ export class AppwriteService {
     const projectId = (this.client as any).config?.project   || '';
     return `${endpoint}/storage/buckets/${this.BUCKET_ID}/files/${fileId}/view?project=${projectId}`;
   }
+
+  async listAllDocumentsCached(
+  collectionId: string,
+  queries: any[] = [],
+  skipCache = false
+): Promise<any> {
+  const key = `${collectionId}-ALL-${JSON.stringify(queries)}`;
+
+  if (!skipCache) {
+    const cached = this.getCached(key);
+    if (cached) return cached;
+  }
+
+  const PAGE = 100;
+  let all: any[] = [];
+  let cursor: string | null = null;
+  let total = 0;
+
+  while (true) {
+    const pageQueries = [...queries, Query.limit(PAGE)];
+    if (cursor) pageQueries.push(Query.cursorAfter(cursor));
+
+    const res: any = await this.databases.listDocuments(
+      this.DATABASE_ID,
+      collectionId,
+      pageQueries
+    );
+
+    total = res.total;
+    all = all.concat(res.documents);
+
+    if (res.documents.length < PAGE) break;
+    cursor = res.documents[res.documents.length - 1].$id;
+  }
+
+  const result = { total, documents: all };
+  this.setCached(key, result);
+  return result;
+}
 }
