@@ -325,15 +325,28 @@ async loadAllTaskStats() {
   }
 
   // ── Load application info ─────────────────────────────────
+  // ── Load application info ─────────────────────────────────
   async loadApplicationInfo() {
     try {
       const res = await this.appwrite.databases.listDocuments(
         this.appwrite.DATABASE_ID,
-        this.appwrite.APPLICANTS_COL
+        this.appwrite.APPLICANTS_COL,
+        [Query.limit(500)]
       );
 
-      const applicant = (res.documents as any[])
-        .find(a => a.auth_user_id === this.currentUserId || a.$id === this.currentUserId);
+      // kunin ang email ng student para i-match sa applicant
+      const studentDoc: any = await this.appwrite.databases.getDocument(
+        this.appwrite.DATABASE_ID,
+        this.appwrite.STUDENTS_COL,
+        this.currentUserId
+      );
+      const studentEmail = (studentDoc.email || '').trim().toLowerCase();
+
+      const applicant = (res.documents as any[]).find(a =>
+        a.auth_user_id === this.currentUserId ||
+        a.$id === this.currentUserId ||
+        (studentEmail && (a.email || '').trim().toLowerCase() === studentEmail)
+      );
 
       if (applicant) {
         this.appliedOn = this.formatDate(applicant.$createdAt.split('T')[0]);
@@ -346,12 +359,7 @@ async loadAllTaskStats() {
       }
 
       try {
-        const studentDoc = await this.appwrite.databases.getDocument(
-          this.appwrite.DATABASE_ID,
-          this.appwrite.STUDENTS_COL,
-          this.currentUserId
-        );
-        this.acceptedOn = this.formatDate((studentDoc as any).$createdAt.split('T')[0]);
+        this.acceptedOn = this.formatDate(studentDoc.$createdAt.split('T')[0]);
       } catch { }
 
     } catch (error: any) {
