@@ -286,7 +286,7 @@
                     </td>
                     <td>{{ t.supervisor_name || '—' }}</td>
                     <td>
-                      <span [class.overdue]="isOverdue(t.due, t.status)">{{ t.due }}</span>
+                      <span [class.overdue]="isOverdue(t.dueRaw, t.status)">{{ t.due }}</span>
                     </td>
                     <td>
                       <span class="status" [ngClass]="t.status">{{ t.status | titlecase }}</span>

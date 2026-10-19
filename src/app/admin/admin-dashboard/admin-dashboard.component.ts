@@ -31,7 +31,8 @@ interface InternRow {
 interface TaskRow {
   title          : string;
   supervisor_name: string;
-  due            : string;
+  due            : string;   // formatted for display
+  dueRaw         : string;   // YYYY-MM-DD, used for the overdue check
   status         : string;
 }
 
@@ -224,26 +225,30 @@ async loadCounts() {
   } catch (e: any) { console.error('loadCounts:', e.message); }
 }
   // ── Load tasks ────────────────────────────────────────────
-  async loadTasks() {
+async loadTasks() {
   try {
     const res = await this.appwrite.listDocumentsCached(
-  this.appwrite.TASKS_COL,
-  [Query.limit(500)]
-);
+      this.appwrite.TASKS_COL,
+      [Query.limit(500)]
+    );
     const docs = res.documents as any[];
     this.totalTasks    = docs.length;
     this.taskCompleted = docs.filter(t => t.status === 'completed').length;
     this.taskPending   = docs.filter(t => t.status === 'pending').length;
- 
+
     this.recentTasks = [...docs]
       .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
       .slice(0, 5)
-      .map(t => ({
-        title          : t.title           || '—',
-        supervisor_name: t.supervisor_name || '—',
-        due            : t.due_date ? this.formatDate(t.due_date.split('T')[0]) : '—',
-        status         : t.status          || 'pending',
-      }));
+      .map(t => {
+        const rawDue = t.due ? String(t.due).split('T')[0] : '';
+        return {
+          title          : t.title           || '—',
+          supervisor_name: t.supervisor_name || '—',
+          due            : rawDue ? this.formatDate(rawDue) : '—',
+          dueRaw         : rawDue,
+          status         : t.status          || 'pending',
+        };
+      });
   } catch (e: any) { console.error('loadTasks:', e.message); }
 }
  
@@ -349,25 +354,26 @@ async loadCounts() {
     return Math.round((count / this.totalInterns) * 100);
   }
 
-  isOverdue(due: string, status: string): boolean {
-    if (status === 'completed' || !due || due === '—') return false;
-    try { return new Date(due) < new Date(); } catch { return false; }
-  }
+  isOverdue(dueRaw: string, status: string): boolean {
+  if (status === 'completed' || !dueRaw) return false;
+  return dueRaw < this.toDateStr(new Date());   // YYYY-MM-DD strings compare correctly
+}
 
   // ── Misc helpers ──────────────────────────────────────────
   toDateStr(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  formatDate(dateStr: string): string {
-    if (!dateStr || dateStr === '—') return '—';
-    try {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long', day: 'numeric'
-      });
-    } catch { return dateStr; }
-  }
+ formatDate(dateStr: string): string {
+  if (!dateStr || dateStr === '—') return '—';
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (!y || !m || !d) return dateStr;   // not YYYY-MM-DD, show as-is
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  } catch { return dateStr; }
+}
 
   calcHours(timeIn: string, timeOut: string): string {
     if (!timeIn || !timeOut || timeIn === '—' || timeOut === '—') return '—';

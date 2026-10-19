@@ -660,108 +660,115 @@ expandDragOriginY = 0;
 }
 
   async loadInterns(): Promise<void> {
-     try {
+  try {
     const res = await this.appwrite.listAllDocumentsCached(
       this.appwrite.STUDENTS_COL
     );
 
-      const docs = res.documents as any[];
+    const docs = res.documents as any[];
 
-      const studentIds = docs.map(d => d.$id).filter(Boolean);
-      const [lastAttMap, supervisorMap] = await Promise.all([
-        this.fetchLastAttendanceDates(studentIds),
-        this.fetchSupervisors(),
-      ]);
+    const studentIds = docs.map(d => d.$id).filter(Boolean);
+    const [lastAttMap, supervisorMap] = await Promise.all([
+      this.fetchLastAttendanceDates(studentIds),
+      this.fetchSupervisors(),
+    ]);
 
-      const esigFileIds = new Set<string>();
-      for (const doc of docs) {
-        const supId = doc.supervisor_id;
-        if (supId) {
-          const sup = supervisorMap.get(supId);
-          if (sup?.esig_file_id) esigFileIds.add(sup.esig_file_id);
-        }
+    // Collect every unique supervisor e-sig file ID
+    const esigFileIds = new Set<string>();
+    for (const doc of docs) {
+      const supId = doc.supervisor_id;
+      if (supId) {
+        const sup = supervisorMap.get(supId);
+        if (sup?.esig_file_id) esigFileIds.add(sup.esig_file_id);
+      }
+    }
+
+    // Download each e-sig once and cache as base64
+    const esigBase64Map = new Map<string, string>();
+    await Promise.all(
+      Array.from(esigFileIds).map(async (fileId) => {
+        const b64 = await this.appwriteFileToBase64(this.OJT_FILES_BUCKET, fileId);
+        esigBase64Map.set(fileId, b64);
+      })
+    );
+
+    const mapped: Intern[] = docs.map(doc => {
+      const firstName  = (doc.first_name  ?? '').trim();
+      const middleName = (doc.middle_name ?? '').trim();
+      const lastName   = (doc.last_name   ?? '').trim();
+      const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Unknown Intern';
+
+      const hoursCompleted = Number(doc.completed_hours ?? 0);
+      const requiredHours  = Number(doc.required_hours  ?? this.certTemplate.requiredHours);
+
+      const rawStart       = doc.start_date ?? doc.$createdAt ?? '';
+      const rawEnd         = doc.end_date   ?? '';
+      const lastAttRaw     = lastAttMap.get(doc.$id) ?? '';
+      const resolvedEndRaw = lastAttRaw || rawEnd;
+
+      const photoUrl = doc.profile_photo_id
+        ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`
+        : '';
+
+      const rawSentDate = doc.cert_sent_date ?? '';
+
+      // ── Supervisor info + e-sig ──
+      const sup           = doc.supervisor_id ? supervisorMap.get(doc.supervisor_id) : null;
+      const supFirstName  = (sup?.first_name ?? '').trim();
+      const supLastName   = (sup?.last_name  ?? '').trim();
+      const supFullName   = [supFirstName, supLastName].filter(Boolean).join(' ')
+                            || this.certTemplate.supervisorName;
+      const supPos        = sup?.grade_level || this.certTemplate.supervisorPos;
+      const supEsigFileId = sup?.esig_file_id ?? '';
+      const supEsigBase64 = supEsigFileId ? (esigBase64Map.get(supEsigFileId) ?? '') : '';
+
+      if (sup && !supEsigBase64) {
+        console.warn(`No e-sig loaded for supervisor "${supFullName}" (esig_file_id="${supEsigFileId}")`);
       }
 
-      const esigBase64Map = new Map<string, string>();
-      await Promise.all(
-        Array.from(esigFileIds).map(async (fileId) => {
-          const b64 = await this.appwriteFileToBase64(this.OJT_FILES_BUCKET, fileId);
-          esigBase64Map.set(fileId, b64);
-        })
-      );
+      return {
+        $id:            doc.$id,
+        name:           fullName,
+        studentId:      doc.student_id  ?? '',
+        course:         doc.course      ?? 'N/A',
+        school:         doc.school_name ?? 'N/A',
+        hoursCompleted,
+        requiredHours,
+        startDate:      this.formatDate(rawStart),
+        endDate:        this.formatDate(resolvedEndRaw),
+        photoUrl,
+        sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
+        _sortDate:      resolvedEndRaw
+                          ? new Date(resolvedEndRaw).getTime()
+                          : new Date(rawStart).getTime(),
+        _rawStartDate:  rawStart,
+        _rawEndDate:    resolvedEndRaw,
+        _rawSentDate:   rawSentDate,
+        _certSent:      doc.cert_sent === true,
+        supervisorName: supFullName,
+        supervisorPos:  supPos,
+        rightSigBase64: supEsigBase64,
+        verificationId: doc.cert_verification_id ?? '',
+      } as any;
+    });
 
-      const mapped: Intern[] = docs.map(doc => {
-        const firstName  = (doc.first_name  ?? '').trim();
-        const middleName = (doc.middle_name ?? '').trim();
-        const lastName   = (doc.last_name   ?? '').trim();
-        const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Unknown Intern';
+    this.allInterns = mapped;
 
-        const hoursCompleted = Number(doc.completed_hours ?? 0);
-        const requiredHours  = Number(doc.required_hours  ?? this.certTemplate.requiredHours);
-
-        const rawStart       = doc.start_date ?? doc.$createdAt ?? '';
-        const rawEnd         = doc.end_date   ?? '';
-        const lastAttRaw     = lastAttMap.get(doc.$id) ?? '';
-        const resolvedEndRaw = lastAttRaw || rawEnd;
-
-        const photoUrl = doc.profile_photo_id
-          ? `${this.ENDPOINT}/storage/buckets/${this.BUCKET_ID}/files/${doc.profile_photo_id}/view?project=${this.PROJECT_ID}`
-          : '';
-
-        const rawSentDate = doc.cert_sent_date ?? '';
-
-        const sup = doc.supervisor_id ? supervisorMap.get(doc.supervisor_id) : null;
-        const supFirstName  = (sup?.first_name ?? '').trim();
-        const supLastName   = (sup?.last_name  ?? '').trim();
-        const supFullName   = [supFirstName, supLastName].filter(Boolean).join(' ')
-                              || this.certTemplate.supervisorName;
-        const supPos        = sup?.grade_level ?? this.certTemplate.supervisorPos;
-        const supEsigFileId = sup?.esig_file_id ?? '';
-        const supEsigBase64 = supEsigFileId ? (esigBase64Map.get(supEsigFileId) ?? '') : '';
-
-       return {
-  $id:            doc.$id,
-  name:           fullName,
-  studentId:      doc.student_id  ?? '',
-  course:         doc.course      ?? 'N/A',
-  school:         doc.school_name ?? 'N/A',
-  hoursCompleted,
-  requiredHours,
-  startDate:      this.formatDate(rawStart),
-  endDate:        this.formatDate(resolvedEndRaw),
-  photoUrl,
-  sentDate:       rawSentDate ? this.formatDate(rawSentDate) : '',
-  _sortDate:      resolvedEndRaw
-                    ? new Date(resolvedEndRaw).getTime()
-                    : new Date(rawStart).getTime(),
-  _rawStartDate:  rawStart,
-  _rawEndDate:    resolvedEndRaw,
-  _rawSentDate:   rawSentDate,
-  _certSent:      doc.cert_sent === true,
-  supervisorName: supFullName,
-  supervisorPos:  supPos,
-  rightSigBase64: supEsigBase64,
-  verificationId: doc.cert_verification_id ?? '',  // 👈 ADD THIS LINE ONLY
-} as any;
+    this.sentCerts = mapped
+      .filter((i: any) => i._certSent === true)
+      .map((i: any) => { const { _certSent, ...intern } = i; return intern as Intern; })
+      .sort((a: Intern, b: Intern) => {
+        const da = a._rawSentDate ? new Date(a._rawSentDate).getTime() : 0;
+        const db = b._rawSentDate ? new Date(b._rawSentDate).getTime() : 0;
+        return db - da;
       });
 
-      this.allInterns = mapped;
-
-      this.sentCerts = mapped
-        .filter((i: any) => i._certSent === true)
-        .map((i: any) => { const { _certSent, ...intern } = i; return intern as Intern; })
-        .sort((a: Intern, b: Intern) => {
-          const da = a._rawSentDate ? new Date(a._rawSentDate).getTime() : 0;
-          const db = b._rawSentDate ? new Date(b._rawSentDate).getTime() : 0;
-          return db - da;
-        });
-
-      this.splitInterns();
-    } catch (err) {
-      console.error('Failed to load interns:', err);
-      this.loadMockData();
-    }
+    this.splitInterns();
+  } catch (err) {
+    console.error('Failed to load interns:', err);
+    this.loadMockData();
   }
+}
 
   private splitInterns(): void {
     const sentIds = new Set(this.sentCerts.map(s => s.$id));
@@ -940,31 +947,38 @@ expandDragOriginY = 0;
     this.sendTarget    = null;
   }
 
-  async confirmSendCert(): Promise<void> {
+ async confirmSendCert(): Promise<void> {
   if (!this.sendTarget) return;
   const intern   = this.sendTarget;
   const today    = new Date();
   const todayIso = today.toISOString();
   const todayFmt = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-  // Generate a unique verification ID
   const verificationId = ID.unique();
 
+  Swal.fire({ title: 'Issuing certificate…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
   try {
+    const snapshot = await this.buildSnapshot(intern, intern.endDate || todayFmt);
+
     await this.appwrite.databases.updateDocument(
       this.appwrite.DATABASE_ID,
       this.appwrite.STUDENTS_COL,
       intern.$id,
-      { cert_sent: true, cert_sent_date: todayIso, cert_verification_id: verificationId }
+      {
+        cert_sent:            true,
+        cert_sent_date:       todayIso,
+        cert_verification_id: verificationId,
+        cert_snapshot:        snapshot,
+      }
     );
     this.appwrite.clearCache(this.appwrite.STUDENTS_COL);
   } catch (err) {
-    console.error('Failed to update cert_sent in DB:', err);
-    Swal.fire({ icon: 'error', title: 'DB Error', text: 'Could not save cert status.', confirmButtonColor: '#2563eb' });
+    console.error('Failed to issue certificate:', err);
+    Swal.fire({ icon: 'error', title: 'DB Error', text: 'Could not save the certificate.', confirmButtonColor: '#2563eb' });
     return;
   }
 
-  const sentIntern: Intern = { ...intern, sentDate: todayFmt, _rawSentDate: todayIso };
+  const sentIntern: Intern = { ...intern, sentDate: todayFmt, _rawSentDate: todayIso, verificationId };
   this.sentCerts.unshift(sentIntern);
   this.completedInterns = this.completedInterns.filter(i => i.$id !== intern.$id);
   this.closeSendModal();
@@ -975,7 +989,6 @@ expandDragOriginY = 0;
     toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
   });
 
-  // Generate QR then download
   this.certQrDataUrl = await this.generateQrCode(verificationId);
   this.downloadCert(intern);
 }
@@ -1283,6 +1296,53 @@ private async generateQrCode(verificationId: string): Promise<string> {
       color: { dark: '#000000', light: '#ffffff' }
     });
   } catch { return ''; }
+}
+getRightSig(intern: Intern | null): string {
+  if (!intern) return '';
+  // 1) supervisor's own e-sig  2) fallback to template's right signature
+  return intern.rightSigBase64 || this.certTemplate.rightSigUrl || '';
+}
+// Copy a base64 image into a NEW storage file, so replacing a logo later can't break old certs
+private async cloneBase64ToStorage(b64: string, label: string): Promise<string> {
+  if (!b64) return '';
+  try {
+    const blob = await (await fetch(b64)).blob();
+    const file = new File([blob], `cert_snapshot_${label}.png`, { type: blob.type || 'image/png' });
+    const newId = ID.unique();
+    await this.appwrite.storage.createFile(this.OJT_FILES_BUCKET, newId, file);
+    return newId;
+  } catch (e) {
+    console.warn(`Could not clone ${label}:`, e);
+    return '';
+  }
+}
+
+// Freeze the template + intern data + images as they are right now
+private async buildSnapshot(intern: Intern, givenDate: string): Promise<string> {
+  const { depedLogoUrl, schoolLogoUrl, watermarkUrl, leftSigUrl, rightSigUrl, ...textFields } = this.certTemplate;
+
+  const [deped, school, watermark, leftSig, rightSig] = await Promise.all([
+    this.cloneBase64ToStorage(depedLogoUrl,  'deped'),
+    this.cloneBase64ToStorage(schoolLogoUrl, 'school'),
+    this.cloneBase64ToStorage(watermarkUrl,  'watermark'),
+    this.cloneBase64ToStorage(leftSigUrl,    'leftSig'),
+    this.cloneBase64ToStorage(intern.rightSigBase64 || rightSigUrl, 'rightSig'),
+  ]);
+
+  return JSON.stringify({
+    template: textFields,
+    files: { deped, school, watermark, leftSig, rightSig },
+    intern: {
+      name:           intern.name,
+      course:         intern.course,
+      school:         intern.school,
+      hoursCompleted: intern.hoursCompleted,
+      requiredHours:  intern.requiredHours,
+      endDate:        givenDate,
+      supervisorName: intern.supervisorName,
+      supervisorPos:  intern.supervisorPos,
+    },
+  });
 }
 
 }

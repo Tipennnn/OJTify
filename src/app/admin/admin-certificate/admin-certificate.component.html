@@ -993,14 +993,14 @@
   </div>
   <!-- RIGHT signatory — per-intern supervisor -->
   <div class="cert-sig-block">
-    <img *ngIf="sendTarget.rightSigBase64" [src]="sendTarget.rightSigBase64" class="cert-sig-image">
-    <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
-      {{ sendTarget.supervisorName | uppercase }}
-    </p>
-    <div class="cert-sig-underline"></div>
-    <p class="cert-sig-pos">{{ sendTarget.supervisorPos }}</p>
-    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
-  </div>
+  <img *ngIf="getRightSig(sendTarget)" [src]="getRightSig(sendTarget)" class="cert-sig-image">
+  <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+    {{ sendTarget.supervisorName | uppercase }}
+  </p>
+  <div class="cert-sig-underline"></div>
+  <p class="cert-sig-pos">{{ sendTarget.supervisorPos }}</p>
+  <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+</div>
 </div>
                 </div>
               </div>
@@ -1129,12 +1129,14 @@
                     <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
                   </div>
                   <div class="cert-sig-block">
-                    <img *ngIf="selectedIntern.rightSigBase64" [src]="selectedIntern.rightSigBase64" class="cert-sig-image">
-                     <p class="cert-sig-name" ...>{{ selectedIntern.supervisorName | uppercase }}</p>
-                    <div class="cert-sig-underline"></div>
-                    <p class="cert-sig-pos">{{ selectedIntern.supervisorPos }}</p>
-                    <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
-                  </div>
+  <img *ngIf="getRightSig(selectedIntern)" [src]="getRightSig(selectedIntern)" class="cert-sig-image">
+  <p class="cert-sig-name" [style.color]="certTemplate.primaryColor">
+    {{ selectedIntern.supervisorName | uppercase }}
+  </p>
+  <div class="cert-sig-underline"></div>
+  <p class="cert-sig-pos">{{ selectedIntern.supervisorPos }}</p>
+  <p class="cert-sig-school">{{ certTemplate.schoolName }}</p>
+</div>
                    <div class="cert-qr-wrap" *ngIf="certQrDataUrl">
     <img [src]="certQrDataUrl" class="cert-qr-img" alt="Verification QR">
     <p class="cert-qr-label">Scan to verify</p>

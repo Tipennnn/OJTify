@@ -281,16 +281,26 @@ certVerificationId = '';
     const lastName   = (doc.last_name   ?? '').trim();
     const fullName   = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Intern';
 
+    // ── Certificate status + QR ──
     this.certSentByAdmin = doc.cert_sent === true;
     if (doc.cert_verification_id) {
       this.certVerificationId = doc.cert_verification_id;
       this.certQrDataUrl = await this.generateQrCode(doc.cert_verification_id);
     }
 
-    // ── Last attendance date ──
+    // ── Sent certificate → render ONLY from the frozen snapshot ──
+    if (doc.cert_sent === true && doc.cert_snapshot) {
+      try {
+        await this.applySnapshot(doc.cert_snapshot);
+        return;   // skip live template / supervisor data
+      } catch (e) {
+        console.error('Snapshot read failed, falling back to live data:', e);
+      }
+    }
+
+    // ── Not sent yet (or no snapshot): use live data ──
     const lastAttDate = await this.fetchLastAttendanceDate(doc.student_id ?? '');
 
-    // ── Load supervisor info + e-sig ──
     await this.loadSupervisorData(doc.supervisor_id ?? '');
 
     this.certData = {
@@ -313,38 +323,38 @@ certVerificationId = '';
 }
 
   // ── Fetch supervisor document and load their e-sig as base64 ──
-  private async loadSupervisorData(supervisorId: string): Promise<void> {
-    if (!supervisorId) return;
+ private async loadSupervisorData(supervisorId: string): Promise<void> {
+  // Defaults first, so nothing is ever blank
+  this.supervisorName           = this.certTemplate.supervisorName;
+  this.supervisorPos            = this.certTemplate.supervisorPos;
+  this.supervisorRightSigBase64 = this.certTemplate.rightSigUrl;
 
-    try {
-      const supDoc = await this.appwrite.databases.getDocument(
-        this.appwrite.DATABASE_ID,
-        this.appwrite.SUPERVISORS_COL,
-        supervisorId
-      ) as any;
+  if (!supervisorId) return;
 
-      const supFirstName = (supDoc.first_name ?? '').trim();
-      const supLastName  = (supDoc.last_name  ?? '').trim();
-      this.supervisorName = [supFirstName, supLastName].filter(Boolean).join(' ')
-                            || this.certTemplate.supervisorName;
-      this.supervisorPos  = supDoc.grade_level ?? this.certTemplate.supervisorPos;
+  try {
+    const supDoc = await this.appwrite.databases.getDocument(
+      this.appwrite.DATABASE_ID,
+      this.appwrite.SUPERVISORS_COL,
+      supervisorId
+    ) as any;
 
-      // ── Download e-sig as base64 ──
-      if (supDoc.esig_file_id) {
-        this.supervisorRightSigBase64 = await this.appwriteFileToBase64(supDoc.esig_file_id);
+    const first = (supDoc.first_name ?? '').trim();
+    const last  = (supDoc.last_name  ?? '').trim();
+    this.supervisorName = [first, last].filter(Boolean).join(' ') || this.supervisorName;
+    this.supervisorPos  = supDoc.grade_level || this.supervisorPos;
+
+    if (supDoc.esig_file_id) {
+      const b64 = await this.appwriteFileToBase64(supDoc.esig_file_id);
+      if (b64) {
+        this.supervisorRightSigBase64 = b64;
       } else {
-        this.supervisorRightSigBase64 = '';
+        console.warn(`Supervisor e-sig failed to load (esig_file_id="${supDoc.esig_file_id}"), using template fallback.`);
       }
-
-    } catch (err) {
-      console.warn('Could not load supervisor data:', err);
-      // Fallback to template defaults
-      this.supervisorName           = this.certTemplate.supervisorName;
-      this.supervisorPos            = this.certTemplate.supervisorPos;
-      this.supervisorRightSigBase64 = this.certTemplate.rightSigUrl;
     }
+  } catch (err) {
+    console.warn('Could not load supervisor data:', err);
   }
-
+}
   private async fetchLastAttendanceDate(studentId: string): Promise<string> {
     if (!studentId) return '';
     try {
@@ -598,4 +608,43 @@ updateCertScale() {
  onResize() {
    if (this.showCertModal) this.updateCertScale();
  }
+
+ private async applySnapshot(raw: string): Promise<void> {
+  const snap = JSON.parse(raw);
+  const f = snap.files || {};
+
+  const [deped, school, watermark, leftSig, rightSig] = await Promise.all([
+    this.appwriteFileToBase64(f.deped),
+    this.appwriteFileToBase64(f.school),
+    this.appwriteFileToBase64(f.watermark),
+    this.appwriteFileToBase64(f.leftSig),
+    this.appwriteFileToBase64(f.rightSig),
+  ]);
+
+  this.certTemplate = {
+    ...DEFAULT_TEMPLATE,
+    ...snap.template,
+    depedLogoUrl:  deped,
+    schoolLogoUrl: school,
+    watermarkUrl:  watermark,
+    leftSigUrl:    leftSig,
+    rightSigUrl:   rightSig,
+  };
+
+  this.supervisorName           = snap.intern.supervisorName;
+  this.supervisorPos            = snap.intern.supervisorPos;
+  this.supervisorRightSigBase64 = rightSig;
+
+  this.certData = {
+    studentName:    snap.intern.name,
+    school:         snap.intern.school,
+    course:         snap.intern.course,
+    hoursCompleted: snap.intern.hoursCompleted,
+    requiredHours:  snap.intern.requiredHours,
+    startDate:      '',
+    endDate:        snap.intern.endDate,
+    dateIssued:     snap.intern.endDate,
+  };
+}
+
 }
