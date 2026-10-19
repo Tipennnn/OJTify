@@ -297,27 +297,36 @@ async loadStudents() {
 
  async submitManualId() {
   const inputId = this.manualStudentId.trim();
-  if (!inputId) return;
+  if (!inputId && !this.selectedManualStudent) return;
 
-  const student = this.allStudents.find(
-    s => s.student_id?.toLowerCase() === inputId.toLowerCase()
-      && s.supervisor_id === this.supervisorId
-  );
+  // Priority: selected card → exact ID match → only one search result
+  let student = this.selectedManualStudent;
+
+  if (!student) {
+    student = this.allStudents.find(
+      s => (s.student_id || '').toLowerCase() === inputId.toLowerCase()
+        && s.supervisor_id === this.supervisorId
+    );
+  }
+  if (!student && this.manualSearchResults.length === 1) {
+    student = this.manualSearchResults[0];
+  }
 
   if (!student) {
     Swal.fire({
       icon: 'error',
       title: 'Student Not Found',
-      text: `No intern found with Student ID "${inputId}".`,
+      text: `No assigned intern found with Student ID "${inputId}".`,
       toast: true, position: 'top-end',
       showConfirmButton: false, timer: 3500
     });
     return;
   }
 
-  this.manualStudentId = '';
+  this.clearManualSelection();
   await this.processManualAttendance(student);
 }
+
   async processManualAttendance(student: any) {
   const studentId   = student.$id;
   const studentName = `${student.first_name} ${student.last_name}`;
@@ -881,16 +890,40 @@ async loadStudents() {
     });
   }
 
-  onManualIdInput() {
-  // no-op — no search results needed
+  onManualIdInput(value: string) {
+  this.manualStudentId = value ?? '';
+  this.selectedManualStudent = null;
+
+  const q = this.manualStudentId.trim().toLowerCase();
+  if (!q) {
+    this.manualSearchResults = [];
+    return;
+  }
+
+  const archivedIds = new Set(this.allArchived.map(a => a.student_doc_id));
+
+  this.manualSearchResults = this.allStudents
+    .filter(s =>
+      s.supervisor_id === this.supervisorId &&
+      !archivedIds.has(s.$id) &&
+      (
+        (s.student_id || '').toLowerCase().includes(q) ||
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
+      )
+    )
+    .slice(0, 8);
 }
 
-  selectManualStudent(student: any) {
-  // no-op
+selectManualStudent(student: any) {
+  this.selectedManualStudent = student;
+  this.manualStudentId       = student.student_id;
+  this.manualSearchResults   = [];
 }
 
-  clearManualSelection() {
-  this.manualStudentId = '';
+clearManualSelection() {
+  this.manualStudentId       = '';
+  this.selectedManualStudent = null;
+  this.manualSearchResults   = [];
 }
 
   async autoTimeOutMissed() {

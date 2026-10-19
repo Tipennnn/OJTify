@@ -244,31 +244,51 @@
 
         <div class="manual-input-wrapper">
           <i class="fas fa-id-card manual-icon"></i>
-          <input
-            type="text"
-            class="manual-id-input"
-            placeholder="Type Student ID..."
-            [(ngModel)]="manualStudentId"
-            (keydown.enter)="submitManualId()"
-            autocomplete="off"
-          />
+      <input
+  type="text"
+  class="manual-id-input"
+  placeholder="Type Student ID..."
+  [(ngModel)]="manualStudentId"
+  (ngModelChange)="onManualIdInput($event)"
+  (keydown.enter)="submitManualId()"
+  autocomplete="off"
+/>
         </div>
 
         <!-- Results area -->
         <div class="manual-results-area">
 
-          <!-- Empty / idle state -->
-          <div class="manual-empty-state"
-               *ngIf="manualSearchResults.length === 0 && !selectedManualStudent">
-            <i class="fas fa-search"></i>
-            <span *ngIf="!manualStudentId.trim()">Start typing to search</span>
-            <span *ngIf="manualStudentId.trim()">No interns found</span>
-          </div>
+           <!-- Empty / idle state -->
+  <div class="manual-empty-state"
+       *ngIf="manualSearchResults.length === 0 && !selectedManualStudent">
+    <i class="fas fa-search"></i>
+    <span *ngIf="!manualStudentId.trim()">Start typing to search</span>
+    <span *ngIf="manualStudentId.trim()">No assigned interns found</span>
+  </div>
+  
+  <!-- Selected intern -->
+  <div class="manual-search-item" *ngIf="selectedManualStudent">
+    <img [src]="selectedManualStudent.profile_photo_id
+                ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
+                  + selectedManualStudent.profile_photo_id + '/view?project=' + PROJECT_ID
+                : 'https://ui-avatars.com/api/?name=' + selectedManualStudent.first_name + '+'
+                  + selectedManualStudent.last_name + '&background=2563eb&color=fff&size=64'"
+         class="manual-search-pic" alt="">
+    <div class="manual-search-info">
+      <span class="manual-search-name">
+        {{ selectedManualStudent.first_name }} {{ selectedManualStudent.last_name }}
+      </span>
+      <span class="manual-search-id">{{ selectedManualStudent.student_id }}</span>
+    </div>
+    <span class="manual-tap-hint">selected ✓</span>
+  </div>
+
+
 
           <!-- Search results -->
-          <div class="manual-search-item"
-               *ngFor="let s of manualSearchResults"
-               (click)="selectManualStudent(s)">
+           <div class="manual-search-item"
+       *ngFor="let s of manualSearchResults"
+       (click)="selectManualStudent(s)">
             <img [src]="s.profile_photo_id
                         ? ENDPOINT + '/storage/buckets/' + BUCKET_ID + '/files/'
                           + s.profile_photo_id + '/view?project=' + PROJECT_ID
